@@ -181,6 +181,7 @@
             mkdir -p $out/bin
             ln -s $out/opt/cmdstan/bin/stanc $out/bin/stanc
             ln -s $out/opt/cmdstan/bin/stansummary $out/bin/stansummary
+            ln -s $out/opt/cmdstan/bin/diagnose $out/bin/diagnose
             cat > $out/bin/stan <<EOF
             #! ${pkgs.runtimeShell}
             make -C $out/opt/cmdstan "\$(realpath "\$1")"

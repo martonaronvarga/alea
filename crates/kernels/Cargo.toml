@@ -7,8 +7,21 @@ edition = "2024"
 rand = "0.10.0"
 faer = { version = "0.24", optional = true }
 cblas = { version = "0.4", optional = true }
+ffi = { path = "../ffi" }
 thiserror = "2.0.18"
 anyhow = "1.0.102"
+tracing = "0.1.44"
+approx = "0.5.1"
+libc = "0.2"
+cxx = "1.0"
+once_cell = "1.21.4"
+
+[build-dependencies]
+cxx-build = "1.0"
+
+[dev-dependencies]
+criterion = "0.5"
+pprof = { version = "0.15", features = ["flamegraph", "criterion"] }
 
 [features]
 default = []
@@ -17,3 +30,7 @@ openblas = ["dep:cblas"]
 faer = ["dep:faer"]
 std-autodiff = []
 parallel = []
+
+[[bench]]
+name = "wiener7"
+harness = false

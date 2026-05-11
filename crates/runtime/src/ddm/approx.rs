@@ -1,9 +1,11 @@
-/// Approximation layer for likelihood amortization.
-///
-/// This stays separate from the exact distribution so that grids,
-/// splines, or neural surrogates remain optional and orthogonal to the
-/// statistical semantics.
-use crate::dist::wiener::{Boundary, WienerParams};
+use kernels::buffer::OwnedBuffer;
+use kernels::dist::wiener::WienerObservation;
+use kernels::dist::wiener::{Boundary, Wiener4Params};
+// Approximation layer for likelihood amortization.
+//
+// This stays separate from the exact distribution so that grids,
+// splines, or neural surrogates remain optional and orthogonal to the
+// statistical semantics.
 
 #[derive(Debug, Clone, Copy)]
 pub struct GridSpec {
@@ -29,10 +31,10 @@ impl GridSpec {
 
 /// Scalar linear spline, useful as a placeholder for precomputed likelihood
 /// tables or cheap interpolation.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct LinearSpline1D {
-    pub grid: OwnedBuffer,
-    pub values: OwnedBuffer,
+    pub grid: Vec<f64>,
+    pub values: Vec<f64>,
 }
 
 impl LinearSpline1D {
@@ -86,11 +88,15 @@ pub enum ApproximationMode {
 
 pub trait LikelihoodApproximation {
     fn mode(&self) -> ApproximationMode;
-    fn fit(&mut self, data: &[WienerObservation], params: &[WienerParams]);
-    fn log_pdf(&self, obs: &WienerObservation, params: &WienerParams) -> f64;
+    fn fit(&mut self, data: &[WienerObservation], params: &[Wiener4Params]);
+    fn log_pdf(&self, obs: &WienerObservation, params: &Wiener4Params) -> f64;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
+struct WienerSeriesConfig {
+    // todo: TODO,
+}
+#[derive(Debug)]
 pub struct WienerGridApproximation {
     pub mode: ApproximationMode,
     pub config: WienerSeriesConfig,
@@ -129,12 +135,12 @@ impl LikelihoodApproximation for WienerGridApproximation {
     }
 
     #[inline]
-    fn fit(&mut self, _data: &[WienerObservation], _params: &[WienerParams]) {
+    fn fit(&mut self, _data: &[WienerObservation], _params: &[Wiener4Params]) {
         self.mode = ApproximationMode::Grid;
     }
 
     #[inline]
-    fn log_pdf(&self, _obs: &WienerObservation, _params: &WienerParams) -> f64 {
+    fn log_pdf(&self, _obs: &WienerObservation, _params: &Wiener4Params) -> f64 {
         f64::NAN
     }
 }

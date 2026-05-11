@@ -12,7 +12,7 @@ use kernels::metric::{CholeskyFactor, DenseMetric, IdentityMetric, Metric};
 use kernels::state::State;
 use runtime::mcmc::rwmh::{Rwmh, RwmhConfig};
 
-const DIMS: &[usize] = &[32, 64, 128, 256, 512, 1024];
+const DIMS: &[usize; 6] = &[32, 64, 128, 256, 512, 1024];
 
 fn base_config(dim: usize) -> RwmhConfig {
     let step_size = 2.38 / (dim as f64).sqrt();

@@ -31,7 +31,7 @@ pub trait LogProbState {
     fn set_log_prob(&mut self, value: f64);
 
     #[inline]
-    fn initialize_log_prob<D: LogDensity>(&mut self, density: &D) {
+    fn initialize_log_prob<D: LogDensity<Point = [f64]>>(&mut self, density: &D) {
         self.set_log_prob(density.log_prob(self.position()));
     }
 }
@@ -46,7 +46,10 @@ pub trait GradientState: LogProbState {
         F: FnOnce(&[f64], &mut [f64]) -> T;
 
     #[inline]
-    fn initialize_gradient<D: GradLogDensity>(&mut self, density: &D) {
+    fn initialize_gradient<D: GradLogDensity<Point = [f64], Gradient = [f64]>>(
+        &mut self,
+        density: &D,
+    ) {
         self.with_position_and_gradient_mut(|position, gradient| {
             debug_assert_eq!(position.len(), gradient.len());
             density.grad_log_prob(position, gradient);

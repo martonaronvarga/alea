@@ -1,4 +1,4 @@
-use crate::density::{GradLogDensity, LogDensity};
+use crate::density::LogDensity;
 
 pub trait MeasurableSpace {}
 
@@ -23,8 +23,9 @@ trait Sampleable {
 /// maps parameters and data to a log density or log likelihood
 pub trait Family {
     type Params;
-    type Data: ?Sized;
+    type Data;
 
+    /// .
     fn log_prob(params: &Self::Params, data: &Self::Data) -> f64;
 }
 
@@ -33,20 +34,30 @@ pub struct WithParams<F: Family> {
     pub params: F::Params,
 }
 
+impl<F: Family> WithParams<F> {
+    pub fn new(family: F, params: F::Params) -> Self {
+        Self { family, params }
+    }
+}
+
 pub struct Target<F, D> {
     pub family: F,
     pub data: D,
 }
 
+impl<F, D> Target<F, D> {
+    pub fn new(family: F, data: D) -> Self {
+        Self { family, data }
+    }
+}
+
 impl<F, D> LogDensity for Target<F, D>
 where
-    F: Family<Data = [D]>,
+    F: Family<Data = D>,
 {
     type Point = F::Params;
-
     fn log_prob(&self, theta: &Self::Point) -> f64 {
-        // Accumulate log_prob over the dataset
-        self.data.iter().map(|d| F::log_prob(theta, d)).sum()
+        F::log_prob(theta, &self.data)
     }
 }
 

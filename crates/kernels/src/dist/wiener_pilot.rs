@@ -2,9 +2,10 @@ use crate::density::{FusedLogDensity, GradLogDensity};
 use crate::dist::traits::{Family, Parameter, Target};
 use crate::error::{ProbError, Result};
 use ffi::{hcubature_into, Bounds, ErrorNorm, Options};
-use std::f64::consts::{LN_2, PI, TAU};
+use std::f64::consts::{PI, TAU};
 
-const LOG_PI: f64 = 1.1447298858494001741434273513531_f64;
+const LOG_PI: f64 = PI.ln();
+const LN_2: f64 = f64::LN_2;
 const PI_SQ: f64 = PI * PI;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1192,8 +1193,7 @@ impl Wiener7 {
                     } else {
                         let mut val_sw = [0.0f64; 1];
                         let mut err_sw = [0.0f64; 1];
-                        let tmp = &[tau_max];
-                        let bt = Bounds::new(&[0.0], tmp);
+                        let bt = Bounds::new(&[0.0], &[tau_max]);
                         let sw_integrand = |x_tau: &[f64], fv: &mut [f64]| -> i32 {
                             let tau_i = params.tau + params.s_tau * x_tau[0];
                             let low = params.beta - params.s_beta / 2.0;

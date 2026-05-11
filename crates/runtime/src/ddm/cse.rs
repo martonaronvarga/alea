@@ -1,5 +1,4 @@
-use crate::ddm::model::ParameterMap;
-use crate::dist::wiener::WienerParams;
+use kernels::dist::wiener::Wiener4Params;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Congruency {

@@ -8,6 +8,7 @@ use kernels::{
     state::LogProbState,
 };
 use rand::{Rng, RngExt};
+use tracing::{debug, span, Level};
 
 const DELTA_TARGET: f64 = 0.234;
 const GAMMA: f64 = 0.05;
@@ -297,7 +298,10 @@ where
             self.dual_avg = None;
         }
 
-        for _ in 0..self.config.n_warmup {
+        let warmup_span = span!(Level::DEBUG, "rwmh_warmup", n_warmup = self.config.n_warmup);
+        let _enter = warmup_span.enter();
+
+        for i in 0..self.config.n_warmup {
             let (accepted, accept_prob) = self.step_impl(state, target, rng);
 
             self.total_warmup += 1;
@@ -305,6 +309,15 @@ where
 
             if let Some(step_size) = self.dual_avg.as_mut().map(|da| da.update(accept_prob)) {
                 self.config.step_size = step_size;
+            }
+
+            if i > 0 && i % 100 == 0 {
+                debug!(
+                    step = i,
+                    accept_rate = self.warmup_acceptance_rate(),
+                    step_size = self.config.step_size,
+                    "Warmup progress"
+                );
             }
         }
 

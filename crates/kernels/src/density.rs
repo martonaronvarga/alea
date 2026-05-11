@@ -1,16 +1,16 @@
 pub trait LogDensity {
-    type Point;
-    fn log_prob(&self, x: &Self::Point) -> f64;
+    type Point: ?Sized;
+    /// .
+    fn log_prob<'a>(&'a self, x: &'a Self::Point) -> f64;
 }
 
 pub trait GradLogDensity: LogDensity {
-    type Gradient;
-    fn grad_log_prob(&self, x: &Self::Point, grad: &mut Self::Gradient);
+    type Gradient: ?Sized;
+    fn grad_log_prob<'a>(&'a self, x: &'a Self::Point, grad: &mut Self::Gradient);
 }
 
 pub trait FusedLogDensity: GradLogDensity {
-    type Gradient;
-    fn log_prob_and_grad(&self, x: &Self::Point, grad: &mut Self::Gradient) -> f64;
+    fn log_prob_and_grad<'a>(&'a self, x: &'a Self::Point, grad: &mut Self::Gradient) -> f64;
 }
 
 pub trait HessianLogDensity: GradLogDensity {

@@ -122,7 +122,11 @@ where
             );
             proposal.set_log_prob(state.log_prob());
 
-            for _ in 0..self.config.n_leapfrog {
+            trace!(
+                n_leapfrog = self.config.n_leapfrog,
+                "Startig leapfrog integration"
+            );
+            for i in 0..self.config.n_leapfrog {
                 leapfrog_step(
                     &self.metric,
                     self.config.step_size,
@@ -134,6 +138,9 @@ where
 
             let proposal_lp = target.log_prob(proposal.position());
             proposal.set_log_prob(proposal_lp);
+            if !proposal_lp.is_finite() {
+                debug!("Divergence encountered: proposal log_prob is not finite");
+            }
             -proposal.log_prob()
                 + Self::kinetic_energy_with(
                     &self.metric,
@@ -144,6 +151,14 @@ where
 
         let accept_prob = (current_h - proposal_h).min(0.0).exp();
         let accepted = rng.random::<f64>() < accept_prob;
+
+        trace!(
+            current_h = current_h,
+            proposal_h = proposal_h,
+            accept_prob = accept_prob,
+            accepted = accepted,
+            "HMC step completed"
+        );
 
         if accepted {
             state

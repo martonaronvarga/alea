@@ -1,5 +1,6 @@
 use kernels::kernel::Kernel;
 use rand::Rng;
+use tracing::{info, instrument, trace};
 
 pub struct Chain<K, D>
 where
@@ -29,13 +30,26 @@ where
         self.kernel.step(&mut self.state, &self.target, rng)
     }
 }
+
+#[instrument(skip(chain, rng), fields(n_steps = n_steps), level = "info")]
 pub fn run_chain<K, D, R>(chain: &mut Chain<K, D>, n_steps: usize, rng: &mut R)
 where
     K: Kernel<D>,
     R: Rng + ?Sized,
 {
+    info!("Initializing MCMC chain");
     chain.initialize();
-    for _ in 0..n_steps {
-        chain.step(rng);
+
+    info!("Starting sampling loop");
+    let mut accepted_count = 0;
+
+    for i in 0..n_steps {
+        let accepted = chain.step(rng);
+        if accepted {
+            accepted_count += 1;
+        }
+        trace!(step = i, accepted = accepted, "Completed MCMC step");
     }
+    let acceptance_rate = accepted_count as f64 / n_steps as f64;
+    info!(acceptance_rate = acceptance_rate, "Finished sampling");
 }

@@ -1,5 +1,5 @@
 use std::{
-    alloc::{alloc, alloc_zeroed, dealloc, realloc, Layout},
+    alloc::{alloc, alloc_zeroed, dealloc, Layout},
     mem,
     ops::{Deref, DerefMut},
     ptr::{self, NonNull},
@@ -11,6 +11,13 @@ pub struct OwnedBuffer<T = f64> {
     len: usize,
     capacity: usize,
     layout: Option<Layout>,
+}
+
+impl<T: Clone> OwnedBuffer<T> {
+    #[inline]
+    pub fn fill(&mut self, value: T) {
+        self.as_mut_slice().fill(value);
+    }
 }
 
 impl<T> OwnedBuffer<T> {
@@ -163,19 +170,6 @@ impl<T> OwnedBuffer<T> {
     pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, T> {
         self.as_mut_slice().iter_mut()
     }
-
-    #[inline]
-    pub fn fill(&mut self, value: T) {
-        self.as_mut_slice().fill(value);
-    }
-
-    #[inline]
-    pub fn clear(&mut self) {
-        unsafe {
-            self.len = 0;
-            self.drop();
-        }
-    }
 }
 
 impl<T> Drop for OwnedBuffer<T> {
@@ -188,7 +182,7 @@ impl<T> Drop for OwnedBuffer<T> {
     }
 }
 
-impl Deref for OwnedBuffer {
+impl<T> Deref for OwnedBuffer<T> {
     type Target = [T];
 
     #[inline]
@@ -197,21 +191,21 @@ impl Deref for OwnedBuffer {
     }
 }
 
-impl DerefMut for OwnedBuffer {
+impl<T> DerefMut for OwnedBuffer<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_slice()
     }
 }
 
-impl AsRef<[T]> for OwnedBuffer {
+impl<T> AsRef<[T]> for OwnedBuffer<T> {
     #[inline]
     fn as_ref(&self) -> &[T] {
         self.as_slice()
     }
 }
 
-impl AsMut<[T]> for OwnedBuffer {
+impl<T> AsMut<[T]> for OwnedBuffer<T> {
     #[inline]
     fn as_mut(&mut self) -> &mut [T] {
         self.as_mut_slice()
@@ -219,15 +213,15 @@ impl AsMut<[T]> for OwnedBuffer {
 }
 
 #[derive(Clone, Copy)]
-pub struct VecView<'a> {
+pub struct VecView<'a, T> {
     data: &'a [T],
 }
 
-pub struct VecViewMut<'a> {
+pub struct VecViewMut<'a, T> {
     data: &'a mut [T],
 }
 
-impl<'a> VecView<'a> {
+impl<'a, T> VecView<'a, T> {
     #[inline]
     pub fn as_slice(&self) -> &[T] {
         self.data
@@ -244,7 +238,7 @@ impl<'a> VecView<'a> {
     }
 }
 
-impl<'a> VecViewMut<'a> {
+impl<'a, T> VecViewMut<'a, T> {
     #[inline]
     pub fn as_slice(&self) -> &[T] {
         self.data

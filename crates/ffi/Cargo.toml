@@ -2,12 +2,16 @@
 name = "ffi"
 version = "0.1.0"
 edition = "2024"
+build = "build.rs"
+authors = ["Marton Aron Varga <martonaronvarga@gmail.com>"]
 
 [dependencies]
-kernels = {path = "../kernels"}
+libc = "0.2"
 cxx = "1.0"
 
 [build-dependencies]
+cc = "1.2"
+bindgen = "0.72"
 cxx-build = "1.0"
 
 

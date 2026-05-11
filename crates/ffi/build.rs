@@ -1,18 +1,23 @@
-use cxx_build::CFG;
 fn main() {
-    CFG.include_prefix = "";
+    compile_cubature_static();
+}
 
-    cxx_build::bridge("src/lib.rs")
-        .include("cpp/include")
-        .file("cpp/src/gaussian.cpp")
-        .flag_if_supported("-std=c++23")
-        .flag("-Wno-system-headers")
-        .flag_if_supported("-Wno-unused-parameter")
-        .flag("-O3")
-        .flag("-march=native")
-        .compile("matmod_cpp");
+fn compile_cubature_static() {
+    println!("cargo:include=vendor/cubature");
+    let mut build = cc::Build::new();
+    build
+        .cargo_metadata(true)
+        .include("vendor/cubature")
+        .file("vendor/cubature/hcubature.c")
+        .file("vendor/cubature/pcubature.c");
 
-    println!("cargo:rerun-if-changed=src/lib.rs");
-    println!("cargo:rerun-if-changed=cpp/src/gaussian.cpp");
-    println!("cargo:rerun-if-changed=cpp/include/gaussian.hpp");
+    build.flag_if_supported("-std=c11");
+    build.warnings(true);
+
+    build.compile("cubature");
+
+    // cc emits the link-search and -l: we just ensure libm on Unix for math functions
+    if cfg!(not(target_os = "windows")) {
+        println!("cargo:rustc-link-lib=m");
+    }
 }

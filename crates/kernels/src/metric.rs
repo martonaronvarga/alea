@@ -435,7 +435,7 @@ pub struct DiagonalMetric {
 
 impl DiagonalMetric {
     pub fn new(mut diag: OwnedBuffer) -> Self {
-        for d in diag.iter_mut() {
+        for mut d in diag.iter_mut() {
             *d = positive_finite(*d);
         }
 

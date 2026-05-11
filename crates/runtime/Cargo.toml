@@ -8,6 +8,7 @@ build = "build.rs"
 kernels = { path = "../kernels" }
 rand = "0.10.1"
 ffi = { path = "../ffi" }
+tracing = "0.1.44"
 
 [dev-dependencies]
 criterion = "0.5"
