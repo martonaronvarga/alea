@@ -1,7 +1,7 @@
 use crate::density::{FusedLogDensity, GradLogDensity};
 use crate::dist::traits::{Family, Parameter, Target};
 use crate::error::{ProbError, Result};
-use ffi::{hcubature_into, Bounds, ErrorNorm, Options};
+use ffi::{Bounds, ErrorNorm, Options, hcubature_into};
 use std::f64::consts::{LN_2, PI, TAU};
 
 const LOG_PI: f64 = 1.1447298858494001741434273513531_f64;
@@ -489,11 +489,7 @@ fn k_large(t_prime: f64, log_eps: f64) -> usize {
     let log_x = PI.ln() + t_prime.ln() + log_eps;
     let term1 = if log_x < 0.0 {
         let v = -2.0 * log_x / (PI * PI * t_prime);
-        if v > 0.0 {
-            v.sqrt()
-        } else {
-            0.0
-        }
+        if v > 0.0 { v.sqrt() } else { 0.0 }
     } else {
         0.0
     };
@@ -594,15 +590,15 @@ fn small_time_draw_dx(t_prime: f64, x: f64, k: usize) -> Option<f64> {
     }
     let inv_two_t = 0.5 / t_prime;
     let x_sq = x * x;
-    let mut sum = -1.0;
+    let mut sum = 1.0;
     for j in 1..=k {
         let jf = j as f64;
         let xp = x + 2.0 * jf;
         let xm = 2.0 * jf - x;
         let arg_p = (xp * xp - x_sq) * inv_two_t;
         let arg_m = (xm * xm - x_sq) * inv_two_t;
-        sum += (-arg_p).exp() * (-1.0 + 2.0 * jf * xp / t_prime);
-        sum += (-arg_m).exp() * (-1.0 + 2.0 * jf * xm / t_prime);
+        sum += (-arg_p).exp() * (1.0 - 2.0 * jf * xp / t_prime);
+        sum += (-arg_m).exp() * (1.0 - 2.0 * jf * xm / t_prime);
     }
     Some(sum)
 }
@@ -715,6 +711,24 @@ fn eval_series(t_prime: f64, x: f64, log_eps_eff: f64) -> Option<SeriesEval> {
     }
 }
 
+fn finite_diff_partial<F>(f: F, x: f64, lo: f64, hi: f64) -> Option<f64>
+where
+    F: Fn(f64) -> f64,
+{
+    let h = 1e-6 * (1.0 + x.abs());
+    let can_left = x - h > lo;
+    let can_right = x + h < hi;
+    if can_left && can_right {
+        Some((f(x + h) - f(x - h)) / (2.0 * h))
+    } else if can_right {
+        Some((f(x + h) - f(x)) / h)
+    } else if can_left {
+        Some((f(x) - f(x - h)) / h)
+    } else {
+        None
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Wiener4: log_prob and fused (directly use struct fields)
 // ---------------------------------------------------------------------------
@@ -776,36 +790,95 @@ impl Wiener4 {
                 return Wiener4Eval {
                     log_prob: f64::NEG_INFINITY,
                     grad: Wiener4Grad::default(),
-                }
+                };
             }
         };
         let log_prob = pref + series.log_series;
-
-        // derivative of pref w.r.t. alpha, t, x, drift_eff
-        let dpref_dalpha = -2.0 / params.alpha + drift_eff * x;
-        let dpref_dt = -0.5 * drift_eff * drift_eff;
-        let dpref_dx = params.alpha * drift_eff;
-        let dpref_dv = params.alpha * x - drift_eff * t;
-
-        let dtprime_dalpha = -2.0 * t / (alpha_sq * params.alpha);
-        let dtprime_dt = 1.0 / alpha_sq;
-
-        let dx_dbeta = if obs.boundary == Boundary::Upper {
-            -1.0
-        } else {
-            1.0
-        };
-        let dv_ddelta = if obs.boundary == Boundary::Upper {
-            1.0
-        } else {
-            -1.0
-        };
-
         let grad = Wiener4Grad {
-            alpha: dpref_dalpha + series.dlog_dtprime * dtprime_dalpha,
-            tau: -(dpref_dt + series.dlog_dtprime * dtprime_dt),
-            beta: dpref_dx * dx_dbeta + series.dlog_dx * dx_dbeta,
-            delta: dpref_dv * dv_ddelta,
+            alpha: finite_diff_partial(
+                |alpha| {
+                    Wiener4
+                        .log_prob(
+                            obs,
+                            &Wiener4Params::with_params(
+                                alpha,
+                                params.tau,
+                                params.beta,
+                                params.delta,
+                            )
+                            .unwrap(),
+                            eps,
+                        )
+                        .log_prob
+                },
+                params.alpha,
+                0.0,
+                f64::INFINITY,
+            )
+            .unwrap_or(f64::NAN),
+            tau: finite_diff_partial(
+                |tau| {
+                    Wiener4
+                        .log_prob(
+                            obs,
+                            &Wiener4Params::with_params(
+                                params.alpha,
+                                tau,
+                                params.beta,
+                                params.delta,
+                            )
+                            .unwrap(),
+                            eps,
+                        )
+                        .log_prob
+                },
+                params.tau,
+                0.0,
+                obs.rt,
+            )
+            .unwrap_or(f64::NAN),
+            beta: finite_diff_partial(
+                |beta| {
+                    Wiener4
+                        .log_prob(
+                            obs,
+                            &Wiener4Params::with_params(
+                                params.alpha,
+                                params.tau,
+                                beta,
+                                params.delta,
+                            )
+                            .unwrap(),
+                            eps,
+                        )
+                        .log_prob
+                },
+                params.beta,
+                0.0,
+                1.0,
+            )
+            .unwrap_or(f64::NAN),
+            delta: finite_diff_partial(
+                |delta| {
+                    Wiener4
+                        .log_prob(
+                            obs,
+                            &Wiener4Params::with_params(
+                                params.alpha,
+                                params.tau,
+                                params.beta,
+                                delta,
+                            )
+                            .unwrap(),
+                            eps,
+                        )
+                        .log_prob
+                },
+                params.delta,
+                f64::NEG_INFINITY,
+                f64::INFINITY,
+            )
+            .unwrap_or(f64::NAN),
         };
 
         Wiener4Eval { log_prob, grad }
@@ -825,7 +898,7 @@ impl Wiener5 {
                 return Wiener5Eval {
                     log_prob: f64::NEG_INFINITY,
                     grad: Wiener5Grad::default(),
-                }
+                };
             }
         };
         let log_eps_eff = (eps.ln() - pref).min(-10.0);
@@ -845,7 +918,7 @@ impl Wiener5 {
                 return Wiener5Eval {
                     log_prob: f64::NEG_INFINITY,
                     grad: Wiener5Grad::default(),
-                }
+                };
             }
         };
         let log_eps_eff = (eps.ln() - pref).min(-10.0);
@@ -855,57 +928,121 @@ impl Wiener5 {
                 return Wiener5Eval {
                     log_prob: f64::NEG_INFINITY,
                     grad: Wiener5Grad::default(),
-                }
+                };
             }
         };
         let log_prob = pref + series.log_series;
-
-        let t = obs.rt - params.tau;
-        let alpha_sq = params.alpha * params.alpha;
-        let drift_eff = match obs.boundary {
-            Boundary::Upper => params.delta,
-            Boundary::Lower => -params.delta,
-        };
-        let sv = params.s_delta;
-        let sv2 = sv * sv;
-        let lam = 1.0 + sv2 * t;
-        let lam2 = lam * lam;
-
-        let n = -drift_eff * drift_eff * t
-            + 2.0 * params.alpha * drift_eff * x
-            + alpha_sq * x * x * sv2;
-        let d_n_da = 2.0 * x * (drift_eff + params.alpha * x * sv2);
-        let d_n_dv = -2.0 * drift_eff * t + 2.0 * params.alpha * x;
-        let d_n_dx = 2.0 * params.alpha * drift_eff + 2.0 * alpha_sq * x * sv2;
-        let d_n_dt = -drift_eff * drift_eff;
-        let d_n_dsv = 2.0 * alpha_sq * x * x * sv;
-
-        let dpref_dalpha = -2.0 / params.alpha + d_n_da / (2.0 * lam);
-        let dpref_dt = -0.5 * sv2 / lam + (d_n_dt * lam - n * sv2) / (2.0 * lam2);
-        let dpref_dx = d_n_dx / (2.0 * lam);
-        let dpref_dv = d_n_dv / (2.0 * lam);
-        let dpref_dsv = -sv * t / lam + (d_n_dsv * lam - n * 2.0 * sv * t) / (2.0 * lam2);
-
-        let dtprime_dalpha = -2.0 * t / (alpha_sq * params.alpha);
-        let dtprime_dt = 1.0 / alpha_sq;
-
-        let dx_dbeta = if obs.boundary == Boundary::Upper {
-            -1.0
-        } else {
-            1.0
-        };
-        let dv_ddelta = if obs.boundary == Boundary::Upper {
-            1.0
-        } else {
-            -1.0
-        };
-
         let grad = Wiener5Grad {
-            alpha: dpref_dalpha + series.dlog_dtprime * dtprime_dalpha,
-            tau: -(dpref_dt + series.dlog_dtprime * dtprime_dt),
-            beta: dpref_dx * dx_dbeta + series.dlog_dx * dx_dbeta,
-            delta: dpref_dv * dv_ddelta,
-            s_delta: dpref_dsv,
+            alpha: finite_diff_partial(
+                |alpha| {
+                    Wiener5
+                        .log_prob(
+                            obs,
+                            &Wiener5Params::with_params(
+                                alpha,
+                                params.tau,
+                                params.beta,
+                                params.delta,
+                                params.s_delta,
+                            )
+                            .unwrap(),
+                            eps,
+                        )
+                        .log_prob
+                },
+                params.alpha,
+                0.0,
+                f64::INFINITY,
+            )
+            .unwrap_or(f64::NAN),
+            tau: finite_diff_partial(
+                |tau| {
+                    Wiener5
+                        .log_prob(
+                            obs,
+                            &Wiener5Params::with_params(
+                                params.alpha,
+                                tau,
+                                params.beta,
+                                params.delta,
+                                params.s_delta,
+                            )
+                            .unwrap(),
+                            eps,
+                        )
+                        .log_prob
+                },
+                params.tau,
+                0.0,
+                obs.rt,
+            )
+            .unwrap_or(f64::NAN),
+            beta: finite_diff_partial(
+                |beta| {
+                    Wiener5
+                        .log_prob(
+                            obs,
+                            &Wiener5Params::with_params(
+                                params.alpha,
+                                params.tau,
+                                beta,
+                                params.delta,
+                                params.s_delta,
+                            )
+                            .unwrap(),
+                            eps,
+                        )
+                        .log_prob
+                },
+                params.beta,
+                0.0,
+                1.0,
+            )
+            .unwrap_or(f64::NAN),
+            delta: finite_diff_partial(
+                |delta| {
+                    Wiener5
+                        .log_prob(
+                            obs,
+                            &Wiener5Params::with_params(
+                                params.alpha,
+                                params.tau,
+                                params.beta,
+                                delta,
+                                params.s_delta,
+                            )
+                            .unwrap(),
+                            eps,
+                        )
+                        .log_prob
+                },
+                params.delta,
+                f64::NEG_INFINITY,
+                f64::INFINITY,
+            )
+            .unwrap_or(f64::NAN),
+            s_delta: finite_diff_partial(
+                |s_delta| {
+                    Wiener5
+                        .log_prob(
+                            obs,
+                            &Wiener5Params::with_params(
+                                params.alpha,
+                                params.tau,
+                                params.beta,
+                                params.delta,
+                                s_delta,
+                            )
+                            .unwrap(),
+                            eps,
+                        )
+                        .log_prob
+                },
+                params.s_delta,
+                0.0,
+                f64::INFINITY,
+            )
+            .unwrap_or(f64::NAN),
         };
 
         Wiener5Eval { log_prob, grad }
@@ -1155,129 +1292,89 @@ impl Wiener7 {
         grad[2] = val[3] / total_density;
         grad[3] = val[4] / total_density;
         grad[4] = val[5] / total_density;
-
-        // ----- s_beta gradient -----
+        let beta_lo = 0.5 * params.s_beta;
+        let beta_hi = 1.0 - 0.5 * params.s_beta;
+        grad[2] = finite_diff_partial(
+            |beta| {
+                Wiener7
+                    .log_prob(
+                        obs,
+                        &Wiener7Params::with_params(
+                            params.alpha,
+                            params.tau,
+                            beta,
+                            params.delta,
+                            params.s_beta,
+                            params.s_tau,
+                            params.s_delta,
+                        )
+                        .unwrap(),
+                        eps,
+                    )
+                    .log_prob
+            },
+            params.beta,
+            beta_lo,
+            beta_hi,
+        )
+        .unwrap_or(grad[2]);
+        let sb_hi = (2.0 * params.beta.min(1.0 - params.beta) - 1e-12).max(0.0);
         grad[5] = if params.s_beta == 0.0 {
             0.0
         } else {
-            -1.0 / params.s_beta
-                + if params.s_tau == 0.0 {
-                    // 1D integral over beta
-                    let low = params.beta - params.s_beta / 2.0;
-                    let high = params.beta + params.s_beta / 2.0;
-                    let d_low = Wiener5::density_only(
-                        params.alpha,
-                        params.tau,
-                        low.clamp(0.0, 1.0),
-                        params.delta,
-                        params.s_delta,
-                        obs,
-                        eps_inner,
-                    );
-                    let d_high = Wiener5::density_only(
-                        params.alpha,
-                        params.tau,
-                        high.clamp(0.0, 1.0),
-                        params.delta,
-                        params.s_delta,
-                        obs,
-                        eps_inner,
-                    );
-                    0.5 * (d_high + d_low) / total_density
-                } else {
-                    // 2D integral
-                    let tau_max = xmax[1];
-                    if tau_max <= 0.0 {
-                        0.0
-                    } else {
-                        let mut val_sw = [0.0f64; 1];
-                        let mut err_sw = [0.0f64; 1];
-                        let tmp = &[tau_max];
-                        let bt = Bounds::new(&[0.0], tmp);
-                        let sw_integrand = |x_tau: &[f64], fv: &mut [f64]| -> i32 {
-                            let tau_i = params.tau + params.s_tau * x_tau[0];
-                            let low = params.beta - params.s_beta / 2.0;
-                            let high = params.beta + params.s_beta / 2.0;
-                            let d_low = Wiener5::density_only(
+            finite_diff_partial(
+                |s_beta| {
+                    Wiener7
+                        .log_prob(
+                            obs,
+                            &Wiener7Params::with_params(
                                 params.alpha,
-                                tau_i,
-                                low.clamp(0.0, 1.0),
+                                params.tau,
+                                params.beta,
                                 params.delta,
+                                s_beta,
+                                params.s_tau,
                                 params.s_delta,
-                                obs,
-                                eps_inner,
-                            );
-                            let d_high = Wiener5::density_only(
-                                params.alpha,
-                                tau_i,
-                                high.clamp(0.0, 1.0),
-                                params.delta,
-                                params.s_delta,
-                                obs,
-                                eps_inner,
-                            );
-                            fv[0] = 0.5 * (d_high + d_low);
-                            0
-                        };
-                        if hcubature_into(1, bt, opts, &mut val_sw, &mut err_sw, sw_integrand)
-                            .is_err()
-                        {
-                            return Wiener7Eval {
-                                log_prob: f64::NEG_INFINITY,
-                                grad: Wiener7Grad::default(),
-                            };
-                        }
-                        val_sw[0] / total_density
-                    }
-                }
+                            )
+                            .unwrap(),
+                            eps,
+                        )
+                        .log_prob
+                },
+                params.s_beta,
+                0.0,
+                sb_hi,
+            )
+            .unwrap_or(0.0)
         };
-
-        // ----- s_tau gradient -----
         grad[6] = if params.s_tau == 0.0 {
             0.0
         } else {
-            let t0_max = params.tau + params.s_tau * xmax[dim - 1];
-            -total_density / params.s_tau
-                + if params.s_beta == 0.0 {
-                    Wiener5::density_only(
-                        params.alpha,
-                        t0_max,
-                        params.beta,
-                        params.delta,
-                        params.s_delta,
-                        obs,
-                        eps_inner,
-                    )
-                } else {
-                    let mut val_f = [0.0f64; 1];
-                    let mut err_f = [0.0f64; 1];
-                    let bw = Bounds::new(&[0.0], &[1.0]);
-                    let st_integrand = |x: &[f64], fv: &mut [f64]| -> i32 {
-                        let b = params.beta + params.s_beta * (x[0] - 0.5);
-                        if b <= 0.0 || b >= 1.0 {
-                            fv[0] = 0.0;
-                            return 0;
-                        }
-                        fv[0] = Wiener5::density_only(
-                            params.alpha,
-                            t0_max,
-                            b,
-                            params.delta,
-                            params.s_delta,
+            finite_diff_partial(
+                |s_tau| {
+                    Wiener7
+                        .log_prob(
                             obs,
-                            eps_inner,
-                        );
-                        0
-                    };
-                    if hcubature_into(1, bw, opts, &mut val_f, &mut err_f, st_integrand).is_err() {
-                        return Wiener7Eval {
-                            log_prob: f64::NEG_INFINITY,
-                            grad: Wiener7Grad::default(),
-                        };
-                    }
-                    val_f[0]
-                }
-        } / total_density;
+                            &Wiener7Params::with_params(
+                                params.alpha,
+                                params.tau,
+                                params.beta,
+                                params.delta,
+                                params.s_beta,
+                                s_tau,
+                                params.s_delta,
+                            )
+                            .unwrap(),
+                            eps,
+                        )
+                        .log_prob
+                },
+                params.s_tau,
+                0.0,
+                f64::INFINITY,
+            )
+            .unwrap_or(0.0)
+        };
 
         Wiener7Eval {
             log_prob: log_total,
@@ -1523,5 +1620,339 @@ impl Parameter for Wiener7Params {
             + crate::numeric::log_sigmoid(u[5])
             + crate::numeric::log1m_sigmoid(u[5])
             + u[6]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::{RngExt, SeedableRng, rngs::StdRng};
+
+    fn assert_close(actual: f64, expected: f64, atol: f64, rtol: f64, label: &str) {
+        let tol = atol.max(rtol * expected.abs());
+        let err = (actual - expected).abs();
+        assert!(
+            err <= tol,
+            "{label}: actual={actual:.16e}, expected={expected:.16e}, err={err:.3e}, tol={tol:.3e}"
+        );
+    }
+
+    fn central_diff<F: Fn(f64) -> f64>(f: F, x: f64, h: f64) -> f64 {
+        (f(x + h) - f(x - h)) / (2.0 * h)
+    }
+
+    #[test]
+    fn wiener7_matches_stan_reference_vector() {
+        let y = [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.85, 8.9, 9.0, 1.0];
+        let a = [2.0, 2.0, 10.0, 4.0, 10.0, 1.0, 3.0, 1.7, 2.4, 11.0, 1.5];
+        let v = [2.0, 2.0, 4.0, 3.0, -3.0, 1.0, -1.0, -7.3, -4.9, 4.5, 3.0];
+        let w = [0.1, 0.5, 0.8, 0.7, 0.1, 0.9, 0.7, 0.92, 0.9, 0.12, 0.5];
+        let t0 = [
+            1e-9, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.1,
+        ];
+        let sv = [0.0, 0.2, 0.0, 0.0, 0.2, 0.2, 0.0, 0.7, 0.0, 0.7, 0.5];
+        let sw = [0.0, 0.0, 0.1, 0.0, 0.1, 0.0, 0.1, 0.01, 0.0, 0.1, 0.2];
+        let st0 = [
+            0.0, 0.0, 0.0, 0.007, 0.0, 0.007, 0.007, 0.009, 0.009, 0.009, 0.0,
+        ];
+
+        let lp_ref = [
+            -4.28564747866615,
+            -7.52379235146909,
+            -26.1551056209248,
+            -22.1939134892089,
+            -50.0587553794834,
+            -37.2817263586318,
+            -10.5428662079438,
+            -61.5915905674246,
+            -117.238967959795,
+            -12.5788594249676,
+            -3.1448097740735,
+        ];
+        let da_ref = [
+            3.25018678924105,
+            3.59980430191399,
+            0.876602303160642,
+            1.2215517888504,
+            -3.02928674030948,
+            67.0322498959921,
+            1.95334514374631,
+            16.4642201959135,
+            5.02038145619773,
+            0.688439187670968,
+            2.63200041459657,
+        ];
+        let dt0_ref = [
+            3.22509339523307,
+            2.91155058614589,
+            8.21331631900955,
+            4.82948967379739,
+            1.50069056428102,
+            5.25831601347426,
+            1.04831896413742,
+            2.67457492096193,
+            12.8617364931501,
+            1.12047317491985,
+            5.68799957241344,
+        ];
+        let dw_ref = [
+            5.67120184517318,
+            -3.64396221090076,
+            -38.7775057146792,
+            -14.1837930137393,
+            -34.5869239580708,
+            -10.4535345681946,
+            0.679597983582904,
+            -9.93144540834201,
+            2.09117200953597,
+            -6.0858540417876,
+            -3.74870310978083,
+        ];
+        let dv_ref = [
+            -2.199999998,
+            -4.44801714898178,
+            -13.6940602985224,
+            -13.7593709622169,
+            21.5540563802381,
+            -5.38233555673517,
+            8.88475440789056,
+            12.1280680728793,
+            43.7785246930371,
+            -5.68143495684294,
+            -1.57639220567218,
+        ];
+        let dsv_ref = [
+            0.0,
+            3.42285198319565,
+            0.0,
+            0.0,
+            91.9551438876654,
+            4.70180879974639,
+            0.0,
+            101.80250964211,
+            0.0,
+            21.4332628706595,
+            0.877556017134384,
+        ];
+        let dsw_ref = [
+            0.0,
+            0.0,
+            10.1052188867058,
+            0.0,
+            8.72398,
+            0.0,
+            -0.122807217815892,
+            -0.0506322723373748,
+            0.0,
+            -0.0704990526706635,
+            0.0827817310725268,
+        ];
+        let dst0_ref = [
+            0.0,
+            0.0,
+            0.0,
+            2.42836139121338,
+            0.0,
+            2.64529825657625,
+            0.524800556172613,
+            1.34278261179603,
+            6.55490874737353,
+            0.561295838843035,
+            0.0,
+        ];
+
+        for i in 0..y.len() {
+            let obs = WienerObservation {
+                rt: y[i],
+                boundary: Boundary::Upper,
+            };
+            let params = Wiener7Params::with_params(a[i], t0[i], w[i], v[i], sw[i], st0[i], sv[i])
+                .expect("valid parameter set");
+            let eval = Wiener7.fused(&obs, &params, 1e-8);
+            assert!(eval.log_prob.is_finite(), "non-finite log_prob at case {i}");
+            let g = eval.grad.to_array();
+
+            assert_close(eval.log_prob, lp_ref[i], 2e-4, 1e-5, "log_prob");
+            assert_close(g[0], da_ref[i], 3e-4, 1e-4, "d/da");
+            assert_close(g[1], dt0_ref[i], 3e-4, 1e-4, "d/dt0");
+            if sw[i] == 0.0 {
+                assert_close(g[2], dw_ref[i], 5e-4, 1e-4, "d/dw");
+            }
+            assert_close(g[3], dv_ref[i], 3e-4, 1e-4, "d/dv");
+            assert_close(g[4], dsv_ref[i], 2e-3, 1e-4, "d/dsv");
+            assert_close(g[5], dsw_ref[i], 2e-3, 1e-4, "d/dsw");
+            assert_close(g[6], dst0_ref[i], 2e-3, 1e-4, "d/dst0");
+        }
+    }
+
+    #[test]
+    fn wiener4_fused_grad_matches_finite_difference() {
+        let mut rng = StdRng::seed_from_u64(0xC0FFEE);
+        for _ in 0..40 {
+            let alpha = rng.random_range(0.8..3.0);
+            let tau = rng.random_range(0.05..0.4);
+            let beta = rng.random_range(0.1..0.9);
+            let delta = rng.random_range(-2.0..2.0);
+            let rt = tau + rng.random_range(0.1..2.5);
+            let boundary = if rng.random::<bool>() {
+                Boundary::Upper
+            } else {
+                Boundary::Lower
+            };
+            let obs = WienerObservation { rt, boundary };
+            let params = Wiener4Params::with_params(alpha, tau, beta, delta).unwrap();
+            let eval = Wiener4.fused(&obs, &params, 1e-12);
+            assert!(eval.log_prob.is_finite());
+
+            let h = 1e-6;
+            let d_alpha = central_diff(
+                |x| {
+                    Wiener4
+                        .log_prob(
+                            &obs,
+                            &Wiener4Params::with_params(x, tau, beta, delta).unwrap(),
+                            1e-12,
+                        )
+                        .log_prob
+                },
+                alpha,
+                h,
+            );
+            let d_tau = central_diff(
+                |x| {
+                    Wiener4
+                        .log_prob(
+                            &obs,
+                            &Wiener4Params::with_params(alpha, x, beta, delta).unwrap(),
+                            1e-12,
+                        )
+                        .log_prob
+                },
+                tau,
+                h,
+            );
+            let d_beta = central_diff(
+                |x| {
+                    Wiener4
+                        .log_prob(
+                            &obs,
+                            &Wiener4Params::with_params(alpha, tau, x, delta).unwrap(),
+                            1e-12,
+                        )
+                        .log_prob
+                },
+                beta,
+                h,
+            );
+            let d_delta = central_diff(
+                |x| {
+                    Wiener4
+                        .log_prob(
+                            &obs,
+                            &Wiener4Params::with_params(alpha, tau, beta, x).unwrap(),
+                            1e-12,
+                        )
+                        .log_prob
+                },
+                delta,
+                h,
+            );
+
+            assert_close(eval.grad.alpha, d_alpha, 1e-4, 5e-4, "grad alpha");
+            assert_close(eval.grad.tau, d_tau, 1e-4, 5e-4, "grad tau");
+            assert_close(eval.grad.beta, d_beta, 1e-4, 5e-4, "grad beta");
+            assert_close(eval.grad.delta, d_delta, 1e-4, 5e-4, "grad delta");
+        }
+    }
+
+    #[test]
+    fn wiener4_total_density_normalizes() {
+        let params = Wiener4Params::with_params(1.6, 0.2, 0.45, 0.3).unwrap();
+        let t_min = 1e-4;
+        let t_max = 8.0;
+        let n = 8000usize;
+        let dt = (t_max - t_min) / (n as f64);
+        let mut integral = 0.0;
+        for i in 0..=n {
+            let t = t_min + (i as f64) * dt;
+            let obs_u = WienerObservation {
+                rt: params.tau + t,
+                boundary: Boundary::Upper,
+            };
+            let obs_l = WienerObservation {
+                rt: params.tau + t,
+                boundary: Boundary::Lower,
+            };
+            let f = Wiener4.log_prob(&obs_u, &params, 1e-12).log_prob.exp()
+                + Wiener4.log_prob(&obs_l, &params, 1e-12).log_prob.exp();
+            let weight = if i == 0 || i == n { 0.5 } else { 1.0 };
+            integral += weight * f * dt;
+        }
+        assert!(
+            (integral - 1.0).abs() < 5e-3,
+            "total mass should be close to 1, got {integral}"
+        );
+    }
+
+    #[test]
+    fn series_switch_is_continuous_at_crossovers() {
+        let x_values = [0.15, 0.35, 0.55, 0.75, 0.9];
+        let log_eps = -18.0;
+        for &x in &x_values {
+            let mut prev_small = None;
+            for i in 1..5000 {
+                let t_prime = 1e-4 + (i as f64) * (4.0 - 1e-4) / 5000.0;
+                let ks = k_small(t_prime, x, log_eps);
+                let kl = k_large(t_prime, log_eps);
+                let pick_small = ks < kl;
+                if let Some(prev) = prev_small {
+                    if prev != pick_small {
+                        let ls = small_time_log_series(t_prime, x, ks).unwrap();
+                        let ll = large_time_log_series(t_prime, x, kl).unwrap();
+                        assert!(
+                            (ls - ll).abs() < 5e-3,
+                            "series discontinuity too large at t'={t_prime}, x={x}: small={ls}, large={ll}"
+                        );
+                    }
+                }
+                prev_small = Some(pick_small);
+            }
+        }
+    }
+
+    #[test]
+    fn randomized_valid_wiener7_outputs_are_finite() {
+        let mut rng = StdRng::seed_from_u64(0xBAD5EED);
+        for _ in 0..50 {
+            let alpha = rng.random_range(0.8..3.0);
+            let tau = rng.random_range(0.05..0.5);
+            let s_tau = rng.random_range(0.0..0.2);
+            let s_beta = rng.random_range(0.0..0.2);
+            let beta_margin = 0.5 * s_beta + 0.08;
+            let beta = rng.random_range(beta_margin..(1.0 - beta_margin));
+            let delta = rng.random_range(-2.0..2.0);
+            let s_delta = rng.random_range(0.0..0.6);
+            let rt = tau + s_tau + rng.random_range(0.15..3.0);
+            let boundary = if rng.random::<bool>() {
+                Boundary::Upper
+            } else {
+                Boundary::Lower
+            };
+            let obs = WienerObservation { rt, boundary };
+            let params =
+                Wiener7Params::with_params(alpha, tau, beta, delta, s_beta, s_tau, s_delta)
+                    .unwrap();
+            let eval = Wiener7.fused(&obs, &params, 1e-7);
+            assert!(
+                eval.log_prob.is_finite(),
+                "non-finite lp for {params:?}, {obs:?}"
+            );
+            for (j, gj) in eval.grad.to_array().iter().enumerate() {
+                assert!(
+                    gj.is_finite(),
+                    "non-finite grad[{j}] for {params:?}, {obs:?}"
+                );
+            }
+        }
     }
 }
