@@ -1,5 +1,5 @@
-#![feature(more_float_constants)]
-#![feature(portable_simd)]
+#![cfg_attr(feature = "simd", feature(portable_simd))]
+#![cfg_attr(feature = "branch-hints", feature(likely_unlikely))]
 #![cfg_attr(feature = "std-autodiff", feature(autodiff))]
 pub mod buffer;
 pub mod density;

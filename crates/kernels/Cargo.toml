@@ -26,6 +26,7 @@ pprof = { version = "0.15", features = ["flamegraph", "criterion"] }
 [features]
 default = []
 simd = []
+branch-hints = []
 openblas = ["dep:cblas"]
 faer = ["dep:faer"]
 std-autodiff = []

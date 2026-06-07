@@ -11,6 +11,9 @@ pub enum ProbError {
     #[error("Numerical instability encountered: {0}")]
     NumericalError(String),
 
+    #[error("Point outside distribution support: {0}")]
+    OutOfSupport(String),
+
     #[error("Dimension mismatch: expected {expected}, got {actual}")]
     DimensionMismatch { expected: usize, actual: usize },
 
