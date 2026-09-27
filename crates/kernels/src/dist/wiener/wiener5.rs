@@ -1,5 +1,4 @@
 use super::*;
-use crate::buffer::OwnedBuffer;
 use crate::density::LogDensity;
 
 #[cold]
@@ -27,7 +26,11 @@ fn add_wiener5_direct_parts(
     params: &Wiener5Params,
     eps: f64,
 ) {
-    add_wiener5_eval(total_lp, grad, Wiener5.fused_from_parts(rt, boundary, params, eps));
+    add_wiener5_eval(
+        total_lp,
+        grad,
+        Wiener5.fused_from_parts(rt, boundary, params, eps),
+    );
 }
 
 const W5_SMALL_K2: u8 = 0;
@@ -46,11 +49,7 @@ struct BucketedWiener5Core {
 }
 
 #[inline]
-fn push_wiener5_bucket(
-    scratch: &mut OwnedBuffer<BucketedWiener5Core>,
-    len: &mut usize,
-    core: Wiener5Core,
-) {
+fn push_wiener5_bucket(scratch: &mut Vec<BucketedWiener5Core>, core: Wiener5Core) {
     let base = core.base;
     let ks_density = Wiener4::k_s(base.t_prime, base.w_eff, base.log_eps_eff);
     let kl_density = Wiener4::k_l(base.t_prime, base.log_eps_eff);
@@ -70,8 +69,7 @@ fn push_wiener5_bucket(
         }
     };
 
-    scratch.as_mut_slice()[*len] = BucketedWiener5Core { core, bucket, k };
-    *len += 1;
+    scratch.push(BucketedWiener5Core { core, bucket, k });
 }
 
 #[inline]
@@ -427,10 +425,14 @@ impl LogDensity for Target<Wiener5, WienerObservations> {
             .upper_rt()
             .iter()
             .map(|&rt| {
-                Wiener5.fused_from_parts(rt, Boundary::Upper, p, eps).log_prob
+                Wiener5
+                    .fused_from_parts(rt, Boundary::Upper, p, eps)
+                    .log_prob
             })
             .chain(self.data.lower_rt().iter().map(|&rt| {
-                Wiener5.fused_from_parts(rt, Boundary::Lower, p, eps).log_prob
+                Wiener5
+                    .fused_from_parts(rt, Boundary::Lower, p, eps)
+                    .log_prob
             }))
             .sum()
     }
@@ -476,8 +478,7 @@ impl FusedLogDensity for Target<Wiener5, WienerObservations> {
         }
 
         let mut failed = false;
-        let mut scratch = OwnedBuffer::<BucketedWiener5Core>::new(self.data.len());
-        let mut scratch_len = 0;
+        let mut scratch = Vec::<BucketedWiener5Core>::with_capacity(self.data.len());
 
         for (&rt, boundary) in self
             .data
@@ -487,20 +488,68 @@ impl FusedLogDensity for Target<Wiener5, WienerObservations> {
             .chain(self.data.lower_rt().iter().map(|rt| (rt, Boundary::Lower)))
         {
             match Wiener5.core_from_parts(rt, boundary, p, eps) {
-                Ok(core) => push_wiener5_bucket(&mut scratch, &mut scratch_len, core),
+                Ok(core) => push_wiener5_bucket(&mut scratch, core),
                 Err(_) => failed = true,
             }
         }
-        scratch.truncate(scratch_len);
         let scratch = scratch.as_slice();
 
-        add_wiener5_scratch_bucket(&mut total_lp, grad, scratch, W5_SMALL_K2, SeriesBranch::SmallTime, Some(2));
-        add_wiener5_scratch_bucket(&mut total_lp, grad, scratch, W5_SMALL_K3, SeriesBranch::SmallTime, Some(3));
-        add_wiener5_scratch_bucket(&mut total_lp, grad, scratch, W5_SMALL_OTHER, SeriesBranch::SmallTime, None);
-        add_wiener5_scratch_bucket(&mut total_lp, grad, scratch, W5_LARGE_K4, SeriesBranch::LargeTime, Some(4));
-        add_wiener5_scratch_bucket(&mut total_lp, grad, scratch, W5_LARGE_K5, SeriesBranch::LargeTime, Some(5));
-        add_wiener5_scratch_bucket(&mut total_lp, grad, scratch, W5_LARGE_K6, SeriesBranch::LargeTime, Some(6));
-        add_wiener5_scratch_bucket(&mut total_lp, grad, scratch, W5_LARGE_OTHER, SeriesBranch::LargeTime, None);
+        add_wiener5_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W5_SMALL_K2,
+            SeriesBranch::SmallTime,
+            Some(2),
+        );
+        add_wiener5_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W5_SMALL_K3,
+            SeriesBranch::SmallTime,
+            Some(3),
+        );
+        add_wiener5_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W5_SMALL_OTHER,
+            SeriesBranch::SmallTime,
+            None,
+        );
+        add_wiener5_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W5_LARGE_K4,
+            SeriesBranch::LargeTime,
+            Some(4),
+        );
+        add_wiener5_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W5_LARGE_K5,
+            SeriesBranch::LargeTime,
+            Some(5),
+        );
+        add_wiener5_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W5_LARGE_K6,
+            SeriesBranch::LargeTime,
+            Some(6),
+        );
+        add_wiener5_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W5_LARGE_OTHER,
+            SeriesBranch::LargeTime,
+            None,
+        );
 
         if unlikely(failed) {
             grad.fill(f64::NAN);
@@ -518,4 +567,3 @@ impl GradLogDensity for Target<Wiener5, WienerObservations> {
         self.log_prob_and_grad(x, grad);
     }
 }
-

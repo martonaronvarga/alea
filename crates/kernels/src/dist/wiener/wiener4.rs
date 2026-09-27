@@ -1,5 +1,4 @@
 use super::*;
-use crate::buffer::OwnedBuffer;
 use crate::density::LogDensity;
 
 #[cold]
@@ -29,7 +28,11 @@ fn add_wiener4_direct_parts(
     params: &Wiener4Params,
     eps: f64,
 ) {
-    add_wiener4_eval(total_lp, grad, Wiener4.fused_from_parts(rt, boundary, params, eps));
+    add_wiener4_eval(
+        total_lp,
+        grad,
+        Wiener4.fused_from_parts(rt, boundary, params, eps),
+    );
 }
 
 const W4_SMALL_K2: u8 = 0;
@@ -48,11 +51,7 @@ struct BucketedWiener4Core {
 }
 
 #[inline]
-fn push_wiener4_bucket(
-    scratch: &mut OwnedBuffer<BucketedWiener4Core>,
-    len: &mut usize,
-    core: Wiener4Core,
-) {
+fn push_wiener4_bucket(scratch: &mut Vec<BucketedWiener4Core>, core: Wiener4Core) {
     let ks_density = Wiener4::k_s(core.t_prime, core.w_eff, core.log_eps_eff);
     let kl_density = Wiener4::k_l(core.t_prime, core.log_eps_eff);
     let (bucket, k) = if unlikely(2 * ks_density <= kl_density) {
@@ -71,8 +70,7 @@ fn push_wiener4_bucket(
         }
     };
 
-    scratch.as_mut_slice()[*len] = BucketedWiener4Core { core, bucket, k };
-    *len += 1;
+    scratch.push(BucketedWiener4Core { core, bucket, k });
 }
 
 #[inline]
@@ -85,9 +83,7 @@ fn add_wiener4_scratch_bucket(
     fixed_k: Option<usize>,
 ) {
     #[cfg(feature = "simd")]
-    if branch == SeriesBranch::LargeTime
-        && matches!(fixed_k, Some(4 | 5 | 6))
-    {
+    if branch == SeriesBranch::LargeTime && matches!(fixed_k, Some(4..=6)) {
         add_wiener4_large_simd_bucket(total_lp, grad, scratch, bucket, fixed_k.unwrap());
         return;
     }
@@ -234,6 +230,7 @@ impl Wiener4 {
         series::k_s(t_prime, w, log_eps)
     }
 
+    #[cfg(test)]
     #[inline]
     pub(crate) fn k_s_grad_w(t_prime: f64, w: f64, log_eps: f64) -> usize {
         series::k_s_grad_w(t_prime, w, log_eps)
@@ -244,29 +241,38 @@ impl Wiener4 {
         series::k_l_grad_w(t_prime, log_eps)
     }
 
+    #[cfg(test)]
     #[inline]
     pub(crate) fn small_time_log_series(t_prime: f64, w: f64, k: usize) -> Option<f64> {
         series::small_time_log_series(t_prime, w, k)
     }
 
+    #[cfg(test)]
     #[inline]
     pub(crate) fn small_time_series_raw(t_prime: f64, w: f64, k: usize) -> Option<f64> {
         series::small_time_series_raw(t_prime, w, k)
     }
 
     /// d/dw of the scaled raw small-time sum R_s(t', w).
+    #[cfg(test)]
     #[inline]
     pub(crate) fn small_time_dr_dw(t_prime: f64, w: f64, k: usize) -> Option<f64> {
         series::small_time_dr_dw(t_prime, w, k)
     }
 
+    #[cfg(test)]
     #[inline]
     pub(crate) fn large_time_log_series(t_prime: f64, w: f64, k: usize) -> Option<f64> {
         series::large_time_log_series(t_prime, w, k)
     }
 
+    #[cfg(test)]
     #[inline]
-    pub(super) fn large_time_scaled_accum(t_prime: f64, w: f64, k: usize) -> Option<(f64, f64, f64)> {
+    pub(super) fn large_time_scaled_accum(
+        t_prime: f64,
+        w: f64,
+        k: usize,
+    ) -> Option<(f64, f64, f64)> {
         series::large_time_scaled_accum(t_prime, w, k)
     }
 
@@ -570,10 +576,14 @@ impl LogDensity for Target<Wiener4, WienerObservations> {
             .upper_rt()
             .iter()
             .map(|&rt| {
-                Wiener4.fused_from_parts(rt, Boundary::Upper, p, eps).log_prob
+                Wiener4
+                    .fused_from_parts(rt, Boundary::Upper, p, eps)
+                    .log_prob
             })
             .chain(self.data.lower_rt().iter().map(|&rt| {
-                Wiener4.fused_from_parts(rt, Boundary::Lower, p, eps).log_prob
+                Wiener4
+                    .fused_from_parts(rt, Boundary::Lower, p, eps)
+                    .log_prob
             }))
             .sum()
     }
@@ -596,8 +606,7 @@ impl FusedLogDensity for Target<Wiener4, WienerObservations> {
         }
 
         let mut failed = false;
-        let mut scratch = OwnedBuffer::<BucketedWiener4Core>::new(self.data.len());
-        let mut scratch_len = 0;
+        let mut scratch = Vec::<BucketedWiener4Core>::with_capacity(self.data.len());
 
         for (&rt, boundary) in self
             .data
@@ -607,20 +616,68 @@ impl FusedLogDensity for Target<Wiener4, WienerObservations> {
             .chain(self.data.lower_rt().iter().map(|rt| (rt, Boundary::Lower)))
         {
             match Wiener4.core_from_parts(rt, boundary, p, eps) {
-                Ok(core) => push_wiener4_bucket(&mut scratch, &mut scratch_len, core),
+                Ok(core) => push_wiener4_bucket(&mut scratch, core),
                 Err(_) => failed = true,
             }
         }
-        scratch.truncate(scratch_len);
         let scratch = scratch.as_slice();
 
-        add_wiener4_scratch_bucket(&mut total_lp, grad, scratch, W4_SMALL_K2, SeriesBranch::SmallTime, Some(2));
-        add_wiener4_scratch_bucket(&mut total_lp, grad, scratch, W4_SMALL_K3, SeriesBranch::SmallTime, Some(3));
-        add_wiener4_scratch_bucket(&mut total_lp, grad, scratch, W4_SMALL_OTHER, SeriesBranch::SmallTime, None);
-        add_wiener4_scratch_bucket(&mut total_lp, grad, scratch, W4_LARGE_K4, SeriesBranch::LargeTime, Some(4));
-        add_wiener4_scratch_bucket(&mut total_lp, grad, scratch, W4_LARGE_K5, SeriesBranch::LargeTime, Some(5));
-        add_wiener4_scratch_bucket(&mut total_lp, grad, scratch, W4_LARGE_K6, SeriesBranch::LargeTime, Some(6));
-        add_wiener4_scratch_bucket(&mut total_lp, grad, scratch, W4_LARGE_OTHER, SeriesBranch::LargeTime, None);
+        add_wiener4_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W4_SMALL_K2,
+            SeriesBranch::SmallTime,
+            Some(2),
+        );
+        add_wiener4_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W4_SMALL_K3,
+            SeriesBranch::SmallTime,
+            Some(3),
+        );
+        add_wiener4_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W4_SMALL_OTHER,
+            SeriesBranch::SmallTime,
+            None,
+        );
+        add_wiener4_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W4_LARGE_K4,
+            SeriesBranch::LargeTime,
+            Some(4),
+        );
+        add_wiener4_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W4_LARGE_K5,
+            SeriesBranch::LargeTime,
+            Some(5),
+        );
+        add_wiener4_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W4_LARGE_K6,
+            SeriesBranch::LargeTime,
+            Some(6),
+        );
+        add_wiener4_scratch_bucket(
+            &mut total_lp,
+            grad,
+            scratch,
+            W4_LARGE_OTHER,
+            SeriesBranch::LargeTime,
+            None,
+        );
 
         if unlikely(failed) {
             grad.fill(f64::NAN);
@@ -638,4 +695,3 @@ impl GradLogDensity for Target<Wiener4, WienerObservations> {
         self.log_prob_and_grad(x, grad);
     }
 }
-

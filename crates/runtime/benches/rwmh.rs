@@ -1,15 +1,15 @@
 use std::time::{Duration, Instant};
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use rand::rngs::Xoshiro256PlusPlus;
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use rand::SeedableRng;
+use rand::rngs::SmallRng;
 
-use ffi::gaussian::Gaussian;
 use kernels::buffer::OwnedBuffer;
 use kernels::density::LogDensity;
+use kernels::dist::Gaussian;
 use kernels::kernel::Kernel;
 use kernels::metric::{CholeskyFactor, DenseMetric, IdentityMetric, Metric};
-use kernels::state::State;
+use kernels::state::ChainState;
 use runtime::mcmc::rwmh::{Rwmh, RwmhConfig};
 
 const DIMS: &[usize; 6] = &[32, 64, 128, 256, 512, 1024];
@@ -40,7 +40,7 @@ fn make_dense_factor(dim: usize) -> CholeskyFactor {
         }
     }
 
-    CholeskyFactor::new_lower(dim, chol)
+    CholeskyFactor::new_lower(dim, chol).expect("generated unit-diagonal lower factor is valid")
 }
 
 fn bench_rwmh_isotropic(c: &mut Criterion) {
@@ -51,9 +51,9 @@ fn bench_rwmh_isotropic(c: &mut Criterion) {
             b.iter_custom(|iters| {
                 let density = Gaussian;
                 let mut kernel = Rwmh::isotropic(base_config(dim), dim);
-                let mut state = State::new(dim);
+                let mut state = ChainState::new(dim);
                 state.position.fill(0.1);
-                let mut rng = Xoshiro256PlusPlus::seed_from_u64(42 ^ dim as u64);
+                let mut rng = SmallRng::seed_from_u64(42 ^ dim as u64);
 
                 let start = Instant::now();
                 for _ in 0..iters {
@@ -77,9 +77,9 @@ fn bench_rwmh_dense(c: &mut Criterion) {
                 let density = Gaussian;
                 let factor = make_dense_factor(dim);
                 let mut kernel = Rwmh::dense_cholesky(base_config(dim), factor);
-                let mut state = State::new(dim);
+                let mut state = ChainState::new(dim);
                 state.position.fill(0.1);
-                let mut rng = Xoshiro256PlusPlus::seed_from_u64(1337 ^ dim as u64);
+                let mut rng = SmallRng::seed_from_u64(1337 ^ dim as u64);
 
                 let start = Instant::now();
                 for _ in 0..iters {
@@ -100,6 +100,7 @@ fn bench_step_no_density(c: &mut Criterion) {
 
     struct Dummy;
     impl LogDensity for Dummy {
+        type Point = [f64];
         #[inline(always)]
         fn log_prob(&self, _: &[f64]) -> f64 {
             0.0
@@ -111,9 +112,9 @@ fn bench_step_no_density(c: &mut Criterion) {
 
     c.bench_function("rwmh/isotropic/step_no_density", |b| {
         b.iter_custom(|iters| {
-            let mut state = State::new(dim);
+            let mut state = ChainState::new(dim);
             state.position.fill(0.1);
-            let mut rng = Xoshiro256PlusPlus::seed_from_u64(42);
+            let mut rng = SmallRng::seed_from_u64(42);
 
             let start = Instant::now();
             for _ in 0..iters {

@@ -1,5 +1,7 @@
 {pkgs, ...}: {
   projectRootFile = "flake.nix";
+  # Preserve archived experiments and vendored submodule bytes verbatim.
+  settings.global.excludes = ["archive/**" "crates/ffi/vendor/**"];
 
   programs = {
     alejandra.enable = true;

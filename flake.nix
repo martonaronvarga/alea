@@ -1,5 +1,5 @@
 {
-  description = "CSE Modeling Environment";
+  description = "Alea: reproducible Rust, SIMD, Miri, and experimental autodiff environments";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
@@ -23,111 +23,41 @@
   }:
     flake-parts.lib.mkFlake {inherit inputs;} {
       systems = flake-utils.lib.defaultSystems;
-      imports = [];
       perSystem = {system, ...}: let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [];
-        };
+        pkgs = import nixpkgs {inherit system;};
+        # cblas 0.4 uses i32 BLAS integers, not the nixpkgs ILP64 default.
+        openblasLp64 = pkgs.openblas.override {blas64 = false;};
         stdenv = pkgs.clangStdenv;
-        llvmPkgs = pkgs.llvmPackages_22;
-
-        enzyme = pkgs.callPackage ./nix/enzyme.nix {
-          inherit llvmPkgs;
-        };
-
         fenixPkgs = fenix.packages.${system};
-        bootstrapRust = fenixPkgs.latest.toolchain;
+        # flake.lock pins both the date and hashes of every component. Do not use
+        # "latest": its components can come from different compiler dates.
+        components = ["cargo" "rustc" "rust-std" "rust-src" "rustfmt" "clippy" "rust-analyzer"];
+        stableToolchain = fenixPkgs.stable.withComponents components;
+        rustToolchain = fenixPkgs.complete.withComponents (components ++ ["miri" "llvm-tools"]);
 
+        # Source-built Enzyme experiments are deliberately outside normal shells.
+        # These outputs are not a validated autodiff backend (roadmap M2).
+        llvmPkgs = pkgs.llvmPackages_22;
+        enzyme = pkgs.callPackage ./nix/enzyme.nix {inherit llvmPkgs;};
         rustToolchainBase = pkgs.callPackage ./nix/rust-toolchain.nix {
-          version = "nightly";
-          bootstrap = bootstrapRust;
-          inherit pkgs llvmPkgs;
+          inherit llvmPkgs;
+          bootstrap = rustToolchain;
         };
-        rustToolchain = pkgs.symlinkJoin {
-          name = "rust-toolchain";
-          paths = [
-            rustToolchainBase
-          ];
+        autodiffToolchain = pkgs.symlinkJoin {
+          name = "alea-rust-autodiff-experimental";
+          paths = [rustToolchainBase];
           nativeBuildInputs = [pkgs.makeWrapper];
-
           postBuild = ''
-            libdir=$out/lib/rustlib/x86_64-unknown-linux-gnu/lib/
-            mkdir -p $libdir
-            ln -s ${enzyme}/lib/LLVMEnzyme-22.so $libdir/
-            if [ -f ${enzyme}/lib/LLVMEnzyme-22.so ]; then
-              ln -s ${enzyme}/lib/LLVMEnzyme-22.so $libdir/libEnzyme-22.so
-            else
-              echo "WARNING: Could not find LLVMEnzyme-22.so in ${enzyme}/lib/"
-            fi
-
-            # wrapProgram $out/bin/rustc --add-flags "--sysroot $out"
-            wrapProgram $out/bin/cargo --set RUSTC $out/bin/rustc
-            # wrapProgram $out/bin/rustdoc --add-flags "--sysroot $out"
-
-            # # Wrap the compiler binaries to enforce the custom sysroot
-            # makeWrapper ${rustToolchainBase}/bin/rustc $out/bin/rustc --add-flags "--sysroot $out"
-            # makeWrapper ${rustToolchainBase}/bin/rustdoc $out/bin/rustdoc --add-flags "--sysroot $out"
-
-            # # Wrap cargo
-            # makeWrapper ${rustToolchainBase}/bin/cargo $out/bin/cargo \
-            #   --set RUSTC "$out/bin/rustc" \
-            #   --set RUSTDOC "$out/bin/rustdoc" \
-            #   --set RUSTC_WORKSPACE_WRAPPER "$out/bin/rustc"
-
-            # # # Wrap cargo-clippy to ensure it inherits our settings
-            # makeWrapper ${rustToolchainBase}/bin/clippy-driver $out/bin/clippy-driver \
-            #   --set CARGO "$out/bin/cargo" \
-            #   --set RUSTC "$out/bin/rustc" \
-            #   --set RUSTDOC "$out/bin/rustdoc"
-
-
-            # makeWrapper ${rustToolchainBase}/bin/cargo-miri $out/bin/cargo-miri \
-            #   --set CARGO "$out/bin/cargo" \
-            #   --set RUSTC "$out/bin/rustc" \
-            #   --set RUSTDOC "$out/bin/rustdoc"
-
+            test -f ${enzyme}/lib/LLVMEnzyme-22.so
+            libdir="$out/lib/rustlib/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/lib"
+            mkdir -p "$libdir"
+            ln -s ${enzyme}/lib/LLVMEnzyme-22.so "$libdir/LLVMEnzyme-22.so"
+            ln -s ${enzyme}/lib/LLVMEnzyme-22.so "$libdir/libEnzyme-22.so"
+            wrapProgram "$out/bin/rustc" --add-flags "--sysroot $out"
+            wrapProgram "$out/bin/rustdoc" --add-flags "--sysroot $out"
+            wrapProgram "$out/bin/cargo" \
+              --set RUSTC "$out/bin/rustc" --set RUSTDOC "$out/bin/rustdoc"
           '';
-        };
-
-        coreBuild = with pkgs; [gcc cmake gnumake pkg-config clang clang-tools cppcheck clang-analyzer llvmPackages_22.libcxx llvmPackages_22.libunwind openssl openblas openmpi opencl-headers ocl-icd];
-        cppPkgs = with pkgs; [boost eigen fmt];
-        zigPkgs = with pkgs; [zig zls];
-        futharkPkgs = with pkgs; [futhark];
-
-        utilities = with pkgs; [
-          valgrind
-          lcov
-          ccache
-          bear
-          doxygen
-          perf
-          hotspot
-          gdb
-          lldb
-          cppcheck
-          massif-visualizer
-          hyperfine
-        ];
-
-        pythonEnv = pkgs.python3.withPackages (ps:
-          with ps; [
-            numpy
-            pandas
-            matplotlib
-            seaborn
-            pyarrow
-            torch
-          ]);
-
-        rEnv = pkgs.rWrapper.override {
-          packages = with pkgs.rPackages; [
-            tidyverse
-            lme4
-            lmerTest
-            brms
-            rmarkdown
-          ];
         };
 
         cmdStan = stdenv.mkDerivation rec {
@@ -192,7 +122,7 @@
           '';
 
           passthru.tests = {
-            test = stdenv.runCommandCC "cmdstan-test" {inherit (self) cmdStan;} ''
+            test = pkgs.runCommand "cmdstan-test" {nativeBuildInputs = [pkgs.python3 pkgs.gnumake stdenv.cc];} ''
               cp -R ${cmdStan}/opt/cmdstan cmdstan
               chmod -R +w cmdstan
               cd cmdstan
@@ -215,123 +145,113 @@
         };
 
         naersk-lib = pkgs.callPackage naersk {
-          rustc = rustToolchain;
-          cargo = rustToolchain;
+          rustc = stableToolchain;
+          cargo = stableToolchain;
         };
-
+        rustPackage = naersk-lib.buildPackage {
+          # naersk interpolates root while discovering manifests. Avoid copying
+          # this subdirectory to an unrealised store path in read-only evaluation
+          # (notably nix flake check --no-build).
+          root = builtins.toString ./crates;
+          src = pkgs.lib.cleanSource ./crates;
+          nativeBuildInputs = [pkgs.pkg-config];
+          buildInputs = [pkgs.openssl];
+          # No nonexistent ffi-backend feature, nightly flags, or global BLAS linking.
+        };
+        # Preserve the existing executable name for nix build / nix run users.
+        matmod = pkgs.runCommand "matmod" {nativeBuildInputs = [pkgs.makeWrapper];} ''
+          mkdir -p "$out/bin"
+          makeWrapper ${rustPackage}/bin/app "$out/bin/matmod" \
+            --set-default MATMOD_BACKEND dynamic
+        '';
         treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
 
-        rustPackage = naersk-lib.buildPackage {
-          src = ./crates;
-          cargoBuildOptions = opts:
-            opts
-            ++ [
-              "--features"
-              "ffi-backend"
-              "--config=build.rustflags=[\"-Zautodiff=Enable\"]"
-            ];
-          nativeBuildInputs = [
-            pkgs.pkg-config
-          ];
-          buildInputs = [
-            pkgs.openblas
-          ];
-          cargoEnv = {
-            "CXXFLAGS" = "-I${pkgs.eigen}/include/eigen3";
-            "OPENBLAS_NUM_THREADS" = "1";
-            "RUSTC_BOOTSTRAP" = "1";
-          };
-        };
-
-        matmod = stdenv.mkDerivation {
-          pname = "matmod";
-          version = "0.1";
-          dontUnpack = true;
-
-          nativeBuildInputs = [pkgs.makeWrapper];
-
-          installPhase = ''
-            mkdir -p $out/bin
-
-            makeWrapper ${rustPackage}/bin/app $out/bin/matmod \
-              --set-default MATMOD_BACKEND dynamic
-          '';
-        };
+        mkRustShell = toolchain: extra:
+          pkgs.mkShell ({
+              packages = [toolchain pkgs.pkg-config pkgs.cmake pkgs.eigen pkgs.openssl];
+              RUSTC = "${toolchain}/bin/rustc";
+              RUSTDOC = "${toolchain}/bin/rustdoc";
+              RUST_SRC_PATH = "${toolchain}/lib/rustlib/src/rust/library";
+              MIRI_LIB_SRC = "${toolchain}/lib/rustlib/src/rust/library";
+              OPENBLAS_NUM_THREADS = "1";
+              # No nested interactive shell, local symlink lookup, RUSTC_BOOTSTRAP,
+              # CPU-specific flags, or global LD_LIBRARY_PATH. --command works in CI.
+            }
+            // extra);
       in {
         packages = {
-          rustToolchain = rustToolchain;
-          cmdStan = cmdStan;
-          rustPackage = rustPackage;
+          inherit rustToolchain stableToolchain autodiffToolchain cmdStan rustPackage;
           default = matmod;
         };
-        apps.default = flake-utils.lib.mkApp {drv = self.packages.${system}.default;};
-
-        formatter = treefmtEval.config.build.wrapper;
-
-        checks = {
-          cmdStan-test = cmdStan.passthru.tests.test;
-          formatting = treefmtEval.config.build.check self;
+        apps.default = {
+          type = "app";
+          program = "${matmod}/bin/matmod";
+          meta.description = "Run the Alea experiment application";
         };
-
-        # lazy devshell
+        formatter = treefmtEval.config.build.wrapper;
+        checks = {
+          formatting = treefmtEval.config.build.check self;
+          toolchain = pkgs.runCommand "alea-toolchain-check" {nativeBuildInputs = [rustToolchain];} ''
+            rustc --version
+            cargo --version
+            cargo clippy --version
+            cargo miri --version
+            rustfmt --version
+            test -f ${rustToolchain}/lib/rustlib/src/rust/library/Cargo.toml
+            touch "$out"
+          '';
+        };
         devShells = {
-          default = pkgs.mkShell rec {
-            hardeningDisable = ["all"];
-            packages =
-              [pythonEnv rEnv]
-              ++ coreBuild
-              ++ zigPkgs
-              ++ cppPkgs
-              ++ futharkPkgs
-              ++ utilities;
-
-            shellHook = ''
-              echo "---------------------------------------"
-              echo "you are in the flake's default devshell"
-
-              export DCMAKE_EXPORT_COMPILE_COMMANDS=1
-
-              if [ -x "$PWD/.nix-rust/bin/rustc" ]; then
-                export PATH="$PWD/.nix-rust/bin:$PATH"
-                export RUSTFLAGS="-L${pkgs.openblas}/lib -lopenblas -C target-cpu=native -C target-feature=+avx2,+fma -C link-arg=-Wl,-rpath,${pkgs.gcc.cc.lib}/lib -C link-arg=-Wl,-rpath,$PWD/.nix-rust/lib -Zautodiff=Enable --sysroot $PWD/.nix-rust"
-                echo "local rust toolchain detected and loaded"
-              else
-                echo "rust toolchain is missing or not built"
-                echo "   run:  nix build .#rustToolchain -o .nix-rust"
-                echo "   then: exit and re-enter 'nix develop'"
-              fi
-
-              if [ -x "$PWD/.nix-cmdstan/bin/stanc" ]; then
-                export PATH="$PWD/.nix-cmdstan/bin:$PATH"
-                echo "local cmdStan detected and loaded"
-              else
-                echo "cmdStan is missing or not built."
-                echo "run:  nix build .#cmdStan -o .nix-cmdstan"
-              fi
-
-              echo "---------------------------------------"
-              exec zsh
-            '';
-
-            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath packages;
-            LLDB_DEBUGSERVER_PATH = "${pkgs.lldb}/bin/lldb-server";
-            CPLUS_INCLUDE_PATH = "crates/target/cxxbridge";
-
-            # RUSTFLAGS = [
-            #   "-L${pkgs.openblas}/lib"
-            #   "-lopenblas"
-            #   "-C target-cpu=native"
-            #   "-C target-feature=+avx2,+fma"
-            #   "-C link-arg=-Wl,-rpath,${pkgs.gcc.cc.lib}/lib"
-            #   "-C link-arg=-Wl,-rpath,${enzyme}/lib"
-            #   "-Zautodiff=Enable"
-            # ];
+          # Default: one pinned nightly with matching Clippy + Miri + rust-src.
+          default = mkRustShell rustToolchain {};
+          nightly = self.devShells.${system}.default;
+          stable = mkRustShell stableToolchain {};
+          blas = mkRustShell rustToolchain {
+            buildInputs = [openblasLp64];
+            # Fenix's upstream linker does not embed Nix library rpaths.
+            # Scope runtime lookup to this opt-in shell, never the default shell.
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [openblasLp64];
           };
-
-          full = pkgs.mkShell {
-            inputsFrom = [self.devShells.${system}.default];
-            packages = [rustToolchain cmdStan];
-            # RUSTFLAGS = "-L${pkgs.openblas}/lib -lopenblas -C target-cpu=native -C target-feature=+avx2,+fma -C link-arg=-Wl,-rpath,${pkgs.gcc.cc.lib}/lib -C link-arg=-Wl,-rpath,${rustToolchain}/lib -Zautodiff=Enable";
+          # This may build Rust/LLVM/Enzyme from source; opt in explicitly.
+          autodiff = mkRustShell autodiffToolchain {
+            RUSTFLAGS = "-Zautodiff=Enable -Clto=fat -Cembed-bitcode=yes";
+          };
+          full = mkRustShell rustToolchain {
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [openblasLp64];
+            packages =
+              [rustToolchain cmdStan openblasLp64]
+              ++ (with pkgs; [
+                pkg-config
+                cmake
+                clang
+                eigen
+                boost
+                fmt
+                openssl
+                openmpi
+                opencl-headers
+                ocl-icd
+                clang-tools
+                cppcheck
+                clang-analyzer
+                llvmPkgs.libcxx
+                llvmPkgs.libunwind
+                zig
+                zls
+                futhark
+                gdb
+                lldb
+                hyperfine
+                lcov
+                ccache
+                bear
+                doxygen
+              ])
+              ++ pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [valgrind perf hotspot massif-visualizer])
+              ++ [
+                (pkgs.python3.withPackages (ps: with ps; [numpy pandas matplotlib seaborn pyarrow torch]))
+                (pkgs.rWrapper.override {packages = with pkgs.rPackages; [tidyverse lme4 lmerTest brms rmarkdown];})
+              ];
           };
         };
       };

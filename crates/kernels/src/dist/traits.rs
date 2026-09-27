@@ -13,12 +13,6 @@ pub trait Distribution: Measure {
     fn log_prob(&self, x: &Self::Point) -> f64;
 }
 
-trait Sampleable {
-    type Sample;
-
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> Self::Sample;
-}
-
 /// Statistical model / parametric family:
 /// maps parameters and data to a log density or log likelihood
 pub trait Family {

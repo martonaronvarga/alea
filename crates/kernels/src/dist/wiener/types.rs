@@ -36,7 +36,8 @@ pub enum BatchStrategy {
 /// Structure-of-arrays storage for Wiener reaction-time observations.
 ///
 /// Upper and lower boundary hits are stored separately so batch likelihoods can
-/// avoid a branch in the hot loop and use contiguous aligned reaction-time data.
+/// avoid a branch in the hot loop and use contiguous reaction-time data. Each
+/// allocation has 64-byte base alignment; arbitrary subslices may be unaligned.
 #[derive(Debug)]
 pub struct WienerObservations {
     upper_rt: OwnedBuffer<f64>,
@@ -130,6 +131,7 @@ impl From<Vec<WienerObservation>> for WienerObservations {
 /// Wiener7 = Wiener5 + variance parameters for beta and tau
 /// Reference:
 /// <https://mc-stan.org/docs/functions-reference/positive_lower-bounded_distributions.html#wiener-first-passage-time-distribution>
+#[derive(Debug, Clone, Copy)]
 pub struct Wiener4;
 pub struct Wiener5;
 pub struct Wiener7;
@@ -225,7 +227,8 @@ impl WienerOptions {
             && !matches!(order, 1 | 5 | 7 | 15 | 25)
         {
             return Err(ProbError::InvalidParameters(
-                "fixed Gauss-Legendre quadrature order must be one of 1, 5, 7, 15, or 25".to_string(),
+                "fixed Gauss-Legendre quadrature order must be one of 1, 5, 7, 15, or 25"
+                    .to_string(),
             ));
         }
         Ok(self)
@@ -380,7 +383,6 @@ impl Wiener4Eval {
         self.grad.to_array()
     }
 }
-
 
 #[derive(Copy, Clone, Debug)]
 pub(super) struct Wiener4Core {
@@ -795,7 +797,6 @@ impl Wiener4Params {
     /// Returns [`ProbError::InvalidParameters`] if `alpha <= 0`, `tau < 0`,
     /// `beta` is outside `(0, 1)`, or any argument is not finite.
     #[inline]
-    #[must_use]
     pub fn with_params(alpha: f64, tau: f64, beta: f64, delta: f64) -> Result<Self> {
         if alpha.is_finite()
             && tau.is_finite()
@@ -825,7 +826,6 @@ impl Wiener4Params {
     /// represent unconstrained proposal states. Evaluation routines remain responsible
     /// for validating inputs and returning an out-of-support result for invalid values.
     #[inline]
-    #[must_use]
     pub fn with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64) -> Self {
         Self {
             alpha,
@@ -883,7 +883,6 @@ impl Wiener5Params {
     /// Returns [`ProbError::InvalidParameters`] if the four-parameter base is
     /// invalid or `s_delta` is negative or non-finite.
     #[inline]
-    #[must_use]
     pub fn with_params(alpha: f64, tau: f64, beta: f64, delta: f64, s_delta: f64) -> Result<Self> {
         let base = Wiener4Params::with_params(alpha, tau, beta, delta)?;
 
@@ -902,7 +901,6 @@ impl Wiener5Params {
     /// represent unconstrained proposal states. Evaluation routines remain responsible
     /// for validating inputs and returning an out-of-support result for invalid values.
     #[inline]
-    #[must_use]
     pub fn with_params_unchecked(
         alpha: f64,
         tau: f64,
@@ -939,7 +937,6 @@ impl Wiener7Params {
     /// Returns [`ProbError::InvalidParameters`] if the five-parameter base is
     /// invalid, `s_beta` is outside `[0, 1)`, or `s_tau` is negative or non-finite.
     #[inline]
-    #[must_use]
     pub fn with_params(
         alpha: f64,
         tau: f64,
@@ -969,7 +966,6 @@ impl Wiener7Params {
     /// represent unconstrained proposal states. Evaluation routines remain responsible
     /// for validating inputs and returning an out-of-support result for invalid values.
     #[inline]
-    #[must_use]
     pub fn with_params_unchecked(
         alpha: f64,
         tau: f64,
@@ -1061,4 +1057,3 @@ impl Wiener7ParamsBuilder {
         self.params
     }
 }
-

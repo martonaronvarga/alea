@@ -1,9 +1,9 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use kernels::density::FusedLogDensity;
 use kernels::dist::traits::Target;
 use kernels::dist::wiener::{
-    Boundary, Quadrature, Wiener4, Wiener4Params, Wiener5, Wiener5Params, Wiener7,
-    SeriesBranch, Wiener7Params, WienerObservation, WienerObservations, WienerOptions,
+    Boundary, Quadrature, SeriesBranch, Wiener4, Wiener4Params, Wiener5, Wiener5Params, Wiener7,
+    Wiener7Params, WienerObservation, WienerObservations, WienerOptions,
 };
 use pprof::criterion::{Output, PProfProfiler};
 
@@ -171,7 +171,6 @@ fn bench_wiener7_batch(c: &mut Criterion) {
     }
     group.finish();
 }
-
 
 fn branch_counts_wiener4(data: &[WienerObservation], params: &Wiener4Params) -> [usize; 6] {
     let mut counts = [0; 6];

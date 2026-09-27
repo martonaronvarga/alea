@@ -2,7 +2,7 @@ use crate::density::{FusedLogDensity, GradLogDensity};
 use crate::dist::traits::{Family, Parameter, Target};
 use crate::error::{ProbError, Result};
 use core::option::Option;
-use ffi::{hcubature_into, Bounds, ErrorNorm, Options};
+use ffi::{Bounds, ErrorNorm, Options, hcubature_into};
 use std::f64::consts::PI;
 
 #[allow(clippy::unreadable_literal)]
@@ -11,18 +11,20 @@ const LN_PI: f64 = 1.1447298858494001741434273513530587;
 mod quadrature;
 mod series;
 use quadrature::{
-    GL_15_NODES, GL_15_WTS, GL_1_NODES, GL_1_WTS, GL_25_NODES, GL_25_WTS, GL_5_NODES,
-    GL_5_WTS, GL_7_NODES, GL_7_WTS,
+    GL_1_NODES, GL_1_WTS, GL_5_NODES, GL_5_WTS, GL_7_NODES, GL_7_WTS, GL_15_NODES, GL_15_WTS,
+    GL_25_NODES, GL_25_WTS,
 };
 
 mod types;
 pub use types::{
-    BatchStrategy, Boundary, Quadrature, Wiener4, Wiener4Eval, Wiener4Grad, Wiener4Params, Wiener5, Wiener5Eval,
-    SeriesBranch, WienerBranchCounts, Wiener5Grad, Wiener5Params, Wiener7, Wiener7Eval, Wiener7Grad, Wiener7Params,
-    Wiener7ParamsBuilder, WienerObservation, WienerObservations, WienerOptions,
+    BatchStrategy, Boundary, Quadrature, SeriesBranch, Wiener4, Wiener4Eval, Wiener4Grad,
+    Wiener4Params, Wiener5, Wiener5Eval, Wiener5Grad, Wiener5Params, Wiener7, Wiener7Eval,
+    Wiener7Grad, Wiener7Params, Wiener7ParamsBuilder, WienerBranchCounts, WienerObservation,
+    WienerObservations, WienerOptions,
 };
-use types::{FAIL_EVAL_5, NAN_GRAD_4, NAN_GRAD_5, NAN_GRAD_7, Wiener4Core, Wiener5Core, Wiener7Core};
-
+use types::{
+    FAIL_EVAL_5, NAN_GRAD_4, NAN_GRAD_5, NAN_GRAD_7, Wiener4Core, Wiener5Core, Wiener7Core,
+};
 
 #[inline]
 pub(super) fn likely(value: bool) -> bool {

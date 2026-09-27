@@ -1,33 +1,38 @@
 [package]
 name = "kernels"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
 
 [dependencies]
-rand = "0.10.0"
-faer = { version = "0.24", optional = true }
-cblas = { version = "0.4", optional = true }
-ffi = { path = "../ffi" }
-thiserror = "2.0.18"
-anyhow = "1.0.102"
-tracing = "0.1.44"
-approx = "0.5.1"
-libc = "0.2"
-cxx = "1.0"
-once_cell = "1.21.4"
+memory.workspace = true
+rand.workspace = true
+faer = { workspace = true, optional = true }
+cblas = { workspace = true, optional = true }
+ffi.workspace = true
+thiserror.workspace = true
+once_cell.workspace = true
 
 [build-dependencies]
-cxx-build = "1.0"
+cc = { workspace = true, optional = true }
+pkg-config = { workspace = true, optional = true }
 
 [dev-dependencies]
-criterion = "0.5"
-pprof = { version = "0.15", features = ["flamegraph", "criterion"] }
+approx.workspace = true
+allocation-counter.workspace = true
+criterion.workspace = true
+pprof.workspace = true
 
 [features]
 default = []
 simd = []
 branch-hints = []
-openblas = ["dep:cblas"]
+openblas = ["dep:cblas", "dep:cc", "dep:pkg-config"]
 faer = ["dep:faer"]
 std-autodiff = []
 parallel = []

@@ -1,11 +1,12 @@
 use kernels::{
     buffer::OwnedBuffer,
-    density::{GradLogDensity, LogDensity},
+    density::FusedLogDensity,
     kernel::Kernel,
     metric::Metric,
     state::{GradientState, LogProbState},
 };
 use rand::{Rng, RngExt};
+use tracing::{debug, trace};
 
 use crate::integrator::leapfrog_step;
 
@@ -24,6 +25,14 @@ impl Default for HmcConfig {
     }
 }
 
+/// Experimental fixed-length Euclidean HMC with reusable proposal storage.
+///
+/// The metric represents the momentum mass matrix `M`: momenta have covariance
+/// `M`, and velocity is `M^-1 p`. Targets must be pure fused evaluations.
+/// Non-finite trajectories are rejected; this legacy API has no typed failure
+/// reporting. See [`super::hmc_chain::HmcChain`] for the target-bound, fallible API.
+/// Mutable public chain state requires refreshing caches at the
+/// start of every transition (one extra fused evaluation per transition).
 pub struct Hmc<M, S> {
     pub config: HmcConfig,
     metric: M,
@@ -41,18 +50,6 @@ where
     M: Metric,
     S: GradientState,
 {
-    #[inline]
-    fn standard_normal<R: Rng + ?Sized>(rng: &mut R) -> f64 {
-        loop {
-            let u = 2.0 * rng.random::<f64>() - 1.0;
-            let v = 2.0 * rng.random::<f64>() - 1.0;
-            let s = u * u + v * v;
-            if (0.0..1.0).contains(&s) {
-                return u * (-2.0 * s.ln() / s).sqrt();
-            }
-        }
-    }
-
     pub fn new(config: HmcConfig, metric: M) -> Self {
         let dim = metric.dim();
         Self {
@@ -82,38 +79,62 @@ impl<M, S, D> Kernel<D> for Hmc<M, S>
 where
     M: Metric,
     S: GradientState,
-    D: GradLogDensity + LogDensity,
+    D: FusedLogDensity<Point = [f64], Gradient = [f64]>,
 {
     type State = S;
 
     fn initialize(&mut self, state: &mut Self::State, target: &D) {
-        if !state.log_prob().is_finite() {
-            state.initialize_log_prob(target);
-        }
-        state.initialize_gradient(target);
+        let log_prob = state.with_position_and_gradient_mut(|position, gradient| {
+            target.log_prob_and_grad(position, gradient)
+        });
+        state.set_log_prob(log_prob);
     }
 
     fn step<R: Rng + ?Sized>(&mut self, state: &mut Self::State, target: &D, rng: &mut R) -> bool {
-        if !state.log_prob().is_finite() {
-            self.initialize(state, target);
+        // State is currently publicly mutable, so refresh both caches together.
+        assert_eq!(state.dim(), self.dim, "HMC position dimension mismatch");
+        assert_eq!(
+            state.gradient().len(),
+            self.dim,
+            "HMC gradient dimension mismatch"
+        );
+        assert_eq!(
+            state.momentum().len(),
+            self.dim,
+            "HMC momentum dimension mismatch"
+        );
+        self.initialize(state, target);
+        if !state.log_prob().is_finite()
+            || !state.position().iter().all(|q| q.is_finite())
+            || !state.gradient().iter().all(|g| g.is_finite())
+            || !self.config.step_size.is_finite()
+            || self.config.step_size <= 0.0
+            || self.config.n_leapfrog == 0
+        {
+            return false;
         }
 
-        for p in state.momentum_mut().iter_mut() {
-            *p = Self::standard_normal(rng);
+        for z in self.velocity.iter_mut() {
+            *z = crate::random::standard_normal(rng);
         }
+        self.metric
+            .apply_sqrt(self.velocity.as_slice(), state.momentum_mut());
         let current_h = -state.log_prob()
             + Self::kinetic_energy_with(
                 &self.metric,
                 state.momentum(),
                 self.velocity.as_mut_slice(),
             );
+        if !current_h.is_finite() {
+            return false;
+        }
 
         self.proposal_position.copy_from_slice(state.position());
         self.proposal_momentum.copy_from_slice(state.momentum());
         self.proposal_gradient.copy_from_slice(state.gradient());
 
-        let proposal_h = {
-            let mut proposal = kernels::state::State::with_aux(
+        let (proposal_h, proposal_lp) = {
+            let mut proposal = kernels::state::ChainState::with_aux(
                 self.proposal_position.as_mut_slice(),
                 kernels::state::GradientBuffers {
                     gradient: self.proposal_gradient.as_mut_slice(),
@@ -124,9 +145,9 @@ where
 
             trace!(
                 n_leapfrog = self.config.n_leapfrog,
-                "Startig leapfrog integration"
+                "Starting leapfrog integration"
             );
-            for i in 0..self.config.n_leapfrog {
+            for _ in 0..self.config.n_leapfrog {
                 leapfrog_step(
                     &self.metric,
                     self.config.step_size,
@@ -134,21 +155,29 @@ where
                     target,
                     self.proposal_velocity.as_mut_slice(),
                 );
+                if !proposal.log_prob().is_finite()
+                    || !proposal.position().iter().all(|q| q.is_finite())
+                    || !proposal.gradient().iter().all(|g| g.is_finite())
+                    || !proposal.momentum().iter().all(|p| p.is_finite())
+                {
+                    debug!("Rejecting non-finite HMC trajectory");
+                    return false;
+                }
             }
 
-            let proposal_lp = target.log_prob(proposal.position());
-            proposal.set_log_prob(proposal_lp);
-            if !proposal_lp.is_finite() {
-                debug!("Divergence encountered: proposal log_prob is not finite");
-            }
-            -proposal.log_prob()
+            let proposal_lp = proposal.log_prob();
+            let energy = -proposal_lp
                 + Self::kinetic_energy_with(
                     &self.metric,
                     proposal.momentum(),
                     self.proposal_velocity.as_mut_slice(),
-                )
+                );
+            (energy, proposal_lp)
         };
 
+        if !proposal_h.is_finite() {
+            return false;
+        }
         let accept_prob = (current_h - proposal_h).min(0.0).exp();
         let accepted = rng.random::<f64>() < accept_prob;
 
@@ -167,7 +196,7 @@ where
             state
                 .gradient_mut()
                 .copy_from_slice(self.proposal_gradient.as_slice());
-            state.set_log_prob(target.log_prob(self.proposal_position.as_slice()));
+            state.set_log_prob(proposal_lp);
         }
 
         accepted

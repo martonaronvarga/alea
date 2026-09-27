@@ -22,3 +22,22 @@ pub enum ProbError {
 }
 
 pub type Result<T> = std::result::Result<T, ProbError>;
+
+/// Typed, allocation-free transform error vocabulary for the M2 model boundary.
+/// Transform implementations and their Jacobian tests are intentionally M2 work.
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum TransformError {
+    #[error("transform dimension mismatch: expected {expected}, got {actual}")]
+    Dimension { expected: usize, actual: usize },
+    #[error("transform bounds are invalid at index {index}")]
+    InvalidBounds { index: usize },
+    #[error("transform input is outside its domain at index {index}")]
+    Domain { index: usize },
+    #[error("transform input is non-finite at index {index}")]
+    NonFiniteInput { index: usize },
+    #[error("transform output is non-finite at index {index}")]
+    NonFiniteOutput { index: usize },
+    #[error("transform log-Jacobian is non-finite")]
+    NonFiniteJacobian,
+}

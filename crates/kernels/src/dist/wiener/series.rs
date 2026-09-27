@@ -52,13 +52,14 @@ pub(super) fn k_l(t_prime: f64, log_eps: f64) -> usize {
     ceil_to_usize(k, usize::MAX)
 }
 
-
 /// Small-time truncation count.
 #[inline]
 pub(super) fn k_s(t_prime: f64, w: f64, log_eps: f64) -> usize {
     const LN_TAU: f64 = 1.8378770664093453_f64; // ln(2π)
 
-    if super::unlikely(!t_prime.is_finite() || !w.is_finite() || !log_eps.is_finite() || t_prime <= 0.0) {
+    if super::unlikely(
+        !t_prime.is_finite() || !w.is_finite() || !log_eps.is_finite() || t_prime <= 0.0,
+    ) {
         return 0;
     }
 
@@ -75,13 +76,14 @@ pub(super) fn k_s(t_prime: f64, w: f64, log_eps: f64) -> usize {
     ceil_to_usize(k, usize::MAX)
 }
 
-
 #[inline]
 #[allow(dead_code)]
 pub(super) fn k_s_grad_w(t_prime: f64, w: f64, log_eps: f64) -> usize {
     const LN_TAU: f64 = 1.8378770664093453;
 
-    if super::unlikely(!t_prime.is_finite() || !w.is_finite() || !log_eps.is_finite() || t_prime <= 0.0) {
+    if super::unlikely(
+        !t_prime.is_finite() || !w.is_finite() || !log_eps.is_finite() || t_prime <= 0.0,
+    ) {
         return 0;
     }
     let sqrt_2t = (2.0 * t_prime).sqrt();
@@ -96,7 +98,6 @@ pub(super) fn k_s_grad_w(t_prime: f64, w: f64, log_eps: f64) -> usize {
     let k = n1.max(n2).ceil().max(0.0);
     ceil_to_usize(k, usize::MAX)
 }
-
 
 #[inline]
 pub(super) fn k_l_grad_w(t_prime: f64, log_eps: f64) -> usize {
@@ -121,13 +122,14 @@ pub(super) fn k_l_grad_w(t_prime: f64, log_eps: f64) -> usize {
     ceil_to_usize(k, usize::MAX)
 }
 
-
 #[inline]
 #[allow(dead_code)]
 pub(super) fn small_time_log_series(t_prime: f64, w: f64, k: usize) -> Option<f64> {
     const LN_TAU: f64 = 1.8378770664093453_f64; // ln(2π)
 
-    if super::unlikely(!t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w)) {
+    if super::unlikely(
+        !t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w),
+    ) {
         return None;
     }
 
@@ -174,11 +176,12 @@ pub(super) fn small_time_log_series(t_prime: f64, w: f64, k: usize) -> Option<f6
     Some(log_pref - scale + pos.ln() + (-ratio).ln_1p())
 }
 
-
 #[inline]
 #[allow(dead_code)]
 pub(super) fn small_time_series_raw(t_prime: f64, w: f64, k: usize) -> Option<f64> {
-    if super::unlikely(!t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w)) {
+    if super::unlikely(
+        !t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w),
+    ) {
         return None;
     }
 
@@ -212,18 +215,15 @@ pub(super) fn small_time_series_raw(t_prime: f64, w: f64, k: usize) -> Option<f6
         sum = t;
     }
 
-    if sum.is_finite() {
-        Some(sum)
-    } else {
-        None
-    }
+    if sum.is_finite() { Some(sum) } else { None }
 }
-
 
 #[inline]
 #[allow(dead_code)]
 pub(super) fn small_time_dr_dt(t_prime: f64, w: f64, k: usize) -> Option<f64> {
-    if super::unlikely(!t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w)) {
+    if super::unlikely(
+        !t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w),
+    ) {
         return None;
     }
 
@@ -250,8 +250,7 @@ pub(super) fn small_time_dr_dt(t_prime: f64, w: f64, k: usize) -> Option<f64> {
         let arg_m = 2.0 * jf * (jf - a) * inv_t;
 
         // d/dt' of exp(-arg) = exp(-arg) * (arg / t')
-        let term =
-            xp * (-arg_p).exp() * (arg_p * inv_t) - xm * (-arg_m).exp() * (arg_m * inv_t);
+        let term = xp * (-arg_p).exp() * (arg_p * inv_t) - xm * (-arg_m).exp() * (arg_m * inv_t);
 
         let y = term - c;
         let t = sum + y;
@@ -259,19 +258,16 @@ pub(super) fn small_time_dr_dt(t_prime: f64, w: f64, k: usize) -> Option<f64> {
         sum = t;
     }
 
-    if sum.is_finite() {
-        Some(sum)
-    } else {
-        None
-    }
+    if sum.is_finite() { Some(sum) } else { None }
 }
-
 
 /// d/dw of the scaled raw small-time sum R_s(t', w).
 #[inline]
 #[allow(dead_code)]
 pub(super) fn small_time_dr_dw(t_prime: f64, w: f64, k: usize) -> Option<f64> {
-    if super::unlikely(!t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w)) {
+    if super::unlikely(
+        !t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w),
+    ) {
         return None;
     }
 
@@ -308,16 +304,14 @@ pub(super) fn small_time_dr_dw(t_prime: f64, w: f64, k: usize) -> Option<f64> {
         sum = t;
     }
 
-    if sum.is_finite() {
-        Some(sum)
-    } else {
-        None
-    }
+    if sum.is_finite() { Some(sum) } else { None }
 }
 
 #[inline]
 pub(super) fn small_time_scaled_accum(t_prime: f64, w: f64, k: usize) -> Option<(f64, f64, f64)> {
-    if super::unlikely(!t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w)) {
+    if super::unlikely(
+        !t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w),
+    ) {
         return None;
     }
 
@@ -341,7 +335,9 @@ fn small_time_scaled_accum_loop(t_prime: f64, w: f64, k: usize) -> Option<(f64, 
     let mut c_dw = 0.0;
 
     for j in 1..=k {
-        add_small_scaled_term(j, a, inv_t, &mut raw, &mut d_t, &mut d_w, &mut c_raw, &mut c_dt, &mut c_dw);
+        add_small_scaled_term(
+            j, a, inv_t, &mut raw, &mut d_t, &mut d_w, &mut c_raw, &mut c_dt, &mut c_dw,
+        );
     }
 
     if raw.is_finite() && d_t.is_finite() && d_w.is_finite() {
@@ -365,7 +361,9 @@ fn small_time_scaled_accum_fixed<const K: usize>(t_prime: f64, w: f64) -> Option
 
     let mut j = 1;
     while j <= K {
-        add_small_scaled_term(j, a, inv_t, &mut raw, &mut d_t, &mut d_w, &mut c_raw, &mut c_dt, &mut c_dw);
+        add_small_scaled_term(
+            j, a, inv_t, &mut raw, &mut d_t, &mut d_w, &mut c_raw, &mut c_dt, &mut c_dw,
+        );
         j += 1;
     }
 
@@ -419,12 +417,13 @@ fn add_small_scaled_term(
     *d_w = t;
 }
 
-
 #[inline]
 #[allow(dead_code)]
 pub(super) fn large_time_log_series(t_prime: f64, w: f64, k: usize) -> Option<f64> {
     const LN_PI: f64 = 1.144729885849400174143427351353058711_f64;
-    if super::unlikely(!t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w)) {
+    if super::unlikely(
+        !t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w),
+    ) {
         return None;
     }
     if k == 0 {
@@ -486,10 +485,11 @@ pub(super) fn large_time_log_series(t_prime: f64, w: f64, k: usize) -> Option<f6
     Some(log_pref + pos.ln() + (-ratio).ln_1p())
 }
 
-
 #[inline]
 pub(super) fn large_time_scaled_accum(t_prime: f64, w: f64, k: usize) -> Option<(f64, f64, f64)> {
-    if super::unlikely(!t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w)) {
+    if super::unlikely(
+        !t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w),
+    ) {
         return None;
     }
 
@@ -497,12 +497,12 @@ pub(super) fn large_time_scaled_accum(t_prime: f64, w: f64, k: usize) -> Option<
         return Some((0.0, 0.0, 0.0));
     }
 
-    return match k {
+    match k {
         4 => large_time_scaled_accum_fixed::<4>(t_prime, w),
         5 => large_time_scaled_accum_fixed::<5>(t_prime, w),
         6 => large_time_scaled_accum_fixed::<6>(t_prime, w),
         _ => large_time_scaled_accum_loop(t_prime, w, k),
-    };
+    }
 }
 
 #[inline]
@@ -617,7 +617,6 @@ fn large_time_scaled_accum_fixed<const K: usize>(t_prime: f64, w: f64) -> Option
     }
 }
 
-
 #[inline]
 pub(super) fn small_branch_fused(t_prime: f64, w: f64, k: usize) -> Option<(f64, f64, f64)> {
     let (raw, d_r_dt, d_r_dw) = small_time_scaled_accum(t_prime, w, k)?;
@@ -635,7 +634,6 @@ pub(super) fn small_branch_fused(t_prime: f64, w: f64, k: usize) -> Option<(f64,
 
     Some((log_series, dlog_dtprime, dlog_dw))
 }
-
 
 #[inline]
 pub(super) fn large_branch_fused(t_prime: f64, w: f64, k: usize) -> Option<(f64, f64, f64)> {

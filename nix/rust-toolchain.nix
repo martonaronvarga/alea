@@ -1,16 +1,15 @@
 {
   pkgs,
   llvmPkgs,
-  version,
   bootstrap,
 }:
 pkgs.clangStdenv.mkDerivation {
   pname = "rust-base";
-  inherit version;
+  version = "nightly-2026-04-17";
 
   src = pkgs.fetchurl {
-    url = "https://static.rust-lang.org/dist/rustc-${version}-src.tar.xz";
-    sha256 = "sha256-DXxdooM54tbSxtDzL83Lng3uwo1Ww62rCqCCWo/T95c=";
+    url = "https://static.rust-lang.org/dist/2026-04-17/rustc-nightly-src.tar.xz";
+    sha256 = "e23864cbd25298df55ee9abacd34d7b7330b867826a7b694af9e753d5cfd04a2";
   };
 
   dontUpdateAutotoolsGnuConfigScripts = true;
@@ -128,6 +127,9 @@ pkgs.clangStdenv.mkDerivation {
   '';
 
   postInstall = ''
+    # Miri and rust-analyzer need sources from exactly this compiler revision.
+    mkdir -p $out/lib/rustlib/src/rust
+    cp -R library $out/lib/rustlib/src/rust/library
     rm $out/lib/rustlib/install.log
     for m in $out/lib/rustlib/manifest-rust*
     do
@@ -139,13 +141,8 @@ pkgs.clangStdenv.mkDerivation {
   '';
 
   passthru = {
-    tests.autodiff = pkgs.runCommand "rust-autodiff-tests" {} ''
-      export PATH=${placeholder "out"}/bin:$PATH
-      cd $src
-
-      python3 x.py test --stage 1 tests/codegen-llvm/autodiff
-      touch $out
-    '';
+    # Actual autodiff execution validation remains an M2 gate. The old passthru
+    # test referred to an unset $src and was not a runnable check.
     isRustToolchain = true;
   };
 }

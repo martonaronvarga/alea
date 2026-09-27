@@ -1,0 +1,54 @@
+name: Rust gates
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rust-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shell: stable
+            features: ''
+          - shell: stable
+            features: kernels/faer,runtime/experimental
+          - shell: default
+            features: kernels/simd,kernels/branch-hints,memory/simd
+          - shell: blas
+            features: kernels/simd,kernels/faer,kernels/openblas,runtime/experimental
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
+      - name: Format, check, test, Clippy, docs
+        env:
+          ALEA_SHELL: ${{ matrix.shell }}
+          ALEA_FEATURES: ${{ matrix.features }}
+        run: nix develop ".#$ALEA_SHELL" --command bash tools/ci/check.sh "$ALEA_FEATURES"
+      - name: Unsupported autodiff fails explicitly
+        if: matrix.shell == 'stable' && matrix.features == ''
+        run: |
+          if nix develop .#stable --command cargo check --manifest-path crates/Cargo.toml -p kernels --features std-autodiff --locked > ad.log 2>&1; then
+            echo 'Unimplemented autodiff unexpectedly compiled'; exit 1
+          fi
+          grep -F 'std-autodiff is not implemented' ad.log
+  miri:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
+      - run: nix develop --command bash tools/ci/miri.sh

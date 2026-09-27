@@ -141,7 +141,10 @@ impl Wiener7 {
         core.eps_series = options.series_precision();
 
         let density = if core.sw == 0.0 && core.st0 == 0.0 {
-            Wiener5.try_log_prob(obs, &params.base, options)?.log_prob.exp()
+            Wiener5
+                .try_log_prob(obs, &params.base, options)?
+                .log_prob
+                .exp()
         } else {
             match options.quadrature {
                 Quadrature::Adaptive => self.eval_density_adaptive(&core, obs),
@@ -237,6 +240,7 @@ impl Wiener7 {
     }
 
     #[inline]
+    #[cfg(test)]
     pub(super) fn eval_fused(&self, core: &Wiener7Core, obs: &WienerObservation) -> Wiener7Eval {
         self.eval_fused_adaptive(core, obs)
     }
@@ -468,6 +472,7 @@ impl Wiener7 {
         (log_density, grad)
     }
 
+    #[cfg(test)]
     const FIXED_QUADRATURE_ORDER: usize = 25;
 
     pub(super) fn fixed_rule(order: usize) -> (&'static [f64], &'static [f64]) {
@@ -502,7 +507,12 @@ impl Wiener7 {
             .sum()
     }
 
-    pub(super) fn fixed_integral_6(&self, core: &Wiener7Core, obs: &WienerObservation, order: usize) -> [f64; 6] {
+    pub(super) fn fixed_integral_6(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        order: usize,
+    ) -> [f64; 6] {
         let mut val = [0.0; 6];
         let mut x = [0.0; 2];
 
@@ -564,11 +574,17 @@ impl Wiener7 {
     }
 
     /// Integrate only the density over the hypercube using fixed Gauss-Legendre nodes.
+    #[cfg(test)]
     pub(super) fn eval_density_fixed(&self, core: &Wiener7Core, obs: &WienerObservation) -> f64 {
         self.fixed_integral_6(core, obs, Self::FIXED_QUADRATURE_ORDER)[0]
     }
 
-    pub(super) fn eval_density_fixed_order(&self, core: &Wiener7Core, obs: &WienerObservation, order: usize) -> f64 {
+    pub(super) fn eval_density_fixed_order(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        order: usize,
+    ) -> f64 {
         self.fixed_integral_6(core, obs, order)[0]
     }
 
@@ -586,7 +602,12 @@ impl Wiener7 {
 
     /// Integrate density + 5 inner-parameter gradient components with fixed Gauss-Legendre nodes.
     /// Then compute s_beta and s_tau derivatives separately.
-    pub(super) fn eval_fused_fixed(&self, core: &Wiener7Core, obs: &WienerObservation) -> Wiener7Eval {
+    #[cfg(test)]
+    pub(super) fn eval_fused_fixed(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Wiener7Eval {
         self.eval_fused_fixed_order(core, obs, Self::FIXED_QUADRATURE_ORDER)
     }
 
@@ -710,7 +731,11 @@ impl Wiener7 {
     /// Integrate density + 5 inner-parameter gradient components with adaptive cubature.
     /// Then compute s_beta and s_tau derivatives separately.
     #[allow(dead_code)]
-    pub(super) fn eval_fused_adaptive(&self, core: &Wiener7Core, obs: &WienerObservation) -> Wiener7Eval {
+    pub(super) fn eval_fused_adaptive(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Wiener7Eval {
         let bounds = Bounds::new(&core.xmin, &core.xmax);
         let mut val = [0.0; 6];
         let mut err = [0.0; 6];
@@ -878,16 +903,16 @@ impl Wiener7 {
     }
 
     /// Helper: Wiener5 density (not log)
-    pub(super) fn wiener5_density(obs: &WienerObservation, params: &Wiener5Params, eps: f64) -> f64 {
+    pub(super) fn wiener5_density(
+        obs: &WienerObservation,
+        params: &Wiener5Params,
+        eps: f64,
+    ) -> f64 {
         let lp = Wiener5.log_prob(obs, params, eps).log_prob;
-        if lp.is_finite() {
-            lp.exp()
-        } else {
-            0.0
-        }
+        if lp.is_finite() { lp.exp() } else { 0.0 }
     }
 
-    /// Gauss‑Legendre nodes and weights on [0,1] (scaled from [-1,1]).
+    /// Gauss‑Legendre nodes and weights on `[0,1]` (scaled from `[-1,1]`).
     /// n: number of points.
     pub fn gauss_legendre_01(n: usize) -> (Vec<f64>, Vec<f64>) {
         // Legendre nodes/weights on [-1,1] using symmetric Newton method
@@ -1433,4 +1458,3 @@ impl GradLogDensity for Target<Wiener7, WienerObservations> {
         self.log_prob_and_grad(x, grad);
     }
 }
-

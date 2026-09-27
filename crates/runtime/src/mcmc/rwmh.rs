@@ -1,14 +1,14 @@
+use crate::config::{AcceptanceTarget, SamplerConfigError, StepSize};
 use kernels::{
     buffer::OwnedBuffer,
     density::LogDensity,
     kernel::Kernel,
     metric::{CholeskyFactor, DenseMetric, IdentityMetric, Metric},
     numeric::{finite_or_neg_inf, log_accept_ratio, positive_finite},
-    proposal::{LogProposalRatio, Proposal},
     state::LogProbState,
 };
 use rand::{Rng, RngExt};
-use tracing::{debug, span, Level};
+use tracing::{Level, debug, span};
 
 const DELTA_TARGET: f64 = 0.234;
 const GAMMA: f64 = 0.05;
@@ -37,6 +37,15 @@ impl Default for RwmhConfig {
 }
 
 impl RwmhConfig {
+    /// Validates public configuration fields, including when adaptation is disabled.
+    /// # Errors
+    /// Rejects invalid step size or acceptance target.
+    pub fn validate(&self) -> Result<(), SamplerConfigError> {
+        StepSize::try_from(self.step_size)?;
+        AcceptanceTarget::try_from(self.target_accept_rate)?;
+        Ok(())
+    }
+
     pub fn with_step_size(mut self, s: f64) -> Self {
         self.step_size = s;
         self
@@ -70,13 +79,16 @@ pub struct Draws {
 }
 
 impl Draws {
-    fn new(n_draws: usize, dim: usize) -> Self {
-        let len = n_draws.checked_mul(dim).expect("draw buffer overflow");
-        Self {
+    fn try_new(n_draws: usize, dim: usize) -> Result<Self, SamplerConfigError> {
+        let len = n_draws
+            .checked_mul(dim)
+            .filter(|&len| len <= (isize::MAX as usize - 64) / std::mem::size_of::<f64>())
+            .ok_or(SamplerConfigError::DrawCountOverflow)?;
+        Ok(Self {
             data: OwnedBuffer::new(len),
             n_draws,
             dim,
-        }
+        })
     }
 
     pub fn n_draws(&self) -> usize {
@@ -88,11 +100,13 @@ impl Draws {
     }
 
     pub fn row(&self, i: usize) -> &[f64] {
+        assert!(i < self.n_draws, "draw index out of bounds");
         let start = i * self.dim;
         &self.data[start..start + self.dim]
     }
 
     fn row_mut(&mut self, i: usize) -> &mut [f64] {
+        assert!(i < self.n_draws, "draw index out of bounds");
         let start = i * self.dim;
         &mut self.data[start..start + self.dim]
     }
@@ -115,7 +129,7 @@ impl DualAvg {
         );
 
         Self {
-            mu: (10.0 * initial_step_size).ln(),
+            mu: 10.0_f64.ln() + initial_step_size.ln(),
             h_bar: 0.0,
             log_eps_bar: initial_step_size.ln(),
             m: 0,
@@ -161,16 +175,31 @@ where
     M: Metric,
     S: LogProbState,
 {
-    #[inline]
+    /// Compatibility constructor; prefer [`Self::try_new`] for user configuration.
+    /// # Panics
+    /// Panics if configuration or metric dimension is invalid.
     pub fn new(config: RwmhConfig, metric: M) -> Self {
-        assert!(config.step_size.is_finite() && config.step_size > 0.0);
+        Self::try_new(config, metric).expect("invalid RWMH configuration")
+    }
+
+    /// Constructs reusable proposal storage after validation.
+    /// # Errors
+    /// Rejects invalid step size/acceptance target or a zero-dimensional metric.
+    pub fn try_new(config: RwmhConfig, metric: M) -> Result<Self, SamplerConfigError> {
+        config.validate()?;
 
         let dim = metric.dim();
+        if dim == 0 {
+            return Err(SamplerConfigError::EmptyDimension);
+        }
+        if dim > (isize::MAX as usize - 64) / std::mem::size_of::<f64>() {
+            return Err(SamplerConfigError::DimensionOverflow);
+        }
         let dual_avg = config
             .adapt_step_size
             .then(|| DualAvg::new(config.step_size, config.target_accept_rate));
 
-        Self {
+        Ok(Self {
             config,
             metric,
             spare_normal: None,
@@ -183,7 +212,7 @@ where
             total_main: 0,
             dual_avg,
             _marker: std::marker::PhantomData,
-        }
+        })
     }
     fn draw_standard_normal<R: Rng + ?Sized>(&mut self, rng: &mut R) -> f64 {
         if let Some(z) = self.spare_normal.take() {
@@ -194,7 +223,7 @@ where
             let u = 2.0 * rng.random::<f64>() - 1.0;
             let v = 2.0 * rng.random::<f64>() - 1.0;
             let s = u * u + v * v;
-            if (0.0..1.0).contains(&s) {
+            if s > 0.0 && s < 1.0 {
                 let scale = (-2.0 * s.ln() / s).sqrt();
                 self.spare_normal = Some(v * scale);
                 return u * scale;
@@ -244,7 +273,7 @@ where
 
     fn step_impl<D, R>(&mut self, state: &mut S, target: &D, rng: &mut R) -> (bool, f64)
     where
-        D: LogDensity,
+        D: LogDensity<Point = [f64]>,
         R: Rng + ?Sized,
     {
         debug_assert_eq!(state.dim(), self.dim);
@@ -272,12 +301,41 @@ where
         (accepted, accept_prob)
     }
 
+    /// Compatibility sampling API. Prefer [`Self::try_sample`] for user inputs.
+    /// # Panics
+    /// Panics on invalid configuration, state dimensions or draw storage overflow.
     pub fn sample<D, R>(&mut self, target: &D, state: &mut S, rng: &mut R) -> Draws
     where
-        D: LogDensity,
+        D: LogDensity<Point = [f64]>,
         R: Rng + ?Sized,
     {
-        debug_assert_eq!(state.dim(), self.dim);
+        self.try_sample(target, state, rng)
+            .expect("invalid RWMH sampling inputs")
+    }
+
+    /// Samples through the legacy log-density protocol with checked inputs.
+    /// Public configuration is revalidated before touching state or RNG. This does
+    /// not give legacy mutable states the transactional guarantees of `HmcChain`.
+    /// # Errors
+    /// Rejects invalid configuration, state shape, or overflowing draw storage.
+    pub fn try_sample<D, R>(
+        &mut self,
+        target: &D,
+        state: &mut S,
+        rng: &mut R,
+    ) -> Result<Draws, SamplerConfigError>
+    where
+        D: LogDensity<Point = [f64]>,
+        R: Rng + ?Sized,
+    {
+        self.config.validate()?;
+        if state.dim() != self.dim || state.position().len() != self.dim {
+            return Err(SamplerConfigError::StateDimension {
+                expected: self.dim,
+                actual: state.position().len(),
+            });
+        }
+        let mut draws = Draws::try_new(self.config.n_draws, self.dim)?;
 
         if !state.log_prob().is_finite() {
             state.initialize_log_prob(target);
@@ -325,8 +383,6 @@ where
             self.finish_warmup();
         }
 
-        let mut draws = Draws::new(self.config.n_draws, self.dim);
-
         for i in 0..self.config.n_draws {
             let (accepted, _) = self.step_impl(state, target, rng);
 
@@ -336,7 +392,31 @@ where
             draws.row_mut(i).copy_from_slice(state.position());
         }
 
-        draws
+        Ok(draws)
+    }
+
+    /// One legacy transition, with configuration/shape validation before RNG use.
+    /// # Errors
+    /// Returns configuration or state-dimension errors. Model panics propagate;
+    /// use the fused target-bound chain for fallible model evaluation.
+    pub fn try_step<D, R>(
+        &mut self,
+        state: &mut S,
+        target: &D,
+        rng: &mut R,
+    ) -> Result<bool, SamplerConfigError>
+    where
+        D: LogDensity<Point = [f64]>,
+        R: Rng + ?Sized,
+    {
+        self.config.validate()?;
+        if state.dim() != self.dim || state.position().len() != self.dim {
+            return Err(SamplerConfigError::StateDimension {
+                expected: self.dim,
+                actual: state.position().len(),
+            });
+        }
+        Ok(self.step_impl(state, target, rng).0)
     }
 }
 
@@ -362,7 +442,7 @@ impl<M, S, D> Kernel<D> for Rwmh<M, S>
 where
     M: Metric,
     S: LogProbState,
-    D: LogDensity,
+    D: LogDensity<Point = [f64]>,
 {
     type State = S;
 
@@ -373,7 +453,7 @@ where
     }
 
     fn step<R: Rng + ?Sized>(&mut self, state: &mut Self::State, target: &D, rng: &mut R) -> bool {
-        let (accepted, _) = self.step_impl(state, target, rng);
-        accepted
+        self.try_step(state, target, rng)
+            .expect("invalid RWMH step inputs")
     }
 }

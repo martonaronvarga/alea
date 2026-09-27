@@ -1,5 +1,4 @@
 use kernels::dist::wiener::*;
-use std::hint::black_box;
 
 fn main() {
     // let params = Wiener7Params::with_params(1.5, 0.3, 0.55, 0.4, 0.05, 0.15, 0.1).unwrap();

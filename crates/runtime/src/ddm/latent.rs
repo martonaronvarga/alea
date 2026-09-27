@@ -1,5 +1,5 @@
-use crate::ddm::wiener::{WienerFpt, WienerObservation, WienerParams};
-use crate::state_space::ObservationModel;
+use kernels::dist::traits::ObservationModel;
+use kernels::dist::wiener::{Wiener4, Wiener4Params, WienerObservation};
 
 #[derive(Debug, Clone, Copy)]
 pub struct LatentState<Context, Latent> {
@@ -28,6 +28,9 @@ pub trait LatentStateView {
 }
 
 impl<Context, Latent> LatentStateView for LatentState<Context, Latent> {
+    type Context = Context;
+    type Latent = Latent;
+
     #[inline]
     fn context(&self) -> &Self::Context {
         &self.context
@@ -40,18 +43,18 @@ impl<Context, Latent> LatentStateView for LatentState<Context, Latent> {
 }
 
 pub trait LatentParameterMap<Context, Latent> {
-    fn write_params(&self, context: &Context, latent: &Latent, out: &mut WienerParams);
+    fn write_params(&self, context: &Context, latent: &Latent, out: &mut Wiener4Params);
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct ObservationLayer<M> {
     pub map: M,
-    pub density: WienerFpt,
+    pub density: Wiener4,
 }
 
 impl<M> ObservationLayer<M> {
     #[inline]
-    pub fn new(map: M, density: WienerFpt) -> Self {
+    pub fn new(map: M, density: Wiener4) -> Self {
         Self { map, density }
     }
 }
@@ -62,12 +65,8 @@ where
     M: LatentParameterMap<Context, Latent>,
 {
     #[inline]
-    fn log_likelihood(
-        &self,
-        state: &DdmLatentState<Context, Latent>,
-        obs: &WienerObservation,
-    ) -> f64 {
-        let mut params = WienerParams {
+    fn log_likelihood(&self, state: &LatentState<Context, Latent>, obs: &WienerObservation) -> f64 {
+        let mut params = Wiener4Params {
             alpha: 1.0,
             tau: 0.0,
             beta: 0.5,
@@ -75,11 +74,11 @@ where
         };
         self.map
             .write_params(&state.context, &state.latent, &mut params);
-        self.density.log_pdf(obs, params)
+        self.density.log_prob(obs, &params, 1e-12).log_prob
     }
 }
 
-use crate::state_space::TransitionModel;
+use kernels::dist::traits::TransitionModel;
 use rand::Rng;
 
 #[derive(Debug, Clone)]
@@ -120,12 +119,32 @@ where
 
 /// Alternative direction ->
 ///
-
 /// Single-time latent state used by transition and observation models.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LatentFrame {
     pub c: f64,
     pub m: f64,
+}
+
+/// Borrowed structure-of-arrays view of latent coordinates.
+#[derive(Debug, Clone, Copy)]
+pub struct LatentFrameSoA<'a> {
+    pub c: &'a [f64],
+    pub m: &'a [f64],
+}
+
+impl LatentFrameSoA<'_> {
+    pub fn len(&self) -> usize {
+        self.c.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.c.is_empty()
+    }
+
+    pub fn validate(&self) -> bool {
+        self.c.len() == self.m.len()
+    }
 }
 
 /// Canonical affine map from latent factors to unconstrained Wiener parameters.
@@ -178,8 +197,8 @@ impl AffineLatentWienerMap {
 
     /// Map one latent frame to one Wiener parameter tuple.
     #[inline]
-    pub fn map_frame(&self, frame: LatentFrame) -> WienerParams {
-        WienerParams {
+    pub fn map_frame(&self, frame: LatentFrame) -> Wiener4Params {
+        Wiener4Params {
             alpha: Self::dot(&self.alpha, frame.c, frame.m).exp(),
             tau: Self::dot(&self.tau, frame.c, frame.m).exp(),
             beta: Self::sigmoid(Self::dot(&self.beta, frame.c, frame.m)),
@@ -237,8 +256,8 @@ impl AffineLatentWienerMap {
 /// DDM/Wiener layer remains separate.
 #[derive(Debug, Clone, Copy)]
 pub struct LatentRandomWalk {
-    pub sigma_c: f64,
-    pub sigma_m: f64,
+    sigma_c: f64,
+    sigma_m: f64,
 }
 
 impl LatentRandomWalk {
@@ -252,12 +271,8 @@ impl LatentRandomWalk {
 
     #[inline]
     fn gaussian_log_density(x: f64, mean: f64, sigma: f64) -> f64 {
-        if !(sigma > 0.0) {
-            return if (x - mean).abs() <= f64::EPSILON {
-                0.0
-            } else {
-                f64::NEG_INFINITY
-            };
+        if sigma == 0.0 {
+            return if x == mean { 0.0 } else { f64::NEG_INFINITY };
         }
         let z = (x - mean) / sigma;
         -0.5 * z * z - sigma.ln() - 0.5 * (2.0 * std::f64::consts::PI).ln()
@@ -273,14 +288,13 @@ impl TransitionModel<LatentFrame> for LatentRandomWalk {
 
     #[inline]
     fn sample_next<R: rand::Rng + ?Sized>(&self, prev: &LatentFrame, rng: &mut R) -> LatentFrame {
-        use rand::Rng;
         let dc = if self.sigma_c > 0.0 {
-            rng.random::<f64>() * self.sigma_c
+            crate::random::standard_normal(rng) * self.sigma_c
         } else {
             0.0
         };
         let dm = if self.sigma_m > 0.0 {
-            rng.random::<f64>() * self.sigma_m
+            crate::random::standard_normal(rng) * self.sigma_m
         } else {
             0.0
         };
@@ -296,12 +310,12 @@ impl TransitionModel<LatentFrame> for LatentRandomWalk {
 #[derive(Debug, Clone, Copy)]
 pub struct LatentObservationModel {
     pub projection: AffineLatentWienerMap,
-    pub distribution: WienerFpt,
+    pub distribution: Wiener4,
 }
 
 impl LatentObservationModel {
     #[inline]
-    pub fn new(projection: AffineLatentWienerMap, distribution: WienerFpt) -> Self {
+    pub fn new(projection: AffineLatentWienerMap, distribution: Wiener4) -> Self {
         Self {
             projection,
             distribution,
@@ -309,10 +323,62 @@ impl LatentObservationModel {
     }
 }
 
-impl ObservationModel<LatentFrame, WienerTrial> for LatentObservationModel {
+impl ObservationModel<LatentFrame, WienerObservation> for LatentObservationModel {
     #[inline]
-    fn log_likelihood(&self, state: &LatentFrame, obs: &WienerTrial) -> f64 {
+    fn log_likelihood(&self, state: &LatentFrame, obs: &WienerObservation) -> f64 {
         let params = self.projection.map_frame(*state);
-        self.distribution.log_prob_trial(*obs, &params)
+        self.distribution.log_prob(obs, &params, 1e-12).log_prob
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::{SeedableRng, rngs::SmallRng};
+
+    #[test]
+    #[cfg_attr(miri, ignore = "long statistical regression; native CI covers it")]
+    fn random_walk_increments_have_gaussian_moments() {
+        let walk = LatentRandomWalk::new(2.0, 0.5).unwrap();
+        let origin = LatentFrame { c: 3.0, m: -2.0 };
+        let mut rng = SmallRng::seed_from_u64(723);
+        let mut sums = [0.0; 2];
+        let mut squares = [0.0; 2];
+        let mut fourths = [0.0; 2];
+        const N: usize = 50_000;
+        for _ in 0..N {
+            let draw = walk.sample_next(&origin, &mut rng);
+            for (i, z) in [(draw.c - origin.c) / 2.0, (draw.m - origin.m) / 0.5]
+                .into_iter()
+                .enumerate()
+            {
+                sums[i] += z;
+                squares[i] += z * z;
+                fourths[i] += z.powi(4);
+            }
+        }
+        for i in 0..2 {
+            assert!((sums[i] / N as f64).abs() < 0.025);
+            assert!((squares[i] / N as f64 - 1.0).abs() < 0.04);
+            assert!((fourths[i] / N as f64 - 3.0).abs() < 0.2);
+        }
+    }
+
+    #[test]
+    fn zero_scale_is_a_point_mass_and_invalid_scales_are_rejected() {
+        for invalid in [-1.0, f64::NAN, f64::INFINITY] {
+            assert!(LatentRandomWalk::new(invalid, 1.0).is_none());
+            assert!(LatentRandomWalk::new(1.0, invalid).is_none());
+        }
+        let walk = LatentRandomWalk::new(0.0, 0.0).unwrap();
+        let origin = LatentFrame { c: 0.0, m: 1.0 };
+        let mut rng = SmallRng::seed_from_u64(7);
+        assert_eq!(walk.sample_next(&origin, &mut rng), origin);
+        assert_eq!(walk.log_transition(&origin, &origin, 0), 0.0);
+        let nearby = LatentFrame {
+            c: f64::EPSILON / 2.0,
+            ..origin
+        };
+        assert_eq!(walk.log_transition(&origin, &nearby, 0), f64::NEG_INFINITY);
     }
 }

@@ -1,11 +1,11 @@
-use ffi::gaussian::Gaussian;
+use kernels::dist::Gaussian;
 use kernels::{
     metric::IdentityMetric,
-    state::{LogProbState, State},
+    state::{ChainState, LogProbState},
 };
-use rand::rngs::SmallRng;
 use rand::SeedableRng;
-use runtime::{run_chain, Chain, Rwmh, RwmhConfig};
+use rand::rngs::SmallRng;
+use runtime::{Chain, Rwmh, RwmhConfig, run_chain};
 
 fn main() {
     let dim = 50;
@@ -18,8 +18,8 @@ fn main() {
         .with_adapt_step_size(true)
         .with_step_size(2.38 / (dim as f64).sqrt());
 
-    let kernel = Rwmh::<_, State>::new(config, metric);
-    let state = State::new(dim);
+    let kernel = Rwmh::<_, ChainState>::new(config, metric);
+    let state = ChainState::new(dim);
     let mut chain = Chain::new(kernel, target, state);
 
     let mut rng = SmallRng::seed_from_u64(42);

@@ -294,7 +294,6 @@ fn wiener7_matches_stan() {
     let (eps, obs, params, expected_lp, expected_grad) = stan_wiener7_data();
     let eval = Wiener7.fused(&obs, &params, eps);
 
-
     assert_relative_eq!(eval.log_prob, expected_lp, epsilon = 1e-6);
 
     for (i, g) in eval.grad.to_array().iter().enumerate() {
@@ -327,7 +326,6 @@ fn wiener7_finite_difference_consistency() {
         let p_minus = Wiener7Params::from_array(p_minus_arr);
 
         let fd_grad = (f(&p_plus) - f(&p_minus)) / (2.0 * h);
-
 
         assert_relative_eq!(analytic[i], fd_grad, epsilon = 5e-3, max_relative = 1e-2);
     }
@@ -472,7 +470,10 @@ fn wiener5_rejects_nonfinite_precision_and_variability() {
     };
     let params = Wiener5Params::with_params_unchecked(1.5, 0.2, 0.4, 1.0, 0.1);
 
-    assert_eq!(Wiener5.fused(&obs, &params, f64::NAN).log_prob, f64::NEG_INFINITY);
+    assert_eq!(
+        Wiener5.fused(&obs, &params, f64::NAN).log_prob,
+        f64::NEG_INFINITY
+    );
     assert_eq!(
         Wiener5.fused(&obs, &params, f64::INFINITY).log_prob,
         f64::NEG_INFINITY
@@ -480,8 +481,14 @@ fn wiener5_rejects_nonfinite_precision_and_variability() {
 
     let nan_sv = Wiener5Params::with_params_unchecked(1.5, 0.2, 0.4, 1.0, f64::NAN);
     let inf_sv = Wiener5Params::with_params_unchecked(1.5, 0.2, 0.4, 1.0, f64::INFINITY);
-    assert_eq!(Wiener5.fused(&obs, &nan_sv, 1e-8).log_prob, f64::NEG_INFINITY);
-    assert_eq!(Wiener5.fused(&obs, &inf_sv, 1e-8).log_prob, f64::NEG_INFINITY);
+    assert_eq!(
+        Wiener5.fused(&obs, &nan_sv, 1e-8).log_prob,
+        f64::NEG_INFINITY
+    );
+    assert_eq!(
+        Wiener5.fused(&obs, &inf_sv, 1e-8).log_prob,
+        f64::NEG_INFINITY
+    );
 }
 
 #[test]
@@ -512,10 +519,12 @@ fn wiener7_rejects_nonfinite_precision_and_variability() {
         boundary: Boundary::Upper,
     };
     let params = Wiener7Params::with_params_unchecked(1.5, 0.2, 0.4, 1.0, 0.1, 0.1, 0.1);
-    let no_variability =
-        Wiener7Params::with_params_unchecked(1.5, 0.2, 0.4, 1.0, 0.0, 0.0, 0.1);
+    let no_variability = Wiener7Params::with_params_unchecked(1.5, 0.2, 0.4, 1.0, 0.0, 0.0, 0.1);
 
-    assert_eq!(Wiener7.fused(&obs, &params, f64::NAN).log_prob, f64::NEG_INFINITY);
+    assert_eq!(
+        Wiener7.fused(&obs, &params, f64::NAN).log_prob,
+        f64::NEG_INFINITY
+    );
     assert_eq!(
         Wiener7.fused(&obs, &params, f64::INFINITY).log_prob,
         f64::NEG_INFINITY
@@ -533,7 +542,10 @@ fn wiener7_rejects_nonfinite_precision_and_variability() {
         Wiener7Params::with_params_unchecked(1.5, 0.2, 0.4, 1.0, 0.1, 0.1, f64::NAN),
         Wiener7Params::with_params_unchecked(1.5, 0.2, 0.4, 1.0, 0.1, 0.1, f64::INFINITY),
     ] {
-        assert_eq!(Wiener7.fused(&obs, &params, 1e-8).log_prob, f64::NEG_INFINITY);
+        assert_eq!(
+            Wiener7.fused(&obs, &params, 1e-8).log_prob,
+            f64::NEG_INFINITY
+        );
     }
 }
 
@@ -590,12 +602,7 @@ fn wiener4_small_time_log_series_matches_raw_reconstruction() {
 }
 
 // Helper: finite‑difference gradient for a scalar parameter via symmetric difference
-fn fd_grad<F: Fn(&Wiener7Params) -> f64>(
-    params: &Wiener7Params,
-    f: F,
-    idx: usize,
-    h: f64,
-) -> f64 {
+fn fd_grad<F: Fn(&Wiener7Params) -> f64>(params: &Wiener7Params, f: F, idx: usize, h: f64) -> f64 {
     let mut p_plus = *params;
     let mut p_minus = *params;
     match idx {
@@ -710,12 +717,42 @@ fn wiener7_tiny_variability_approaches_wiener5_limit() {
         let eval = Wiener7.fused(&obs, &params, eps);
 
         assert!(eval.log_prob.is_finite());
-        assert_relative_eq!(eval.log_prob, base_eval.log_prob, epsilon = 1e-5, max_relative = 1e-5);
-        assert_relative_eq!(eval.grad.alpha, base_eval.grad.alpha, epsilon = 1e-4, max_relative = 1e-4);
-        assert_relative_eq!(eval.grad.tau, base_eval.grad.tau, epsilon = 1e-4, max_relative = 1e-4);
-        assert_relative_eq!(eval.grad.beta, base_eval.grad.beta, epsilon = 1e-4, max_relative = 1e-4);
-        assert_relative_eq!(eval.grad.delta, base_eval.grad.delta, epsilon = 1e-4, max_relative = 1e-4);
-        assert_relative_eq!(eval.grad.s_delta, base_eval.grad.s_delta, epsilon = 1e-4, max_relative = 1e-4);
+        assert_relative_eq!(
+            eval.log_prob,
+            base_eval.log_prob,
+            epsilon = 1e-5,
+            max_relative = 1e-5
+        );
+        assert_relative_eq!(
+            eval.grad.alpha,
+            base_eval.grad.alpha,
+            epsilon = 1e-4,
+            max_relative = 1e-4
+        );
+        assert_relative_eq!(
+            eval.grad.tau,
+            base_eval.grad.tau,
+            epsilon = 1e-4,
+            max_relative = 1e-4
+        );
+        assert_relative_eq!(
+            eval.grad.beta,
+            base_eval.grad.beta,
+            epsilon = 1e-4,
+            max_relative = 1e-4
+        );
+        assert_relative_eq!(
+            eval.grad.delta,
+            base_eval.grad.delta,
+            epsilon = 1e-4,
+            max_relative = 1e-4
+        );
+        assert_relative_eq!(
+            eval.grad.s_delta,
+            base_eval.grad.s_delta,
+            epsilon = 1e-4,
+            max_relative = 1e-4
+        );
     }
 }
 
@@ -1106,21 +1143,18 @@ fn wiener7_boundary_convention_matches_wiener5() {
         rt: 6.0,
         boundary: Boundary::Upper,
     };
-    let params_upper =
-        Wiener7Params::with_params_unchecked(10.0, 0.01, 0.1, -3.0, 0.1, 0.0, 0.2);
+    let params_upper = Wiener7Params::with_params_unchecked(10.0, 0.01, 0.1, -3.0, 0.1, 0.0, 0.2);
     let core_upper = Wiener7.core(&obs_upper, &params_upper, eps).unwrap();
 
     let obs_lower = WienerObservation {
         rt: 6.0,
         boundary: Boundary::Lower,
     };
-    let params_lower =
-        Wiener7Params::with_params_unchecked(10.0, 0.01, 0.1, -3.0, 0.1, 0.0, 0.2);
+    let params_lower = Wiener7Params::with_params_unchecked(10.0, 0.01, 0.1, -3.0, 0.1, 0.0, 0.2);
     let core_lower = Wiener7.core(&obs_lower, &params_lower, eps).unwrap();
 
     let _e_upper = Wiener7.eval_fused(&core_upper, &obs_upper);
     let _e_lower = Wiener7.eval_fused(&core_lower, &obs_lower);
-
 }
 
 #[test]
@@ -1218,7 +1252,6 @@ fn wiener4_small_branch_converges_with_k() {
     let a = Wiener4::small_branch_fused(t_prime, w, k1).unwrap();
     let b = Wiener4::small_branch_fused(t_prime, w, k2).unwrap();
 
-
     assert_relative_eq!(a.0, b.0, epsilon = 1e-8, max_relative = 1e-8);
     assert_relative_eq!(a.1, b.1, epsilon = 1e-6, max_relative = 1e-6);
     assert_relative_eq!(a.2, b.2, epsilon = 1e-6, max_relative = 1e-6);
@@ -1233,7 +1266,6 @@ fn wiener4_large_branch_converges_with_k() {
     let k2 = 40;
     let a = Wiener4::large_branch_fused(t_prime, w, k1).unwrap();
     let b = Wiener4::large_branch_fused(t_prime, w, k2).unwrap();
-
 
     assert_relative_eq!(a.0, b.0, epsilon = 1e-8, max_relative = 1e-8);
     assert_relative_eq!(a.1, b.1, epsilon = 1e-6, max_relative = 1e-6);
@@ -1260,7 +1292,6 @@ fn wiener4_branch_selection_vs_conservative_truncation() {
         let _density_branch = if 2 * ks <= kl { "small" } else { "large" };
         let _grad_branch = if 2 * ks_gw <= kl_gw { "small" } else { "large" };
 
-
         // This does not enforce equality; it only records when the gradient wants a different regime.
         // Those are the points to inspect if the higher-level Wiener5/Wiener7 comparison fails.
     }
@@ -1279,7 +1310,7 @@ fn wiener4_problem_point_large_branch_converges_to_small_branch() {
 
 fn trapz_1d<F: Fn(f64) -> f64>(f: F, a: f64, b: f64, n: usize) -> f64 {
     assert!(
-        n >= 2 && n % 2 == 0,
+        n >= 2 && n.is_multiple_of(2),
         "use an even n for trapezoidal/Simpson-style resolution"
     );
     let h = (b - a) / (n as f64 - 1.0);
@@ -1291,7 +1322,6 @@ fn trapz_1d<F: Fn(f64) -> f64>(f: F, a: f64, b: f64, n: usize) -> f64 {
     }
     sum * h
 }
-
 
 #[test]
 fn wiener7_builder_uses_canonical_parameter_names() {
@@ -1323,18 +1353,24 @@ fn wiener_options_validate_precision_and_fixed_quadrature_order() {
     assert!(WienerOptions::new(f64::NAN).validate().is_err());
     assert!(WienerOptions::new(f64::INFINITY).validate().is_err());
     assert!(WienerOptions::new(0.0).validate().is_err());
-    assert!(WienerOptions::new(1e-8)
-        .with_inner_precision(f64::NAN)
-        .validate()
-        .is_err());
-    assert!(WienerOptions::new(1e-8)
-        .with_quadrature(Quadrature::FixedGaussLegendre { order: 9 })
-        .validate()
-        .is_err());
-    assert!(WienerOptions::new(1e-8)
-        .with_quadrature(Quadrature::FixedGaussLegendre { order: 25 })
-        .validate()
-        .is_ok());
+    assert!(
+        WienerOptions::new(1e-8)
+            .with_inner_precision(f64::NAN)
+            .validate()
+            .is_err()
+    );
+    assert!(
+        WienerOptions::new(1e-8)
+            .with_quadrature(Quadrature::FixedGaussLegendre { order: 9 })
+            .validate()
+            .is_err()
+    );
+    assert!(
+        WienerOptions::new(1e-8)
+            .with_quadrature(Quadrature::FixedGaussLegendre { order: 25 })
+            .validate()
+            .is_ok()
+    );
 }
 
 #[test]
@@ -1431,8 +1467,8 @@ fn checked_wiener7_fixed_quadrature_option_matches_internal_fixed_path() {
         boundary: Boundary::Upper,
     };
     let params = Wiener7Params::with_params(1.6, 0.2, 0.45, 0.7, 0.1, 0.1, 0.15).unwrap();
-    let options = WienerOptions::new(1e-8)
-        .with_quadrature(Quadrature::FixedGaussLegendre { order: 25 });
+    let options =
+        WienerOptions::new(1e-8).with_quadrature(Quadrature::FixedGaussLegendre { order: 25 });
     let core = Wiener7.core(&obs, &params, options.precision).unwrap();
 
     assert_relative_eq!(
@@ -1441,7 +1477,10 @@ fn checked_wiener7_fixed_quadrature_option_matches_internal_fixed_path() {
         epsilon = 1e-12
     );
     assert_relative_eq!(
-        Wiener7.try_log_prob(&obs, &params, options).unwrap().log_prob,
+        Wiener7
+            .try_log_prob(&obs, &params, options)
+            .unwrap()
+            .log_prob,
         Wiener7.eval_density_fixed_order(&core, &obs, 25).ln(),
         epsilon = 1e-12
     );
@@ -1477,13 +1516,33 @@ fn wiener7_fixed_quadrature_matches_adaptive_on_reference_cases() {
         let core = Wiener7.core(&obs, &params, 1e-8).unwrap();
         let fixed_density = Wiener7.eval_density_fixed(&core, &obs);
         let adaptive_density = Wiener7.eval_density_adaptive(&core, &obs);
-        assert_relative_eq!(fixed_density, adaptive_density, epsilon = 1e-10, max_relative = 1e-10);
+        assert_relative_eq!(
+            fixed_density,
+            adaptive_density,
+            epsilon = 1e-10,
+            max_relative = 1e-10
+        );
 
         let fixed = Wiener7.eval_fused_fixed(&core, &obs);
         let adaptive = Wiener7.eval_fused_adaptive(&core, &obs);
-        assert_relative_eq!(fixed.log_prob, adaptive.log_prob, epsilon = 1e-10, max_relative = 1e-10);
-        for (fixed_grad, adaptive_grad) in fixed.grad.to_array().iter().zip(adaptive.grad.to_array().iter()) {
-            assert_relative_eq!(fixed_grad, adaptive_grad, epsilon = 1e-8, max_relative = 1e-8);
+        assert_relative_eq!(
+            fixed.log_prob,
+            adaptive.log_prob,
+            epsilon = 1e-10,
+            max_relative = 1e-10
+        );
+        for (fixed_grad, adaptive_grad) in fixed
+            .grad
+            .to_array()
+            .iter()
+            .zip(adaptive.grad.to_array().iter())
+        {
+            assert_relative_eq!(
+                fixed_grad,
+                adaptive_grad,
+                epsilon = 1e-8,
+                max_relative = 1e-8
+            );
         }
     }
 }
@@ -1514,9 +1573,8 @@ fn wiener7_i4_hcubature_matches_bruteforce_beta_integration() {
             if !(0.0 < beta && beta < 1.0) {
                 return 0.0;
             }
-            let p5 = Wiener5Params::with_params_unchecked(
-                core.alpha, tau, beta, core.delta, core.sv,
-            );
+            let p5 =
+                Wiener5Params::with_params_unchecked(core.alpha, tau, beta, core.delta, core.sv);
             Wiener5.fused(&obs, &p5, core.eps_series).log_prob.exp()
         },
         0.0,
@@ -1530,9 +1588,8 @@ fn wiener7_i4_hcubature_matches_bruteforce_beta_integration() {
             if !(0.0 < beta && beta < 1.0) {
                 return 0.0;
             }
-            let p5 = Wiener5Params::with_params_unchecked(
-                core.alpha, tau, beta, core.delta, core.sv,
-            );
+            let p5 =
+                Wiener5Params::with_params_unchecked(core.alpha, tau, beta, core.delta, core.sv);
             let e = Wiener5.fused(&obs, &p5, core.eps_series);
             e.log_prob.exp() * e.grad.beta
         },
@@ -1540,7 +1597,6 @@ fn wiener7_i4_hcubature_matches_bruteforce_beta_integration() {
         1.0,
         n,
     );
-
 
     assert_relative_eq!(
         fused.log_prob.exp(),
@@ -1575,7 +1631,6 @@ fn wiener7_i4_endpoint_sensitivity_beta_bounds() {
     params.base.base.beta = 0.099999;
     let shifted_down = Wiener7.eval_fused(&Wiener7.core(&obs, &params, eps).unwrap(), &obs);
 
-
     // This should be smooth unless the support clipping or reflection is biting.
     assert!(base.log_prob.is_finite());
     assert!(shifted_up.log_prob.is_finite());
@@ -1599,7 +1654,6 @@ fn wiener4_selected_k_is_close_to_high_k_on_i4_case() {
     let ks = Wiener4::k_s(t_prime, w, log_eps);
     let kl = Wiener4::k_l(t_prime, log_eps);
 
-
     let selected = if 2 * ks <= kl {
         Wiener4::small_branch_fused(t_prime, w, ks).unwrap()
     } else {
@@ -1612,7 +1666,6 @@ fn wiener4_selected_k_is_close_to_high_k_on_i4_case() {
     } else {
         Wiener4::large_branch_fused(t_prime, w, high_k).unwrap()
     };
-
 
     assert_relative_eq!(selected.0, high_ref.0, epsilon = 1e-8, max_relative = 1e-8);
     assert_relative_eq!(selected.1, high_ref.1, epsilon = 1e-6, max_relative = 1e-6);
@@ -1651,7 +1704,6 @@ fn wiener5_selected_series_matches_high_k_reference_i4_case() {
         Wiener4::large_branch_fused(t_prime, w, high_k).unwrap()
     };
 
-
     assert_relative_eq!(
         series_selected.0,
         series_high.0,
@@ -1681,11 +1733,9 @@ fn wiener5_i4_matches_stan_oracle_values() {
     let lp_ref = -50.539_106_208_790_05_f64;
     let gw_ref = 36.632_908_590_804_28_f64;
 
-
     assert_relative_eq!(fused.log_prob, lp_ref, epsilon = 1e-6, max_relative = 1e-6);
     assert_relative_eq!(fused.grad.beta, gw_ref, epsilon = 1e-4, max_relative = 1e-4);
 }
-
 
 #[test]
 fn wiener5_stan_oracle_row_i4_asserts() {
@@ -1698,7 +1748,6 @@ fn wiener5_stan_oracle_row_i4_asserts() {
 
     let stan_lp = -50.539_106_208_790_05_f64;
     let stan_gw = 36.632_908_590_804_28_f64;
-
 
     assert_relative_eq!(fused.log_prob, stan_lp, epsilon = 1e-6, max_relative = 1e-6);
     assert_relative_eq!(
@@ -1738,7 +1787,6 @@ fn wiener7_i4_beta_grad_matches_endpoint_identity() {
 
     let density = fused.log_prob.exp();
     let endpoint_grad = (f_high - f_low) / (core.sw * density);
-
 
     assert_relative_eq!(
         fused.grad.beta,

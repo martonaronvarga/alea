@@ -1,22 +1,21 @@
-use rand::rngs::Xoshiro256PlusPlus;
 use rand::SeedableRng;
+use rand::rngs::SmallRng;
 
-use ffi::gaussian::Gaussian;
+use kernels::dist::Gaussian;
 use kernels::{
-    density::LogDensity,
     kernel::Kernel,
     metric::{CholeskyFactor, DenseMetric, IdentityMetric, Metric},
-    state::{LogProbState, State},
+    state::{ChainState, LogProbState},
 };
 use runtime::mcmc::rwmh::{Rwmh, RwmhConfig};
 use std::env;
 
 fn parse_arg<T: std::str::FromStr>(name: &str, default: T) -> T {
     for arg in env::args() {
-        if let Some(val) = arg.strip_prefix(&format!("--{}=", name)) {
-            if let Ok(parsed) = val.parse() {
-                return parsed;
-            }
+        if let Some(val) = arg.strip_prefix(&format!("--{}=", name))
+            && let Ok(parsed) = val.parse()
+        {
+            return parsed;
         }
     }
     default
@@ -47,7 +46,7 @@ fn make_dense_factor(dim: usize) -> CholeskyFactor {
             };
         }
     }
-    CholeskyFactor::new_lower(dim, chol)
+    CholeskyFactor::new_lower(dim, chol).expect("generated unit-diagonal lower factor is valid")
 }
 
 fn run<M: Metric>(metric: M, dim: usize, n_steps: usize) {
@@ -55,10 +54,10 @@ fn run<M: Metric>(metric: M, dim: usize, n_steps: usize) {
     let config = base_config(dim);
 
     let mut kernel = Rwmh::new(config, metric);
-    let mut state = State::new(dim);
+    let mut state = ChainState::new(dim);
     state.position.fill(0.1);
 
-    let mut rng = Xoshiro256PlusPlus::seed_from_u64(42);
+    let mut rng = SmallRng::seed_from_u64(42);
 
     let mut accepted = 0usize;
     for _ in 0..n_steps {
