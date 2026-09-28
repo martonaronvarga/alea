@@ -25,6 +25,7 @@ pkg-config = { workspace = true, optional = true }
 [dev-dependencies]
 approx.workspace = true
 allocation-counter.workspace = true
+proptest.workspace = true
 criterion.workspace = true
 pprof.workspace = true
 
@@ -39,4 +40,8 @@ parallel = []
 
 [[bench]]
 name = "wiener7"
+harness = false
+
+[[bench]]
+name = "transforms"
 harness = false

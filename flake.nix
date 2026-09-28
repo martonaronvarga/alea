@@ -35,30 +35,14 @@
         stableToolchain = fenixPkgs.stable.withComponents components;
         rustToolchain = fenixPkgs.complete.withComponents (components ++ ["miri" "llvm-tools"]);
 
-        # Source-built Enzyme experiments are deliberately outside normal shells.
-        # These outputs are not a validated autodiff backend (roadmap M2).
+        # Autodiff has its own content-pinned upstream toolchain: the compiler
+        # and Enzyme plugin must come from exactly the same distribution.
+        autodiffRelease = fenixPkgs.fromToolchainName {
+          name = "nightly-2026-06-23";
+          sha256 = "sha256-/yl/30nnnHU8U//+i5usZZDCcBZ+QUMeQ+3uWw9lN0g=";
+        };
         llvmPkgs = pkgs.llvmPackages_22;
-        enzyme = pkgs.callPackage ./nix/enzyme.nix {inherit llvmPkgs;};
-        rustToolchainBase = pkgs.callPackage ./nix/rust-toolchain.nix {
-          inherit llvmPkgs;
-          bootstrap = rustToolchain;
-        };
-        autodiffToolchain = pkgs.symlinkJoin {
-          name = "alea-rust-autodiff-experimental";
-          paths = [rustToolchainBase];
-          nativeBuildInputs = [pkgs.makeWrapper];
-          postBuild = ''
-            test -f ${enzyme}/lib/LLVMEnzyme-22.so
-            libdir="$out/lib/rustlib/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/lib"
-            mkdir -p "$libdir"
-            ln -s ${enzyme}/lib/LLVMEnzyme-22.so "$libdir/LLVMEnzyme-22.so"
-            ln -s ${enzyme}/lib/LLVMEnzyme-22.so "$libdir/libEnzyme-22.so"
-            wrapProgram "$out/bin/rustc" --add-flags "--sysroot $out"
-            wrapProgram "$out/bin/rustdoc" --add-flags "--sysroot $out"
-            wrapProgram "$out/bin/cargo" \
-              --set RUSTC "$out/bin/rustc" --set RUSTDOC "$out/bin/rustdoc"
-          '';
-        };
+        autodiffToolchain = autodiffRelease.withComponents (components ++ ["enzyme"]);
 
         cmdStan = stdenv.mkDerivation rec {
           pname = "cmdStan";
@@ -212,9 +196,11 @@
             # Scope runtime lookup to this opt-in shell, never the default shell.
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [openblasLp64];
           };
-          # This may build Rust/LLVM/Enzyme from source; opt in explicitly.
+          # Upstream prebuilt Enzyme; opt in explicitly. Use release mode for AD.
           autodiff = mkRustShell autodiffToolchain {
-            RUSTFLAGS = "-Zautodiff=Enable -Clto=fat -Cembed-bitcode=yes";
+            # Fat LTO is set by the workspace release profile, not globally:
+            # applying -Clto=fat to proc-macro build dependencies is invalid.
+            RUSTFLAGS = "-Zautodiff=Enable -Cembed-bitcode=yes";
           };
           full = mkRustShell rustToolchain {
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [openblasLp64];

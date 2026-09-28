@@ -25,6 +25,7 @@ cc = "1.2"
 pkg-config = "0.3"
 aligned-vec = "=0.6.4"
 allocation-counter = "=0.8.1"
+proptest = { version = "1", default-features = false, features = ["std"] }
 criterion = "0.5"
 pprof = { version = "0.15", features = ["flamegraph", "criterion"] }
 
