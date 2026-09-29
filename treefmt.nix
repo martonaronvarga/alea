@@ -1,7 +1,14 @@
 {pkgs, ...}: {
   projectRootFile = "flake.nix";
-  # Preserve archived experiments and vendored submodule bytes verbatim.
-  settings.global.excludes = ["archive/**" "crates/ffi/vendor/**"];
+  # Preserve archived, historical reference and vendored bytes verbatim.
+  settings.global.excludes = [
+    "archive/**"
+    "crates/alea-ffi/vendor/**"
+    "research/ddm-prototypes/**"
+    "research/cxx-prototype/**"
+    "research/inference-prototypes/**"
+    "tools/stan-reference/**"
+  ];
 
   programs = {
     alejandra.enable = true;

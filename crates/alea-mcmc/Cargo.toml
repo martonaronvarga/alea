@@ -1,0 +1,35 @@
+[package]
+name = "alea-mcmc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+alea-core.workspace = true
+alea-math.workspace = true
+rand.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+alea-distributions.workspace = true
+allocation-counter.workspace = true
+criterion.workspace = true
+
+[features]
+default = []
+simd = ["alea-math/simd"]
+faer = ["alea-math/faer"]
+openblas = ["alea-math/openblas"]
+
+[[bench]]
+name = "hmc"
+harness = false
+
+[[bench]]
+name = "rwmh"
+harness = false

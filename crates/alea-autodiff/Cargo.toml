@@ -1,0 +1,23 @@
+[package]
+name = "alea-autodiff"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+alea-core.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+alea-math.workspace = true
+alea-distributions.workspace = true
+allocation-counter.workspace = true
+
+[features]
+default = []
+std-autodiff = []

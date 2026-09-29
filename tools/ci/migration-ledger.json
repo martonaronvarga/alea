@@ -1,0 +1,2820 @@
+{
+  "base_commit": "50b66bbf825422cdf2f82ece85e41b3ddeb7437a",
+  "date": "2026-09-29",
+  "description": "Every removed tracked file and the five additional uncommitted M3 source/fixture paths. Research is preserved, not claimed as compiled coverage.",
+  "files": [
+    {
+      "source": "crates/app/Cargo.toml",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-cli/Cargo.toml"
+      ]
+    },
+    {
+      "source": "crates/app/src/main.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-cli/src/main.rs",
+        "crates/alea-cli/src/bin/rwmh.rs"
+      ]
+    },
+    {
+      "source": "crates/data_prep/Cargo.toml",
+      "disposition": "empty_or_scaffolding",
+      "targets": []
+    },
+    {
+      "source": "crates/data_prep/mverse_indexed.Rmd",
+      "disposition": "research",
+      "targets": [
+        "research/mverse_indexed.Rmd"
+      ],
+      "preserved_git_blob": "6be1fbbba876d1d277fbd907b0ea8376a5809b95"
+    },
+    {
+      "source": "crates/data_prep/src/lib.rs",
+      "disposition": "empty_or_scaffolding",
+      "targets": [],
+      "tests": [
+        {
+          "old": "it_works",
+          "disposition": "removed_scaffolding",
+          "reason": "Cargo template add(2,2)==4; no library behavior"
+        }
+      ]
+    },
+    {
+      "source": "crates/ffi/Cargo.toml",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-ffi/Cargo.toml"
+      ]
+    },
+    {
+      "source": "crates/ffi/build.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-ffi/build.rs"
+      ]
+    },
+    {
+      "source": "crates/ffi/cpp/include/gaussian.hpp",
+      "disposition": "research",
+      "targets": [
+        "research/cxx-prototype/include/gaussian.hpp"
+      ],
+      "preserved_git_blob": "032e4f30d6f289563f615adcb8ce5db3a9f3f93d"
+    },
+    {
+      "source": "crates/ffi/cpp/include/kernel.hpp",
+      "disposition": "research",
+      "targets": [
+        "research/cxx-prototype/include/kernel.hpp"
+      ],
+      "preserved_git_blob": "89968bc2842335b4a5ae05ab1d7bbded691d1ed7"
+    },
+    {
+      "source": "crates/ffi/cpp/src/gaussian.cpp",
+      "disposition": "research",
+      "targets": [
+        "research/cxx-prototype/src/gaussian.cpp"
+      ],
+      "preserved_git_blob": "282e784b55ae57152dd36a0b4fb42649a15e1cb6"
+    },
+    {
+      "source": "crates/ffi/cubature_patch.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-ffi/cubature_patch.rs"
+      ]
+    },
+    {
+      "source": "crates/ffi/src/cubature.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-ffi/src/cubature.rs"
+      ]
+    },
+    {
+      "source": "crates/ffi/src/cubature/tests.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-ffi/src/cubature/tests.rs"
+      ],
+      "tests": [
+        {
+          "old": "callback_initializes_foreign_scratch_before_exposing_slices",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-ffi/src/cubature/tests.rs",
+              "name": "callback_initializes_foreign_scratch_before_exposing_slices"
+            }
+          ]
+        },
+        {
+          "old": "partial_nonfinite_and_error_outputs_are_latched",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-ffi/src/cubature/tests.rs",
+              "name": "partial_nonfinite_and_error_outputs_are_latched"
+            }
+          ]
+        },
+        {
+          "old": "panic_is_retained_until_rust_regains_control",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-ffi/src/cubature/tests.rs",
+              "name": "panic_is_retained_until_rust_regains_control"
+            }
+          ]
+        },
+        {
+          "old": "wrong_callback_dimension_never_calls_closure",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-ffi/src/cubature/tests.rs",
+              "name": "wrong_callback_dimension_never_calls_closure"
+            }
+          ]
+        },
+        {
+          "old": "invalid_inputs_fail_before_foreign_calls_or_output_mutation",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-ffi/src/cubature/tests.rs",
+              "name": "invalid_inputs_fail_before_foreign_calls_or_output_mutation"
+            }
+          ]
+        },
+        {
+          "old": "dimensions_and_bounds_cover_backend_integer_limits",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-ffi/src/cubature/tests.rs",
+              "name": "dimensions_and_bounds_cover_backend_integer_limits"
+            }
+          ]
+        },
+        {
+          "old": "native_panics_errors_and_partial_outputs_return_through_c",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-ffi/src/cubature/tests.rs",
+              "name": "native_panics_errors_and_partial_outputs_return_through_c"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/ffi/src/lib.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-ffi/src/lib.rs"
+      ],
+      "tests": [
+        {
+          "old": "h_integrate_sawtooth",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-ffi/src/lib.rs",
+              "name": "h_integrate_sawtooth"
+            }
+          ]
+        },
+        {
+          "old": "h_integrate_sawtooth_safe_matches_raw",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-ffi/src/lib.rs",
+              "name": "h_integrate_sawtooth_safe_matches_raw"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/ffi/tests/allocations.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-ffi/tests/allocations.rs"
+      ],
+      "tests": [
+        {
+          "old": "successful_closure_boundary_has_no_rust_heap_allocations",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-ffi/tests/allocations.rs",
+              "name": "successful_closure_boundary_has_no_rust_heap_allocations"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/ffi/tests/cubature_cleanup.c",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-ffi/tests/cubature_cleanup.c"
+      ]
+    },
+    {
+      "source": "crates/ffi/tests/native_cleanup.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-ffi/tests/native_cleanup.rs"
+      ],
+      "tests": [
+        {
+          "old": "foreign_allocations_are_freed_on_callback_and_allocation_failures",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-ffi/tests/native_cleanup.rs",
+              "name": "foreign_allocations_are_freed_on_callback_and_allocation_failures"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/ffi/vendor/cubature",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-ffi/vendor/cubature"
+      ]
+    },
+    {
+      "source": "crates/kernels/Cargo.toml",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/Cargo.toml"
+      ]
+    },
+    {
+      "source": "crates/kernels/WIENER_TODO.md",
+      "disposition": "migrated",
+      "targets": [
+        "docs/wiener-research-notes.md"
+      ]
+    },
+    {
+      "source": "crates/kernels/benches/bench_wiener7",
+      "disposition": "migrated",
+      "targets": [
+        "tools/stan-reference/bench_wiener7"
+      ],
+      "preserved_git_blob": "db9c3eb88013e08831d6e1d0b3ad24600ae6db3f"
+    },
+    {
+      "source": "crates/kernels/benches/stantest",
+      "disposition": "migrated",
+      "targets": [
+        "tools/stan-reference/stantest"
+      ],
+      "preserved_git_blob": "b348deabec86faeb038c63e7facc57d3ca3829f7"
+    },
+    {
+      "source": "crates/kernels/benches/stantest.cpp",
+      "disposition": "migrated",
+      "targets": [
+        "tools/stan-reference/stantest.cpp"
+      ],
+      "preserved_git_blob": "9c083a1485350c7d03aeafe164745fec59df142b"
+    },
+    {
+      "source": "crates/kernels/benches/transforms.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/benches/transforms.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/benches/wiener7.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/benches/wiener7.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/benches/wiener7_stan.cpp",
+      "disposition": "migrated",
+      "targets": [
+        "tools/stan-reference/wiener7_stan.cpp"
+      ],
+      "preserved_git_blob": "94732b4542dedbcc99b04cf37d6c96e56a38561b"
+    },
+    {
+      "source": "crates/kernels/build.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-math/build.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/examples/gradient_check.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-cli/src/bin/gradient_check.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/examples/support/models.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-autodiff/examples/support/models.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/examples/test.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/examples/wiener_extreme.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/autodiff.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-autodiff/src/autodiff.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/buffer.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-math/src/buffer.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/build.rs",
+      "disposition": "research",
+      "targets": [
+        "research/cxx-prototype/build.rs"
+      ],
+      "preserved_git_blob": "d46270b6edf5f4c808133d1a2553d704562407e9"
+    },
+    {
+      "source": "crates/kernels/src/density.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/src/target.rs",
+        "crates/alea-core/src/density.rs",
+        "research/inference-prototypes/density.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/dist/mod.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/src/gaussian.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/dist/traits.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/src/state_space.rs",
+        "research/inference-prototypes/distribution-traits.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/dist/wiener/mod.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/src/wiener/mod.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/dist/wiener/quadrature.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/src/wiener/quadrature.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/dist/wiener/series.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/src/wiener/series.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/dist/wiener/tests.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/src/wiener/tests.rs"
+      ],
+      "tests": [
+        {
+          "old": "test_wiener4_log_prob_stan_reference",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "test_wiener4_log_prob_stan_reference"
+            }
+          ]
+        },
+        {
+          "old": "test_wiener4_gradients_numerical",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "test_wiener4_gradients_numerical"
+            }
+          ]
+        },
+        {
+          "old": "wiener5_matches_stan",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener5_matches_stan"
+            }
+          ]
+        },
+        {
+          "old": "wiener5_gradient_matches_stan_numerical",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener5_gradient_matches_stan_numerical"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_matches_stan",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_matches_stan"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_finite_difference_consistency",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_finite_difference_consistency"
+            }
+          ]
+        },
+        {
+          "old": "wiener5_log_prob_consistency",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener5_log_prob_consistency"
+            }
+          ]
+        },
+        {
+          "old": "test_truncation_consistency",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "test_truncation_consistency"
+            }
+          ]
+        },
+        {
+          "old": "test_series_monotonicity",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "test_series_monotonicity"
+            }
+          ]
+        },
+        {
+          "old": "test_wiener5_validity",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "test_wiener5_validity"
+            }
+          ]
+        },
+        {
+          "old": "test_wiener7_quadrature",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "test_wiener7_quadrature"
+            }
+          ]
+        },
+        {
+          "old": "test_target_fusedlogdensity",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "test_target_fusedlogdensity"
+            }
+          ]
+        },
+        {
+          "old": "test_parameter_transform",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "test_parameter_transform"
+            }
+          ]
+        },
+        {
+          "old": "wiener4_params_reject_negative_alpha",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener4_params_reject_negative_alpha"
+            }
+          ]
+        },
+        {
+          "old": "wiener5_rejects_nonfinite_precision_and_variability",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener5_rejects_nonfinite_precision_and_variability"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_fused_rejects_negative_unchecked_variability",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_fused_rejects_negative_unchecked_variability"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_rejects_nonfinite_precision_and_variability",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_rejects_nonfinite_precision_and_variability"
+            }
+          ]
+        },
+        {
+          "old": "parameter_defaults_are_valid_neutral_points",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "parameter_defaults_are_valid_neutral_points"
+            }
+          ]
+        },
+        {
+          "old": "wiener4_large_time_log_series_matches_active_branch_formula",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener4_large_time_log_series_matches_active_branch_formula"
+            }
+          ]
+        },
+        {
+          "old": "wiener4_small_time_log_series_matches_raw_reconstruction",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener4_small_time_log_series_matches_raw_reconstruction"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_delegates_to_wiener5_when_no_variability",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_delegates_to_wiener5_when_no_variability"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_gradients_match_finite_differences_for_all_parameters",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_gradients_match_finite_differences_for_all_parameters"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_tiny_variability_approaches_wiener5_limit",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_tiny_variability_approaches_wiener5_limit"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_density_is_finite_with_nonzero_variability",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_density_is_finite_with_nonzero_variability"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_rt_less_than_t0_returns_negative_infinity",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_rt_less_than_t0_returns_negative_infinity"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_sw_support_out_of_bounds_returns_negative_infinity",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_sw_support_out_of_bounds_returns_negative_infinity"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_st0_uses_truncated_nondecision_time_interval",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_st0_uses_truncated_nondecision_time_interval"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_target_fused_log_density_sums_over_batch",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_target_fused_log_density_sums_over_batch"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_parameter_unconstrain_constrain_roundtrip",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_parameter_unconstrain_constrain_roundtrip"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_matches_stan_reference_values",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_matches_stan_reference_values"
+            }
+          ]
+        },
+        {
+          "old": "wiener4_small_time_raw_derivative_matches_forward_difference",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener4_small_time_raw_derivative_matches_forward_difference"
+            }
+          ]
+        },
+        {
+          "old": "wiener5_grad_w_matches_fd",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener5_grad_w_matches_fd"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_grad_beta_matches_fd",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_grad_beta_matches_fd"
+            }
+          ]
+        },
+        {
+          "old": "wiener5_reflection_equivalence_upper_vs_lower",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener5_reflection_equivalence_upper_vs_lower"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_boundary_convention_matches_wiener5",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_boundary_convention_matches_wiener5"
+            }
+          ]
+        },
+        {
+          "old": "wiener5_upper_lower_reflection_has_matching_density_and_signed_gradients",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener5_upper_lower_reflection_has_matching_density_and_signed_gradients"
+            }
+          ]
+        },
+        {
+          "old": "wiener4_small_and_large_branch_agree_in_overlap_case",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener4_small_and_large_branch_agree_in_overlap_case"
+            }
+          ]
+        },
+        {
+          "old": "wiener4_small_branch_derivatives_match_fd_at_fixed_k",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener4_small_branch_derivatives_match_fd_at_fixed_k"
+            }
+          ]
+        },
+        {
+          "old": "wiener4_large_branch_derivatives_match_fd_at_fixed_k",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener4_large_branch_derivatives_match_fd_at_fixed_k"
+            }
+          ]
+        },
+        {
+          "old": "wiener4_small_branch_converges_with_k",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener4_small_branch_converges_with_k"
+            }
+          ]
+        },
+        {
+          "old": "wiener4_large_branch_converges_with_k",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener4_large_branch_converges_with_k"
+            }
+          ]
+        },
+        {
+          "old": "wiener4_branch_selection_vs_conservative_truncation",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener4_branch_selection_vs_conservative_truncation"
+            }
+          ]
+        },
+        {
+          "old": "wiener4_problem_point_large_branch_converges_to_small_branch",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener4_problem_point_large_branch_converges_to_small_branch"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_builder_uses_canonical_parameter_names",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_builder_uses_canonical_parameter_names"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_builder_rejects_invalid_configured_values",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_builder_rejects_invalid_configured_values"
+            }
+          ]
+        },
+        {
+          "old": "wiener_options_validate_precision_and_fixed_quadrature_order",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener_options_validate_precision_and_fixed_quadrature_order"
+            }
+          ]
+        },
+        {
+          "old": "soa_wiener_observations_match_vec_targets",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "soa_wiener_observations_match_vec_targets"
+            }
+          ]
+        },
+        {
+          "old": "checked_wiener_options_api_matches_existing_wrappers",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "checked_wiener_options_api_matches_existing_wrappers"
+            }
+          ]
+        },
+        {
+          "old": "checked_wiener7_fixed_quadrature_option_matches_internal_fixed_path",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "checked_wiener7_fixed_quadrature_option_matches_internal_fixed_path"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_fixed_quadrature_matches_adaptive_on_reference_cases",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_fixed_quadrature_matches_adaptive_on_reference_cases"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_i4_hcubature_matches_bruteforce_beta_integration",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_i4_hcubature_matches_bruteforce_beta_integration"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_i4_endpoint_sensitivity_beta_bounds",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_i4_endpoint_sensitivity_beta_bounds"
+            }
+          ]
+        },
+        {
+          "old": "wiener4_selected_k_is_close_to_high_k_on_i4_case",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener4_selected_k_is_close_to_high_k_on_i4_case"
+            }
+          ]
+        },
+        {
+          "old": "wiener5_selected_series_matches_high_k_reference_i4_case",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener5_selected_series_matches_high_k_reference_i4_case"
+            }
+          ]
+        },
+        {
+          "old": "wiener5_i4_matches_stan_oracle_values",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener5_i4_matches_stan_oracle_values"
+            }
+          ]
+        },
+        {
+          "old": "wiener5_stan_oracle_row_i4_asserts",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener5_stan_oracle_row_i4_asserts"
+            }
+          ]
+        },
+        {
+          "old": "wiener7_i4_beta_grad_matches_endpoint_identity",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/wiener/tests.rs",
+              "name": "wiener7_i4_beta_grad_matches_endpoint_identity"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/kernels/src/dist/wiener/types.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/src/wiener/types.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/dist/wiener/wiener4.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/src/wiener/wiener4.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/dist/wiener/wiener5.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/src/wiener/wiener5.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/dist/wiener/wiener7.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/src/wiener/wiener7.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/error.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/src/error.rs",
+        "crates/alea-distributions/src/error.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/extension.rs",
+      "disposition": "research",
+      "targets": [
+        "research/inference-prototypes/extension.rs"
+      ],
+      "preserved_git_blob": "08aa9306430aefae9cb1c9ac4f7b42180a16c2ca"
+    },
+    {
+      "source": "crates/kernels/src/gradient_check.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-autodiff/src/gradient_check.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/kernel.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/src/lib.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/lib.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/src/lib.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/metric.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-math/src/metric.rs"
+      ],
+      "tests": [
+        {
+          "old": "simd_matches_scalar_for_tails_and_unaligned_subslices",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/src/metric.rs",
+              "name": "simd_matches_scalar_for_tails_and_unaligned_subslices"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/kernels/src/model.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/src/model.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/model/primitive.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/src/model/primitive.rs",
+        "crates/alea-distributions/src/wiener/primitive.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/numeric.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-math/src/numeric.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/openblas_abi.c",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-math/src/openblas_abi.c"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/proposal.rs",
+      "disposition": "research",
+      "targets": [
+        "research/inference-prototypes/proposal.rs"
+      ],
+      "preserved_git_blob": "344401af854d67298771f729963ec15d2e6fe312"
+    },
+    {
+      "source": "crates/kernels/src/state.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/src/target.rs",
+        "crates/alea-core/src/density.rs",
+        "crates/alea-mcmc/src/hamiltonian.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/state_space.rs",
+      "disposition": "empty_or_scaffolding",
+      "targets": []
+    },
+    {
+      "source": "crates/kernels/src/target.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/src/target.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/transform/layout.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/src/transform/layout.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/transform/matrix.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/src/transform/matrix.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/src/transform/mod.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/src/transform/mod.rs"
+      ]
+    },
+    {
+      "source": "crates/kernels/tests/autodiff.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-autodiff/tests/autodiff.rs"
+      ],
+      "tests": [
+        {
+          "old": "enzyme_matches_analytic_and_finite_difference",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-autodiff/tests/autodiff.rs",
+              "name": "enzyme_matches_analytic_and_finite_difference"
+            }
+          ]
+        },
+        {
+          "old": "opaque_wiener_composes_with_enzyme_prior",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-autodiff/tests/autodiff.rs",
+              "name": "opaque_wiener_composes_with_enzyme_prior"
+            }
+          ]
+        },
+        {
+          "old": "repeated_enzyme_and_hybrid_evaluations_allocate_nothing",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-autodiff/tests/autodiff.rs",
+              "name": "repeated_enzyme_and_hybrid_evaluations_allocate_nothing"
+            }
+          ]
+        },
+        {
+          "old": "constant_data_and_adapter_failures",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-autodiff/tests/autodiff.rs",
+              "name": "constant_data_and_adapter_failures"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/kernels/tests/metrics.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-math/tests/metrics.rs"
+      ],
+      "tests": [
+        {
+          "old": "diagonal_rejects_invalid_masses_without_coercion",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/tests/metrics.rs",
+              "name": "diagonal_rejects_invalid_masses_without_coercion"
+            }
+          ]
+        },
+        {
+          "old": "factor_rejects_shape_overflow_and_wrong_storage",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/tests/metrics.rs",
+              "name": "factor_rejects_shape_overflow_and_wrong_storage"
+            }
+          ]
+        },
+        {
+          "old": "factor_rejects_invalid_diagonal_and_both_nonfinite_triangles",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/tests/metrics.rs",
+              "name": "factor_rejects_invalid_diagonal_and_both_nonfinite_triangles"
+            }
+          ]
+        },
+        {
+          "old": "constructors_preserve_aligned_allocations",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/tests/metrics.rs",
+              "name": "constructors_preserve_aligned_allocations"
+            }
+          ]
+        },
+        {
+          "old": "every_metric_rejects_dimensions_before_mutation",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/tests/metrics.rs",
+              "name": "every_metric_rejects_dimensions_before_mutation"
+            }
+          ]
+        },
+        {
+          "old": "empty_metrics_are_consistent_without_backend_calls",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/tests/metrics.rs",
+              "name": "empty_metrics_are_consistent_without_backend_calls"
+            }
+          ]
+        },
+        {
+          "old": "mass_actions_and_log_determinants_have_the_documented_convention",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/tests/metrics.rs",
+              "name": "mass_actions_and_log_determinants_have_the_documented_convention"
+            }
+          ]
+        },
+        {
+          "old": "dense_actions_match_independent_mass_reference_across_block_boundaries",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/tests/metrics.rs",
+              "name": "dense_actions_match_independent_mass_reference_across_block_boundaries"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/kernels/tests/models.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-autodiff/tests/models.rs"
+      ],
+      "tests": [
+        {
+          "old": "all_six_models_pass_gradient_diagnostics",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-autodiff/tests/models.rs",
+              "name": "all_six_models_pass_gradient_diagnostics"
+            }
+          ]
+        },
+        {
+          "old": "fused_model_calls_once_has_aligned_scratch_and_is_allocation_free",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-autodiff/tests/models.rs",
+              "name": "fused_model_calls_once_has_aligned_scratch_and_is_allocation_free"
+            }
+          ]
+        },
+        {
+          "old": "errors_and_panics_do_not_publish_partial_gradients",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-autodiff/tests/models.rs",
+              "name": "errors_and_panics_do_not_publish_partial_gradients"
+            }
+          ]
+        },
+        {
+          "old": "diagnostics_reject_bad_configuration_and_detect_bad_gradients",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-autodiff/tests/models.rs",
+              "name": "diagnostics_reject_bad_configuration_and_detect_bad_gradients"
+            }
+          ]
+        },
+        {
+          "old": "changing_model_dimensions_are_rejected_before_evaluation",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-autodiff/tests/models.rs",
+              "name": "changing_model_dimensions_are_rejected_before_evaluation"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/kernels/tests/target.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/tests/target.rs"
+      ],
+      "tests": [
+        {
+          "old": "wrong_shapes_do_not_invoke_target_or_modify_output",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target.rs",
+              "name": "wrong_shapes_do_not_invoke_target_or_modify_output"
+            }
+          ]
+        },
+        {
+          "old": "nonfinite_positions_do_not_invoke_target_or_modify_output",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target.rs",
+              "name": "nonfinite_positions_do_not_invoke_target_or_modify_output"
+            }
+          ]
+        },
+        {
+          "old": "model_errors_preserve_concrete_source",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target.rs",
+              "name": "model_errors_preserve_concrete_source"
+            }
+          ]
+        },
+        {
+          "old": "nonfinite_or_incomplete_outputs_are_rejected",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target.rs",
+              "name": "nonfinite_or_incomplete_outputs_are_rejected"
+            }
+          ]
+        },
+        {
+          "old": "construction_rejects_bad_shape_and_invalid_initial_cache",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target.rs",
+              "name": "construction_rejects_bad_shape_and_invalid_initial_cache"
+            }
+          ]
+        },
+        {
+          "old": "point_update_commits_once_and_reuses_aligned_storage",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target.rs",
+              "name": "point_update_commits_once_and_reuses_aligned_storage"
+            }
+          ]
+        },
+        {
+          "old": "failed_updates_preserve_every_cached_field_and_allow_recovery",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target.rs",
+              "name": "failed_updates_preserve_every_cached_field_and_allow_recovery"
+            }
+          ]
+        },
+        {
+          "old": "panic_during_evaluation_preserves_cache_and_workspace_can_be_reused",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target.rs",
+              "name": "panic_during_evaluation_preserves_cache_and_workspace_can_be_reused"
+            }
+          ]
+        },
+        {
+          "old": "update_validates_workspace_inputs_and_fixed_target_dimension",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target.rs",
+              "name": "update_validates_workspace_inputs_and_fixed_target_dimension"
+            }
+          ]
+        },
+        {
+          "old": "legacy_adapter_uses_only_fused_evaluation_and_checks_direct_call_shapes",
+          "disposition": "replaced_contract",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/tests/models.rs",
+              "name": "gaussian_is_dimension_bound_and_rejects_shapes_before_mutation"
+            }
+          ]
+        },
+        {
+          "old": "randomized_dimensions_and_updates_match_gaussian_reference",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target.rs",
+              "name": "randomized_dimensions_and_updates_match_gaussian_reference"
+            }
+          ]
+        },
+        {
+          "old": "zero_dimensional_targets_and_dynamic_dispatch_are_supported",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target.rs",
+              "name": "zero_dimensional_targets_and_dynamic_dispatch_are_supported"
+            }
+          ]
+        },
+        {
+          "old": "cloning_preserves_complete_cache_and_clone_from_reuses_matching_buffers",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target.rs",
+              "name": "cloning_preserves_complete_cache_and_clone_from_reuses_matching_buffers"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/kernels/tests/target_allocations.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/tests/target_allocations.rs"
+      ],
+      "tests": [
+        {
+          "old": "point_updates_allocate_nothing_after_construction",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/target_allocations.rs",
+              "name": "point_updates_allocate_nothing_after_construction"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/kernels/tests/transforms.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-core/tests/transforms.rs"
+      ],
+      "tests": [
+        {
+          "old": "vector_roundtrip",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/transforms.rs",
+              "name": "vector_roundtrip"
+            }
+          ]
+        },
+        {
+          "old": "randomized_roundtrips_jacobians_and_pullbacks",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/transforms.rs",
+              "name": "randomized_roundtrips_jacobians_and_pullbacks"
+            }
+          ]
+        },
+        {
+          "old": "layout_counts_shapes_and_zero_dimension_blocks",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/transforms.rs",
+              "name": "layout_counts_shapes_and_zero_dimension_blocks"
+            }
+          ]
+        },
+        {
+          "old": "rejects_invalid_shapes_domains_nonfinite_and_precision_collapse",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/transforms.rs",
+              "name": "rejects_invalid_shapes_domains_nonfinite_and_precision_collapse"
+            }
+          ]
+        },
+        {
+          "old": "every_transform_reuses_caller_storage",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/transforms.rs",
+              "name": "every_transform_reuses_caller_storage"
+            }
+          ]
+        },
+        {
+          "old": "inverse_domains_and_pullback_shape_failures",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-core/tests/transforms.rs",
+              "name": "inverse_domains_and_pullback_shape_failures"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/kernels/tests/wiener_batches.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/tests/wiener_batches.rs"
+      ],
+      "tests": [
+        {
+          "old": "initialized_bucket_storage_matches_direct_wiener4_and_wiener5",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/tests/wiener_batches.rs",
+              "name": "initialized_bucket_storage_matches_direct_wiener4_and_wiener5"
+            }
+          ]
+        },
+        {
+          "old": "partial_bucket_initialization_rejects_invalid_observations",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/tests/wiener_batches.rs",
+              "name": "partial_bucket_initialization_rejects_invalid_observations"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/memory/Cargo.toml",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-math/Cargo.toml"
+      ]
+    },
+    {
+      "source": "crates/memory/benches/storage.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-math/benches/storage.rs"
+      ]
+    },
+    {
+      "source": "crates/memory/src/lib.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-math/src/buffer.rs"
+      ],
+      "tests": [
+        {
+          "old": "growth_initializes_and_shrink_preserves_capacity",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/src/buffer.rs",
+              "name": "growth_initializes_and_shrink_preserves_capacity"
+            }
+          ]
+        },
+        {
+          "old": "removed_and_remaining_elements_are_dropped_once",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/src/buffer.rs",
+              "name": "removed_and_remaining_elements_are_dropped_once"
+            }
+          ]
+        },
+        {
+          "old": "supports_zero_sized_and_overaligned_elements",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/src/buffer.rs",
+              "name": "supports_zero_sized_and_overaligned_elements"
+            }
+          ]
+        },
+        {
+          "old": "base_alignment_survives_growth_clone_and_reuse",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/src/buffer.rs",
+              "name": "base_alignment_survives_growth_clone_and_reuse"
+            }
+          ]
+        },
+        {
+          "old": "initialization_panic_drops_constructed_values",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/src/buffer.rs",
+              "name": "initialization_panic_drops_constructed_values"
+            }
+          ]
+        },
+        {
+          "old": "drain_preserves_order_and_reuses_allocation",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-math/src/buffer.rs",
+              "name": "drain_preserves_order_and_reuses_allocation"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/Cargo.toml",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/Cargo.toml"
+      ]
+    },
+    {
+      "source": "crates/runtime/benches/hmc.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/benches/hmc.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/benches/rwmh.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/benches/rwmh.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/build.rs",
+      "disposition": "empty_or_scaffolding",
+      "targets": []
+    },
+    {
+      "source": "crates/runtime/scripts/bench_features.sh",
+      "disposition": "migrated",
+      "targets": [
+        "tools/bench-features.sh"
+      ]
+    },
+    {
+      "source": "crates/runtime/src/adapt.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/src/adapt.rs",
+        "research/inference-prototypes/adapt.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/src/bin/rwmh_loop.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-cli/src/bin/rwmh.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/src/chain.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-runtime/src/lib.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/src/config.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/src/config.rs"
+      ],
+      "tests": [
+        {
+          "old": "acceptance_rejects_endpoints_and_nonfinite_values",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/config.rs",
+              "name": "acceptance_rejects_endpoints_and_nonfinite_values"
+            }
+          ]
+        },
+        {
+          "old": "every_representable_depth_has_overflow_free_counts",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/config.rs",
+              "name": "every_representable_depth_has_overflow_free_counts"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/src/ddm/approx.rs",
+      "disposition": "research",
+      "targets": [
+        "research/ddm-prototypes/approx.rs"
+      ],
+      "preserved_git_blob": "2f323d5ab36364e5fe6b62d4b0d20c8e97c001c8"
+    },
+    {
+      "source": "crates/runtime/src/ddm/batch.rs",
+      "disposition": "research",
+      "targets": [
+        "research/ddm-prototypes/batch.rs"
+      ],
+      "preserved_git_blob": "ddac6f84f881ee9f6c792633c44c3e08c58b79f7"
+    },
+    {
+      "source": "crates/runtime/src/ddm/cse.rs",
+      "disposition": "research",
+      "targets": [
+        "research/ddm-prototypes/cse.rs"
+      ],
+      "preserved_git_blob": "86f858429d1bd52a1eda2aee3315bd7d3532d5df"
+    },
+    {
+      "source": "crates/runtime/src/ddm/ddm.rs",
+      "disposition": "research",
+      "targets": [
+        "research/ddm-prototypes/ddm.rs"
+      ],
+      "tests": [
+        {
+          "old": "cse_drift_lookup_is_stable",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "cse_drift_lookup_is_stable"
+            }
+          ]
+        },
+        {
+          "old": "batch_api_is_pointwise",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "batch_api_is_pointwise"
+            }
+          ]
+        },
+        {
+          "old": "ddm_params_new_valid",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "ddm_params_new_valid"
+            }
+          ]
+        },
+        {
+          "old": "ddm_params_new_rejects_invalid_a",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "ddm_params_new_rejects_invalid_a"
+            }
+          ]
+        },
+        {
+          "old": "ddm_params_new_rejects_invalid_w",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "ddm_params_new_rejects_invalid_w"
+            }
+          ]
+        },
+        {
+          "old": "ddm_params_new_rejects_invalid_ter",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "ddm_params_new_rejects_invalid_ter"
+            }
+          ]
+        },
+        {
+          "old": "decision_time_ok",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "decision_time_ok"
+            }
+          ]
+        },
+        {
+          "old": "log_wiener_upper_finite_in_both_regimes",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "log_wiener_upper_finite_in_both_regimes"
+            }
+          ]
+        },
+        {
+          "old": "log_wiener_upper_invalid_returns_neg_inf",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "log_wiener_upper_invalid_returns_neg_inf"
+            }
+          ]
+        },
+        {
+          "old": "lower_upper_symmetry",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "lower_upper_symmetry"
+            }
+          ]
+        },
+        {
+          "old": "zero_drift_symmetry_with_unbiased_start",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "zero_drift_symmetry_with_unbiased_start"
+            }
+          ]
+        },
+        {
+          "old": "series_agree_near_threshold",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "series_agree_near_threshold"
+            }
+          ]
+        },
+        {
+          "old": "density_upper_integrates_below_one",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "density_upper_integrates_below_one"
+            }
+          ]
+        },
+        {
+          "old": "total_density_integrates_below_one",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "total_density_integrates_below_one"
+            }
+          ]
+        },
+        {
+          "old": "log_trial_ll_invalid_rt",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "log_trial_ll_invalid_rt"
+            }
+          ]
+        },
+        {
+          "old": "log_likelihood_higher_for_correct_drift",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "log_likelihood_higher_for_correct_drift"
+            }
+          ]
+        },
+        {
+          "old": "trial_condition_index_bijective",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "trial_condition_index_bijective"
+            }
+          ]
+        },
+        {
+          "old": "cse_log_likelihood_condition_specific",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "cse_log_likelihood_condition_specific"
+            }
+          ]
+        },
+        {
+          "old": "sigmoid_logit_roundtrip",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "sigmoid_logit_roundtrip"
+            }
+          ]
+        },
+        {
+          "old": "decode_params_roundtrip",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "decode_params_roundtrip"
+            }
+          ]
+        },
+        {
+          "old": "decode_cse_params_roundtrip",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "decode_cse_params_roundtrip"
+            }
+          ]
+        },
+        {
+          "old": "log_jacobian_correct",
+          "disposition": "dormant_preserved",
+          "replacements": [
+            {
+              "path": "research/ddm-prototypes/ddm.rs",
+              "name": "log_jacobian_correct"
+            }
+          ]
+        }
+      ],
+      "preserved_git_blob": "e3d19b4f4a0b715a35dbb8a205853c1fd0f7e7df"
+    },
+    {
+      "source": "crates/runtime/src/ddm/ffi.rs",
+      "disposition": "research",
+      "targets": [
+        "research/ddm-prototypes/ffi.rs"
+      ],
+      "preserved_git_blob": "169276a703e17cd9e97207cac9f1afcebbbedc37"
+    },
+    {
+      "source": "crates/runtime/src/ddm/latent.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-distributions/src/latent.rs"
+      ],
+      "tests": [
+        {
+          "old": "random_walk_increments_have_gaussian_moments",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/latent.rs",
+              "name": "random_walk_increments_have_gaussian_moments"
+            }
+          ]
+        },
+        {
+          "old": "zero_scale_is_a_point_mass_and_invalid_scales_are_rejected",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-distributions/src/latent.rs",
+              "name": "zero_scale_is_a_point_mass_and_invalid_scales_are_rejected"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/src/ddm/mod.rs",
+      "disposition": "empty_or_scaffolding",
+      "targets": []
+    },
+    {
+      "source": "crates/runtime/src/ddm/model.rs",
+      "disposition": "research",
+      "targets": [
+        "research/ddm-prototypes/model.rs"
+      ],
+      "preserved_git_blob": "82c969b3f0c4b4b80471e250e3148f826f1b2a51"
+    },
+    {
+      "source": "crates/runtime/src/diagnostics.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-runtime/src/diagnostics.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/src/hamiltonian.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/src/hamiltonian.rs"
+      ],
+      "tests": [
+        {
+          "old": "signed_step_rejects_zero_and_nonfinite_but_accepts_both_directions",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hamiltonian.rs",
+              "name": "signed_step_rejects_zero_and_nonfinite_but_accepts_both_directions"
+            }
+          ]
+        },
+        {
+          "old": "fallible_leapfrog_reverses_for_all_builtin_mass_types",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hamiltonian.rs",
+              "name": "fallible_leapfrog_reverses_for_all_builtin_mass_types"
+            }
+          ]
+        },
+        {
+          "old": "fallible_leapfrog_has_second_order_energy_error",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hamiltonian.rs",
+              "name": "fallible_leapfrog_has_second_order_energy_error"
+            }
+          ]
+        },
+        {
+          "old": "start_rejects_shapes_and_nonfinite_momentum_before_exposing_phase",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hamiltonian.rs",
+              "name": "start_rejects_shapes_and_nonfinite_momentum_before_exposing_phase"
+            }
+          ]
+        },
+        {
+          "old": "partial_step_error_and_unwind_require_restart_and_leave_live_cache_untouched",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hamiltonian.rs",
+              "name": "partial_step_error_and_unwind_require_restart_and_leave_live_cache_untouched"
+            }
+          ]
+        },
+        {
+          "old": "dropping_phase_is_rejection_and_next_start_copies_whole_live_point",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hamiltonian.rs",
+              "name": "dropping_phase_is_rejection_and_next_start_copies_whole_live_point"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/src/hamiltonian/reference_tests.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/src/hamiltonian/reference_tests.rs"
+      ],
+      "tests": [
+        {
+          "old": "blackjax_identity_endpoints_and_signed_reversal_agree",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hamiltonian/reference_tests.rs",
+              "name": "blackjax_identity_endpoints_and_signed_reversal_agree"
+            }
+          ]
+        },
+        {
+          "old": "blackjax_diagonal_endpoints_and_signed_reversal_agree",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hamiltonian/reference_tests.rs",
+              "name": "blackjax_diagonal_endpoints_and_signed_reversal_agree"
+            }
+          ]
+        },
+        {
+          "old": "blackjax_dense_endpoints_and_signed_reversal_agree",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hamiltonian/reference_tests.rs",
+              "name": "blackjax_dense_endpoints_and_signed_reversal_agree"
+            }
+          ]
+        },
+        {
+          "old": "all_target_metric_pairs_have_second_order_energy_error",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hamiltonian/reference_tests.rs",
+              "name": "all_target_metric_pairs_have_second_order_energy_error"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/src/integrator.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/src/hamiltonian.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/src/lib.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/src/lib.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/src/mcmc/hmc.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/src/hmc.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/src/mcmc/hmc_chain.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/src/hmc.rs"
+      ],
+      "tests": [
+        {
+          "old": "initial_kinetic_energy_uses_metric_correct_momentum",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hmc.rs",
+              "name": "initial_kinetic_energy_uses_metric_correct_momentum"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/src/mcmc/mod.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/src/lib.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/src/mcmc/nuts.rs",
+      "disposition": "research",
+      "targets": [
+        "research/inference-prototypes/nuts.rs"
+      ],
+      "preserved_git_blob": "bbc4a26f9dd0f47021742c3647aec31551bc7f33"
+    },
+    {
+      "source": "crates/runtime/src/mcmc/rwmh.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/src/rwmh.rs",
+        "crates/alea-mcmc/src/adapt.rs",
+        "crates/alea-runtime/src/draws.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/src/policy.rs",
+      "disposition": "research",
+      "targets": [
+        "research/inference-prototypes/policy.rs"
+      ],
+      "preserved_git_blob": "1fb5f16bae770e48f422fedaec5f5b45912e07a1"
+    },
+    {
+      "source": "crates/runtime/src/random.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-math/src/random.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/src/smc/mod.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-smc/src/lib.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/src/smc/particle_filter.rs",
+      "disposition": "empty_or_scaffolding",
+      "targets": []
+    },
+    {
+      "source": "crates/runtime/src/smc/pmcmc.rs",
+      "disposition": "empty_or_scaffolding",
+      "targets": []
+    },
+    {
+      "source": "crates/runtime/src/smc/traits.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-smc/src/lib.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/tests/fixtures/blackjax-1.5.csv",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/tests/fixtures/blackjax-1.5.csv"
+      ],
+      "preserved_git_blob": "6edf6f4b026e756e25dcb520d25c32dcaf1a31cc"
+    },
+    {
+      "source": "crates/runtime/tests/hmc.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/tests/hmc_chain.rs",
+        "crates/alea-mcmc/tests/hmc_validation.rs",
+        "crates/alea-mcmc/src/hamiltonian.rs",
+        "crates/alea-mcmc/src/hmc.rs"
+      ],
+      "tests": [
+        {
+          "old": "hmc_evaluates_once_per_position_and_keeps_accepted_caches_consistent",
+          "disposition": "replaced_contract",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain.rs",
+              "name": "exactly_l_evaluations_per_trajectory_and_reset_refreshes_once"
+            }
+          ]
+        },
+        {
+          "old": "nonfinite_proposals_are_rejected_without_changing_position_or_gradient",
+          "disposition": "replaced_contract",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain.rs",
+              "name": "invalid_target_outputs_are_typed_divergences_without_commit"
+            }
+          ]
+        },
+        {
+          "old": "invalid_initial_evaluations_and_configs_do_not_move_the_chain",
+          "disposition": "replaced_contract",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain.rs",
+              "name": "construction_and_contract_errors_do_not_evaluate_or_advance_rng"
+            },
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain.rs",
+              "name": "settings_validate_once_and_cannot_store_invalid_values"
+            }
+          ]
+        },
+        {
+          "old": "momentum_uses_diagonal_and_dense_mass_matrices",
+          "disposition": "replaced_contract",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hmc.rs",
+              "name": "initial_kinetic_energy_uses_metric_correct_momentum"
+            }
+          ]
+        },
+        {
+          "old": "leapfrog_is_reversible_and_has_second_order_energy_error",
+          "disposition": "replaced_contract",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/src/hamiltonian.rs",
+              "name": "fallible_leapfrog_reverses_for_all_builtin_mass_types"
+            },
+            {
+              "path": "crates/alea-mcmc/src/hamiltonian.rs",
+              "name": "fallible_leapfrog_has_second_order_energy_error"
+            }
+          ]
+        },
+        {
+          "old": "gaussian_stationary_moments_with_nonidentity_mass",
+          "disposition": "replaced_contract",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_validation.rs",
+              "name": "correlated_gaussian_stationary_moments_for_every_mass_type"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/tests/hmc_chain.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/tests/hmc_chain.rs"
+      ],
+      "tests": [
+        {
+          "old": "settings_validate_once_and_cannot_store_invalid_values",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain.rs",
+              "name": "settings_validate_once_and_cannot_store_invalid_values"
+            }
+          ]
+        },
+        {
+          "old": "construction_and_contract_errors_do_not_evaluate_or_advance_rng",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain.rs",
+              "name": "construction_and_contract_errors_do_not_evaluate_or_advance_rng"
+            }
+          ]
+        },
+        {
+          "old": "exactly_l_evaluations_per_trajectory_and_reset_refreshes_once",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain.rs",
+              "name": "exactly_l_evaluations_per_trajectory_and_reset_refreshes_once"
+            }
+          ]
+        },
+        {
+          "old": "late_model_error_and_panic_leave_live_cache_unchanged_and_recover",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain.rs",
+              "name": "late_model_error_and_panic_leave_live_cache_unchanged_and_recover"
+            }
+          ]
+        },
+        {
+          "old": "invalid_target_outputs_are_typed_divergences_without_commit",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain.rs",
+              "name": "invalid_target_outputs_are_typed_divergences_without_commit"
+            }
+          ]
+        },
+        {
+          "old": "finite_energy_divergence_and_ordinary_rejection_are_distinct",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain.rs",
+              "name": "finite_energy_divergence_and_ordinary_rejection_are_distinct"
+            }
+          ]
+        },
+        {
+          "old": "correlated_gaussian_moments_with_dense_mass",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain.rs",
+              "name": "correlated_gaussian_moments_with_dense_mass"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/tests/hmc_chain_allocations.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/tests/hmc_chain_allocations.rs"
+      ],
+      "tests": [
+        {
+          "old": "larger_metrics_and_simd_remainders_allocate_nothing",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain_allocations.rs",
+              "name": "larger_metrics_and_simd_remainders_allocate_nothing"
+            }
+          ]
+        },
+        {
+          "old": "steady_state_hmc_and_divergent_trajectories_allocate_nothing",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_chain_allocations.rs",
+              "name": "steady_state_hmc_and_divergent_trajectories_allocate_nothing"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/tests/hmc_validation.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/tests/hmc_validation.rs"
+      ],
+      "tests": [
+        {
+          "old": "analytic_fixture_gradients_agree_with_central_differences",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_validation.rs",
+              "name": "analytic_fixture_gradients_agree_with_central_differences"
+            }
+          ]
+        },
+        {
+          "old": "full_transitions_match_independent_scalar_reference",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_validation.rs",
+              "name": "full_transitions_match_independent_scalar_reference"
+            }
+          ]
+        },
+        {
+          "old": "correlated_gaussian_stationary_moments_for_every_mass_type",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_validation.rs",
+              "name": "correlated_gaussian_stationary_moments_for_every_mass_type"
+            }
+          ]
+        },
+        {
+          "old": "banana_stationary_moments_for_every_mass_type",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_validation.rs",
+              "name": "banana_stationary_moments_for_every_mass_type"
+            }
+          ]
+        },
+        {
+          "old": "condition_number_1e8_gaussian_with_matched_mass",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_validation.rs",
+              "name": "condition_number_1e8_gaussian_with_matched_mass"
+            }
+          ]
+        },
+        {
+          "old": "unstable_ill_conditioned_trajectory_rejects_without_corrupting_cache",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_validation.rs",
+              "name": "unstable_ill_conditioned_trajectory_rejects_without_corrupting_cache"
+            }
+          ]
+        },
+        {
+          "old": "actual_floating_point_overflow_has_typed_rejection_and_preserves_cache",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_validation.rs",
+              "name": "actual_floating_point_overflow_has_typed_rejection_and_preserves_cache"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/tests/phase_allocations.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/tests/phase_allocations.rs"
+      ],
+      "tests": [
+        {
+          "old": "phase_restart_snapshot_clone_and_update_allocate_nothing",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/phase_allocations.rs",
+              "name": "phase_restart_snapshot_clone_and_update_allocate_nothing"
+            }
+          ]
+        },
+        {
+          "old": "non_gaussian_steps_allocate_nothing_for_all_metrics",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/phase_allocations.rs",
+              "name": "non_gaussian_steps_allocate_nothing_for_all_metrics"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/tests/phase_state.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/tests/phase_state.rs"
+      ],
+      "tests": [
+        {
+          "old": "snapshot_updates_are_atomic_for_errors_nonfinite_and_panics",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/phase_state.rs",
+              "name": "snapshot_updates_are_atomic_for_errors_nonfinite_and_panics"
+            }
+          ]
+        },
+        {
+          "old": "saved_phases_copy_whole_target_binding_without_reevaluation",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/phase_state.rs",
+              "name": "saved_phases_copy_whole_target_binding_without_reevaluation"
+            }
+          ]
+        },
+        {
+          "old": "failed_phase_can_only_restart_and_never_changes_snapshot",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/phase_state.rs",
+              "name": "failed_phase_can_only_restart_and_never_changes_snapshot"
+            }
+          ]
+        },
+        {
+          "old": "shapes_and_changed_target_dimension_fail_without_mutating_destination",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/phase_state.rs",
+              "name": "shapes_and_changed_target_dimension_fail_without_mutating_destination"
+            }
+          ]
+        },
+        {
+          "old": "seeded_random_shapes_and_updates_preserve_coherent_caches",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/phase_state.rs",
+              "name": "seeded_random_shapes_and_updates_preserve_coherent_caches"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/tests/rwmh_validation.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/tests/rwmh.rs",
+        "crates/alea-mcmc/tests/adaptation.rs",
+        "crates/alea-mcmc/src/config.rs",
+        "crates/alea-runtime/tests/collection.rs"
+      ],
+      "tests": [
+        {
+          "old": "configuration_rejects_bad_inputs_even_without_adaptation",
+          "disposition": "replaced_contract",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/rwmh.rs",
+              "name": "validated_configuration_and_dimensions"
+            },
+            {
+              "path": "crates/alea-mcmc/src/config.rs",
+              "name": "acceptance_rejects_endpoints_and_nonfinite_values"
+            }
+          ]
+        },
+        {
+          "old": "sampling_validates_public_mutations_and_sizes_before_state_or_rng_changes",
+          "disposition": "replaced_contract",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/rwmh.rs",
+              "name": "errors_panics_and_numerical_rejections_preserve_cache_and_recover"
+            },
+            {
+              "path": "crates/alea-runtime/tests/collection.rs",
+              "name": "collection_checks_size_before_rng_and_keeps_rejected_draws"
+            }
+          ]
+        },
+        {
+          "old": "valid_fallible_sampling_produces_expected_shape",
+          "disposition": "replaced_contract",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/adaptation.rs",
+              "name": "warmup_is_explicit_then_scale_is_frozen_and_draws_keep_shape"
+            },
+            {
+              "path": "crates/alea-runtime/tests/collection.rs",
+              "name": "collection_checks_size_before_rng_and_keeps_rejected_draws"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/tests/transformed_hmc.rs",
+      "disposition": "migrated",
+      "targets": [
+        "crates/alea-mcmc/tests/transformed_hmc.rs"
+      ],
+      "tests": [
+        {
+          "old": "exponential_and_beta_moments_through_the_transformed_boundary",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/transformed_hmc.rs",
+              "name": "exponential_and_beta_moments_through_the_transformed_boundary"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/tests/hmc_stress.rs",
+      "disposition": "migrated",
+      "baseline": "pre-migration worktree (uncommitted M3)",
+      "targets": [
+        "crates/alea-mcmc/tests/hmc_stress.rs"
+      ],
+      "tests": [
+        {
+          "old": "difficult_geometries_reject_without_publishing_partial_cache",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_stress.rs",
+              "name": "difficult_geometries_reject_without_publishing_partial_cache"
+            }
+          ]
+        },
+        {
+          "old": "reference_gradients_remain_finite_in_representable_tails",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_stress.rs",
+              "name": "reference_gradients_remain_finite_in_representable_tails"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/tests/hmc_sampling_reference.rs",
+      "disposition": "migrated",
+      "baseline": "pre-migration worktree (uncommitted M3)",
+      "targets": [
+        "crates/alea-mcmc/tests/hmc_sampling_reference.rs"
+      ],
+      "tests": [
+        {
+          "old": "independent_blackjax_sampling_agrees_with_batch_means_uncertainty",
+          "disposition": "retained",
+          "replacements": [
+            {
+              "path": "crates/alea-mcmc/tests/hmc_sampling_reference.rs",
+              "name": "independent_blackjax_sampling_agrees_with_batch_means_uncertainty"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/runtime/tests/support/targets.rs",
+      "disposition": "migrated",
+      "baseline": "pre-migration worktree (uncommitted M3)",
+      "targets": [
+        "crates/alea-mcmc/tests/support/targets.rs"
+      ]
+    },
+    {
+      "source": "crates/runtime/tests/fixtures/blackjax-sampling.csv",
+      "disposition": "migrated",
+      "baseline": "pre-migration worktree (uncommitted M3)",
+      "targets": [
+        "crates/alea-mcmc/tests/fixtures/blackjax-sampling.csv"
+      ],
+      "preserved_git_blob": "cfcc3fcdc107ca928485d5632449685ad01b25ae"
+    },
+    {
+      "source": "crates/runtime/tests/fixtures/blackjax-m3.csv",
+      "disposition": "migrated",
+      "baseline": "pre-migration worktree (uncommitted M3)",
+      "targets": [
+        "crates/alea-mcmc/tests/fixtures/blackjax-m3.csv"
+      ],
+      "preserved_git_blob": "9dd40adde6226173eef02446427435938dd20bfa"
+    }
+  ]
+}

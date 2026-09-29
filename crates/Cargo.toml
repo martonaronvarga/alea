@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["ffi", "data_prep", "app", "kernels", "runtime", "memory"]
+members = ["alea-math", "alea-core", "alea-distributions", "alea-autodiff", "alea-mcmc", "alea-runtime", "alea-smc", "alea-ffi", "alea-cli"]
 
 [workspace.package]
 version = "0.1.0"
@@ -10,10 +10,15 @@ authors = ["Marton Aron Varga <martonaronvarga@gmail.com>"]
 publish = false
 
 [workspace.dependencies]
-memory = { path = "memory" }
-ffi = { path = "ffi" }
-kernels = { path = "kernels" }
-runtime = { path = "runtime" }
+alea-math = { path = "alea-math" }
+alea-core = { path = "alea-core" }
+alea-distributions = { path = "alea-distributions" }
+alea-autodiff = { path = "alea-autodiff" }
+alea-mcmc = { path = "alea-mcmc" }
+alea-runtime = { path = "alea-runtime" }
+alea-smc = { path = "alea-smc" }
+alea-ffi = { path = "alea-ffi" }
+alea-cli = { path = "alea-cli" }
 rand = "0.10.1"
 thiserror = "2.0.18"
 tracing = "0.1.44"

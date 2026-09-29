@@ -39,6 +39,24 @@ def banana(q):
     return -0.5 * (q[0] ** 2 + z**2)
 
 
+def logistic(q):
+    x = jnp.array([-1.5, -0.2, 0.7, 2.0])
+    y = jnp.array([0.0, 1.0, 0.0, 1.0])
+    eta = q[0] + q[1] * x
+    return -0.5 * jnp.sum(q**2) + jnp.sum(y * eta - jax.nn.softplus(eta))
+
+
+def funnel(q):
+    # Centered funnel of width ONE; do not infer robustness for Neal's width 3.
+    return -0.5 * q[0]**2 - 0.5 * q[0] - 0.5 * q[1]**2 * jnp.exp(-q[0])
+
+
+def rotated(q):
+    x = (0.8*q[0] + 0.6*q[1]) / 0.01
+    y = -0.6*q[0] + 0.8*q[1]
+    return -0.5 * (x*x + y*y)
+
+
 def state_values(state, kinetic):
     values = [
         *state.position, *state.momentum, state.logdensity,
@@ -49,17 +67,18 @@ def state_values(state, kinetic):
     return [float(value) for value in values]
 
 
-def generate():
+def generate(m3=False):
     for package, expected in VERSIONS.items():
         if version(package) != expected:
             raise RuntimeError(f"{package}: expected {expected}, got {version(package)}")
     assert jax.config.x64_enabled and jax.default_backend() == "cpu"
     output = io.StringIO(newline="")
     output.write("# BlackJAX 1.5; JAX/jaxlib 0.9.2; CPU; float64; no whole-step JIT\n")
-    output.write("# Targets: correlated rho=0.6; banana bend=0.4; constants omitted\n")
+    output.write("# Targets: logistic normal prior; funnel width=1; rotated condition=1e4\n" if m3 else "# Targets: correlated rho=0.6; banana bend=0.4; constants omitted\n")
     output.write(HEADER + "\n")
     writer = csv.writer(output, lineterminator="\n")
-    for target_name, logp in [("correlated", correlated), ("banana", banana)]:
+    targets = [("logistic", logistic), ("funnel", funnel), ("rotated", rotated)] if m3 else [("correlated", correlated), ("banana", banana)]
+    for target_name, logp in targets:
         for mass_name, factor in [
             ("identity", [[1.0, 0.0], [0.0, 1.0]]),
             ("diagonal", [[2.0, 0.0], [0.0, 0.5]]),
@@ -72,7 +91,8 @@ def generate():
                 return 0.5 * (p @ inverse @ p)
 
             integrate = velocity_verlet(logp, kinetic)
-            for step_size in [0.125, -0.125]:
+            eps = 0.000625 if target_name == "rotated" else 0.125
+            for step_size in [eps, -eps]:
                 for count in [1, 5, 11]:
                     initial = new_integrator_state(
                         logp, jnp.array([0.7, -0.4]), jnp.array([0.3, 1.1])
@@ -92,14 +112,15 @@ def generate():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", type=Path, help="check saved CSV without modifying it")
+    parser.add_argument("--m3", action="store_true", help="generate logistic/funnel/rotated references")
     args = parser.parse_args()
-    generated = generate()
+    generated = generate(args.m3)
     if args.check:
         # Bit-identical text is intentional here: regeneration check on the pinned
         # environment, not a portable floating-point comparison (Rust uses tolerance).
         if args.check.read_text() != generated:
             sys.exit(f"fixture differs: {args.check}; review numeric/environment changes")
-        print("36 BlackJAX endpoint fixtures reproduce byte-for-byte")
+        print(f"{54 if args.m3 else 36} BlackJAX endpoint fixtures reproduce byte-for-byte")
     else:
         sys.stdout.write(generated)
 

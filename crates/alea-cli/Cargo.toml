@@ -1,0 +1,37 @@
+[package]
+name = "alea-cli"
+autobins = false
+default-run = "alea"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+alea-core.workspace = true
+alea-math.workspace = true
+alea-distributions.workspace = true
+alea-autodiff.workspace = true
+alea-mcmc.workspace = true
+alea-runtime.workspace = true
+rand.workspace = true
+
+[features]
+default = []
+std-autodiff = ["alea-autodiff/std-autodiff"]
+
+[[bin]]
+name = "alea"
+path = "src/main.rs"
+
+[[bin]]
+name = "alea-gradient-check"
+path = "src/bin/gradient_check.rs"
+
+[[bin]]
+name = "alea-rwmh"
+path = "src/bin/rwmh.rs"

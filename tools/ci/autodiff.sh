@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Run inside .#autodiff. A cargo check alone never validates Enzyme lowering.
+# Execute Enzyme lowering; cargo check alone is not an autodiff gate.
 rustc --version --verbose
-args=(--manifest-path crates/Cargo.toml -p kernels --release --features std-autodiff --locked)
-cargo test "${args[@]}" --test autodiff --test transforms --test models
-cargo clippy "${args[@]}" --all-targets -- -D warnings
-cargo run "${args[@]}" --example gradient_check -- all
+args=(--manifest-path crates/Cargo.toml --release --locked)
+cargo test "${args[@]}" -p alea-autodiff --features std-autodiff --test autodiff --test models
+cargo test "${args[@]}" -p alea-core --test transforms
+cargo clippy "${args[@]}" -p alea-autodiff -p alea-cli --features alea-autodiff/std-autodiff,alea-cli/std-autodiff --all-targets -- -D warnings
+cargo run "${args[@]}" -p alea-cli --features std-autodiff --bin alea-gradient-check -- all

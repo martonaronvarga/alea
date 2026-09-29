@@ -1,0 +1,21 @@
+[package]
+name = "alea-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+alea-mcmc.workspace = true
+alea-math.workspace = true
+rand.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+alea-core.workspace = true
+alea-distributions.workspace = true
+allocation-counter.workspace = true

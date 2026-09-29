@@ -1,0 +1,791 @@
+{
+  "baseline": "50b66bb plus pre-migration M3 worktree",
+  "description": "Feature-level preservation obligations, not proof of numerical correctness. Research and placeholder statuses never imply implemented algorithms.",
+  "features": [
+    {
+      "id": "aligned-storage",
+      "status": "migrated",
+      "sources": [
+        "crates/memory/src/lib.rs"
+      ],
+      "symbols": [
+        "OwnedBuffer",
+        "resize",
+        "drain",
+        "clear"
+      ],
+      "targets": [
+        "crates/alea-math/src/buffer.rs"
+      ],
+      "contract": "64-byte base alignment; initialized elements, panic-safe growth, capacity reuse and correct drops.",
+      "checks": [
+        {
+          "path": "crates/alea-math/src/buffer.rs",
+          "name": "base_alignment_survives_growth_clone_and_reuse"
+        },
+        {
+          "path": "crates/alea-math/src/buffer.rs",
+          "name": "initialization_panic_drops_constructed_values"
+        }
+      ]
+    },
+    {
+      "id": "euclidean-metrics",
+      "status": "migrated",
+      "sources": [
+        "crates/kernels/src/metric.rs"
+      ],
+      "symbols": [
+        "IdentityMetric",
+        "DiagonalMetric",
+        "CholeskyFactor",
+        "DenseMetric"
+      ],
+      "targets": [
+        "crates/alea-math/src/metric.rs"
+      ],
+      "contract": "Mass convention, momentum square root, inverse-mass velocity, kinetic energy, determinant; shape errors precede mutation.",
+      "checks": [
+        {
+          "path": "crates/alea-math/tests/metrics.rs",
+          "name": "dense_actions_match_independent_mass_reference_across_block_boundaries"
+        },
+        {
+          "path": "crates/alea-math/tests/metrics.rs",
+          "name": "every_metric_rejects_dimensions_before_mutation"
+        }
+      ]
+    },
+    {
+      "id": "polar-normal-rng",
+      "status": "migrated",
+      "sources": [
+        "crates/runtime/src/random.rs",
+        "crates/runtime/src/mcmc/rwmh.rs"
+      ],
+      "symbols": [
+        "standard_normal",
+        "draw_standard_normal"
+      ],
+      "targets": [
+        "crates/alea-math/src/random.rs"
+      ],
+      "contract": "Retain HMC normal generation and RWMH's cached second variate/RNG consumption.",
+      "checks": [
+        {
+          "path": "crates/alea-mcmc/tests/rwmh.rs",
+          "name": "density_only_transitions_match_original_polar_and_metropolis_recurrence"
+        }
+      ]
+    },
+    {
+      "id": "gaussian-density",
+      "status": "migrated",
+      "sources": [
+        "crates/kernels/src/dist/mod.rs"
+      ],
+      "symbols": [
+        "Gaussian",
+        "log_prob",
+        "log_prob_and_grad"
+      ],
+      "targets": [
+        "crates/alea-distributions/src/gaussian.rs"
+      ],
+      "contract": "Unnormalized standard Gaussian, both derivative-free and fused evaluation; fixed dimension.",
+      "checks": [
+        {
+          "path": "crates/alea-distributions/tests/models.rs",
+          "name": "gaussian_is_dimension_bound_and_rejects_shapes_before_mutation"
+        }
+      ]
+    },
+    {
+      "id": "transactional-targets",
+      "status": "migrated",
+      "sources": [
+        "crates/kernels/src/target.rs",
+        "crates/kernels/src/state.rs"
+      ],
+      "symbols": [
+        "PointState",
+        "EvaluationWorkspace",
+        "ChainState"
+      ],
+      "targets": [
+        "crates/alea-core/src/target.rs",
+        "crates/alea-core/src/density.rs"
+      ],
+      "contract": "Errors/panics cannot publish partial caches; aligned reusable storage and target binding.",
+      "checks": [
+        {
+          "path": "crates/alea-core/tests/target.rs",
+          "name": "failed_updates_preserve_every_cached_field_and_allow_recovery"
+        },
+        {
+          "path": "crates/alea-core/tests/density.rs",
+          "name": "derivative_free_cache_validates_before_evaluation_and_updates_transactionally"
+        }
+      ]
+    },
+    {
+      "id": "parameter-transforms",
+      "status": "migrated",
+      "sources": [
+        "crates/kernels/src/transform/mod.rs",
+        "crates/kernels/src/transform/matrix.rs",
+        "crates/kernels/src/transform/layout.rs"
+      ],
+      "symbols": [
+        "Transform",
+        "ParameterLayout",
+        "forward",
+        "inverse",
+        "pullback"
+      ],
+      "targets": [
+        "crates/alea-core/src/transform/mod.rs",
+        "crates/alea-core/src/transform/matrix.rs",
+        "crates/alea-core/src/transform/layout.rs"
+      ],
+      "contract": "All scalar/vector/matrix transforms, Jacobians, inverse domains, zero-sized layouts and caller-owned scratch.",
+      "checks": [
+        {
+          "path": "crates/alea-core/tests/transforms.rs",
+          "name": "randomized_roundtrips_jacobians_and_pullbacks"
+        },
+        {
+          "path": "crates/alea-core/tests/transforms.rs",
+          "name": "inverse_domains_and_pullback_shape_failures"
+        }
+      ]
+    },
+    {
+      "id": "composed-models",
+      "status": "migrated",
+      "sources": [
+        "crates/kernels/src/model.rs",
+        "crates/kernels/src/gradient_check.rs"
+      ],
+      "symbols": [
+        "AnalyticModel",
+        "TransformedTarget",
+        "ConstrainedModel"
+      ],
+      "targets": [
+        "crates/alea-core/src/model.rs",
+        "crates/alea-autodiff/src/gradient_check.rs"
+      ],
+      "contract": "Constrained densities compose with transforms/Jacobians; reusable scratch and diagnostic failures preserved.",
+      "checks": [
+        {
+          "path": "crates/alea-autodiff/tests/models.rs",
+          "name": "all_six_models_pass_gradient_diagnostics"
+        },
+        {
+          "path": "crates/alea-autodiff/tests/models.rs",
+          "name": "errors_and_panics_do_not_publish_partial_gradients"
+        }
+      ]
+    },
+    {
+      "id": "enzyme-and-opaque-vjp",
+      "status": "migrated",
+      "sources": [
+        "crates/kernels/src/autodiff.rs",
+        "crates/kernels/src/model/primitive.rs"
+      ],
+      "symbols": [
+        "EnzymeModel",
+        "OpaquePrimitive",
+        "WienerPrimitive"
+      ],
+      "targets": [
+        "crates/alea-autodiff/src/autodiff.rs",
+        "crates/alea-core/src/model/primitive.rs",
+        "crates/alea-distributions/src/wiener/primitive.rs"
+      ],
+      "contract": "Executed std::autodiff/Enzyme, constant data, analytic opaque VJP composition, no per-evaluation allocations.",
+      "checks": [
+        {
+          "path": "crates/alea-autodiff/tests/autodiff.rs",
+          "name": "opaque_wiener_composes_with_enzyme_prior"
+        },
+        {
+          "path": "crates/alea-autodiff/tests/autodiff.rs",
+          "name": "repeated_enzyme_and_hybrid_evaluations_allocate_nothing"
+        }
+      ]
+    },
+    {
+      "id": "wiener4",
+      "status": "migrated",
+      "sources": [
+        "crates/kernels/src/dist/wiener/wiener4.rs"
+      ],
+      "symbols": [
+        "Wiener4",
+        "fused",
+        "batch_value_gradient"
+      ],
+      "targets": [
+        "crates/alea-distributions/src/wiener/wiener4.rs"
+      ],
+      "contract": "Density and analytic gradients, support checks, reflected boundaries, numerical truncation/quadrature semantics.",
+      "checks": [
+        {
+          "path": "crates/alea-distributions/src/wiener/tests.rs",
+          "name": "test_wiener4_log_prob_stan_reference"
+        }
+      ]
+    },
+    {
+      "id": "wiener5",
+      "status": "migrated",
+      "sources": [
+        "crates/kernels/src/dist/wiener/wiener5.rs"
+      ],
+      "symbols": [
+        "Wiener5",
+        "fused",
+        "batch_value_gradient"
+      ],
+      "targets": [
+        "crates/alea-distributions/src/wiener/wiener5.rs"
+      ],
+      "contract": "Density and analytic gradients, support checks, reflected boundaries, numerical truncation/quadrature semantics.",
+      "checks": [
+        {
+          "path": "crates/alea-distributions/src/wiener/tests.rs",
+          "name": "wiener5_gradient_matches_stan_numerical"
+        }
+      ]
+    },
+    {
+      "id": "wiener7",
+      "status": "migrated",
+      "sources": [
+        "crates/kernels/src/dist/wiener/wiener7.rs"
+      ],
+      "symbols": [
+        "Wiener7",
+        "fused",
+        "batch_value_gradient"
+      ],
+      "targets": [
+        "crates/alea-distributions/src/wiener/wiener7.rs"
+      ],
+      "contract": "Density and analytic gradients, support checks, reflected boundaries, numerical truncation/quadrature semantics.",
+      "checks": [
+        {
+          "path": "crates/alea-distributions/src/wiener/tests.rs",
+          "name": "wiener7_gradients_match_finite_differences_for_all_parameters"
+        }
+      ]
+    },
+    {
+      "id": "wiener-numerics-and-batches",
+      "status": "migrated",
+      "sources": [
+        "crates/kernels/src/dist/wiener/series.rs",
+        "crates/kernels/src/dist/wiener/quadrature.rs",
+        "crates/kernels/src/dist/wiener/types.rs"
+      ],
+      "symbols": [
+        "WienerObservations",
+        "WienerOptions",
+        "Wiener4Params",
+        "Wiener5Params",
+        "Wiener7Params"
+      ],
+      "targets": [
+        "crates/alea-distributions/src/wiener/series.rs",
+        "crates/alea-distributions/src/wiener/quadrature.rs",
+        "crates/alea-distributions/src/wiener/types.rs",
+        "crates/alea-distributions/src/wiener/model.rs"
+      ],
+      "contract": "Series and quadrature, checked options and parameter transforms, AoS/SoA batches and model composition.",
+      "checks": [
+        {
+          "path": "crates/alea-distributions/tests/wiener_batches.rs",
+          "name": "initialized_bucket_storage_matches_direct_wiener4_and_wiener5"
+        },
+        {
+          "path": "crates/alea-distributions/tests/models.rs",
+          "name": "wiener_batches_implement_the_constrained_model_contract"
+        },
+        {
+          "path": "crates/alea-distributions/src/wiener/tests.rs",
+          "name": "wiener7_fixed_quadrature_matches_adaptive_on_reference_cases"
+        }
+      ]
+    },
+    {
+      "id": "cubature-boundary",
+      "status": "migrated",
+      "sources": [
+        "crates/ffi/src/cubature.rs",
+        "crates/ffi/cubature_patch.rs"
+      ],
+      "symbols": [
+        "hcubature",
+        "callback"
+      ],
+      "targets": [
+        "crates/alea-ffi/src/cubature.rs",
+        "crates/alea-ffi/cubature_patch.rs"
+      ],
+      "contract": "Scalar/vector callbacks, input checks, initialized foreign outputs, original errors and deferred unwinding; C cleanup.",
+      "checks": [
+        {
+          "path": "crates/alea-ffi/src/cubature/tests.rs",
+          "name": "partial_nonfinite_and_error_outputs_are_latched"
+        },
+        {
+          "path": "crates/alea-ffi/tests/native_cleanup.rs",
+          "name": "foreign_allocations_are_freed_on_callback_and_allocation_failures"
+        }
+      ]
+    },
+    {
+      "id": "hamiltonian-phases",
+      "status": "migrated",
+      "sources": [
+        "crates/runtime/src/hamiltonian.rs",
+        "crates/runtime/src/integrator.rs"
+      ],
+      "symbols": [
+        "PhaseWorkspace",
+        "SignedStep",
+        "leapfrog_step"
+      ],
+      "targets": [
+        "crates/alea-mcmc/src/hamiltonian.rs"
+      ],
+      "contract": "Signed reversible leapfrog, second-order energy error, consuming failure state and coherent snapshots.",
+      "checks": [
+        {
+          "path": "crates/alea-mcmc/src/hamiltonian.rs",
+          "name": "fallible_leapfrog_reverses_for_all_builtin_mass_types"
+        },
+        {
+          "path": "crates/alea-mcmc/tests/phase_state.rs",
+          "name": "snapshot_updates_are_atomic_for_errors_nonfinite_and_panics"
+        }
+      ]
+    },
+    {
+      "id": "fixed-hmc",
+      "status": "migrated",
+      "sources": [
+        "crates/runtime/src/mcmc/hmc.rs",
+        "crates/runtime/src/mcmc/hmc_chain.rs"
+      ],
+      "symbols": [
+        "Hmc",
+        "HmcChain",
+        "HmcOptions"
+      ],
+      "targets": [
+        "crates/alea-mcmc/src/hmc.rs"
+      ],
+      "contract": "One canonical HMC; typed divergences/rejections, fixed evaluation count, independent reference/statistical/allocation gates.",
+      "checks": [
+        {
+          "path": "crates/alea-mcmc/tests/hmc_chain.rs",
+          "name": "exactly_l_evaluations_per_trajectory_and_reset_refreshes_once"
+        },
+        {
+          "path": "crates/alea-mcmc/tests/hmc_sampling_reference.rs",
+          "name": "independent_blackjax_sampling_agrees_with_batch_means_uncertainty"
+        }
+      ]
+    },
+    {
+      "id": "derivative-free-rwmh",
+      "status": "migrated",
+      "sources": [
+        "crates/runtime/src/mcmc/rwmh.rs"
+      ],
+      "symbols": [
+        "Rwmh",
+        "try_step",
+        "propose"
+      ],
+      "targets": [
+        "crates/alea-mcmc/src/rwmh.rs",
+        "crates/alea-core/src/density.rs"
+      ],
+      "contract": "Density-only proposals for all metrics, finite coherent caches, typed rejection/model errors; no gradient cost.",
+      "checks": [
+        {
+          "path": "crates/alea-mcmc/tests/rwmh.rs",
+          "name": "gaussian_moments_for_all_proposal_covariances"
+        },
+        {
+          "path": "crates/alea-mcmc/tests/rwmh.rs",
+          "name": "first_and_repeated_transitions_allocate_nothing"
+        }
+      ]
+    },
+    {
+      "id": "dual-averaging-warmup",
+      "status": "migrated",
+      "sources": [
+        "crates/runtime/src/mcmc/rwmh.rs"
+      ],
+      "symbols": [
+        "DualAvg",
+        "finish_warmup"
+      ],
+      "targets": [
+        "crates/alea-mcmc/src/adapt.rs"
+      ],
+      "contract": "Original recurrence; explicit fixed/adaptive warmup, no-op zero warmup and frozen subsequent sampling; not windowed M4.",
+      "checks": [
+        {
+          "path": "crates/alea-mcmc/tests/adaptation.rs",
+          "name": "dual_averaging_matches_original_recurrence_and_rejects_without_mutation"
+        },
+        {
+          "path": "crates/alea-mcmc/tests/adaptation.rs",
+          "name": "warmup_is_explicit_then_scale_is_frozen_and_draws_keep_shape"
+        }
+      ]
+    },
+    {
+      "id": "aligned-draw-collection",
+      "status": "migrated",
+      "sources": [
+        "crates/runtime/src/mcmc/rwmh.rs"
+      ],
+      "symbols": [
+        "Draws",
+        "try_sample"
+      ],
+      "targets": [
+        "crates/alea-runtime/src/draws.rs"
+      ],
+      "contract": "Checked size before RNG use, 64-byte-aligned row-major storage and rejected draws retained.",
+      "checks": [
+        {
+          "path": "crates/alea-runtime/tests/collection.rs",
+          "name": "collection_checks_size_before_rng_and_keeps_rejected_draws"
+        }
+      ]
+    },
+    {
+      "id": "classical-diagnostics",
+      "status": "migrated",
+      "sources": [
+        "crates/runtime/src/diagnostics.rs"
+      ],
+      "symbols": [
+        "acceptance_rate",
+        "ess_bulk",
+        "split_rhat"
+      ],
+      "targets": [
+        "crates/alea-runtime/src/diagnostics.rs"
+      ],
+      "contract": "Classical calculations under accurate names; invalid inputs return errors, not apparently healthy defaults. Modern M6 diagnostics remain unimplemented.",
+      "checks": [
+        {
+          "path": "crates/alea-runtime/tests/collection.rs",
+          "name": "classical_diagnostics_preserve_calculations_but_reject_undefined_inputs"
+        }
+      ]
+    },
+    {
+      "id": "streaming-runner",
+      "status": "migrated",
+      "sources": [
+        "crates/runtime/src/chain.rs"
+      ],
+      "symbols": [
+        "Chain",
+        "run_chain"
+      ],
+      "targets": [
+        "crates/alea-runtime/src/lib.rs"
+      ],
+      "contract": "Bound-chain synchronous stepping and caller-controlled observation replace implicit initialization/tracing; no per-step allocation.",
+      "checks": [
+        {
+          "path": "crates/alea-runtime/tests/streaming.rs",
+          "name": "zero_steps_cancellation_and_error_observer_order"
+        },
+        {
+          "path": "crates/alea-runtime/tests/streaming.rs",
+          "name": "real_hmc_stream_includes_rejections_and_allocates_nothing"
+        }
+      ]
+    },
+    {
+      "id": "latent-ddm",
+      "status": "migrated",
+      "sources": [
+        "crates/runtime/src/ddm/latent.rs"
+      ],
+      "symbols": [
+        "LatentRandomWalk",
+        "LatentObservationModel",
+        "AffineLatentWienerMap"
+      ],
+      "targets": [
+        "crates/alea-distributions/src/latent.rs",
+        "crates/alea-core/src/state_space.rs"
+      ],
+      "contract": "Latent transitions, Gaussian density, zero-scale point masses, affine parameter/observation adapters.",
+      "checks": [
+        {
+          "path": "crates/alea-distributions/src/latent.rs",
+          "name": "random_walk_increments_have_gaussian_moments"
+        },
+        {
+          "path": "crates/alea-distributions/src/latent.rs",
+          "name": "zero_scale_is_a_point_mass_and_invalid_scales_are_rejected"
+        },
+        {
+          "path": "crates/alea-distributions/tests/latent.rs",
+          "name": "affine_scalar_and_soa_paths_match_and_preserve_unused_output_tails"
+        },
+        {
+          "path": "crates/alea-distributions/tests/latent.rs",
+          "name": "affine_batch_shape_failures_do_not_partially_write_outputs"
+        },
+        {
+          "path": "crates/alea-distributions/tests/latent.rs",
+          "name": "observation_layers_match_direct_wiener_evaluation_on_both_boundaries"
+        },
+        {
+          "path": "crates/alea-distributions/tests/latent.rs",
+          "name": "transition_layer_preserves_context_time_and_rng_contract"
+        }
+      ]
+    },
+    {
+      "id": "grid-and-linear-spline",
+      "status": "ported_from_research",
+      "sources": [
+        "crates/runtime/src/ddm/approx.rs"
+      ],
+      "symbols": [
+        "GridSpec",
+        "LinearSpline1D"
+      ],
+      "targets": [
+        "crates/alea-math/src/interpolation.rs"
+      ],
+      "contract": "Preserve grid spacing, binary-search interpolation, knots and endpoint clamping. New validation rejects undefined data and avoids finite-range overflow.",
+      "checks": [
+        {
+          "path": "crates/alea-math/tests/interpolation.rs",
+          "name": "spline_matches_the_original_scalar_formula_on_irregular_grids"
+        },
+        {
+          "path": "crates/alea-math/tests/interpolation.rs",
+          "name": "spline_avoids_overflow_for_extreme_finite_knots_and_values"
+        },
+        {
+          "path": "crates/alea-math/tests/interpolation.rs",
+          "name": "spline_reuses_input_allocations_and_evaluation_allocates_nothing"
+        }
+      ]
+    },
+    {
+      "id": "ddm-cse-likelihood-research",
+      "status": "preserved_research",
+      "sources": [
+        "crates/runtime/src/ddm/ddm.rs",
+        "crates/runtime/src/ddm/cse.rs"
+      ],
+      "symbols": [
+        "CseParams",
+        "CseParameterMap",
+        "WienerCseLikelihood",
+        "log_wiener_upper",
+        "log_likelihood_cse_generic"
+      ],
+      "targets": [
+        "research/ddm-prototypes/ddm.rs",
+        "research/ddm-prototypes/cse.rs"
+      ],
+      "contract": "Preserve independent series, condition encodings, likelihood composition and 22 dormant tests.",
+      "checks": [],
+      "remaining": "Repair unresolved types and invalid tests; validate boundary conventions and derivatives against canonical Wiener kernels before compiling."
+    },
+    {
+      "id": "affine-batch-and-observation-research",
+      "status": "preserved_research",
+      "sources": [
+        "crates/runtime/src/ddm/batch.rs",
+        "crates/runtime/src/ddm/model.rs"
+      ],
+      "symbols": [
+        "AffineLatentParameterMap",
+        "AffineLatentAutodiff",
+        "DdmObservationModel"
+      ],
+      "targets": [
+        "research/ddm-prototypes/batch.rs",
+        "research/ddm-prototypes/model.rs"
+      ],
+      "contract": "Preserve affine link and observation-adapter source; working latent adapters are separately migrated.",
+      "checks": [],
+      "remaining": "Resolve missing workspace/types and compare against supported latent model; no allocation-heavy autodiff sketch in hot path."
+    },
+    {
+      "id": "wiener-surrogate-placeholder",
+      "status": "placeholder_only",
+      "sources": [
+        "crates/runtime/src/ddm/approx.rs"
+      ],
+      "symbols": [
+        "LikelihoodApproximation",
+        "WienerGridApproximation"
+      ],
+      "targets": [
+        "research/ddm-prototypes/approx.rs"
+      ],
+      "contract": "Original fit only changed an enum; log_pdf returned NaN. This was never a working likelihood approximation.",
+      "checks": [],
+      "remaining": "Design and validate approximation error/derivatives; grid/spline utilities alone do not implement a surrogate."
+    },
+    {
+      "id": "foreign-layout-research",
+      "status": "preserved_research",
+      "sources": [
+        "crates/runtime/src/ddm/ffi.rs",
+        "crates/ffi/cpp/include/gaussian.hpp",
+        "crates/ffi/cpp/src/gaussian.cpp"
+      ],
+      "symbols": [
+        "CWienerParams",
+        "CBoundary",
+        "gaussian_log_prob",
+        "gaussian_grad"
+      ],
+      "targets": [
+        "research/ddm-prototypes/ffi.rs",
+        "research/cxx-prototype/include/gaussian.hpp",
+        "research/cxx-prototype/src/gaussian.cpp"
+      ],
+      "contract": "Preserve uncompiled ABI/bridge code; no active cubature boundary lost.",
+      "checks": [],
+      "remaining": "Repair invalid enums/types, specify external ABI, and test ownership/dimensions before linking."
+    },
+    {
+      "id": "particle-contracts",
+      "status": "placeholder_only",
+      "sources": [
+        "crates/runtime/src/smc/traits.rs",
+        "crates/runtime/src/smc/particle_filter.rs",
+        "crates/runtime/src/smc/pmcmc.rs"
+      ],
+      "symbols": [
+        "ParticleWeightModel",
+        "ParticleMutationKernel",
+        "ParticleResampler"
+      ],
+      "targets": [
+        "crates/alea-smc/src/lib.rs"
+      ],
+      "contract": "Weight/mutation/resampling contracts retained. Filter/PMCMC files were empty, not algorithms.",
+      "checks": [],
+      "remaining": "Implement and validate filtering, resampling and PMCMC in their roadmap milestones."
+    },
+    {
+      "id": "nuts-and-policy-placeholders",
+      "status": "placeholder_only",
+      "sources": [
+        "crates/runtime/src/mcmc/nuts.rs",
+        "crates/runtime/src/policy.rs"
+      ],
+      "symbols": [
+        "NUTS",
+        "NUTSConfig",
+        "choose_inference"
+      ],
+      "targets": [
+        "research/inference-prototypes/nuts.rs",
+        "research/inference-prototypes/policy.rs"
+      ],
+      "contract": "Preserve constructor/configuration and advisory strings without claiming any sampler transitions.",
+      "checks": [],
+      "remaining": "Implement NUTS through M5; do not treat old policy text (including RMHMC/ChEES conflation) as validated dispatch."
+    },
+    {
+      "id": "unused-extension-contracts",
+      "status": "preserved_research",
+      "sources": [
+        "crates/kernels/src/extension.rs",
+        "crates/kernels/src/proposal.rs",
+        "crates/kernels/src/dist/traits.rs",
+        "crates/runtime/src/adapt.rs",
+        "crates/kernels/src/density.rs"
+      ],
+      "symbols": [
+        "ParameterMap",
+        "FactorEnergy",
+        "DiscreteTransitionKernel",
+        "Proposal",
+        "StepSizeAdapter",
+        "HessianLogDensity",
+        "BatchLogDensity",
+        "Measure",
+        "Distribution"
+      ],
+      "targets": [
+        "research/inference-prototypes/extension.rs",
+        "research/inference-prototypes/proposal.rs",
+        "research/inference-prototypes/distribution-traits.rs",
+        "research/inference-prototypes/adapt.rs",
+        "research/inference-prototypes/density.rs"
+      ],
+      "contract": "Preserve declarations/defaults while canonical target, transform and warmup capabilities replace active behavior.",
+      "checks": [],
+      "remaining": "Introduce only contracts with implemented and tested consumers; no blanket symmetric-proposal assumption for future asymmetric proposals."
+    },
+    {
+      "id": "profiling-and-reference-tools",
+      "status": "tooling",
+      "sources": [
+        "crates/runtime/benches/rwmh.rs",
+        "crates/runtime/src/bin/rwmh_loop.rs",
+        "crates/kernels/examples/test.rs",
+        "crates/kernels/benches/wiener7.rs"
+      ],
+      "symbols": [
+        "bench_rwmh_isotropic",
+        "bench_rwmh_dense",
+        "rwmh_loop",
+        "gradient_check"
+      ],
+      "targets": [
+        "crates/alea-mcmc/benches/rwmh.rs",
+        "crates/alea-mcmc/benches/hmc.rs",
+        "crates/alea-cli/src/bin/rwmh.rs",
+        "crates/alea-cli/src/bin/gradient_check.rs",
+        "crates/alea-distributions/examples/wiener_extreme.rs"
+      ],
+      "contract": "Retain profiling CLI, full 49-case RWMH decomposition, HMC workloads, Wiener/transform/storage benchmarks and reference tools.",
+      "checks": []
+    },
+    {
+      "id": "research-data-analysis",
+      "status": "tooling",
+      "sources": [
+        "crates/data_prep/mverse_indexed.Rmd"
+      ],
+      "symbols": [
+        "RMarkdown indexing pipeline"
+      ],
+      "targets": [
+        "research/mverse_indexed.Rmd"
+      ],
+      "contract": "Original research analysis retained byte-for-byte; no runnable Rust data-preparation algorithm existed.",
+      "checks": []
+    }
+  ]
+}

@@ -142,17 +142,11 @@
           buildInputs = [pkgs.openssl];
           # No nonexistent ffi-backend feature, nightly flags, or global BLAS linking.
         };
-        # Preserve the existing executable name for nix build / nix run users.
-        matmod = pkgs.runCommand "matmod" {nativeBuildInputs = [pkgs.makeWrapper];} ''
-          mkdir -p "$out/bin"
-          makeWrapper ${rustPackage}/bin/app "$out/bin/matmod" \
-            --set-default MATMOD_BACKEND dynamic
-        '';
         treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
 
         mkRustShell = toolchain: extra:
           pkgs.mkShell ({
-              packages = [toolchain pkgs.pkg-config pkgs.cmake pkgs.eigen pkgs.openssl];
+              packages = [toolchain pkgs.python3 pkgs.pkg-config pkgs.cmake pkgs.eigen pkgs.openssl];
               RUSTC = "${toolchain}/bin/rustc";
               RUSTDOC = "${toolchain}/bin/rustdoc";
               RUST_SRC_PATH = "${toolchain}/lib/rustlib/src/rust/library";
@@ -165,11 +159,11 @@
       in {
         packages = {
           inherit rustToolchain stableToolchain autodiffToolchain cmdStan rustPackage;
-          default = matmod;
+          default = rustPackage;
         };
         apps.default = {
           type = "app";
-          program = "${matmod}/bin/matmod";
+          program = "${rustPackage}/bin/alea";
           meta.description = "Run the Alea experiment application";
         };
         formatter = treefmtEval.config.build.wrapper;

@@ -1,0 +1,36 @@
+[package]
+name = "alea-math"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+aligned-vec.workspace = true
+rand.workspace = true
+thiserror.workspace = true
+
+faer = { workspace = true, optional = true }
+cblas = { workspace = true, optional = true }
+
+[build-dependencies]
+cc = { workspace = true, optional = true }
+pkg-config = { workspace = true, optional = true }
+
+[dev-dependencies]
+criterion.workspace = true
+allocation-counter.workspace = true
+
+[features]
+default = []
+simd = []
+faer = ["dep:faer"]
+openblas = ["dep:cblas", "dep:cc", "dep:pkg-config"]
+
+[[bench]]
+name = "storage"
+harness = false

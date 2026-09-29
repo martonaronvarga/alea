@@ -40,6 +40,115 @@ dependencies = [
 ]
 
 [[package]]
+name = "alea-autodiff"
+version = "0.1.0"
+dependencies = [
+ "alea-core",
+ "alea-distributions",
+ "alea-math",
+ "allocation-counter",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "alea-cli"
+version = "0.1.0"
+dependencies = [
+ "alea-autodiff",
+ "alea-core",
+ "alea-distributions",
+ "alea-math",
+ "alea-mcmc",
+ "alea-runtime",
+ "rand 0.10.1",
+]
+
+[[package]]
+name = "alea-core"
+version = "0.1.0"
+dependencies = [
+ "alea-distributions",
+ "alea-math",
+ "allocation-counter",
+ "criterion",
+ "proptest",
+ "rand 0.10.1",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "alea-distributions"
+version = "0.1.0"
+dependencies = [
+ "alea-core",
+ "alea-ffi",
+ "alea-math",
+ "approx",
+ "criterion",
+ "once_cell",
+ "pprof",
+ "rand 0.10.1",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "alea-ffi"
+version = "0.1.0"
+dependencies = [
+ "allocation-counter",
+ "cc",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "alea-math"
+version = "0.1.0"
+dependencies = [
+ "aligned-vec",
+ "allocation-counter",
+ "cblas",
+ "cc",
+ "criterion",
+ "faer",
+ "pkg-config",
+ "rand 0.10.1",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "alea-mcmc"
+version = "0.1.0"
+dependencies = [
+ "alea-core",
+ "alea-distributions",
+ "alea-math",
+ "allocation-counter",
+ "criterion",
+ "rand 0.10.1",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "alea-runtime"
+version = "0.1.0"
+dependencies = [
+ "alea-core",
+ "alea-distributions",
+ "alea-math",
+ "alea-mcmc",
+ "allocation-counter",
+ "rand 0.10.1",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "alea-smc"
+version = "0.1.0"
+dependencies = [
+ "rand 0.10.1",
+]
+
+[[package]]
 name = "aligned-vec"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -71,15 +180,6 @@ name = "anyhow"
 version = "1.0.102"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
-
-[[package]]
-name = "app"
-version = "0.1.0"
-dependencies = [
- "kernels",
- "rand 0.10.1",
- "runtime",
-]
 
 [[package]]
 name = "approx"
@@ -421,10 +521,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "data_prep"
-version = "0.1.0"
-
-[[package]]
 name = "debugid"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -602,15 +698,6 @@ name = "fastrand"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
-
-[[package]]
-name = "ffi"
-version = "0.1.0"
-dependencies = [
- "allocation-counter",
- "cc",
- "thiserror 2.0.18",
-]
 
 [[package]]
 name = "find-msvc-tools"
@@ -942,26 +1029,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kernels"
-version = "0.1.0"
-dependencies = [
- "allocation-counter",
- "approx",
- "cblas",
- "cc",
- "criterion",
- "faer",
- "ffi",
- "memory",
- "once_cell",
- "pkg-config",
- "pprof",
- "proptest",
- "rand 0.10.1",
- "thiserror 2.0.18",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1041,14 +1108,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "714098028fe011992e1c3962653c96b2d578c4b4bce9036e15ff220319b1e0e3"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "memory"
-version = "0.1.0"
-dependencies = [
- "aligned-vec",
- "criterion",
 ]
 
 [[package]]
@@ -1645,18 +1704,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "runtime"
-version = "0.1.0"
-dependencies = [
- "allocation-counter",
- "criterion",
- "kernels",
- "rand 0.10.1",
- "thiserror 2.0.18",
- "tracing",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1961,19 +2008,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63e71662fa4b2a2c3a26f570f037eb95bb1f85397f3cd8076caed2f026a6d100"
 dependencies = [
  "pin-project-lite",
- "tracing-attributes",
  "tracing-core",
-]
-
-[[package]]
-name = "tracing-attributes"
-version = "0.1.31"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
 ]
 
 [[package]]

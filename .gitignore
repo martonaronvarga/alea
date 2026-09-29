@@ -1,6 +1,7 @@
 result
 data
 target
+__pycache__/
 .helix
 *.cc
 *.h
