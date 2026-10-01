@@ -85,14 +85,14 @@ fn settings_validate_once_and_cannot_store_invalid_values() {
     }
     assert!(matches!(
         HmcOptions::new(0.1, 0),
-        Err(HmcConfigError::LeapfrogCount)
+        Err(HmcConfigError::IntegrationCount)
     ));
     let options = HmcOptions::new(0.2, 4)
         .unwrap()
         .with_max_energy_error(10.0)
         .unwrap();
     assert_eq!(options.step_size().value(), 0.2);
-    assert_eq!(options.leapfrog_steps().get(), 4);
+    assert_eq!(options.integration_steps().get(), 4);
     assert_eq!(options.max_energy_error(), 10.0);
 }
 
@@ -127,7 +127,7 @@ fn construction_and_contract_errors_do_not_evaluate_or_advance_rng() {
             HmcOptions::default()
         ),
         Err(HmcError::Evaluation {
-            leapfrog_step: 0,
+            integration_step: 0,
             ..
         })
     ));
@@ -145,7 +145,7 @@ fn construction_and_contract_errors_do_not_evaluate_or_advance_rng() {
     assert!(matches!(
         chain.step(&mut rng),
         Err(HmcError::Evaluation {
-            leapfrog_step: 0,
+            integration_step: 0,
             source: EvaluationError::TargetDimensionChanged { .. }
         })
     ));
@@ -172,7 +172,7 @@ fn exactly_l_evaluations_per_trajectory_and_reset_refreshes_once() {
         let old_lp = chain.point().log_density();
         let info = chain.step(&mut rng).unwrap();
         assert!(info.divergence.is_none());
-        assert_eq!(info.leapfrog_steps, 4);
+        assert_eq!(info.integration_steps, 4);
         assert_eq!(target.calls.get(), 1 + transition * 4);
         // Transcendental results need not be bit-identical across evaluations
         // (including Miri's floating-point implementation).
@@ -227,7 +227,7 @@ fn late_model_error_and_panic_leave_live_cache_unchanged_and_recover() {
             assert!(matches!(
                 error,
                 HmcError::Evaluation {
-                    leapfrog_step: 3,
+                    integration_step: 3,
                     source: EvaluationError::Model(Failure)
                 }
             ));
@@ -274,7 +274,7 @@ fn invalid_target_outputs_are_typed_divergences_without_commit() {
         assert_eq!(info.divergence, Some(expected));
         assert!(!info.accepted);
         assert_eq!(info.acceptance_probability, 0.0);
-        assert_eq!(info.leapfrog_steps, 2);
+        assert_eq!(info.integration_steps, 2);
         assert!(info.proposal_energy.is_none());
         assert_eq!(chain.point().position(), &[0.5, -0.3]);
         assert_eq!(chain.point().gradient(), &[-0.5, 0.3]);

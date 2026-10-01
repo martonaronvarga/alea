@@ -33,7 +33,7 @@ fn workload<T: LogDensityGradient, M: EuclideanMetric>(
     c.bench_function(name, |b| {
         b.iter(|| {
             let info = chain.step(&mut rng).unwrap();
-            assert_eq!(info.leapfrog_steps, 8);
+            assert_eq!(info.integration_steps, 8);
             assert!(info.divergence.is_none());
             let _ = black_box(info);
         })

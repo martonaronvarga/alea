@@ -5,6 +5,7 @@ use std::{error::Error, num::NonZeroUsize};
 
 pub use crate::hamiltonian::Divergence;
 use crate::hamiltonian::{PhaseError, PhaseWorkspace, SignedStep};
+use crate::integrator::{Integrator, Leapfrog};
 use alea_core::target::{EvaluationError, LogDensityGradient, PointState};
 use alea_math::buffer::OwnedBuffer;
 use alea_math::metric::{EuclideanMetric, MetricError};
@@ -18,9 +19,9 @@ pub enum HmcConfigError {
     /// Step size must be strictly positive and finite.
     #[error("step size must be finite and positive")]
     StepSize,
-    /// A transition must attempt at least one leapfrog step.
-    #[error("leapfrog count must be nonzero")]
-    LeapfrogCount,
+    /// A transition must attempt at least one complete integration macrostep.
+    #[error("integration step count must be nonzero")]
+    IntegrationCount,
     /// The absolute endpoint energy-error limit must be positive and finite.
     #[error("energy error limit must be finite and positive")]
     EnergyErrorLimit,
@@ -52,7 +53,7 @@ impl StepSize {
 #[derive(Debug, Clone, Copy)]
 pub struct HmcOptions {
     step_size: StepSize,
-    leapfrog_steps: NonZeroUsize,
+    integration_steps: NonZeroUsize,
     max_energy_error: f64,
 }
 
@@ -61,11 +62,11 @@ impl HmcOptions {
     ///
     /// # Errors
     /// Returns [`HmcConfigError`] for a non-positive/non-finite step or zero count.
-    pub fn new(step_size: f64, leapfrog_steps: usize) -> Result<Self, HmcConfigError> {
+    pub fn new(step_size: f64, integration_steps: usize) -> Result<Self, HmcConfigError> {
         Ok(Self {
             step_size: step_size.try_into()?,
-            leapfrog_steps: NonZeroUsize::new(leapfrog_steps)
-                .ok_or(HmcConfigError::LeapfrogCount)?,
+            integration_steps: NonZeroUsize::new(integration_steps)
+                .ok_or(HmcConfigError::IntegrationCount)?,
             max_energy_error: 1000.0,
         })
     }
@@ -86,9 +87,9 @@ impl HmcOptions {
     pub fn step_size(self) -> StepSize {
         self.step_size
     }
-    /// Fixed nonzero trajectory length in leapfrog steps.
-    pub fn leapfrog_steps(self) -> NonZeroUsize {
-        self.leapfrog_steps
+    /// Fixed nonzero trajectory length in complete integration macrosteps.
+    pub fn integration_steps(self) -> NonZeroUsize {
+        self.integration_steps
     }
     /// Maximum allowed absolute endpoint Hamiltonian error.
     pub fn max_energy_error(self) -> f64 {
@@ -100,7 +101,7 @@ impl Default for HmcOptions {
     fn default() -> Self {
         Self {
             step_size: StepSize(0.1),
-            leapfrog_steps: NonZeroUsize::new(10).expect("ten is nonzero"),
+            integration_steps: NonZeroUsize::new(10).expect("ten is nonzero"),
             max_energy_error: 1000.0,
         }
     }
@@ -115,7 +116,7 @@ pub struct HmcTransition {
     /// Metropolis probability; zero for any divergent trajectory.
     pub acceptance_probability: f64,
     /// Number of attempted steps, including a failing step if present.
-    pub leapfrog_steps: usize,
+    pub integration_steps: usize,
     /// Finite initial Hamiltonian, if it could be computed.
     pub initial_energy: Option<f64>,
     /// Finite endpoint Hamiltonian, if integration reached one.
@@ -131,7 +132,7 @@ impl HmcTransition {
         Self {
             accepted: false,
             acceptance_probability: 0.0,
-            leapfrog_steps: 0,
+            integration_steps: 0,
             initial_energy: None,
             proposal_energy: None,
             energy_error: None,
@@ -147,13 +148,13 @@ impl HmcTransition {
     fn failed<E: Error + 'static>(
         self,
         error: PhaseError<E>,
-        leapfrog_step: usize,
+        integration_step: usize,
     ) -> Result<Self, HmcError<E>> {
         match error {
             PhaseError::Divergence(reason) => Ok(self.divergent(reason)),
             PhaseError::Metric(source) => Err(HmcError::Metric(source)),
             PhaseError::Evaluation(source) => Err(HmcError::Evaluation {
-                leapfrog_step,
+                integration_step,
                 source,
             }),
         }
@@ -174,10 +175,10 @@ pub enum HmcError<E: Error + 'static> {
     #[error(transparent)]
     Metric(#[from] MetricError),
     /// Original evaluation failure. Step zero denotes construction/reset/contract checking.
-    #[error("evaluation failed at leapfrog step {leapfrog_step}: {source}")]
+    #[error("evaluation failed at integration step {integration_step}: {source}")]
     Evaluation {
-        /// One-based attempted leapfrog step, or zero outside integration.
-        leapfrog_step: usize,
+        /// One-based attempted macrostep, or zero outside integration.
+        integration_step: usize,
         /// Original model error chain or evaluation contract failure.
         #[source]
         source: EvaluationError<E>,
@@ -187,7 +188,8 @@ pub enum HmcError<E: Error + 'static> {
 /// Fixed-length HMC owning one live cache, one proposal, and reusable aligned scratch.
 ///
 /// Construction evaluates the target once. A successful `L`-step trajectory then
-/// requires exactly `L` fused evaluations, with no starting refresh. The target
+/// requires `L * integrator.stages()` fused evaluations (one per leapfrog, two per
+/// two-stage macrostep), with no starting refresh. The target
 /// and metric must remain semantically fixed; only read-only live-point access is
 /// provided. Rejection, error, and unwinding never mutate the live point. RNG state
 /// is consumed on attempted transitions and is not rolled back.
@@ -205,28 +207,44 @@ pub enum HmcError<E: Error + 'static> {
 /// let mut chain = Hmc::new(&target, OwnedBuffer::new(2),
 ///     IdentityMetric::new(2), HmcOptions::new(0.1, 8)?)?;
 /// let info = chain.step(&mut SmallRng::seed_from_u64(42))?;
-/// assert_eq!(info.leapfrog_steps, 8);
+/// assert_eq!(info.integration_steps, 8);
 /// assert!(chain.point().log_density().is_finite());
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 #[derive(Debug)]
-pub struct Hmc<'a, T: LogDensityGradient + ?Sized, M> {
+pub struct Hmc<'a, T: LogDensityGradient + ?Sized, M, I = Leapfrog> {
     point: PointState<'a, T>,
     proposal: PhaseWorkspace<'a, T>,
     metric: M,
     options: HmcOptions,
+    integrator: I,
 }
 
 impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric> Hmc<'a, T, M> {
-    /// Validates dimensions, evaluates the initial point once, and allocates scratch.
-    ///
+    /// Construct fixed HMC with the reference leapfrog integrator.
     /// # Errors
-    /// Returns [`HmcError`] for empty targets, metric mismatch, or initial evaluation failure.
+    /// Rejects empty/mismatched dimensions or a failed initial target evaluation.
     pub fn new(
         target: &'a T,
         position: OwnedBuffer,
         metric: M,
         options: HmcOptions,
+    ) -> Result<Self, HmcError<T::Error>> {
+        Self::new_with_integrator(target, position, metric, options, Leapfrog)
+    }
+}
+
+impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Hmc<'a, T, M, I> {
+    /// Validates dimensions, evaluates the initial point once, and allocates scratch.
+    ///
+    /// # Errors
+    /// Returns [`HmcError`] for empty targets, metric mismatch, or initial evaluation failure.
+    pub fn new_with_integrator(
+        target: &'a T,
+        position: OwnedBuffer,
+        metric: M,
+        options: HmcOptions,
+        integrator: I,
     ) -> Result<Self, HmcError<T::Error>> {
         let dim = target.dimension();
         if dim == 0 {
@@ -239,7 +257,7 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric> Hmc<'a, T, M> {
             });
         }
         let point = PointState::new(target, position).map_err(|source| HmcError::Evaluation {
-            leapfrog_step: 0,
+            integration_step: 0,
             source,
         })?;
         Ok(Self {
@@ -247,6 +265,7 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric> Hmc<'a, T, M> {
             point,
             metric,
             options,
+            integrator,
         })
     }
 
@@ -257,6 +276,64 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric> Hmc<'a, T, M> {
     /// Immutable validated settings used for each transition.
     pub fn options(&self) -> HmcOptions {
         self.options
+    }
+
+    /// Read-only metric; stationary transitions never change its parameters.
+    pub fn metric(&self) -> &M {
+        &self.metric
+    }
+
+    pub(crate) fn set_step_size(&mut self, step: StepSize) {
+        self.options.step_size = step;
+    }
+
+    pub(crate) fn metric_mut(&mut self) -> &mut M {
+        &mut self.metric
+    }
+
+    pub(crate) fn replace_metric(&mut self, metric: M) -> Result<(), HmcError<T::Error>> {
+        if metric.dimension() != self.point.dimension() {
+            return Err(HmcError::MetricDimension {
+                target: self.point.dimension(),
+                metric: metric.dimension(),
+            });
+        }
+        self.metric = metric;
+        Ok(())
+    }
+
+    /// One-macrostep warmup probe. Never commits the proposal or changes options.
+    /// Numerical divergence has probability zero; model errors retain their source.
+    pub(crate) fn probe<R: Rng + ?Sized>(
+        &mut self,
+        step: StepSize,
+        rng: &mut R,
+    ) -> Result<f64, HmcError<T::Error>> {
+        let result = (|| {
+            let mut phase = self.proposal.start(&self.point, &self.metric, rng)?;
+            let initial = phase.energy()?;
+            let mut phase = phase.step_with(
+                SignedStep::new(step.value()).expect("validated step"),
+                &self.integrator,
+            )?;
+            let difference = phase.energy()? - initial;
+            Ok::<_, PhaseError<T::Error>>(
+                if difference.is_finite() && difference.abs() <= self.options.max_energy_error {
+                    (-difference).min(0.0).exp()
+                } else {
+                    0.0
+                },
+            )
+        })();
+        match result {
+            Ok(probability) => Ok(probability),
+            Err(PhaseError::Divergence(_)) => Ok(0.0),
+            Err(PhaseError::Metric(error)) => Err(HmcError::Metric(error)),
+            Err(PhaseError::Evaluation(source)) => Err(HmcError::Evaluation {
+                integration_step: 1,
+                source,
+            }),
+        }
     }
 
     /// Explicitly resets the position with one transactional target evaluation.
@@ -285,7 +362,7 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric> Hmc<'a, T, M> {
         let actual = self.point.target().dimension();
         if actual != dim {
             return Err(HmcError::Evaluation {
-                leapfrog_step: 0,
+                integration_step: 0,
                 source: EvaluationError::TargetDimensionChanged {
                     expected: dim,
                     actual,
@@ -310,16 +387,16 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric> Hmc<'a, T, M> {
         info.initial_energy = Some(initial);
         // HmcOptions can only contain a finite positive step size.
         let eps = SignedStep::new(self.options.step_size.value()).expect("validated step size");
-        for step in 1..=self.options.leapfrog_steps.get() {
-            info.leapfrog_steps = step;
-            phase = match phase.step(eps) {
+        for step in 1..=self.options.integration_steps.get() {
+            info.integration_steps = step;
+            phase = match phase.step_with(eps, &self.integrator) {
                 Ok(phase) => phase,
                 Err(error) => return info.failed(error, step),
             };
         }
         let proposed = match phase.energy() {
             Ok(energy) => energy,
-            Err(error) => return info.failed(error, info.leapfrog_steps),
+            Err(error) => return info.failed(error, info.integration_steps),
         };
         info.proposal_energy = Some(proposed);
         let error = proposed - initial;
@@ -339,7 +416,9 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric> Hmc<'a, T, M> {
     }
 }
 
-impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric> crate::MarkovChain for Hmc<'_, T, M> {
+impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> crate::MarkovChain
+    for Hmc<'_, T, M, I>
+{
     type Error = HmcError<T::Error>;
     type Transition = HmcTransition;
     fn position(&self) -> &[f64] {

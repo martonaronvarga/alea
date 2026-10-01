@@ -300,39 +300,53 @@ impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric> Phase<'_, '_, T, M> {
     /// EuclideanMetric/model failures or non-finite evolution consume the token, preventing
     /// partial phases from being saved. Restart the workspace after error or panic.
     pub fn step(self, step: SignedStep) -> Result<Self, PhaseError<T::Error>> {
+        self.step_with(step, &crate::integrator::Leapfrog)
+    }
+
+    /// Advance one complete symmetric macrostep. Only its endpoint can be saved
+    /// or selected by a trajectory. Every drift refreshes the fused cache once.
+    /// # Errors
+    /// Any failed internal stage consumes the phase token, just like leapfrog.
+    pub fn step_with<I: crate::integrator::Integrator>(
+        self,
+        step: SignedStep,
+        integrator: &I,
+    ) -> Result<Self, PhaseError<T::Error>> {
         let s = &mut *self.workspace;
         let eps = step.0;
+        for stage in 0..integrator.stages() {
+            for (p, g) in s.momentum.iter_mut().zip(s.point.gradient()) {
+                *p += integrator.kick(stage) * eps * g;
+            }
+            s.check_momentum()?;
+            self.metric
+                .velocity(&s.momentum, &mut s.velocity)
+                .map_err(PhaseError::Metric)?;
+            for ((next, q), v) in s
+                .next_position
+                .iter_mut()
+                .zip(s.point.position())
+                .zip(s.velocity.iter())
+            {
+                *next = q + (eps * integrator.drift(stage)) * v;
+            }
+            if let Err(error) = s.point.try_update(&s.next_position, &mut s.evaluation) {
+                return Err(match error {
+                    EvaluationError::NonFinitePosition { index } => {
+                        PhaseError::Divergence(Divergence::Position { index })
+                    }
+                    EvaluationError::NonFiniteLogDensity => {
+                        PhaseError::Divergence(Divergence::LogDensity)
+                    }
+                    EvaluationError::NonFiniteGradient { index } => {
+                        PhaseError::Divergence(Divergence::Gradient { index })
+                    }
+                    other => PhaseError::Evaluation(other),
+                });
+            }
+        }
         for (p, g) in s.momentum.iter_mut().zip(s.point.gradient()) {
-            *p += 0.5 * eps * g;
-        }
-        s.check_momentum()?;
-        self.metric
-            .velocity(&s.momentum, &mut s.velocity)
-            .map_err(PhaseError::Metric)?;
-        for ((next, q), v) in s
-            .next_position
-            .iter_mut()
-            .zip(s.point.position())
-            .zip(s.velocity.iter())
-        {
-            *next = q + eps * v;
-        }
-        if let Err(error) = s.point.try_update(&s.next_position, &mut s.evaluation) {
-            return Err(match error {
-                EvaluationError::NonFinitePosition { index } => {
-                    PhaseError::Divergence(Divergence::Position { index })
-                }
-                EvaluationError::NonFiniteLogDensity => {
-                    PhaseError::Divergence(Divergence::LogDensity)
-                }
-                EvaluationError::NonFiniteGradient { index } => {
-                    PhaseError::Divergence(Divergence::Gradient { index })
-                }
-                other => PhaseError::Evaluation(other),
-            });
-        }
-        for (p, g) in s.momentum.iter_mut().zip(s.point.gradient()) {
-            *p += 0.5 * eps * g;
+            *p += integrator.kick(integrator.stages()) * eps * g;
         }
         s.check_momentum()?;
         Ok(self)

@@ -65,7 +65,7 @@ impl TreeDepth {
         self.0
     }
     /// Maximum leapfrog count for doubling depths `0..depth` (not including origin).
-    pub fn max_leapfrog_steps(self) -> usize {
+    pub fn max_integration_steps(self) -> usize {
         (1_usize << self.0) - 1
     }
 }
@@ -101,7 +101,7 @@ mod tests {
         for depth in 1..usize::BITS as usize {
             let value = TreeDepth::try_from(depth).unwrap();
             assert_eq!(value.value(), depth);
-            assert_eq!(value.max_leapfrog_steps(), 2_usize.pow(depth as u32) - 1);
+            assert_eq!(value.max_integration_steps(), 2_usize.pow(depth as u32) - 1);
         }
         for depth in [0, usize::BITS as usize, usize::MAX] {
             assert_eq!(

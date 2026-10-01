@@ -7,10 +7,19 @@
 use crate::buffer::OwnedBuffer;
 use thiserror::Error;
 
+mod low_rank;
+pub use low_rank::LowRankDiagonalMetric;
+
 /// Invalid mass-matrix structure or metric operation dimensions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 #[non_exhaustive]
 pub enum MetricError {
+    /// The retained directions must be an orthonormal family of at most `dim` vectors.
+    #[error("low-rank directions are not orthonormal")]
+    InvalidBasis,
+    /// Spectral corrections amplify rounding/basis error beyond the supported budget.
+    #[error("low-rank correction exceeds the floating-point conditioning budget")]
+    IllConditionedCorrection,
     /// The square matrix cannot fit in a Rust slice.
     #[error("matrix dimension {dim} exceeds the supported storage size")]
     DimensionOverflow { dim: usize },

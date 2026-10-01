@@ -4,6 +4,7 @@ pub mod adapt;
 pub mod config;
 pub mod hamiltonian;
 pub mod hmc;
+pub mod integrator;
 pub mod rwmh;
 pub use hmc::{Hmc, HmcOptions, HmcTransition};
 pub use rwmh::{Rwmh, RwmhOptions, RwmhTransition};

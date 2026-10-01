@@ -200,7 +200,7 @@ fn reference_transition<M: EuclideanMetric>(
             let info = chain.step(&mut rng).unwrap();
             assert!(info.divergence.is_none(), "{target:?}: {info:?}");
             assert_eq!(info.accepted, accepted);
-            assert_eq!(info.leapfrog_steps, count);
+            assert_eq!(info.integration_steps, count);
             assert_eq!(rng, replay);
             close(info.initial_energy.unwrap(), initial, 1e-11);
             close(info.proposal_energy.unwrap(), proposed, 1e-11);
@@ -400,7 +400,7 @@ fn actual_floating_point_overflow_has_typed_rejection_and_preserves_cache() {
         let old_density = chain.point().log_density();
         let info = chain.step(&mut SmallRng::seed_from_u64(19)).unwrap();
         assert_eq!(info.divergence, Some(expected));
-        assert_eq!(info.leapfrog_steps, 1);
+        assert_eq!(info.integration_steps, 1);
         assert!(!info.accepted);
         assert_eq!(info.acceptance_probability, 0.0);
         assert_eq!(chain.point().position(), &[position]);

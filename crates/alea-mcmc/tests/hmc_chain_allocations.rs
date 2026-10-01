@@ -23,7 +23,7 @@ fn check_count<M: EuclideanMetric>(metric: M, options: HmcOptions, transitions: 
             let info = black_box(chain.step(&mut rng).unwrap());
             // An early numerical exit must not masquerade as a full-trajectory
             // allocation measurement. The intentional divergence is endpoint-only.
-            assert_eq!(info.leapfrog_steps, options.leapfrog_steps().get());
+            assert_eq!(info.integration_steps, options.integration_steps().get());
             black_box(chain.point().position());
         }
     });

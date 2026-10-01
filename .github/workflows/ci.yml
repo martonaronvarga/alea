@@ -19,11 +19,11 @@ jobs:
           - shell: stable
             features: ''
           - shell: stable
-            features: alea-math/faer
+            features: alea-mcmc/faer
           - shell: default
-            features: alea-math/simd,alea-distributions/simd,alea-distributions/branch-hints
+            features: alea-mcmc/simd,alea-distributions/simd,alea-distributions/branch-hints
           - shell: blas
-            features: alea-math/simd,alea-distributions/simd,alea-math/faer,alea-math/openblas
+            features: alea-mcmc/simd,alea-distributions/simd,alea-mcmc/faer,alea-mcmc/openblas
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:

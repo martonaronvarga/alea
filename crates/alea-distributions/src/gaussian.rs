@@ -52,3 +52,48 @@ impl LogDensityGradient for Gaussian {
         Ok(-0.5 * squared)
     }
 }
+
+impl alea_core::capability::HessianVector for Gaussian {
+    fn potential_hvp(
+        &self,
+        q: &[f64],
+        vector: &[f64],
+        output: &mut [f64],
+    ) -> Result<(), Self::Error> {
+        if q.len() != self.dimension
+            || vector.len() != self.dimension
+            || output.len() != self.dimension
+        {
+            return Err(DimensionError {
+                expected: self.dimension,
+                position: q.len(),
+                gradient: output.len(),
+            });
+        }
+        output.copy_from_slice(vector);
+        Ok(())
+    }
+}
+
+impl alea_core::capability::BatchLogDensityGradient for Gaussian {
+    fn batch_logp_grad(
+        &self,
+        shape: alea_core::capability::BatchShape,
+        positions: &[f64],
+        gradients: &mut [f64],
+        results: &mut [alea_core::capability::BatchLane<Self::Error>],
+    ) {
+        for (lane, result) in results.iter_mut().enumerate() {
+            let mut squared = 0.0;
+            for coordinate in 0..shape.dimension() {
+                let index = shape
+                    .index(lane, coordinate)
+                    .expect("batch wrapper validates shape");
+                let value = positions[index];
+                gradients[index] = -value;
+                squared += value * value;
+            }
+            *result = alea_core::capability::BatchLane::Complete(Ok(-0.5 * squared));
+        }
+    }
+}

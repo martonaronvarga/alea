@@ -1,5 +1,8 @@
 //! Explicit step-size warmup, separate from stationary sampling.
-//! Ports the existing dual-averaging recurrence; this is not windowed mass adaptation.
+//! RWMH scale adaptation and windowed HMC warmup, separate from retained draws.
+mod covariance;
+mod fisher;
+mod window;
 use crate::{
     Rwmh,
     config::{AcceptanceTarget, StepSize},
@@ -7,6 +10,15 @@ use crate::{
 };
 use alea_core::density::LogDensity;
 use alea_math::metric::EuclideanMetric;
+pub use covariance::{CovarianceError, MetricKind, OnlineCovariance, WarmupMetric};
+pub use fisher::{
+    FisherError, FisherHmcWarmup, FisherMetricAdapter, FisherOptions, FisherWarmupError,
+    FisherWarmupResult, MetricInitialization,
+};
+pub use window::{
+    HmcWarmup, HmcWarmupReport, HmcWarmupResult, SearchOptions, SearchResult, WarmupConfigError,
+    WarmupError, WarmupOptions, WarmupStage, WindowSchedule, find_reasonable_step_size,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum AdaptationError {
