@@ -184,6 +184,12 @@
           default = mkRustShell rustToolchain {};
           nightly = self.devShells.${system}.default;
           stable = mkRustShell stableToolchain {};
+          # Focused profiling tools without the full research/Python/R environment.
+          profiling = mkRustShell stableToolchain {
+            nativeBuildInputs =
+              (with pkgs; [hyperfine time])
+              ++ pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [perf valgrind]);
+          };
           blas = mkRustShell rustToolchain {
             buildInputs = [openblasLp64];
             # Fenix's upstream linker does not embed Nix library rpaths.

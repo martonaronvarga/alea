@@ -1,98 +1,93 @@
 # Alea
 
-A work-in-progress Rust library for programmable, typed Monte Carlo inference,
-with Wiener/DDM modeling as its first application. Performance and numerical
-correctness guide the [canonical engineering roadmap](roadmap.md).
+A pre-alpha Rust framework for typed probabilistic modeling and high-performance
+Monte Carlo inference. Compose models from distributions and scientific likelihoods,
+then compare inference methods through explicit numerical contracts.
 
-## Current status
+The [canonical roadmap](roadmap.md) and [settled implementation plan](docs/settled-plan.md)
+cover both modeling and inference. Alea is not merely a sampler wrapper.
 
-M0 (repository stabilization) and M1 (safe core) are complete;
-see the [validation and completion record](docs/m0-m1-completion.md).
+## Direction and scope
 
-The default workspace includes tested Wiener likelihoods and gradients, a native
-Gaussian target, random-walk Metropolis, experimental fixed-length Euclidean HMC,
-and latent DDM adapters. HMC uses fused value/gradient evaluation and
-metric-correct momentum; its full validation is unfinished.
-Mass-metric constructors now return typed validation errors; see the
-[metric contract and migration notes](docs/metric-contract.md).
-The additive [target/state API](docs/target-state.md) provides fallible fused
-evaluation and transactional, target-bound caches. The new
-[`HmcChain`](docs/hmc-chain.md) uses these caches, validated settings, reusable
-aligned scratch, and typed transition/divergence diagnostics. Legacy `Hmc` remains
-available during migration.
-The [HMC validation suite](docs/hmc-validation.md) covers scalar-reference
-transitions, all-metric Gaussian/banana moments, and ill-conditioned Gaussian
-regressions. [Executed, version-pinned BlackJAX fixtures](docs/blackjax-reference.md)
-now check deterministic endpoints and signed reversal for all three mass types;
-broader external statistical validation remains pending.
-HMC uses a reusable [public phase integrator and snapshots](docs/hamiltonian-phase.md)
-whose consuming ownership token prevents saving a partially failed step.
-The [unsafe/FFI audit](docs/unsafe-audit.md) records callback panic containment,
-initialized foreign output buffers, and native allocation-failure cleanup tests.
+- A Rust-native modeling framework: typed parameters, priors, likelihoods, transforms,
+  vectorized observations, hierarchical composition and posterior prediction.
+- A curated distribution library, alongside optimized scientific models such as
+  Wiener/DDM. Each distribution earns support through numerical and derivative tests.
+- Composable geometry, dynamics, integration, local step control, trajectories,
+  correction, adaptation and diagnostics; exact and approximate kernels stay distinct.
+- Reproducible cross-engine validation and end-to-end performance measurements,
+  including initialization and warmup—not just iterations per second.
 
-NUTS is a placeholder; SMC/particle-MCMC files are empty. These and policy sketches
-are available only behind `runtime/experimental`, not in the supported API.
-ChEES-HMC, RMHMC,
-and the std::autodiff/Enzyme backend are planned, not implemented. Existing
-`ess_bulk` and `split_rhat` helpers are legacy estimators, not modern
-rank-normalized diagnostics; do not treat them as production convergence checks.
+Models may also arrive through the fused target interface and future foreign bridges.
+Native modeling and external targets are complementary entry points. Enzyme is an
+optional compiled derivative backend; analytic derivatives remain first-class.
 
-Only `runtime::ddm::latent` is currently compiled from the DDM adapters. The
-other DDM sketches remain in the source directory, uncompiled, pending repair.
-This is pre-alpha software, not yet a production inference engine.
+The near-term project will not build a separate textual modeling language, attempt
+Stan's entire distribution/ecosystem coverage, replace JAX's accelerator stack, or
+claim universal sampler superiority. Those limits do not exclude a substantial
+Rust modeling API. Discrete observations are in scope; direct HMC updates of discrete
+latent variables are not. No unvalidated diagnostic automatically declares convergence.
 
-## Workspace
+## Architecture
 
-- `crates/memory`: initialized 64-byte-aligned buffers, standalone Miri tests and benchmarks.
-- `crates/kernels`: density/state traits, safe reusable buffers, metrics, Wiener kernels.
-- `crates/ffi`: foreign numerical bindings, including cubature.
-- `crates/runtime`: chain execution, MCMC, diagnostics, latent DDM adapters.
-- `crates/app`: experiments and executable wiring.
-- `crates/data_prep`: data preparation.
+The [target architecture](docs/architecture.md) is implemented as nine crates.
+This is a breaking replacement: no legacy crate aliases, mutable-state sampler
+protocols or compatibility constructors are retained.
 
-Crate names remain unchanged while the core contracts stabilize.
+| Crate | Responsibility |
+|---|---|
+| `alea-core` | Density-only/fused target capabilities, transactional state, transforms, model composition |
+| `alea-math` | Initialized 64-byte-aligned storage, Euclidean metrics, numerical primitives |
+| `alea-autodiff` | Enzyme adapters and finite-difference validation |
+| `alea-distributions` | Gaussian and Wiener/DDM models, analytic derivatives |
+| `alea-mcmc` | Composable fixed HMC/RWMH, reference covariance and experimental Fisher warmup |
+| `alea-smc` | Particle-kernel contracts; filtering/PMCMC are not implemented |
+| `alea-ffi` | Audited synchronous foreign boundaries |
+| `alea-runtime` | Allocation-free streaming, aligned draw collection, classical diagnostics |
+| `alea-cli` | `alea`, `alea-rwmh` profiling loop and `alea-gradient-check` |
 
-## Development checks
+Core/math/MCMC production dependencies do not include `alea-ffi`; Wiener owns
+its cubature dependency. Dependencies used only by tests may cross layers.
+The CI architecture check enforces production boundaries, including optional edges.
 
-Enter `nix develop` for a pinned nightly with Clippy, Miri, rustfmt, rust-src, and
-rust-analyzer. Use `nix develop .#stable` for stable-feature checks. No local
-toolchain symlink is required. See [toolchain and storage notes](docs/toolchains-and-storage.md)
-for Miri, SIMD benchmarks, optional shells, and the experimental Enzyme boundary.
+## Status
 
-Then run from `crates/`:
+M0–M3 gates have been completed: safe core, constrained transforms, executed
+`std::autodiff`/Enzyme and fixed-length Euclidean HMC. The architecture migration
+retains [M3's independent BlackJAX references](docs/m3-hmc-completion.md),
+sampling checks and allocation regressions.
+
+M4 [reference windowed adaptation](docs/m4-warmup.md) is implemented and validated.
+Optional HVP/batch targets, spectral low-rank metrics and leapfrog/OMF2/BCSS2
+composition are implemented. [Fisher warmup](docs/fisher-and-trajectories.md) is
+experimental; upstream trace equivalence and broad efficiency gates remain open.
+
+NUTS, WALNUTS, ChEES-HMC, RMHMC, parallel multi-chain execution,
+modern ESS/R-hat and particle algorithms remain planned. RWMH transitions are
+fixed-scale; explicit dual-averaging warmup retains the previous functionality.
+Classical diagnostics are named honestly, not presented as modern bulk ESS/R-hat.
+The [migration audit](docs/migration-audit.md) inventories retained behavior,
+test replacements and dormant research sources; CI guards the inventory.
+This is not yet a production inference engine.
+
+## Development
+
+`nix develop` supplies the pinned nightly, Clippy, Miri, rustfmt and rust-analyzer.
+`nix develop .#stable` supports analytic models; `nix develop .#autodiff` provides
+the separately pinned compiler and matching Enzyme plugin.
+
+Run from the repository root:
 
 ```sh
-cargo fmt --all -- --check
-cargo check --workspace --all-targets --locked
-cargo clippy --workspace --all-targets --locked -- -D warnings
-cargo test --workspace --all-targets --locked
-cargo test --workspace --doc --locked
-cargo doc --workspace --no-deps --locked
-cargo miri test -p memory --lib --locked
+nix develop .#stable --command bash tools/ci/check.sh
+nix develop --command bash tools/ci/miri.sh
+nix develop .#autodiff --command bash tools/ci/autodiff.sh
+nix develop .#stable --command cargo run --manifest-path crates/Cargo.toml -p alea-cli --bin alea
+nix develop .#stable --command cargo run --manifest-path crates/Cargo.toml -p alea-cli --bin alea-gradient-check -- all
 ```
 
-The optional SIMD and autodiff paths have additional toolchain requirements; a
-passing default build does not validate them. See the roadmap for milestone
-gates, validation evidence, and the next implementation tasks.
-The [M0 baseline guide](docs/stabilization.md) documents the supported feature
-matrix, CI commands, research archive, and explicit unavailable-autodiff diagnostic.
-
-## Guides and links
-
-1. [polars](https://docs.rs/polars/latest/polars/)
-2. [Rust FFI](https://jakegoulding.com/rust-ffi-omnibus/)
-3. [Stan Math Wiki & Quickstart](https://github.com/stan-dev/math/wiki)
-4. [SMTC (Particle Filter in C++)](https://github.com/awllee/smctc)
-5. [Eigen C++](https://eigen.tuxfamily.org/dox/GettingStarted.html)
-
-6. [Futhark Scan](https://futhark-book.readthedocs.io/en/latest/functional-parallel-programming.html#scan)
-7. [Futhark C/Rust Backend](https://futhark.readthedocs.io/en/latest/c-api.html)
-
-8. [Zig Guide](https://zig.guide/)
-9. [Zig C Interop](https://ziglang.org/documentation/master/#C)
-
-## Profiling
-
-- Perf: `perf record -g ./your_binary && perf report` or open `perf.data` in `hotspot`
-- Valgrind: `valgrind --tool=massif ./binary` to profile memory, view with `massif-visualizer`
-- [hyperfine](https://github.com/sharkdp/hyperfine)
+The Nix default application is `alea`, not `matmod`. The cubature submodule now
+lives at `crates/alea-ffi/vendor/cubature`; initialize it with
+`git submodule update --init --recursive` after checking out the migrated tree.
+See [architecture and API examples](docs/architecture.md) for the current interface.
+Earlier milestone reports are historical evidence, not compatibility guarantees.

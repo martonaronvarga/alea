@@ -27,6 +27,57 @@ fn initialization_is_separate_and_identity_is_tail_robust() {
     );
     assert_eq!(scales, old);
 }
+
+#[test]
+fn diagonal_updates_match_independent_decimal_batch_fixtures() {
+    let mut adapter = FisherMetricAdapter::new(2, 3, 6).unwrap();
+    let mut cases = 0;
+    for line in include_str!("fixtures/fisher-diagonal.csv")
+        .lines()
+        .filter(|line| !line.starts_with('#'))
+        .skip(1)
+    {
+        let row: Vec<f64> = line.split(',').map(|v| v.parse().unwrap()).collect();
+        assert_eq!(row.len(), 8);
+        adapter.observe(&row[1..3], &row[3..5]).unwrap();
+        assert_eq!(adapter.count(), row[5] as usize);
+        let mut out = [0.0; 2];
+        adapter.scales_into(&[1.0; 2], 1e-5, &mut out).unwrap();
+        for (actual, expected) in out.into_iter().zip(&row[6..8]) {
+            assert!((actual - expected).abs() < 2e-12 * expected.abs());
+        }
+        cases += 1;
+    }
+    assert_eq!(cases, 13);
+}
+
+#[test]
+fn diagonal_estimation_handles_extreme_standardization_without_intermediate_overflow() {
+    for magnitude in [1e-150, 1.0, 1e150] {
+        for fallback in [1e-10, 1.0, 1e10] {
+            for ridge in [1e-305, 1e-5] {
+                let mut adapter = FisherMetricAdapter::new(1, 3, 0).unwrap();
+                adapter.observe(&[-magnitude], &[magnitude]).unwrap();
+                adapter.observe(&[magnitude], &[-magnitude]).unwrap();
+                let mut actual = [0.0];
+                adapter
+                    .scales_into(&[fallback], ridge, &mut actual)
+                    .unwrap();
+                // Equivalent unstandardized formula; these additions/products
+                // remain representable for the predeclared grid above.
+                let scatter = 2.0 * magnitude * magnitude;
+                let c = scatter + ridge * fallback * fallback;
+                let f = scatter + ridge / fallback / fallback;
+                let expected = ((c.ln() - f.ln()) * 0.25).exp().clamp(1e-10, 1e10);
+                assert!(
+                    (actual[0] - expected).abs() < 2e-12 * expected,
+                    "magnitude={magnitude}, fallback={fallback}, ridge={ridge}: {} != {expected}",
+                    actual[0]
+                );
+            }
+        }
+    }
+}
 #[test]
 fn paired_diagonal_matches_fisher_formula_and_discards_transients() {
     let mut a = FisherMetricAdapter::new(2, 3, 6).unwrap();

@@ -2,6 +2,7 @@
 use super::{
     DualAveraging, HmcWarmupReport, SearchOptions, WarmupError, find_reasonable_step_size,
 };
+use crate::config::AcceptanceTarget;
 use crate::integrator::{Integrator, Leapfrog};
 use crate::{Hmc, HmcOptions};
 use alea_core::target::LogDensityGradient;
@@ -11,6 +12,13 @@ use alea_math::{
 };
 use rand::Rng;
 use std::error::Error;
+
+// Log of a positive sum, including a zero scatter represented by -infinity.
+// The ridge argument is finite, so the larger log is always finite.
+fn log_add_positive(a: f64, b: f64) -> f64 {
+    let larger = a.max(b);
+    larger + (a.min(b) - larger).exp().ln_1p()
+}
 
 /// Paired-estimator failures do not partially update the observation history.
 #[derive(Debug, thiserror::Error)]
@@ -197,9 +205,21 @@ impl FisherMetricAdapter {
             if !scale.is_finite() || !(1e-10..=1e10).contains(&scale) {
                 return Err(FisherError::Configuration);
             }
-            let c = self.foreground.values[2 * self.dim + i] / scale / scale + ridge;
-            let f = self.foreground.values[3 * self.dim + i] * scale * scale + ridge;
-            let sigma = (scale.ln() + 0.25 * (c.ln() - f.ln())).exp();
+            // Standardized scatters may overflow/underflow even when their
+            // regularized ratio and the final bounded scale are representable.
+            let log_scale = scale.ln();
+            let log_ridge = ridge.ln();
+            let c = log_add_positive(
+                self.foreground.values[2 * self.dim + i].ln() - 2.0 * log_scale,
+                log_ridge,
+            );
+            let f = log_add_positive(
+                self.foreground.values[3 * self.dim + i].ln() + 2.0 * log_scale,
+                log_ridge,
+            );
+            let sigma = (log_scale + 0.25 * (c - f))
+                .clamp(1e-10_f64.ln(), 1e10_f64.ln())
+                .exp();
             if !sigma.is_finite() || sigma <= 0.0 {
                 return Err(FisherError::Numerical);
             }
@@ -239,6 +259,7 @@ pub struct FisherOptions {
     iterations: usize,
     max_rank: usize,
     initialization: MetricInitialization,
+    target: AcceptanceTarget,
 }
 
 /// Initialization is independent of paired-score estimation. A single tail score
@@ -284,7 +305,25 @@ impl FisherOptions {
             iterations,
             max_rank: 0,
             initialization: MetricInitialization::Identity,
+            target: 0.8.try_into().expect("valid acceptance target"),
         }
+    }
+    /// Set the dual-averaging acceptance target (default 0.8), including the
+    /// final fixed-geometry adaptation phase. A higher target generally reduces
+    /// step size but does not guarantee divergence-free sampling. With fixed
+    /// step counts it also shortens trajectories, potentially reducing mixing.
+    /// This does not change the search criterion or the divergence threshold.
+    ///
+    /// ```
+    /// use alea_mcmc::adapt::FisherOptions;
+    /// let options = FisherOptions::new(1000).with_target(0.95.try_into()?);
+    /// # let _ = options;
+    /// # Ok::<(), alea_mcmc::config::SamplerConfigError>(())
+    /// ```
+    #[must_use]
+    pub fn with_target(mut self, target: AcceptanceTarget) -> Self {
+        self.target = target;
+        self
     }
     /// Select initialization separately from subsequent Fisher estimation.
     #[must_use]
@@ -384,7 +423,17 @@ impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> FisherHmcWarmup<'a, T, I
     /// # Errors
     /// Returns typed backend, bounded-search, adaptation or Fisher fitting errors.
     /// No partially adapted chain escapes on error. RNG consumption is not undone.
-    pub fn run<R: Rng + ?Sized>(mut self, rng: &mut R) -> FisherWarmupResult<'a, T, I> {
+    pub fn run<R: Rng + ?Sized>(self, rng: &mut R) -> FisherWarmupResult<'a, T, I> {
+        self.run_observed(rng, |_, _, _, _| {})
+    }
+
+    // Private static-dispatch observation seam for controller contract tests.
+    // The public path monomorphizes a no-op: no observer storage or allocations.
+    fn run_observed<R: Rng + ?Sized>(
+        mut self,
+        rng: &mut R,
+        mut observe: impl FnMut(usize, &Self, &crate::HmcTransition, &HmcWarmupReport),
+    ) -> FisherWarmupResult<'a, T, I> {
         let n = self.options.iterations;
         let mut report = HmcWarmupReport {
             iterations: n,
@@ -402,7 +451,7 @@ impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> FisherHmcWarmup<'a, T, I
         self.chain.set_step_size(search.step_size);
         report.search_probes = search.probes;
         report.integration_attempts = search.probes;
-        let target = 0.8.try_into().expect("valid acceptance target");
+        let target = self.options.target;
         let mut step_adapter = DualAveraging::new(search.step_size, target);
         // Integer arithmetic avoids overflow for any usize iteration budget.
         let switch = n / 10 * 3 + (n % 10) * 3 / 10;
@@ -451,9 +500,13 @@ impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> FisherHmcWarmup<'a, T, I
                 .update(transition.acceptance_probability)
                 .map_err(WarmupError::from)?;
             self.chain.set_step_size(step);
+            observe(i, &self, &transition, &report);
         }
         self.chain.set_step_size(step_adapter.finish());
         report.step_size = self.chain.options().step_size();
         Ok((self.chain, report))
     }
 }
+
+#[cfg(test)]
+mod tests;

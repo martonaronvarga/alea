@@ -6,7 +6,80 @@ use alea_mcmc::{
 };
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use rand::{SeedableRng, rngs::SmallRng};
-use std::hint::black_box;
+use std::{hint::black_box, time::Duration};
+
+// The counter wrapper and extra seeds are used by the CSV example/tests, not timing.
+#[allow(dead_code)]
+#[path = "support/warmup.rs"]
+mod workload;
+
+fn matched_cost(c: &mut Criterion) {
+    let mut group = c.benchmark_group("warmup_cost_v1");
+    group
+        .sample_size(20)
+        .warm_up_time(Duration::from_millis(300))
+        .measurement_time(Duration::from_secs(1));
+    for shape in workload::SHAPES {
+        for dimension in workload::DIMENSIONS {
+            let target = workload::Target::new(dimension, shape);
+            for &method in workload::METHODS {
+                group.bench_function(
+                    format!("{}/{}/{dimension}", shape.name(), method.name()),
+                    |b| b.iter(|| black_box(workload::run(black_box(&target), method, 7))),
+                );
+            }
+        }
+    }
+    group.finish();
+}
+
+#[cfg(feature = "faer")]
+fn fitting_cost(c: &mut Criterion) {
+    use alea_core::target::LogDensityGradient;
+    use alea_mcmc::adapt::FisherMetricAdapter;
+    use rand::RngExt;
+
+    let mut group = c.benchmark_group("fisher_fit_cost_v1");
+    group
+        .sample_size(20)
+        .warm_up_time(Duration::from_millis(300))
+        .measurement_time(Duration::from_secs(1));
+    for dimension in [8, 64, 256] {
+        for history in [16, 64] {
+            let target = workload::Target::new(dimension, workload::Shape::Correlated);
+            let mut rng = SmallRng::seed_from_u64(7);
+            let mut adapter = FisherMetricAdapter::new(dimension, history, history).unwrap();
+            let mut q = vec![0.0; dimension];
+            let mut score = vec![0.0; dimension];
+            for _ in 0..history {
+                for x in &mut q {
+                    *x = rng.random_range(-1.0..1.0);
+                }
+                target.logp_grad(&q, &mut score).unwrap();
+                adapter.observe(&q, &score).unwrap();
+            }
+            let mut scales = vec![0.0; dimension];
+            adapter
+                .scales_into(&vec![1.0; dimension], 1e-5, &mut scales)
+                .unwrap();
+            // Observation generation/diagonal estimation excluded. Rank four
+            // caps only output: the joint history subspace still gets factored.
+            group.bench_function(format!("rank4/d{dimension}/history{history}"), |b| {
+                b.iter(|| {
+                    black_box(
+                        adapter
+                            .fit_low_rank(black_box(&scales), 1e-5, 2.0, 4)
+                            .unwrap(),
+                    )
+                })
+            });
+        }
+    }
+    group.finish();
+}
+
+#[cfg(not(feature = "faer"))]
+fn fitting_cost(_: &mut Criterion) {}
 
 fn bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("warmup");
@@ -107,5 +180,5 @@ fn bench(c: &mut Criterion) {
     }
     group.finish();
 }
-criterion_group!(benches, bench);
+criterion_group!(benches, bench, matched_cost, fitting_cost);
 criterion_main!(benches);
