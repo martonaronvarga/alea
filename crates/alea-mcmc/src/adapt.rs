@@ -2,6 +2,7 @@
 //! RWMH scale adaptation and windowed HMC warmup, separate from retained draws.
 mod covariance;
 mod fisher;
+mod step;
 mod window;
 use crate::{
     Rwmh,
@@ -13,8 +14,9 @@ use alea_math::metric::EuclideanMetric;
 pub use covariance::{CovarianceError, MetricKind, OnlineCovariance, WarmupMetric};
 pub use fisher::{
     FisherError, FisherHmcWarmup, FisherMetricAdapter, FisherOptions, FisherWarmupError,
-    FisherWarmupResult, MetricInitialization,
+    FisherWarmupResult, MetricInitialization, WeightedFisherMoments,
 };
+pub use step::{DiminishingSchedule, StepAdaptation, StepObservation, StepSizeController};
 pub use window::{
     HmcWarmup, HmcWarmupReport, HmcWarmupResult, SearchOptions, SearchResult, WarmupConfigError,
     WarmupError, WarmupOptions, WarmupStage, WindowSchedule, find_reasonable_step_size,
@@ -22,6 +24,12 @@ pub use window::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum AdaptationError {
+    #[error("invalid diminishing schedule or optimizer configuration")]
+    Configuration,
+    #[error("backend failures cannot update adaptation")]
+    BackendFailure,
+    #[error("nonfinite step adaptation arithmetic")]
+    Numerical,
     #[error("acceptance probability must be finite and between zero and one")]
     AcceptanceProbability,
     #[error("adaptation iteration count overflow")]

@@ -1,0 +1,11 @@
+[package]
+name = "alea-fisher-upstream-reference"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+exclude = ["upstream"]
+
+[dependencies]
+nuts-rs = { path = "upstream", default-features = false }

@@ -1,6 +1,7 @@
 //! Target-bound Markov chains with typed, fallible transitions.
 #![forbid(unsafe_code)]
 pub mod adapt;
+mod canonical;
 pub mod config;
 pub mod hamiltonian;
 pub mod hmc;

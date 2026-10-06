@@ -1,7 +1,9 @@
 //! Experimental paired-score Fisher warmup; covariance warmup remains the oracle.
 use super::{
-    DualAveraging, HmcWarmupReport, SearchOptions, WarmupError, find_reasonable_step_size,
+    DiminishingSchedule, HmcWarmupReport, SearchOptions, StepAdaptation, StepObservation,
+    StepSizeController, WarmupError, find_reasonable_step_size,
 };
+mod weighted;
 use crate::config::AcceptanceTarget;
 use crate::integrator::{Integrator, Leapfrog};
 use crate::{Hmc, HmcOptions};
@@ -12,6 +14,7 @@ use alea_math::{
 };
 use rand::Rng;
 use std::error::Error;
+pub use weighted::WeightedFisherMoments;
 
 // Log of a positive sum, including a zero scatter represented by -infinity.
 // The ridge argument is finite, so the larger log is always finite.
@@ -252,14 +255,19 @@ impl FisherMetricAdapter {
     }
 }
 
-/// Experimental CPU Fisher schedule: periods 10 then 80, geometry frozen for
-/// the final 15%; dual averaging (not nutpie's Adam) adapts the step size.
+/// CPU Fisher schedule: default periods 10 then 80, geometry frozen for the
+/// final 15%; dual averaging is the reference step controller. Alternative
+/// weighted moments and scalar optimizers are explicit warmup-only experiments.
 #[derive(Debug, Clone, Copy)]
 pub struct FisherOptions {
     iterations: usize,
     max_rank: usize,
     initialization: MetricInitialization,
     target: AcceptanceTarget,
+    step_adaptation: StepAdaptation,
+    weights: Option<DiminishingSchedule>,
+    period: usize,
+    history: usize,
 }
 
 /// Initialization is independent of paired-score estimation. A single tail score
@@ -306,9 +314,13 @@ impl FisherOptions {
             max_rank: 0,
             initialization: MetricInitialization::Identity,
             target: 0.8.try_into().expect("valid acceptance target"),
+            step_adaptation: StepAdaptation::default(),
+            weights: None,
+            period: 80,
+            history: 160,
         }
     }
-    /// Set the dual-averaging acceptance target (default 0.8), including the
+    /// Set the step-controller acceptance target (default 0.8), including the
     /// final fixed-geometry adaptation phase. A higher target generally reduces
     /// step size but does not guarantee divergence-free sampling. With fixed
     /// step counts it also shortens trajectories, potentially reducing mixing.
@@ -330,6 +342,37 @@ impl FisherOptions {
     pub fn with_initialization(mut self, initialization: MetricInitialization) -> Self {
         self.initialization = initialization;
         self
+    }
+    /// Choose a warmup-only step controller; defaults to dual averaging.
+    #[must_use]
+    pub fn with_step_adaptation(mut self, settings: StepAdaptation) -> Self {
+        self.step_adaptation = settings;
+        self
+    }
+    /// Use normalized diminishing weighted moments for diagonal geometry.
+    /// Combining this with nonzero low-rank fitting is rejected at construction:
+    /// a bounded unweighted ring is not the same weighted estimator.
+    #[must_use]
+    pub fn with_weighted_moments(mut self, schedule: DiminishingSchedule) -> Self {
+        self.weights = Some(schedule);
+        self
+    }
+    /// Bound the main window period and paired history (default 80/160).
+    /// The initial window remains ten observations. History bounds storage and
+    /// fitting work independently of the output rank cap.
+    /// # Errors
+    /// Requires positive period and capacity >= 2.
+    pub fn with_window_budget(
+        mut self,
+        period: usize,
+        history: usize,
+    ) -> Result<Self, FisherError> {
+        if period == 0 || history < 2 {
+            return Err(FisherError::Configuration);
+        }
+        self.period = period;
+        self.history = history;
+        Ok(self)
     }
     /// Opt into low-rank fits every window. Zero selects diagonal adaptation.
     /// Rank is validated against the target dimension during construction.
@@ -362,6 +405,7 @@ pub struct FisherHmcWarmup<'a, T: LogDensityGradient + ?Sized, I = Leapfrog> {
     initial_scales: OwnedBuffer,
     scales: OwnedBuffer,
     options: FisherOptions,
+    weighted: Option<WeightedFisherMoments>,
 }
 impl<'a, T: LogDensityGradient + ?Sized> FisherHmcWarmup<'a, T> {
     /// Construct experimental Fisher warmup with leapfrog.
@@ -389,10 +433,22 @@ impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> FisherHmcWarmup<'a, T, I
         integrator: I,
     ) -> Result<Self, FisherWarmupError<T::Error>> {
         let d = target.dimension();
-        if options.max_rank > d || d == 0 {
+        if options.max_rank > d || d == 0 || (options.max_rank > 0 && options.weights.is_some()) {
             return Err(FisherError::Configuration.into());
         }
-        let adapter = FisherMetricAdapter::new(d, 10, if options.max_rank > 0 { 160 } else { 0 })?;
+        let adapter = FisherMetricAdapter::new(
+            d,
+            10,
+            if options.max_rank > 0 {
+                options.history
+            } else {
+                0
+            },
+        )?;
+        let weighted = options
+            .weights
+            .map(|schedule| WeightedFisherMoments::new(d, schedule))
+            .transpose()?;
         let metric = LowRankDiagonalMetric::new(
             OwnedBuffer::from_fn(d, |_| 1.0),
             OwnedBuffer::new(0),
@@ -417,6 +473,7 @@ impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> FisherHmcWarmup<'a, T, I
             scales: initial_scales.clone(),
             initial_scales,
             options,
+            weighted,
         })
     }
     /// Run adaptation, then discard all moments and paired history.
@@ -452,16 +509,21 @@ impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> FisherHmcWarmup<'a, T, I
         report.search_probes = search.probes;
         report.integration_attempts = search.probes;
         let target = self.options.target;
-        let mut step_adapter = DualAveraging::new(search.step_size, target);
+        let mut step_adapter =
+            StepSizeController::new(search.step_size, target, self.options.step_adaptation);
         // Integer arithmetic avoids overflow for any usize iteration budget.
         let switch = n / 10 * 3 + (n % 10) * 3 / 10;
         let freeze = n / 100 * 85 + (n % 100) * 85 / 100;
         for i in 0..n {
             if i == switch {
-                self.adapter.reset(80)?;
+                self.adapter.reset(self.options.period)?;
             }
             if i == freeze {
-                step_adapter = DualAveraging::new(self.chain.options().step_size(), target);
+                step_adapter = StepSizeController::new(
+                    self.chain.options().step_size(),
+                    target,
+                    self.options.step_adaptation,
+                );
             }
             let transition = self.chain.step(rng).map_err(WarmupError::from)?;
             report.accepted += usize::from(transition.accepted);
@@ -471,10 +533,16 @@ impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> FisherHmcWarmup<'a, T, I
                 .checked_add(transition.integration_steps)
                 .ok_or(WarmupError::CounterOverflow)?;
             if i < freeze {
-                self.adapter
-                    .observe(self.chain.point().position(), self.chain.point().gradient())?;
-                self.adapter
-                    .scales_into(&self.initial_scales, 1e-5, &mut self.scales)?;
+                if let Some(weighted) = &mut self.weighted {
+                    weighted
+                        .observe(self.chain.point().position(), self.chain.point().gradient())?;
+                    weighted.scales_into(&self.initial_scales, 1e-5, &mut self.scales)?;
+                } else {
+                    self.adapter
+                        .observe(self.chain.point().position(), self.chain.point().gradient())?;
+                    self.adapter
+                        .scales_into(&self.initial_scales, 1e-5, &mut self.scales)?;
+                }
                 self.chain
                     .metric_mut()
                     .set_scales(&self.scales)
@@ -497,7 +565,7 @@ impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> FisherHmcWarmup<'a, T, I
                 report.metric_updates += 1;
             }
             let step = step_adapter
-                .update(transition.acceptance_probability)
+                .update(StepObservation::from(&transition))
                 .map_err(WarmupError::from)?;
             self.chain.set_step_size(step);
             observe(i, &self, &transition, &report);

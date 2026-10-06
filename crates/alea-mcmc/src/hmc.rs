@@ -3,8 +3,9 @@
 
 use std::{error::Error, num::NonZeroUsize};
 
+use crate::canonical::{FixedStepControl, metropolis};
 pub use crate::hamiltonian::Divergence;
-use crate::hamiltonian::{PhaseError, PhaseWorkspace, SignedStep};
+use crate::hamiltonian::{PhaseError, PhaseWorkspace};
 use crate::integrator::{Integrator, Leapfrog};
 use alea_core::target::{EvaluationError, LogDensityGradient, PointState};
 use alea_math::buffer::OwnedBuffer;
@@ -312,17 +313,10 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Hmc<
         let result = (|| {
             let mut phase = self.proposal.start(&self.point, &self.metric, rng)?;
             let initial = phase.energy()?;
-            let mut phase = phase.step_with(
-                SignedStep::new(step.value()).expect("validated step"),
-                &self.integrator,
-            )?;
-            let difference = phase.energy()? - initial;
+            let mut phase =
+                phase.step_with(FixedStepControl::new(step).forward(), &self.integrator)?;
             Ok::<_, PhaseError<T::Error>>(
-                if difference.is_finite() && difference.abs() <= self.options.max_energy_error {
-                    (-difference).min(0.0).exp()
-                } else {
-                    0.0
-                },
+                metropolis(initial, phase.energy()?, self.options.max_energy_error).unwrap_or(0.0),
             )
         })();
         match result {
@@ -386,7 +380,7 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Hmc<
         };
         info.initial_energy = Some(initial);
         // HmcOptions can only contain a finite positive step size.
-        let eps = SignedStep::new(self.options.step_size.value()).expect("validated step size");
+        let eps = FixedStepControl::new(self.options.step_size).forward();
         for step in 1..=self.options.integration_steps.get() {
             info.integration_steps = step;
             phase = match phase.step_with(eps, &self.integrator) {
@@ -404,10 +398,11 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Hmc<
             return Ok(info.divergent(Divergence::Energy));
         }
         info.energy_error = Some(error);
-        if error.abs() > self.options.max_energy_error {
-            return Ok(info.divergent(Divergence::EnergyErrorLimit));
-        }
-        info.acceptance_probability = (-error).min(0.0).exp();
+        info.acceptance_probability =
+            match metropolis(initial, proposed, self.options.max_energy_error) {
+                Ok(probability) => probability,
+                Err(reason) => return Ok(info.divergent(reason)),
+            };
         info.accepted = rng.random::<f64>() < info.acceptance_probability;
         if info.accepted {
             phase.commit(&mut self.point);

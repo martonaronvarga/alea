@@ -1,4 +1,5 @@
 use super::*;
+use crate::adapt::DualAveraging;
 #[cfg(feature = "faer")]
 use alea_math::metric::EuclideanMetric;
 use rand::{SeedableRng, rngs::SmallRng};
@@ -6,6 +7,44 @@ use std::{cell::Cell, convert::Infallible};
 
 struct CountedGaussian {
     calls: Cell<usize>,
+}
+
+#[test]
+fn weighted_moments_do_not_reset_at_window_switch_and_stop_at_freeze() {
+    let target = CountedGaussian {
+        calls: Cell::new(0),
+    };
+    let schedule = DiminishingSchedule::new(1.0, 0.75).unwrap();
+    let mut expected = WeightedFisherMoments::new(2, schedule).unwrap();
+    let mut frozen_metric = Vec::new();
+    let mut rng = SmallRng::seed_from_u64(618);
+    FisherHmcWarmup::new(
+        &target,
+        OwnedBuffer::new(2),
+        HmcOptions::new(0.1, 2).unwrap(),
+        FisherOptions::new(40).with_weighted_moments(schedule),
+    )
+    .unwrap()
+    .run_observed(&mut rng, |i, state, _, _| {
+        if i < 34 {
+            expected
+                .observe(
+                    state.chain.point().position(),
+                    state.chain.point().gradient(),
+                )
+                .unwrap();
+            frozen_metric = metric_bits(state.chain.metric());
+        } else {
+            assert_eq!(metric_bits(state.chain.metric()), frozen_metric);
+        }
+        let actual = state.weighted.as_ref().unwrap();
+        assert_eq!(actual.count(), (i + 1).min(34));
+        for (&a, &b) in actual.moments().iter().zip(expected.moments()) {
+            assert!((a - b).abs() < 1e-12 * (1.0 + b.abs()));
+        }
+        assert!((actual.squared_weights() - expected.squared_weights()).abs() < 1e-12);
+    })
+    .unwrap();
 }
 impl LogDensityGradient for CountedGaussian {
     type Error = Infallible;
