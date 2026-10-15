@@ -1,5 +1,6 @@
 //! Streaming and independent-chain orchestration. Numerical algorithms live in `alea-mcmc`.
 #![forbid(unsafe_code)]
+pub mod chees;
 pub mod diagnostics;
 pub mod draws;
 pub mod ensemble;

@@ -1064,44 +1064,79 @@ is unchanged. See [R2P completion evidence](docs/benchmarks/m7-r2p-protocol.md).
 
 Goal: ensemble-adapted static HMC as a NUTS alternative.
 
-- [ ] Shared chain-ensemble adaptation state.
-- [ ] ChEES objective and trajectory-length adaptation.
-- [ ] Joint warmup of step size and trajectory length.
-- [ ] Randomized integration length.
-- [ ] Optional difficult-direction criteria, benchmarked separately.
-- [ ] Freeze adaptation before retained sampling.
-- [ ] Persistent-momentum GHMC with explicit momentum state and rejection convention.
-- [ ] DR-G-HMC acceptance ratios and staged-rejection reference tests.
-- [ ] ATLAS curvature/local-step experiments with bounded derivative work.
-- [ ] Separate isokinetic dynamics and MAMS correction, with an explicit approximation
+- [x] Shared chain-ensemble adaptation state.
+- [x] ChEES objective and trajectory-length adaptation.
+- [x] Joint warmup of step size and trajectory length.
+- [x] Randomized integration length.
+- [x] Optional difficult-direction criteria, benchmarked separately.
+- [x] Freeze adaptation before retained sampling.
+- [x] Persistent-momentum GHMC with explicit momentum state and rejection convention.
+- [x] DR-G-HMC acceptance ratios and staged-rejection reference tests.
+- [x] ATLAS curvature/local-step experiments with bounded derivative work.
+- [x] Separate isokinetic dynamics and MAMS correction, with an explicit approximation
   marker for unadjusted MCLMC; no canonical-energy acceptance shortcut.
 
 Exit gate: reproduce published behavior; compare ESS/gradient and ESS/second against NUTS
 and fixed HMC; ensemble scheduling remains deterministic.
 
+October 15 completion: Algorithm 1 ChEES centering/path gradients, harmonic-mean
+step adaptation, shared Halton scheduling, randomized frozen trajectories and
+bitwise sequential/Rayon replay pass. Persistent GHMC, bounded two-stage DR-G-HMC,
+bounded `H^2` ATLAS probes, exact isokinetic MAMS correction and explicitly biased
+MCLMC are separate typed paths. On the declared four-target release run, ChEES had
+3.1–4.1x the minimum ESS/gradient of NUTS; all maximum modern R-hats were below
+1.004. The difficult-direction arm was mixed. Millisecond analytic-target timing
+is not promoted as a broad speed claim, and every M8 kernel remains opt-in. See
+[M8 implementation and evidence](docs/m8-alternatives.md).
+
 ### M9 — learned and structured geometry
 
-- [ ] Frozen invertible transport target with log-Jacobian/gradient tests.
-- [ ] Warmup-only learning; prove retained draws never train the transform.
-- [ ] Low-rank linear correction in transported coordinates.
-- [ ] Block/sparse metric implementations without requiring a dense trait representation.
-- [ ] Optional multi-path Pathfinder initialization; compare its full cost with score initialization.
+- [x] Frozen invertible transport target with log-Jacobian/gradient tests.
+- [x] Warmup-only learning; prove retained draws never train the transform.
+- [x] Low-rank linear correction in transported coordinates.
+- [x] Block/sparse metric implementations without requiring a dense trait representation.
+- [x] Optional multi-path Pathfinder initialization; compare its full cost with score initialization.
 
 Exit: invertibility/measure tests, held-out sampling diagnostics and end-to-end
 benefit over Fisher + WALNUTS. Learned transforms are not necessary dependencies.
 
+October 15 completion: immutable low-rank affine maps have exact inverse,
+log-determinant and score-pullback tests; consuming bounded warmup learning leaves
+no training interface in retained targets. Block-diagonal and sparse-Cholesky
+metrics implement the existing constant Euclidean trait without dense global
+storage. The bounded multi-path initializer uses L-BFGS local normals, Monte Carlo
+ELBO selection and explicitly raw (not Pareto-smoothed) mixture importance
+resampling. Exact transformed-Gaussian moments and held-out diagnostics pass, but
+the declared rank-one Gaussian experiment does not establish an end-to-end
+benefit: learned transport NUTS had lower minimum ESS/second than Fisher NUTS and
+Fisher WALNUTS. Pathfinder used 508 target calls versus 13 for score ascent and
+selected a worse point on this Gaussian. M9 closes with a negative promotion
+decision; all additions remain optional. See
+[M9 implementation and evidence](docs/m9-geometry.md).
+
 ### M10 — advanced integration and accelerator research
 
-- [ ] Joint geometry/step/coefficient warmup with epoch boundaries and final freeze.
-- [ ] HVP-based curvature estimates, conservative stability bounds and s-AIA experiments.
-- [ ] Exact Gaussian-plus-residual flow with model capability and independent oracle.
-- [ ] Cheap/expensive force splitting with separate evaluation counters.
-- [ ] HVP/force-gradient and Hessian-free methods only with complete validity tests.
-- [ ] Explicit scalar/coordinate-major layout adapters and batched FSM execution.
-- [ ] Benchmark LF/OMF2/BCSS2/adaptive2 at equal force budgets, not equal edge counts.
+- [x] Joint geometry/step/coefficient warmup with epoch boundaries and final freeze.
+- [x] HVP-based curvature estimates, conservative stability bounds and s-AIA experiments.
+- [x] Exact Gaussian-plus-residual flow with model capability and independent oracle.
+- [x] Cheap/expensive force splitting with separate evaluation counters.
+- [x] HVP/force-gradient and Hessian-free methods only with complete validity tests.
+- [x] Explicit scalar/coordinate-major layout adapters and batched FSM execution.
+- [x] Benchmark LF/OMF2/BCSS2/adaptive2 at equal force budgets, not equal edge counts.
 
 Exit: retained-sampling stationarity/reversibility and ESS/sec including launch,
 layout conversion, warmup, derivative and factorization costs.
+
+October 15 completion: joint warmup consumes covariance, step, HVP and coefficient
+state before returning a fixed two-stage HMC kernel. Exact Gaussian/residual,
+nested cheap/expensive, analytic force-gradient and explicitly nonsymplectic
+Hessian-free kernels have reversal, volume, stationary-moment, counter and
+allocation tests. Explicit layout conversion and transactional batched leapfrog
+agree across chain/coordinate-major storage. The declared 32-force release run
+passes modern retained diagnostics for OMF2 and adaptive2, but LF and BCSS2 expose
+fixed-trajectory resonance (maximum R-hat 1.0259 and 1.2112). The suite-wide exit
+gate is therefore negative and no M10 path is promoted. See
+[M10 implementation and evidence](docs/m10-advanced-integration.md).
 
 ### M11 — Riemannian HMC and adaptive manifold methods
 

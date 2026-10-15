@@ -9,6 +9,8 @@ use thiserror::Error;
 
 mod low_rank;
 pub use low_rank::LowRankDiagonalMetric;
+mod structured;
+pub use structured::{BlockDiagonalMetric, BlockMetric, SparseCholeskyMetric};
 
 /// Invalid mass-matrix structure or metric operation dimensions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
@@ -44,6 +46,9 @@ pub enum MetricError {
         source_len: usize,
         destination_len: usize,
     },
+    /// Compressed sparse-column offsets or row indices are malformed.
+    #[error("invalid sparse Cholesky structure")]
+    InvalidSparseStructure,
 }
 
 #[inline]

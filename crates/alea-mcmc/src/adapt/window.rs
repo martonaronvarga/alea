@@ -149,10 +149,10 @@ pub enum WarmupConfigError {
 /// Warmup policy; no settings can become invalid after construction.
 #[derive(Debug, Clone, Copy)]
 pub struct WarmupOptions {
-    iterations: usize,
-    kind: MetricKind,
-    target: AcceptanceTarget,
-    search: Option<SearchOptions>,
+    pub(super) iterations: usize,
+    pub(super) kind: MetricKind,
+    pub(super) target: AcceptanceTarget,
+    pub(super) search: Option<SearchOptions>,
 }
 impl WarmupOptions {
     /// Default diagonal adaptation, acceptance target 0.8 and bounded search.
@@ -299,9 +299,9 @@ pub type HmcWarmupResult<'a, T, I = Leapfrog> = Result<
 #[derive(Debug)]
 #[must_use = "warmup must run to completion before retained sampling"]
 pub struct HmcWarmup<'a, T: LogDensityGradient + ?Sized, I = Leapfrog> {
-    chain: Hmc<'a, T, WarmupMetric, I>,
-    covariance: Option<OnlineCovariance>,
-    options: WarmupOptions,
+    pub(super) chain: Hmc<'a, T, WarmupMetric, I>,
+    pub(super) covariance: Option<OnlineCovariance>,
+    pub(super) options: WarmupOptions,
 }
 impl<'a, T: LogDensityGradient + ?Sized> HmcWarmup<'a, T> {
     /// Construct reference leapfrog warmup.

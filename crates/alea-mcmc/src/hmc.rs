@@ -296,6 +296,10 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Hmc<
         &mut self.metric
     }
 
+    pub(crate) fn integrator_mut(&mut self) -> &mut I {
+        &mut self.integrator
+    }
+
     pub(crate) fn replace_metric(&mut self, metric: M) -> Result<(), HmcError<T::Error>> {
         if metric.dimension() != self.point.dimension() {
             return Err(HmcError::MetricDimension {

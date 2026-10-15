@@ -115,6 +115,34 @@ impl<'a, T: LogDensityGradient + ?Sized> PhaseState<'a, T> {
         self.point.dimension()
     }
 
+    pub(crate) fn replace_momentum(
+        &mut self,
+        momentum: &[f64],
+    ) -> Result<(), PhaseError<T::Error>> {
+        if momentum.len() != self.momentum.len() {
+            return Err(PhaseError::Metric(MetricError::VectorLength {
+                expected: self.momentum.len(),
+                source_len: momentum.len(),
+                destination_len: self.momentum.len(),
+            }));
+        }
+        if let Some(index) = momentum.iter().position(|p| !p.is_finite()) {
+            return Err(PhaseError::Divergence(Divergence::Momentum { index }));
+        }
+        self.momentum.copy_from_slice(momentum);
+        Ok(())
+    }
+
+    pub(crate) fn flip_momentum(&mut self) -> Result<(), PhaseError<T::Error>> {
+        for (index, momentum) in self.momentum.iter_mut().enumerate() {
+            *momentum = -*momentum;
+            if !momentum.is_finite() {
+                return Err(PhaseError::Divergence(Divergence::Momentum { index }));
+            }
+        }
+        Ok(())
+    }
+
     /// Replaces position, gradient, density and momentum together, with no allocation.
     /// An error or model panic leaves this entire snapshot unchanged; target-side
     /// effects are not rolled back. Evaluation scratch may be dirtied.
@@ -255,7 +283,7 @@ impl<'a, T: LogDensityGradient + ?Sized> PhaseWorkspace<'a, T> {
         self.start_with_momentum(&state.point, metric, &state.momentum)
     }
 
-    fn start_with_momentum<'w, M: EuclideanMetric>(
+    pub(crate) fn start_with_momentum<'w, M: EuclideanMetric>(
         &'w mut self,
         point: &PointState<'a, T>,
         metric: &'w M,

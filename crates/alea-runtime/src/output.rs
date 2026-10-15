@@ -1,7 +1,8 @@
 //! Versioned, borrowed streaming records; no serialization or storage is imposed.
 use alea_mcmc::{
-    HmcTransition, NutsTransition, RwmhTransition, WalnutsTermination, WalnutsTransition,
-    nuts::NutsTermination,
+    ApproximateMclmcTransition, CheesHmcTransition, DrGhmcTransition, GhmcTransition,
+    HmcTransition, MamsTransition, NutsTransition, RwmhTransition, WalnutsTermination,
+    WalnutsTransition, nuts::NutsTermination,
 };
 
 /// Version of the draw/transition record contract.
@@ -56,6 +57,70 @@ impl DiagnosticTransition for HmcTransition {
             acceptance_probability: self.acceptance_probability,
             energy: self.initial_energy,
             divergent: Some(self.divergence.is_some()),
+            integration_steps: Some(self.integration_steps),
+            ..TransitionStats::default()
+        }
+    }
+}
+impl DiagnosticTransition for CheesHmcTransition {
+    fn diagnostic_stats(&self) -> TransitionStats {
+        TransitionStats {
+            accepted: self.accepted,
+            acceptance_probability: self.acceptance_probability,
+            energy: self.initial_energy,
+            divergent: Some(self.divergence.is_some()),
+            integration_steps: Some(self.plan.integration_steps),
+            ..TransitionStats::default()
+        }
+    }
+}
+impl DiagnosticTransition for GhmcTransition {
+    fn diagnostic_stats(&self) -> TransitionStats {
+        TransitionStats {
+            accepted: self.accepted,
+            acceptance_probability: self.acceptance_probability,
+            energy: self.initial_energy,
+            divergent: Some(self.divergence.is_some()),
+            integration_steps: Some(self.integration_steps),
+            ..TransitionStats::default()
+        }
+    }
+}
+impl DiagnosticTransition for DrGhmcTransition {
+    fn diagnostic_stats(&self) -> TransitionStats {
+        let acceptance_probability = if self.second.attempted {
+            self.second.acceptance_probability
+        } else {
+            self.first.acceptance_probability
+        };
+        TransitionStats {
+            accepted: self.accepted,
+            acceptance_probability,
+            energy: self.initial_energy,
+            divergent: Some(self.first.divergence.is_some() || self.second.divergence.is_some()),
+            integration_steps: Some(self.integration_steps),
+            ..TransitionStats::default()
+        }
+    }
+}
+impl DiagnosticTransition for MamsTransition {
+    fn diagnostic_stats(&self) -> TransitionStats {
+        TransitionStats {
+            accepted: self.accepted,
+            acceptance_probability: self.acceptance_probability,
+            divergent: Some(self.divergence.is_some()),
+            integration_steps: Some(self.integration_steps),
+            ..TransitionStats::default()
+        }
+    }
+}
+impl DiagnosticTransition for ApproximateMclmcTransition {
+    fn diagnostic_stats(&self) -> TransitionStats {
+        TransitionStats {
+            // The unadjusted map always publishes its finite endpoint. This is
+            // not a Metropolis probability or an exact-target guarantee.
+            accepted: true,
+            acceptance_probability: 1.0,
             integration_steps: Some(self.integration_steps),
             ..TransitionStats::default()
         }

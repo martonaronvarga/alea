@@ -1,8 +1,12 @@
 //! Explicit step-size warmup, separate from stationary sampling.
 //! RWMH scale adaptation and windowed HMC warmup, separate from retained draws.
+mod chees;
 mod covariance;
 mod fisher;
+mod joint;
+mod pathfinder;
 mod step;
+mod transport;
 mod window;
 use crate::{
     Rwmh,
@@ -11,12 +15,27 @@ use crate::{
 };
 use alea_core::density::LogDensity;
 use alea_math::metric::EuclideanMetric;
+pub use chees::{
+    CheesConfigError, CheesCriterion, CheesEnsembleAdapter, CheesObservation, CheesPlan,
+    CheesUpdate, FrozenCheesParameters,
+};
 pub use covariance::{CovarianceError, MetricKind, OnlineCovariance, WarmupMetric};
 pub use fisher::{
     FisherError, FisherHmcWarmup, FisherMetricAdapter, FisherOptions, FisherWarmupError,
     FisherWarmupResult, MetricInitialization, WeightedFisherMoments,
 };
+pub use joint::{
+    JointHmcWarmup, JointWarmupError, JointWarmupOptions, JointWarmupReport, JointWarmupResult,
+};
+pub use pathfinder::{
+    MultiPathfinderOptions, PathfinderConfigError, PathfinderError, PathfinderReport,
+    PathfinderResult, ScoreInitializationOptions, multi_pathfinder, score_initialize,
+};
 pub use step::{DiminishingSchedule, StepAdaptation, StepObservation, StepSizeController};
+pub use transport::{
+    AffineTransportLearner, TransportLearningError, TransportLearningOptions, TransportWarmupError,
+    TransportWarmupReport, TransportWarmupResult, learn_affine_transport,
+};
 pub use window::{
     HmcWarmup, HmcWarmupReport, HmcWarmupResult, SearchOptions, SearchResult, WarmupConfigError,
     WarmupError, WarmupOptions, WarmupStage, WindowSchedule, find_reasonable_step_size,

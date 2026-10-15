@@ -70,9 +70,21 @@ Bounded diagnostic windows are explicitly window-local; stopping is opt-in,
 not a guarantee of convergence. Classical helpers remain separately named.
 [M7 WALNUTS](docs/walnuts.md) implements bounded deterministic and randomized
 two-point dyadic refinement with exact reverse-selection weights, but remains
-opt-in after both declared performance suites failed promotion. ChEES-HMC,
+opt-in after both declared performance suites failed promotion.
+[M8 alternatives](docs/m8-alternatives.md) add deterministic shared ChEES-HMC
+warmup, persistent and delayed-rejection GHMC, bounded ATLAS curvature probes,
+and separate exact MAMS/explicitly approximate MCLMC paths. They remain opt-in;
 RMHMC and particle algorithms remain planned. RWMH transitions are fixed-scale;
 explicit dual-averaging warmup retains the previous functionality.
+[M9 geometry](docs/m9-geometry.md) adds frozen low-rank affine targets,
+consuming warmup-only learning, block/sparse constant metrics and bounded
+multi-path initialization. Its promotion benchmark was negative, so these paths
+remain opt-in and do not replace covariance/Fisher references.
+[M10 advanced integration](docs/m10-advanced-integration.md) adds frozen joint
+metric/step/two-stage warmup, exact and nested split flows, analytic and
+Hessian-free force-gradient experiments, and explicit transactional batched
+layouts. Its equal-force suite exposed fixed-trajectory resonance, so all M10
+paths remain opt-in and the reference covariance/leapfrog defaults are unchanged.
 The [migration audit](docs/migration-audit.md) inventories retained behavior,
 test replacements and dormant research sources; CI guards the inventory.
 This is not yet a production inference engine.

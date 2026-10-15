@@ -6,6 +6,7 @@
     ),
     feature(portable_simd)
 )]
+pub mod affine;
 pub mod buffer;
 #[cfg(feature = "faer")]
 pub mod fisher;

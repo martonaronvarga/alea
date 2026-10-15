@@ -206,3 +206,144 @@ pub fn evaluate_batch<T: BatchLogDensityGradient + ?Sized>(
     }
     Ok(())
 }
+
+/// Optional decomposition of the score into cheap and expensive contributions.
+/// The two outputs must sum to the score returned by [`LogDensityGradient`].
+/// Implementations overwrite every output entry on success and remain
+/// semantically fixed while borrowed by a sampler.
+pub trait SplitLogDensityGradient: LogDensityGradient {
+    fn cheap_score(&self, position: &[f64], output: &mut [f64]) -> Result<(), Self::Error>;
+    fn expensive_score(&self, position: &[f64], output: &mut [f64]) -> Result<(), Self::Error>;
+}
+
+/// Which force contribution failed validation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ForcePart {
+    Cheap,
+    Expensive,
+    Residual,
+}
+
+/// Checked split-force evaluation error. Shape/input failures preserve output;
+/// after invoking the model, a backend failure may leave it partially written.
+#[derive(Debug, thiserror::Error)]
+pub enum SplitForceError<E: Error + 'static> {
+    #[error(transparent)]
+    Evaluation(#[from] EvaluationError<E>),
+    #[error("{part:?} score entry {index} is missing or non-finite")]
+    NonFiniteOutput { part: ForcePart, index: usize },
+}
+
+fn checked_score<T: LogDensityGradient + ?Sized>(
+    target: &T,
+    position: &[f64],
+    output: &mut [f64],
+    part: ForcePart,
+    evaluate: impl FnOnce(&T, &[f64], &mut [f64]) -> Result<(), T::Error>,
+) -> Result<(), SplitForceError<T::Error>> {
+    let expected = target.dimension();
+    if position.len() != expected || output.len() != expected {
+        return Err(EvaluationError::Dimension(DimensionError {
+            expected,
+            position: position.len(),
+            gradient: output.len(),
+        })
+        .into());
+    }
+    if let Some(index) = position.iter().position(|x| !x.is_finite()) {
+        return Err(EvaluationError::NonFinitePosition { index }.into());
+    }
+    output.fill(f64::NAN);
+    evaluate(target, position, output).map_err(EvaluationError::Model)?;
+    if let Some(index) = output.iter().position(|x| !x.is_finite()) {
+        return Err(SplitForceError::NonFiniteOutput { part, index });
+    }
+    Ok(())
+}
+
+/// Checked cheap-score evaluation with no allocation.
+pub fn evaluate_cheap_score<T: SplitLogDensityGradient + ?Sized>(
+    target: &T,
+    position: &[f64],
+    output: &mut [f64],
+) -> Result<(), SplitForceError<T::Error>> {
+    checked_score(
+        target,
+        position,
+        output,
+        ForcePart::Cheap,
+        |target, q, out| target.cheap_score(q, out),
+    )
+}
+
+/// Checked expensive-score evaluation with no allocation.
+pub fn evaluate_expensive_score<T: SplitLogDensityGradient + ?Sized>(
+    target: &T,
+    position: &[f64],
+    output: &mut [f64],
+) -> Result<(), SplitForceError<T::Error>> {
+    checked_score(
+        target,
+        position,
+        output,
+        ForcePart::Expensive,
+        |target, q, out| target.expensive_score(q, out),
+    )
+}
+
+/// A target whose potential is a diagonal Gaussian reference plus a residual.
+/// The reference is `0.5 * sum_i precision[i] * (q[i] - center[i])^2`.
+/// Its exact flow is defined for identity momentum mass; general preconditioning
+/// should be expressed by transforming the target before using this capability.
+pub trait GaussianResidual: LogDensityGradient {
+    fn gaussian_center(&self) -> &[f64];
+    fn gaussian_precision(&self) -> &[f64];
+    fn residual_score(&self, position: &[f64], output: &mut [f64]) -> Result<(), Self::Error>;
+}
+
+/// Checked residual-score evaluation with no allocation.
+pub fn evaluate_residual_score<T: GaussianResidual + ?Sized>(
+    target: &T,
+    position: &[f64],
+    output: &mut [f64],
+) -> Result<(), SplitForceError<T::Error>> {
+    checked_score(
+        target,
+        position,
+        output,
+        ForcePart::Residual,
+        |target, q, out| target.residual_score(q, out),
+    )
+}
+
+/// Copy a logical batch between explicit physical layouts. Source and
+/// destination may use the same layout; buffers must be distinct.
+///
+/// # Errors
+/// Rejects different logical shapes or storage lengths before writing.
+pub fn copy_batch_layout(
+    source_shape: BatchShape,
+    source: &[f64],
+    destination_shape: BatchShape,
+    destination: &mut [f64],
+) -> Result<(), BatchShapeError> {
+    if source_shape.dimension() != destination_shape.dimension()
+        || source_shape.chains() != destination_shape.chains()
+        || source.len() != source_shape.storage_len()
+        || destination.len() != destination_shape.storage_len()
+    {
+        return Err(BatchShapeError);
+    }
+    for chain in 0..source_shape.chains() {
+        for coordinate in 0..source_shape.dimension() {
+            let source_index = source_shape
+                .index(chain, coordinate)
+                .expect("loop indices are within the validated shape");
+            let destination_index = destination_shape
+                .index(chain, coordinate)
+                .expect("loop indices are within the validated shape");
+            destination[destination_index] = source[source_index];
+        }
+    }
+    Ok(())
+}
