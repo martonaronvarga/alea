@@ -3,6 +3,37 @@ use alea_runtime::run_chain;
 use rand::{SeedableRng, rngs::SmallRng};
 use std::ops::ControlFlow;
 
+#[test]
+fn nuts_streams_typed_transitions_through_the_existing_chain_boundary() {
+    use alea_distributions::Gaussian;
+    use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
+    use alea_mcmc::{Nuts, NutsOptions};
+    let target = Gaussian::new(2);
+    let mut chain = Nuts::new(
+        &target,
+        OwnedBuffer::new(2),
+        IdentityMetric::new(2),
+        NutsOptions::new(0.2, 5).unwrap(),
+    )
+    .unwrap();
+    let mut seen = 0;
+    let count = run_chain(
+        &mut chain,
+        20,
+        &mut SmallRng::seed_from_u64(7),
+        |q, info| {
+            assert_eq!(q.len(), 2);
+            assert!(info.integration_steps <= 31);
+            assert!(info.proposal_energy.unwrap().is_finite());
+            seen += 1;
+            ControlFlow::Continue(())
+        },
+    )
+    .unwrap();
+    assert_eq!(count, 20);
+    assert_eq!(seen, 20);
+}
+
 #[derive(Debug, thiserror::Error)]
 #[error("test failure")]
 struct Failure;

@@ -11,6 +11,9 @@ python3 tools/fisher-reference/upstream/adjudicate.py --check
 python3 tools/fisher-reference/upstream/test_adjudicate.py
 python3 tools/test_fisher_cost.py
 python3 tools/test_m4f_efficiency.py
+python3 tools/test_m4f_budgets.py
+python3 tools/walnuts-reference/test_reference.py
+python3 tools/test_m7_benchmark.py
 if [[ -n "$features" ]]; then args+=(--features "$features"); fi
 cargo fmt --manifest-path crates/Cargo.toml --all --check
 cargo check "${args[@]}" --all-targets

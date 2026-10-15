@@ -1,7 +1,10 @@
-//! Synchronous streaming orchestration. Numerical algorithms live in `alea-mcmc`.
+//! Streaming and independent-chain orchestration. Numerical algorithms live in `alea-mcmc`.
 #![forbid(unsafe_code)]
 pub mod diagnostics;
 pub mod draws;
+pub mod ensemble;
+pub mod monitor;
+pub mod output;
 use alea_mcmc::MarkovChain;
 use std::ops::ControlFlow;
 

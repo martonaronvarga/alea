@@ -12,7 +12,8 @@ use alea_math::buffer::OwnedBuffer;
 use alea_math::metric::{EuclideanMetric, MetricError};
 use rand::Rng;
 
-/// Numerical reason a trajectory was rejected without changing the live point.
+/// Numerical reason a trajectory stopped. Fixed HMC rejects its proposal;
+/// NUTS discards the invalid subtree and may retain an earlier valid candidate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Divergence {
@@ -26,7 +27,8 @@ pub enum Divergence {
     Momentum { index: usize },
     /// Kinetic/Hamiltonian energy or its difference was not finite.
     Energy,
-    /// The finite absolute endpoint energy error exceeded the configured limit.
+    /// The finite energy error exceeded the configured limit (absolute in HMC,
+    /// one-sided energy increase in NUTS).
     EnergyErrorLimit,
 }
 
@@ -60,7 +62,7 @@ impl SignedStep {
 
 /// A coherent owned position/gradient/log-density/momentum snapshot.
 /// Fields cannot be mutated independently. Copies retain the target binding.
-/// Reuse snapshots for trajectory endpoints; tree selection belongs to M5.
+/// Reuse snapshots for trajectory endpoints; selection belongs to the caller.
 #[derive(Debug)]
 pub struct PhaseState<'a, T: LogDensityGradient + ?Sized> {
     point: PointState<'a, T>,

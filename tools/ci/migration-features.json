@@ -488,7 +488,7 @@
       "targets": [
         "crates/alea-runtime/src/diagnostics.rs"
       ],
-      "contract": "Classical calculations under accurate names; invalid inputs return errors, not apparently healthy defaults. Modern M6 diagnostics remain unimplemented.",
+      "contract": "Classical calculations under accurate names; invalid inputs return errors, not apparently healthy defaults. Modern M6 diagnostics live separately in diagnostics/modern.rs with independent ArviZ fixtures.",
       "checks": [
         {
           "path": "crates/alea-runtime/tests/collection.rs",
@@ -713,7 +713,7 @@
       ],
       "contract": "Preserve constructor/configuration and advisory strings without claiming any sampler transitions.",
       "checks": [],
-      "remaining": "Implement NUTS through M5; do not treat old policy text (including RMHMC/ChEES conflation) as validated dispatch."
+      "remaining": "Legacy placeholders remain preserved as research. Independent M5 implementation is crates/alea-mcmc/src/nuts.rs; do not treat old policy text (including RMHMC/ChEES conflation) as validated dispatch."
     },
     {
       "id": "unused-extension-contracts",

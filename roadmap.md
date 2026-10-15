@@ -1,12 +1,38 @@
 # Alea: canonical engineering roadmap
 
 Status: active, pre-alpha<br>
-Last reviewed: 2026-09-24<br>
-Last milestone update: 2026-09-27 — M0/M1 complete<br>
+Last reviewed: 2026-09-30<br>
+Last milestone update: 2026-10-15 — M7 WALNUTS-D/R2P implemented and evaluated; not promoted<br>
+Last architecture update: 2026-09-30 — composable geometry/integration and optional target capabilities<br>
 Scope: architecture, correctness, numerical validation, performance, and implementation order
 
 This is the canonical roadmap for Alea. It replaces the earlier project plan. Keep it
 current as design decisions are accepted and milestones are completed.
+
+## Settled scope and execution order — 2026-09-30
+
+Alea is a **typed probabilistic modeling framework and composable inference library**.
+Multiple distributions, priors/likelihood composition, hierarchical models and
+Wiener/DDM are first-class. We defer a separate textual language and ecosystem-wide
+coverage; we do not defer native modeling indefinitely. See the
+[settled plan](docs/settled-plan.md) for exact architectural seams, distribution
+tiers, continuous-adaptation mathematics, implementation slices and success gates.
+
+The central planned transition composition is `Dynamics + Integrator + StepController
++ Trajectory + Correction`, with target/geometry capabilities below it and adaptation
+and stopping outside it. `Hmc<T,M,I>` is the current canonical implementation, not
+the final universal interface. WALNUTS belongs to step control/trajectory/correction;
+isokinetic dynamics do not masquerade as a different leapfrog coefficient.
+
+Next executable slices: robust initialization and independent Fisher validation;
+typed observations/weighted estimators/decaying scalar adapters; extraction of the
+existing HMC into tested engine components; reference NUTS; modern diagnostics and
+CPU runtime; WALNUTS. Interleave modeling B1/B2 and benchmark V1/V2 below—do not wait
+for every advanced sampler before providing ordinary model-building functionality.
+
+Identity initialization is now the default; the single-score rule is explicitly
+experimental. Retained draws still use frozen adaptation. Diminishing adaptation
+and automatic stopping require separate theory, containment and diagnostic gates.
 
 ## Updating this document
 
@@ -21,7 +47,259 @@ Task markers are `[ ]` planned, `[~]` in progress, `[x]` complete with evidence,
 `[!]` blocked with the blocker stated. An algorithm is complete only when its correctness,
 numerical, statistical, and performance gates pass.
 
-## Implementation progress: 2026-09-27, increment 9 — M0 and M1 complete
+## Current priority: stabilize the implemented baseline
+
+At the user's direction, new algorithms and engine abstraction work wait behind
+correctness hardening. Native modeling remains in scope; the next work is not a
+catalogue expansion. Preserve the reference HMC/covariance policy and all historical
+tests while closing the experimental Fisher/low-rank numerical gaps.
+
+- [x] Reproduce f64 cancellation in accepted low-rank corrections; reject unsupported
+  spectral/basis conditioning with a typed error instead of constructing singular
+  or negative inverse-mass actions. No silent spectral clipping.
+- [x] Deterministic rank/spectrum grids check positive momentum energy and determinant
+  conventions; every metric action checks shape before output mutation.
+- [x] Check foreground/background windows against centered batch moments, including
+  failed observations at reset/swap boundaries; verify bounded raw history.
+- [x] Reject mismatched dimensional reinterpretation of stored Fisher observations.
+- [x] Enable the MCMC Faer feature in CI, not merely the underlying math feature.
+- [x] Independent mathematical Fisher fixtures: 120-digit Decimal dense 2x2
+  Riccati solutions (including rank caps/filtering) and batch-recomputed diagonal
+  update traces. Generator/provenance in `tools/fisher-reference/`; CI checks bytes.
+  Matched scatter scale tests and an extreme diagonal standardization grid exposed
+  avoidable intermediate overflow/underflow, fixed by common scatter normalization
+  and log-space regularization. Truly unrepresentable scatters still return errors.
+- [x] Known two-direction Fisher geometry embedded in 8, 32 and 128 dimensions:
+  verify actions on fitted and orthogonal directions, determinant, rank caps,
+  eigenvalue filtering and observation-order invariance against scalar formulas.
+- [x] Execute pinned nuts-rs low-rank fit-prefix traces (18 cases, dimensions
+  2/8/16). Adjudicate reference roundoff with an independent 80-digit dense oracle;
+  two upstream fixtures miss the original accuracy threshold, Alea passes all 18.
+  Tooling/provenance and deliberate policy differences are documented in
+  `tools/fisher-reference/upstream/README.md`; no tolerance widening or policy change.
+- [x] Bounded end-to-end Fisher controller validation (2026-10-02): identity and
+  clipped-score initialization, centered batch moments of retained draws including
+  rejections, 10/80-period reset/swap/ring boundaries, rank-1/rank-2 updates and final
+  nonboundary refits. Verify frozen geometry, final dual-averaging restart, cache
+  coherence, target-call/report counts, typed backend failures, and allocation-free
+  diagonal warmup after construction. Leapfrog/OMF and budgets through 401 are covered.
+- [x] Extend fitted-spectrum validation to 240 commuting-scatter cases (d=4/16,
+  coordinate scales 1e-8/1/1e8, common data factors 1e-100/1/1e100, rank caps and
+  filtering), checking actions, determinant and momentum energy against scalar
+  formulas. Unsupported fitted conditioning returns its typed error.
+- [x] Gaussian tail-start safety for both initializers through |q|=1e150; verify
+  finite coherent caches, bounded calls and frozen geometry. Reject unrepresentable
+  initial density and exhaust unresolved-stiffness search with typed errors.
+  These are safety checks, **not** typical-set recovery or convergence claims.
+- [x] Matched warmup/fitting cost baseline (2026-10-02): shared tested Gaussian
+  workloads, 36 actual-call records, 12 complete-warmup and six cold-fit timings.
+  [Protocol/results](docs/benchmarks/warmup-cost.md) preserve divergences,
+  budgets, uncertainty and provenance. Low-rank fitting overhead is material;
+  profile it before optimizing. No ESS or production-default claim.
+- [x] Profile-guided fitting optimization (2026-10-02): perf, Hyperfine,
+  Callgrind/Massif and Criterion isolate nested worker synchronization and repeated
+  eigensolve/power work. Explicit chain-local sequential kernels and shared
+  eigensystems improve the paired d64 workloads without weakening numerical checks.
+  [Evidence and large-fit limitations](docs/benchmarks/fisher-profiling.md);
+  no clear d256/history160 wall-time gain and no memory/ESS improvement claim.
+- [x] Bounded non-Gaussian retained-draw regression: covariance/Fisher diagonal
+  and rank-capped warmup on banana, logistic and width-one funnel, with fixed
+  seeds/budgets, analytic/pinned BlackJAX moments, cache/freeze checks and actual
+  evaluation/divergence reporting. [Protocol and limits](docs/benchmarks/fisher-retained-draws.md).
+  Final fitted ranks are zero in this corpus; it does not validate nonzero-rank
+  non-Gaussian production geometry or establish efficiency/robustness superiority.
+- [x] Nonzero-rank non-Gaussian extension: unit-determinant sheared banana with
+  independently checked derivative pullback and analytic/reference observables.
+  Same seeds, budgets and tolerances; each rank-capped chain must freeze at
+  nonzero rank (observed rank two for all four). Cache/freeze/call checks pass.
+  Seventeen retained divergences versus zero for both diagonal baselines prevent
+  a robustness-superiority claim; rank two in d=2 is not a scalability result.
+- [x] Diagnose the sheared-banana Fisher divergences by same-state/momentum/metric,
+  fixed-time step refinement. All 17 default failures recover at half steps.
+  Add validated opt-in `FisherOptions::with_target` with unchanged default 0.8;
+  target 0.95 eliminates observed banana/sheared-banana retained divergences,
+  but leaves 2/3 diagonal/rank-capped funnel divergences. Preserve the negative
+  result and original gates in [the investigation](docs/benchmarks/fisher-divergences.md).
+- [x] Bounded noncommuting fit hardening (2026-10-05): 324 two-direction and
+  540 four-direction planted `G F G = C` cases cover rank/filter budgets,
+  extreme common/coordinate scales, complementary actions and row reversal.
+  Both grids exposed nested-square-root accuracy loss; a factor/SVD evaluation
+  passes the original tolerances without clipping or changing the estimator.
+  [Construction, repair and limits](docs/fisher-noncommuting.md). General
+  ill-conditioning and promotion remain open; prior fit timings are historical.
+- [x] Literature/reference-guided numerical scaling repair (2026-10-05): pin
+  Stan, walnutpie, nuts-rs/nutpie, BlackJAX and JAX source comparisons; normalize
+  centered standardized data and ridge together before squared norms/Gram
+  products. Preserve the Fisher equation and explicit failure policy. Fourteen
+  scalar-oracle edge cases and 1,440 noncommuting fits retain original tolerances.
+  [Mathematics, references and limitations](docs/fisher-numerical-review.md).
+- [x] Remeasure repaired Fisher costs (2026-10-05): five fixed fit/warmup
+  workloads, eight serial observations each, per-process peak RSS, source/binary
+  fingerprints and separate actual-call records. [Results and reproduction](docs/benchmarks/fisher-cost-2026-10-05.md).
+  This is a current systems baseline, not a paired repair-cost comparison or
+  retained-draw efficiency result. Measurement artifact contracts run in CI.
+- [x] Funnel replay extension (2026-10-05): original plus disjoint four-seed
+  ensembles, acceptance .8/.95 and Fisher rank caps 0/2. All 69 observed energy
+  divergences recover at fixed-time half/quarter/eighth steps; factor-one replay
+  reproduces each failure, and live caches/RNG/counters remain unchanged.
+  [Curvature checks, errors and limitations](docs/benchmarks/funnel-replay.md).
+  Half-step errors can still be large; failing frozen metrics all have rank zero.
+  This is diagnostic evidence, not a retry algorithm or efficiency result.
+- [x] Predeclared efficiency/robustness evidence and an M4F promotion review, including
+  non-Gaussian geometry and broader noncommuting ill-conditioning. Start with
+  retained-draw quality, memory and total cost beyond the warmup baseline;
+  do not infer a production default
+  or add Adam from passing bounded Gaussian tests. Fit-prefix/controller fixtures
+  do not establish nuts-rs/nutpie whole-warmup equivalence (policies differ).
+- [x] HVP/batch backend-failure and panic-isolation audit (2026-10-01): preserve
+  preflight outputs, retain typed errors, validate independent batch lanes, clear
+  stale results on reuse, and explicitly require discarding outputs after unwinding.
+  Backend panics propagate; the wrappers do not promise per-lane panic isolation.
+- [x] Complete-macrostep target-failure/property tests beyond the happy-path
+  oracles: `crates/alea-mcmc/tests/integrator_failures.rs` injects backend errors,
+  panics, missing/non-finite gradients and non-finite densities at every fused
+  evaluation of three-step leapfrog/OMF/BCSS trajectories. Checks typed outcomes,
+  bit-exact preservation of the live cache, restart/recovery, evaluation counts,
+  allocation-free returned failures, and 128 seeded two-stage reversal cases.
+  Covered by the Miri script; not an exhaustive arbitrary-metric failure proof.
+- [ ] Revisit statistical performance assertions with a predeclared benchmark protocol;
+  do not retune seeds or tolerances to make a backend pass.
+
+Evidence and numerical limits: [baseline hardening](docs/baseline-hardening.md).
+
+## Implementation progress: baseline hardening after increment 13
+
+This increment adds no sampler algorithm, distribution or generic engine. It fixes
+two validation failures, adds deterministic algebra/rollback coverage and closes a
+feature-matrix coverage gap. Fisher remains experimental; the new floating-point
+conditioning policy is conservative, not a proof of accuracy for arbitrary inputs.
+Follow-up on 2026-10-01: five additional optional-capability failure tests and an
+explicit panic/output-validity contract; no new backend or sampler algorithm.
+
+## Implementation progress: 2026-09-30, increment 13 — reference warmup and Fisher foundations
+
+[M4 evidence](docs/m4-warmup.md) records covariance warmup, executed BlackJAX
+fixtures, sampling comparisons, allocation checks and benchmarks. M4 remains the
+reference policy; it is not Alea's proposed final default.
+
+Implemented optional potential-HVP and explicit-layout batch target capabilities;
+spectral low-rank metrics; paired foreground/background Fisher moments; optional
+`faer` reduced Fisher fitting; experimental consuming Fisher warmup; and statically
+dispatched leapfrog/OMF2/BCSS2 complete macrosteps in fixed HMC and both warmups.
+Existing implementations/tests and migration inventories are preserved. Public
+step counters now say `integration_steps`, not `leapfrog_steps`.
+
+[The research/design record](docs/fisher-and-trajectories.md) specifies signs,
+regularization, cold-path complexity, the Fisher derivation, BCH/oscillator
+analysis, future joint adaptation and benchmark priorities. Fisher is **not yet
+promotion-ready**: independent nuts-rs adaptation traces, pathological-target
+efficiency comparisons and rank-budget sensitivity remain gates. No NUTS,
+WALNUTS, adaptive-coefficient controller, exact-Gaussian split or accelerator
+runtime is claimed implemented.
+
+CPU independent chains come first. Batch layout/capability contracts are present
+now; FSM/accelerator execution is deferred. The versioned compiled-target ABI is
+a [design specification](docs/compiled-target-abi.md), not an implemented backend.
+
+## Implementation progress: 2026-09-29, increment 12 — target architecture (historical)
+
+The [architecture record](docs/architecture.md) is the current API/dependency guide.
+At the user's direction, compatibility is not a requirement: the project is not in
+use, so old paths and contracts are replaced rather than retained or deprecated.
+
+- Implemented the nine `alea-*` workspace crates with explicit production edges.
+  Aligned storage belongs to math; opaque Wiener derivatives belong to distributions;
+  generic model composition remains in core. Core/math/MCMC have no cubature edge.
+- Replaced split density adapters and duplicate HMC/state/kernel APIs with direct
+  targets, coherent caches, one `Hmc`, and fallible `EuclideanMetric` operations.
+- Rewrote RWMH against a derivative-free, fallible target capability and typed
+  transitions. Restored explicit dual-averaging warmup, retained spare-normal
+  generation, and kept stationary transitions allocation-free.
+- Added streaming and aligned draw collection; retained classical diagnostic
+  calculations under accurate names with invalid-input errors. Removed mutable
+  compatibility APIs and placeholder sampler exports, not working functionality.
+- Preserved dormant DDM/C++/inference sources separately as research. The
+  [migration audit](docs/migration-audit.md) maps 118 old paths and 188 test
+  definitions (including uncommitted M3 work); CI guards destinations and tests.
+- Added a 31-group feature inventory with implementation status, behavioral
+  obligations and test evidence. Ported grid/spline utilities from research into
+  math; added latent-adapter regressions and mutation tests for inventory guards.
+- Migrated tests, M3 fixtures, benchmarks, Enzyme tooling and the cubature submodule.
+  Updated Nix binaries and CI, including a production dependency-boundary gate.
+
+This is architecture implementation, not completion of M4–M9. Windowed warmup,
+modern diagnostics, parallel chains, NUTS, ChEES-HMC and RMHMC retain their gates.
+Older progress sections and reports below are historical, including compatibility
+decisions now explicitly superseded by this breaking migration.
+
+## Implementation progress: 2026-09-28, increment 11 — M3 complete (historical)
+
+The [M3 completion record](docs/m3-hmc-completion.md) documents executed reference
+provenance, statistical tolerances, allocation scope, benchmarks and reproduction.
+The existing fixed-length HMC transition kernel and its public API are unchanged.
+
+- Extended independently executed BlackJAX/JAX references to logistic, width-one
+  centered funnel and rotated condition-1e4 Gaussian targets: 90 endpoints and
+  signed reversals across identity/diagonal/dense masses. Retained earlier
+  correlated/banana and diagonal condition-1e8 coverage.
+- Added second-order energy-error convergence checks for all 15 target/metric
+  pairs. Added numerical stress regressions for repeated rejection, bit-exact
+  cache preservation and recovery.
+- Compared actual BlackJAX HMC sampling with separate Rust RNG streams across
+  13 configurations, four chains per implementation/configuration, 8,192 retained
+  draws each. All 78 observable comparisons satisfy documented batch-means MCSE
+  bounds; known whitened moments independently check both implementations.
+- Extended zero-Rust-allocation per-leapfrog checks to non-Gaussian/stiff models.
+  User callbacks and foreign BLAS malloc are explicitly outside the guarantee.
+- Added steady-state Criterion workloads for all metric types, larger logistic
+  regression and transformed Wiener evaluation, retaining checked/legacy baselines.
+
+All four supported feature-matrix check/test/Clippy/rustdoc gates pass. Both new
+BlackJAX artifacts regenerate byte-for-byte in the pinned environment. Full strict
+Miri and benchmark execution are recorded in the completion record. Statistical
+tests use conservative approximate MCSE, not an ESS/R-hat or mixing certificate.
+No Stan sampling execution, cross-platform run or remote CI execution is claimed.
+M4 adaptation is next; NUTS, ChEES-HMC and RMHMC remain unimplemented.
+
+## Implementation progress: 2026-09-28, increment 10 — M2 complete (historical)
+
+The [M2 model-boundary record](docs/m2-model-boundary.md) documents the public
+contracts, coordinate measures, toolchain, reproducible checks and limitations.
+
+- Implemented all scalar/vector/Cholesky/full-matrix transforms, immutable flat
+  parameter layout, inverses, log-Jacobians and analytic reverse pullbacks.
+- Added a fused, fallible constrained-model adapter with reusable aligned scratch,
+  complete-gradient validation, no evaluation allocations in tested models, and
+  atomic publication of gradients on error/panic paths.
+- Executed `std::autodiff`/Enzyme derivatives with the separately content-pinned
+  upstream nightly-2026-06-23 distribution and matching plugin. Default/stable
+  toolchains are unchanged; no source compiler build is needed.
+- Added explicit custom-derivative primitives and allocation-free model sums.
+  Wiener uses an analytic opaque primitive composed with an Enzyme prior; this
+  does not register arbitrary nested foreign calls inside differentiated IR.
+- Added generic finite-difference diagnostics and the `gradient_check` command,
+  proptest and numerical-Jacobian/pullback properties, HMC exponential/Beta moment
+  integration, allocation tests, Miri coverage and an executed-Enzyme CI job.
+- Added Criterion coverage for the fused model boundary. Initial timings overlapped
+  compilation and are not used for speedup claims; Cholesky forms remain preferable
+  when a likelihood can avoid materializing/validating a full matrix.
+
+Enzyme tests compare Gaussian, correlated Gaussian, logistic, banana and funnel
+derivatives with analytic references, plus finite differences of transformed targets.
+Wiener hybrid derivatives are checked against finite differences and reuse the
+existing externally checked series implementation. Coordinate conventions are
+explicit: centered stick-breaking simplex, stereographic unit sphere, row-major
+matrices, rejection of floating-point boundary collapse.
+
+Validation: stable and SIMD workspace format/check/test/Clippy/docs gates pass;
+the release Enzyme gate passes 15 focused tests (4 AD, 5 models, 6 transforms),
+Clippy and all six CLI diagnostics. Strict Miri passes the expanded safety suite,
+including 9 new transform/model tests with native-only allocation/property tests
+excluded. The HMC integration and zero-allocation gates pass. Nix flake evaluation
+and Nix/Rust formatting pass. No remote CI, cross-platform execution, or new
+Faer/OpenBLAS run is claimed for M2.
+
+## Implementation progress: 2026-09-27, increment 9 — M0 and M1 complete (historical)
 
 M0's reproducible baseline and M1's safe-core exit gates now pass. The
 [completion record](docs/m0-m1-completion.md) contains commands, exact counts,
@@ -321,29 +599,13 @@ Alea is a programmable, algebraic, strongly typed Monte Carlo library inspired b
 JAX, BlackJAX, nuts-rs, and related systems. Its primary goal is trustworthy
 high-performance inference.
 
-```text
-typed model and parameter transforms
-                  |
-                  v
-fused unconstrained log-density and gradient
-                  |
-                  v
-Euclidean Hamiltonian mechanics
-                  |
-                  v
-HMC -> adaptation -> multinomial NUTS
-                  |
-                  v
-multi-chain runtime and diagnostics
-                  |
-          +-------+-------+
-          |               |
-          v               v
-     ChEES-HMC           RMHMC
-                          |
-                          v
-             adaptive manifold methods
-```
+Native typed models/distributions and external models lower to the same checked
+target capabilities. Composable dynamics/geometry and corrected trajectory engines
+consume those capabilities. Adaptation operates outside retained transitions;
+runtime monitoring observes immutable summaries. The near-term dynamic sequence is
+Fisher → reference NUTS → validated CPU diagnostics/runtime → WALNUTS. Modeling and
+benchmark tracks proceed alongside this sequence; ChEES/isokinetic and manifold
+methods follow their independent validity gates.
 
 ## Non-negotiable principles
 
@@ -449,22 +711,24 @@ implemented and reference-tested.
 
 ## Target architecture
 
-The target crate organization is:
+The implemented crate organization is:
 
 ```text
-alea-core          target protocol, transforms, state, errors
-alea-math          metrics, linear algebra, numerical primitives
+alea-core          target/model protocols, transforms, state, errors
+alea-math          aligned storage, metrics, linear algebra, numerical primitives
 alea-autodiff      std::autodiff/Enzyme adapters and validation
 alea-distributions distributions, including Wiener/DDM
 alea-mcmc          HMC, NUTS, ChEES-HMC, RMHMC
-alea-smc           particle filters and particle MCMC
+alea-smc           particle contracts; filters and particle MCMC planned
 alea-ffi           audited foreign boundaries only
-alea-runtime       chains, parallelism, streaming output
+alea-runtime       streaming output; parallel chains planned
 alea-cli           binaries, configuration, user-facing context
 ```
 
-This is not a flag-day rename. Move boundaries after core contracts stabilize. In
-particular, numerical core crates must not depend on the broad FFI crate.
+Implemented as a breaking migration in increment 12. No backward compatibility,
+legacy crate aliases or duplicated sampler protocols are retained. Numerical core
+crates do not depend on the broad FFI crate; the architecture CI gate checks this.
+See [current boundaries and interfaces](docs/architecture.md).
 
 ### Primary model contract
 
@@ -507,9 +771,10 @@ leapfrog count, and tree depth where applicable.
 ```rust
 pub trait EuclideanMetric {
     fn dimension(&self) -> usize;
-    fn sample_momentum(&self, z: &[f64], momentum: &mut [f64]);
-    fn velocity(&self, momentum: &[f64], velocity: &mut [f64]);
-    fn kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> f64;
+    fn sample_momentum(&self, z: &[f64], momentum: &mut [f64]) -> Result<(), MetricError>;
+    fn velocity(&self, momentum: &[f64], velocity: &mut [f64]) -> Result<(), MetricError>;
+    fn kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> Result<f64, MetricError>;
+    fn log_det(&self) -> f64;
 }
 ```
 
@@ -601,101 +866,201 @@ nothing; randomized tests cover dimensions and non-finite failures.
 Exit gate passed locally on 2026-09-27; see [completion evidence](docs/m0-m1-completion.md).
 Foreign C/BLAS is natively validated, not claimed to execute under Miri.
 
-### M2 — transforms and Enzyme backend
+### M2 — transforms and Enzyme backend (complete)
 
 Goal: a Stan-like unconstrained model boundary.
 
-- [ ] Scalar identity, lower, upper, and interval transforms.
-- [ ] Positive, ordered, positive-ordered, simplex, and unit-vector transforms.
-- [ ] Cholesky covariance/correlation transforms.
-- [ ] Covariance/correlation matrix transforms after Cholesky validation.
-- [ ] Flat parameter layout and dimension accounting.
-- [ ] Fuse constrain + Jacobian + model evaluation.
-- [ ] Analytic and Enzyme target adapters.
-- [ ] Custom derivatives for opaque primitives.
-- [ ] Finite-difference gradient diagnostic command.
+- [x] Scalar identity, lower, upper, and interval transforms.
+- [x] Positive, ordered, positive-ordered, simplex, and unit-vector transforms.
+- [x] Cholesky covariance/correlation transforms.
+- [x] Covariance/correlation matrix transforms after Cholesky validation.
+- [x] Flat parameter layout and dimension accounting.
+- [x] Fuse constrain + Jacobian + model evaluation (analytic transform pullback,
+  compiled AD of the constrained density, one fused model call).
+- [x] Analytic and Enzyme target adapters.
+- [x] Custom derivatives for opaque primitives through an explicit value/gradient
+  boundary; native Enzyme registry/nested opaque calls are not part of this API.
+- [x] Finite-difference gradient diagnostic command.
 
 Exit gate: transform round trips/Jacobians pass property tests; gradients agree on
 Gaussian, correlated Gaussian, logistic, banana, funnel, and Wiener targets.
+
+Exit gate passed locally on 2026-09-28: [M2 record](docs/m2-model-boundary.md).
 
 ### M3 — correct Euclidean HMC
 
 Goal: small, correct, allocation-free fixed-length HMC.
 
-- [~] Identity, diagonal, and dense metrics: validated mass/factor constructors
-  and dimension-safe operations implemented in increment 3; final protocol and
-  allocation/performance gates remain open.
+- [x] Identity, diagonal, and dense metrics: validated constructors, dimension-safe
+  operations, external inverse-mass convention checks and measured workloads.
 - [x] Correct metric-aware momentum generation (diagonal/dense regression tests).
-- [~] Reversible velocity Verlet/leapfrog (new fallible path tested for reversal
-  with identity/diagonal/dense masses and identity Gaussian energy-error order;
-  reusable signed phase boundary implemented in increment 7; executed BlackJAX
-  endpoint and signed-reversal fixtures added in increment 8).
-- [~] Fixed-length HMC with Metropolis correction (`HmcChain` implements the new
-  target contract; increment 6 adds an independent scalar transition oracle,
-  all-metric correlated Gaussian/banana moments, and matched-mass condition-1e8
-  Gaussian tests. Increment 8 adds deterministic BlackJAX references; external
-  statistical comparisons and broader validation remain pending).
-- [~] Divergence detection from non-finite evaluation/excess energy error.
-  New HMC path reports typed reasons and a symmetric absolute endpoint threshold;
-  increment 6 covers real momentum/position/density overflow and an unstable
-  ill-conditioned target. Broader numerical stress tests remain.
-- [~] Reusable integrator/proposal storage (implemented; native Gaussian transition
-  allocation regressions added in increment 5 and extended through dimension 129
-  across backends in increment 6; arbitrary model/size and foreign allocation gates remain).
+- [x] Reversible velocity Verlet/leapfrog: 90 BlackJAX endpoints/reversals and
+  second-order energy-error convergence for 15 target/metric pairs.
+- [x] Fixed-length HMC with Metropolis correction: independent scalar oracle,
+  all-metric Gaussian/banana moments, matched-mass condition-1e8 Gaussian and
+  actual BlackJAX sampling comparisons with documented Monte Carlo uncertainty.
+- [x] Divergence detection from non-finite evaluation/excess energy error:
+  typed reasons, symmetric absolute endpoint threshold, true overflow tests and
+  unstable logistic/funnel/rotated regressions preserve the live cache bit-exactly.
+- [x] Reusable integrator/proposal storage: first-transition allocation checks
+  through dimension 129 plus non-Gaussian per-leapfrog regressions, all metrics.
+  Scope is library-owned Rust hot paths and tested targets; user callbacks and
+  foreign allocator behavior require their own instrumentation and cannot be
+  guaranteed by the Rust allocation counter.
 - [x] Typed fixed-length HMC transition statistics (`HmcTransition`, increment 5).
 
 Exit gate: forward/reverse recovery, expected energy-error convergence, correct Gaussian
 moments/covariance for all metrics, zero allocations per leapfrog step, and agreement with
 Stan/BlackJAX reference targets.
 
+Exit gate passed locally on 2026-09-28 using BlackJAX:
+[M3 completion record](docs/m3-hmc-completion.md). No external speed ranking or
+universal mixing guarantee is implied. Modern diagnostics remain in M6.
+
 ### M4 — step-size and metric adaptation
 
-Goal: robust automatic warmup.
+Goal: validated covariance-only reference warmup (implemented).
 
-- [ ] Reasonable initial step-size search.
-- [ ] Dual-averaging step-size adaptation.
-- [ ] Welford online variance/covariance.
-- [ ] Regularized diagonal metric adaptation.
-- [ ] Opt-in dense metric adaptation.
-- [ ] Stan-style initial fast, expanding slow, and final fast windows.
-- [ ] Correct reinitialization after metric changes.
-- [ ] Freeze adaptation before retained draws.
+- [x] Reasonable initial step-size search, bounded failures and unchanged live cache.
+- [x] Dual-averaging step-size adaptation.
+- [x] Transactional Welford online variance/covariance.
+- [x] Regularized diagonal metric adaptation.
+- [x] Opt-in dense metric adaptation.
+- [x] Stan-style initial fast, expanding slow, and final fast windows.
+- [x] Correct reinitialization after metric changes.
+- [x] Consuming warmup freezes adaptation before retained draws.
 
 Exit gate: improved ESS per gradient on correlated targets without bias; schedules match
 Stan/BlackJAX; fixed seeds yield deterministic adaptation.
+Evidence: [M4 completion record](docs/m4-warmup.md). Native exact replay and Miri
+deterministic-float replay are separate from ordinary perturbed-float Miri safety tests.
+
+### M4F — Fisher geometry (reviewed; experimental, not promoted)
+
+- [x] Optional potential-HVP and batch capabilities, typed failures and explicit layout.
+- [x] Allocation-free spectral low-rank inverse-mass actions, including eigenvalues below one.
+- [x] Paired cached state/score observations, transactional moments, bounded foreground/background history.
+- [x] Separate identity/default and experimental clipped-score initialization;
+  regularized diagonal Fisher estimates.
+- [x] Opt-in reduced SPD Fisher solve with explicit raw-scatter regularization and rank cap.
+- [x] Consuming fixed-HMC Fisher warmup with final geometry freeze; no post-warmup controller.
+- [x] Composable leapfrog/OMF2/BCSS2 in fixed HMC and either warmup policy.
+- [x] Executed, commit-pinned nuts-rs fit/update traces (not merely matching the paper);
+  collector-policy and whole-warmup equivalence explicitly excluded.
+- [x] Independent low-rank fixtures spanning degeneracy, extreme scales and rank truncation.
+- [x] ESS/gradient and total time including warmup on Gaussian, logistic, banana and funnel targets.
+- [x] Benchmarked rank/window budgets, peak memory and cold-factorization costs.
+- [x] Promotion reviewed after the gates: rejected; covariance warmup remains the reference.
+- [x] Weighted continuous moments and a validated diminishing schedule, initially warmup-only.
+- [x] Typed acceptance/divergence/failure observations; decaying Adam and Robbins–Monro
+  compared with dual averaging under a common log-step objective.
+- [x] Extract canonical dynamics, fixed step control and canonical Metropolis from
+  the current HMC without duplicating its working implementation or tests.
+
+October 14 final review: the predeclared eight-method/four-target experiment covers
+two independent ensembles and all 320 pooled moment gates, with batch-means
+ESS/call and ESS/time including warmup. Independent modern diagnostics pass
+319/320 gates; the retained Gaussian R-hat failure is 1.011216 > 1.01. A fixed
+d64/d256 rank/history matrix now records cold fit time, history storage and GNU
+time peak RSS. The review rejects promotion: the diagnostic gate failed,
+covariance is usually more efficient, and RM/Adam increase banana divergences.
+Keep Fisher experimental and retain covariance/dual averaging defaults. Evidence:
+[M4F final promotion review](docs/benchmarks/m4f-gates-2026-10-14.md).
+
+Full reduced fitting can cost O(d k^2 + k^3), k <= min(d, 2n). An output rank cap
+does not bound intermediate decomposition size. Bound n as well; introduce a
+sketch/randomized solver only with its own numerical and approximation gates.
 
 ### M5 — multinomial NUTS
 
-Goal: modern dynamic HMC.
+Goal: classical multinomial NUTS as a correctness oracle, not the endpoint.
 
-- [ ] Iterative, allocation-bounded trajectory construction.
-- [ ] Random forward/backward doubling.
-- [ ] Multinomial proposal selection in log space.
-- [ ] Metric-aware generalized U-turn criterion.
-- [ ] Divergence, U-turn, and maximum-depth termination.
-- [ ] Full tree/energy/acceptance statistics.
-- [ ] Integration with M4 adaptation.
+- [x] Iterative, allocation-bounded trajectory construction.
+- [x] Random forward/backward doubling.
+- [x] Multinomial proposal selection in log space.
+- [x] Metric-aware generalized U-turn criterion.
+- [x] Divergence, U-turn, and maximum-depth termination.
+- [x] Full tree/energy/acceptance statistics.
+- [x] Frozen-chain integration with M4 reference and opt-in experimental M4F;
+  this does not promote Fisher or implement NUTS-specific warmup adaptation.
+- [x] One complete integrator macrostep per tree edge; never select internal stages.
 
 Exit gate: moments and diagnostics agree with Stan, BlackJAX, and nuts-rs; no allocation
 proportional to tree size; edge cases have reference tests.
 
-### M6 — multi-chain runtime and diagnostics
+October 9 completion: `Nuts<T,M,I>` reuses the coherent phase engine, with binary
+carry tree construction and enhanced generalized turning checks. All 80 modern
+diagnostic and 120 moment gates pass against executed pinned Stan, BlackJAX and
+nuts-rs runs on Gaussian/logistic/banana/width-one funnel targets. A 768-case
+recursive scalar oracle, stage-failure/panic tests and allocation measurements
+cover tree mechanics; no transition allocation through depth 10. Reference
+warmup outputs convert without target evaluation or RNG consumption. Covariance
+defaults and M4F's experimental status remain unchanged. See `docs/nuts.md` and
+`tools/nuts-reference/README.md` for conventions, reproduction and limitations.
+
+### M6 — multi-chain runtime and diagnostics (implemented)
 
 Goal: deterministic parallel inference and trustworthy diagnostics.
 
-- [ ] Reproducible independent per-chain RNG streams.
-- [ ] Sequential and Rayon-parallel runners with stable ordering.
-- [ ] Streaming draws and bounded-memory summaries.
-- [ ] Rank-normalized split and folded R-hat.
-- [ ] Cross-chain bulk/tail ESS and MCSE.
-- [ ] E-BFMI, divergences, and tree-depth saturation.
-- [ ] Stable draw/warmup/transition output schema.
-- [ ] Cancellation/progress outside numerical hot loops.
+- [x] Reproducible independent per-chain RNG streams.
+- [x] Sequential and Rayon-parallel runners with stable ordering.
+- [x] Streaming draws and bounded-memory summaries.
+- [x] Rank-normalized split and folded R-hat.
+- [x] Cross-chain bulk/tail ESS and mean MCSE.
+- [x] E-BFMI, divergences, and tree-depth saturation.
+- [x] Stable draw/warmup/transition output schema.
+- [x] Cancellation/progress outside numerical hot loops.
+- [x] Latest-only nonblocking summaries and minimum-draw, opt-in stopping monitors;
+  diagnostic fixtures include deliberately stuck, shifted and ragged chains.
 
 Exit gate: sequential/parallel per-chain equality for equal seeds; diagnostics agree with
 Stan/ArviZ fixtures; streaming memory is independent of retained draw count.
 
-### M7 — ChEES-HMC
+October14 completion: ChaCha12 logical streams, caller-owned Rayon pools, typed
+versioned streaming records, fixed-capacity diagnostic windows and a separate
+latest-only worker with Tokio subscriptions/cancellation. Fourteen independently
+executed ArviZ0.23.4 fixture cases validate modern estimates and deliberate
+failures. Real NUTS draw/statistic replay, multiple pool sizes, bounded live
+allocation, shutdown races and cancellation/failure tests pass. Diagnostics are
+explicitly window-local; ragged/nonfinite/undefined inputs cannot pass stopping.
+Fixed-budget equality excludes scheduling-dependent stop/cancel lengths. Adaptive
+warmup stays explicit; Fisher remains experimental. See [M6 runtime](docs/m6-runtime.md).
+
+### M7 — WALNUTS (implemented; not promoted)
+
+Goal: candidate production dynamic kernel after reference NUTS and CPU diagnostics.
+
+- [x] Independently execute the JMLR reference and pin walnutpie/nuts-rs versions.
+- [x] Dyadic microstep schedule, fixed simulated-time macroblocks and bounded work.
+- [x] Implement the paper's forward/reverse construction and selection probabilities.
+- [x] Test detailed-balance/reversibility edge cases, failed local refinement and overflow.
+- [x] Reuse Euclidean geometry/target storage; do not pretend local adaptation is a
+  drop-in reversible fixed-step integrator.
+- [x] Benchmark funnels/stochastic volatility and total warmup cost against Fisher NUTS.
+
+Exit: reference traces, calibrated moments, modern diagnostics and reproducible
+ESS/sec improvement on the declared workload suite. No default change from a paper alone.
+
+October 14 review: the implementation uses the paper's full within-macroblock
+Hamiltonian range and deterministic forward/reverse support correction, with
+bounded iterative `O(dimension * depth)` storage. The pinned Walnutpie trace,
+independent scalar map/range tests, reverse-support/rollback cases, four-target
+moments and all modern diagnostics pass. On the declared benchmark, minimum
+ESS/sec is about 2% higher on the width-one funnel but 45% lower on the
+50-dimensional stochastic-volatility target, with 5.6–5.8x as many target calls.
+The performance exit gate therefore fails: WALNUTS remains explicit and opt-in;
+no default changes. See [WALNUTS implementation and review](docs/walnuts.md).
+
+October 15 completion: randomized two-point selection now implements the published
+2/3 critical and 1/3 next-dyadic distribution, cumulative forward/reverse log-
+probability weights in both orbit directions, bounded successor work and optional
+orbit-level macro jitter. Reciprocal asymmetric-edge tests, allocation checks and
+calibrated moments pass. The separately declared R2P run passes diagnostics and
+reduces support stops, but is about 53% below Fisher NUTS minimum ESS/second on
+stochastic volatility while using 7.2x the calls. The negative promotion decision
+is unchanged. See [R2P completion evidence](docs/benchmarks/m7-r2p-protocol.md).
+
+### M8 — ChEES-HMC, GHMC and multiscale alternatives
 
 Goal: ensemble-adapted static HMC as a NUTS alternative.
 
@@ -705,11 +1070,40 @@ Goal: ensemble-adapted static HMC as a NUTS alternative.
 - [ ] Randomized integration length.
 - [ ] Optional difficult-direction criteria, benchmarked separately.
 - [ ] Freeze adaptation before retained sampling.
+- [ ] Persistent-momentum GHMC with explicit momentum state and rejection convention.
+- [ ] DR-G-HMC acceptance ratios and staged-rejection reference tests.
+- [ ] ATLAS curvature/local-step experiments with bounded derivative work.
+- [ ] Separate isokinetic dynamics and MAMS correction, with an explicit approximation
+  marker for unadjusted MCLMC; no canonical-energy acceptance shortcut.
 
 Exit gate: reproduce published behavior; compare ESS/gradient and ESS/second against NUTS
 and fixed HMC; ensemble scheduling remains deterministic.
 
-### M8 — Riemannian HMC
+### M9 — learned and structured geometry
+
+- [ ] Frozen invertible transport target with log-Jacobian/gradient tests.
+- [ ] Warmup-only learning; prove retained draws never train the transform.
+- [ ] Low-rank linear correction in transported coordinates.
+- [ ] Block/sparse metric implementations without requiring a dense trait representation.
+- [ ] Optional multi-path Pathfinder initialization; compare its full cost with score initialization.
+
+Exit: invertibility/measure tests, held-out sampling diagnostics and end-to-end
+benefit over Fisher + WALNUTS. Learned transforms are not necessary dependencies.
+
+### M10 — advanced integration and accelerator research
+
+- [ ] Joint geometry/step/coefficient warmup with epoch boundaries and final freeze.
+- [ ] HVP-based curvature estimates, conservative stability bounds and s-AIA experiments.
+- [ ] Exact Gaussian-plus-residual flow with model capability and independent oracle.
+- [ ] Cheap/expensive force splitting with separate evaluation counters.
+- [ ] HVP/force-gradient and Hessian-free methods only with complete validity tests.
+- [ ] Explicit scalar/coordinate-major layout adapters and batched FSM execution.
+- [ ] Benchmark LF/OMF2/BCSS2/adaptive2 at equal force budgets, not equal edge counts.
+
+Exit: retained-sampling stationarity/reversibility and ESS/sec including launch,
+layout conversion, warmup, derivative and factorization costs.
+
+### M11 — Riemannian HMC and adaptive manifold methods
 
 Goal: position-dependent geometry after Euclidean mechanics are proven.
 
@@ -724,7 +1118,7 @@ Goal: position-dependent geometry after Euclidean mechanics are proven.
 Exit gate: reversibility and stationary-distribution tests pass; published logistic and
 hierarchical targets agree; costs separate derivatives, factorization, solves, and dynamics.
 
-### M9 — adaptive manifold methods
+#### Adaptive manifold follow-up
 
 Goal: evaluate Wang et al. and later adaptations on validated RMHMC.
 
@@ -736,7 +1130,7 @@ Goal: evaluate Wang et al. and later adaptations on validated RMHMC.
 Exit gate: reproducible paper benchmarks, stationarity tests, and a written support/reject
 decision for each method.
 
-### M10 — SMC and particle MCMC
+### M12 — SMC and particle MCMC
 
 Goal: state-space inference independent of Hamiltonian internals.
 
@@ -751,6 +1145,39 @@ Exit gate: unbiased likelihood-estimator tests where applicable; agreement on an
 solvable linear-Gaussian models; resampling passes distributional/boundary tests.
 
 ## Validation suite
+
+### B1/B2 — native distributions and modeling (first-class parallel track)
+
+- [ ] B1: distinguish normalized log-density/PMF, unnormalized target factors and
+  sampling capabilities; event/batch/support semantics are explicit.
+- [ ] Tier 1: Normal, Student-t, LogNormal, Exponential, Gamma, Beta, Bernoulli,
+  Binomial and Poisson; preserve Gaussian and all Wiener/DDM implementations.
+- [ ] B2: typed parameter handles, priors/likelihood factors, independent plates,
+  deterministic transforms and hierarchical composition lower to `ParameterLayout`
+  plus the fused target. One Jacobian per coordinate transform, never per factor.
+- [ ] Prior/posterior prediction and generated quantities outside transition hot paths.
+- [ ] Tier 2: multivariate Normal, Dirichlet, categorical/multinomial and Cholesky
+  correlation priors; mixtures/marginalization with stable log-sum-exp afterward.
+- [ ] End-to-end normal regression, hierarchical logistic and hierarchical DDM examples.
+
+Exit: analytic/finite-difference/Enzyme derivative agreement where supported,
+normalization/support/tail fixtures, sampling moment tests, transformed-measure
+checks, compile-fail parameter misuse tests and model-level allocation budgets.
+Discrete latent variables are marginalized or assigned a compatible future kernel;
+they are never differentiated as continuous parameters. Details: [settled plan](docs/settled-plan.md).
+
+### V1/V2 — comparable experiments and diagnostic validation
+
+- [ ] Versioned machine-readable experiment manifest/results, fixed target corpus,
+  exact evaluation counters, separate warmup/retained timings and memory/allocation scope.
+- [ ] Independent diagnostic fixtures and deliberate failure cases before automatic stopping.
+- [ ] Predeclared workload, uncertainty, failure-rate and promotion thresholds.
+- [ ] `alea-bench` CLI after the manifest/library contracts exist; do not expose
+  sampler choices that have no implementation.
+
+Exit: a second user reproduces a report from its manifest; held-out comparisons
+include failures and use the same diagnostics across engines. Success criteria are
+in [the settled plan](docs/settled-plan.md), not inferred from a favorable microbenchmark.
 
 | Target | Purpose |
 |---|---|
@@ -845,12 +1272,13 @@ PGO and native CPU flags only after the portable path is stable.
 
 | Date | Decision | Status |
 |---|---|---|
+| 2026-10-05 | Evaluate the Fisher middle square root through Cholesky/SVD factors to repair noncommuting accuracy loss; preserve the estimator, tolerances, sequential execution and rejection policy. Remeasure cold-fit costs. | implemented; 864 planted-solution cases |
 | 2026-09-24 | Make this file the canonical engineering roadmap. | accepted |
 | 2026-09-24 | Prioritize safety and a green workspace before samplers. | accepted |
 | 2026-09-24 | Use a fused unconstrained value/gradient contract. | core protocol increment 4; target-bound HMC consumer increment 5 |
 | 2026-09-24 | Put `std::autodiff`/Enzyme behind a backend boundary. | proposed; validate M2 |
 | 2026-09-24 | Implement HMC, adaptation, and NUTS before ChEES/RMHMC. | accepted |
-| 2026-09-24 | Use deterministic CPU parallelism; reserve Tokio for I/O/control. | proposed; finalize M6 |
+| 2026-09-24 | Use deterministic CPU parallelism; reserve Tokio for I/O/control. | implemented M6: caller-owned Rayon, dedicated diagnostics, Tokio subscriptions/control |
 | 2026-09-24 | Use initialized `Vec<T>` backing as an immediate safety repair. | superseded by explicit alignment requirement, increment 2 |
 | 2026-09-24 | Preserve broken DDM sketches uncompiled; export only repaired latent adapters. | implemented, increment 1 |
 | 2026-09-24 | Refresh HMC fused caches per transition until mutable state is encapsulated. | retained for legacy Hmc; eliminated in target-bound HmcChain, increment 5 |
@@ -862,27 +1290,42 @@ PGO and native CPU flags only after the portable path is stable.
 | 2026-09-25 | Poison gradient scratch with NaNs to detect partial writes; retain the linear passes until end-to-end profiling justifies another checked protocol. | implemented, increment 4 |
 | 2026-09-25 | Add a target-bound HMC chain alongside the mutable legacy kernel; commit a complete point only on acceptance and propagate model errors. | implemented, increment 5 |
 | 2026-09-25 | Use a symmetric absolute endpoint energy-error cutoff for fixed-length HMC; keep it distinct from future dynamic-trajectory stopping rules. | implemented, increment 5 |
-| 2026-09-25 | Separate deterministic scalar-oracle agreement, fixed-seed analytic moments, and version-pinned external reference validation; do not treat any one as a substitute for the others. | first two implemented, increment 6; external reference gate open |
+| 2026-09-25 | Separate deterministic scalar-oracle agreement, fixed-seed analytic moments, and version-pinned external reference validation; do not treat any one as a substitute for the others. | all three gates passed, M3 increment 11 |
 | 2026-09-27 | Keep phase evolution internal and separate from trajectory selection; consume the borrowed phase token on a failed step so partial scratch cannot be committed. Preserve the existing buffer budget. | implemented, increment 7 |
 | 2026-09-27 | Check in executed CPU-float64 BlackJAX endpoint references and a separately pinned regeneration environment; keep reference tools outside Rust runtime/build dependencies. Endpoint agreement does not imply statistical agreement. | implemented, increment 8 |
 | 2026-09-27 | Enforce the supported feature matrix and unsafe-documentation policy; gate unsupported algorithms and fail explicitly for unimplemented autodiff. | implemented, M0 completion, increment 9 |
 | 2026-09-27 | Publish consuming phase evolution plus coherent reusable endpoint snapshots; leave tree selection to M5 and preserve HmcChain's eight-buffer budget. | implemented, M1 completion, increment 9 |
 | 2026-09-27 | Initialize foreign outputs before Rust references; catch callback panics and resume after C; require unsafe for raw callback contracts; repair C cleanup using guarded build-time patches. | implemented and audited, increment 9 |
+| 2026-09-28 | Use validated flat transforms with analytic Jacobian pullbacks; differentiate pure constrained densities with Enzyme and compose opaque kernels at an explicit derivative boundary. | implemented and executed, M2 |
+| 2026-09-28 | Use row-major matrix outputs, centered stick-breaking simplex and a nonredundant stereographic sphere chart; reject rounded support boundaries rather than clamp. | implemented; numerical Jacobian/property gates pass |
+| 2026-09-28 | Replace the source-built AD experiment with content-pinned upstream nightly-2026-06-23 and its matching Enzyme component; require native release execution in CI. | implemented; default/stable pins unchanged |
+| 2026-09-28 | Validate fixed HMC against independently executed BlackJAX trajectories and sampling chains using separate RNG streams and explicit batch-means uncertainty; preserve the checked kernel and endpoint divergence policy. | implemented and executed, M3 |
+| 2026-09-28 | Scope zero-allocation guarantees to library-owned Rust hot paths and tested models; arbitrary callbacks and foreign malloc require separate evidence. Retain safety checks while establishing realistic workload baselines. | measured, M3 |
+| 2026-09-29 | Replace the workspace with the target nine-crate architecture now; do not retain compatibility packages, adapters, mutable-state kernels or placeholder algorithms. | implemented, increment 12; supersedes additive migration decisions |
+| 2026-09-29 | Keep model/state-space contracts in core, storage/metrics in math, Wiener and its FFI dependency in distributions, and orchestration outside sampler hot paths. Enforce production dependencies in CI. | implemented, increment 12 |
+| 2026-09-29 | Breaking compatibility must preserve working behavior: retain derivative-free RWMH, explicit warmup, aligned collection, honest classical diagnostics, benchmarks and research sources. Audit test replacements in CI. | implemented, migration preservation audit |
+| 2026-09-30 | Complete covariance warmup as a reproducible reference; add paired Fisher and spectral low-rank geometry behind independent promotion gates. | implemented M4; experimental M4F |
+| 2026-09-30 | Expose complete symmetric macrosteps and optional potential-HVP/batch capabilities; distinguish macrostep counts from gradient calls. | implemented |
+| 2026-09-30 | Separate metric initialization from estimation; identity is the default, single-score initialization explicitly experimental after the September tail-sensitivity report. | implemented and regression tested |
+| 2026-09-30 | Keep native distributions and typed modeling first-class alongside the composable inference engine; defer a separate textual language, not modeling itself. | accepted; B1/B2/B3 and settled plan |
+| 2026-09-30 | Extract dynamics, step control, trajectory and correction from the tested HMC; do not force WALNUTS or isokinetic dynamics into a coefficient-only integrator. | accepted; A3/A4/A6 |
+| 2026-09-30 | Require independently validated diagnostics before automatic stopping; keep retained adaptation frozen until stronger adaptive-MCMC gates pass. | accepted; A2/V2/A5 |
 
 ## Immediate next actions
 
-1. Begin M2 with parameter layout and scalar transforms; define dimension accounting,
-   constrained/unconstrained domains and fused Jacobian accumulation. Add analytic
-   round-trip/Jacobian tests before Enzyme integration.
-2. Build and execute the separately pinned Enzyme compiler experiment, then implement
-   the `std::autodiff` target adapter with analytic/finite-difference cross-checks.
-   Do not remove the unsupported-feature diagnostic until that gate passes.
-3. Extend the now-executed BlackJAX endpoint references to logistic/funnel and
-   rotated ill-conditioned targets. Add external sampling comparisons with
-   documented uncertainty, following the
-   [reference gate checklist](docs/hmc-validation.md#remaining-reference-gate-and-implementation-order).
-   Endpoint agreement and fixed-seed moments do not close the full statistical gate.
-4. Use the transition allocation tests and Criterion baseline to profile checked
-   evaluation/copy overhead; add expensive-model and larger dense-metric cases
-   before changing safety checks or claiming SIMD/backend speedups.
-5. Do not begin NUTS, ChEES-HMC, or RMHMC before preceding exit gates pass.
+Use the breaking architecture and APIs in [docs/architecture.md](docs/architecture.md).
+Do not reintroduce old crate paths, mutable-state compatibility APIs or duplicate
+samplers while implementing subsequent milestones.
+
+1. M4F's evidence and promotion review are complete. Preserve its experimental
+   status and the covariance reference unless a new predeclared protocol clears
+   the retained modern-diagnostic failure and efficiency concerns.
+2. M7 WALNUTS is implemented but did not clear its suite-wide performance exit.
+   Preserve the stronger full-range/reverse-support contract; retune only under a
+   new declared protocol, not against the existing seeds.
+3. M5 reference NUTS and M6 independent CPU chains/modern diagnostics are complete.
+   Preserve window-local monitoring semantics and independent diagnostic fixtures.
+4. Defer accelerator runtime and general RMHMC as ordered above; pursue M8 only
+   with its own reference, correctness and total-cost gates.
+5. Keep the Enzyme backend optional, extend its real-model coverage, and implement
+   external targets against the versioned ABI design only when that backend is scheduled.

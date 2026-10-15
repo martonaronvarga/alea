@@ -1,0 +1,10 @@
+{
+  "arviz": "0.23.4",
+  "numpy": "2.4.2",
+  "scipy": "1.17.1",
+  "seed": 20261013,
+  "sha256": {
+    "modern-draws.csv": "abba9799128852da0fe4c8499ecbca51e3f6a926f4bc02858a42f1109b76621f",
+    "modern-expected.csv": "1f8baee0211b47bbe517976906acd0033d8c59c13b0751255aa451db87eb0379"
+  }
+}

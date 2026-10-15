@@ -7,7 +7,10 @@ cargo miri test "${args[@]}" -p alea-math --lib --test metrics --test interpolat
 cargo miri test "${args[@]}" -p alea-core --test target --test transforms --test density --test capability
 cargo miri test "${args[@]}" -p alea-autodiff --test models
 cargo miri test "${args[@]}" -p alea-mcmc --lib --test hmc_chain --test hmc_validation --test hmc_stress --test phase_state --test rwmh --test adaptation --test warmup --test warmup_reference --test fisher --test integrators --test integrator_failures
+cargo miri test "${args[@]}" -p alea-mcmc --test nuts_contracts
+cargo miri test "${args[@]}" -p alea-mcmc --test walnuts_contracts
 cargo miri test "${args[@]}" -p alea-runtime --test streaming --test collection
+cargo miri test "${args[@]}" -p alea-runtime --lib ring_is_bounded_contiguous_and_does_not_bridge_missing_energy
 cargo miri test "${args[@]}" -p alea-distributions --lib latent::tests
 cargo miri test "${args[@]}" -p alea-distributions --test latent
 # Exact replay is a different contract from numerical robustness under Miri's

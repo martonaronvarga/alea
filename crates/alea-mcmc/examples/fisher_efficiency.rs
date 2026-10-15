@@ -61,6 +61,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nth(1)
         .ok_or("provide a new output CSV path")?;
     let mut out = BufWriter::new(OpenOptions::new().write(true).create_new(true).open(path)?);
+    // Optional little-endian f64 observables, chain-major in CSV encounter order.
+    // Serialization is outside each sampling timer, just like CSV diagnostics.
+    let mut draws = std::env::args()
+        .nth(2)
+        .map(|path| {
+            OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(path)
+                .map(BufWriter::new)
+        })
+        .transpose()?;
     writeln!(
         out,
         "target,method,seed,observable,mean,variance,ess,mcse,warmup_calls,total_calls,total_seconds,warmup_divergences,retained_divergences,rank,step"
@@ -131,6 +143,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     (report, calls, divergences, rank)
                 };
                 let elapsed = start.elapsed().as_secs_f64();
+                if let Some(draws) = &mut draws {
+                    for row in &rows {
+                        for value in row {
+                            draws.write_all(&value.to_le_bytes())?;
+                        }
+                    }
+                }
                 for j in 0..5 {
                     let mean = rows.iter().map(|x| x[j]).sum::<f64>() / 8192.0;
                     let variance = rows.iter().map(|x| (x[j] - mean).powi(2)).sum::<f64>() / 8191.0;
@@ -162,5 +181,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     out.flush()?;
+    if let Some(draws) = &mut draws {
+        draws.flush()?;
+    }
     Ok(())
 }

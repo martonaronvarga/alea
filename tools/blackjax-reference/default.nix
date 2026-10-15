@@ -11,4 +11,4 @@ let
 in
   # Both packages ship a top-level docs/ tree. Prefer JAX's documentation files
   # when linking the environment; the blackjax/ implementation is unaffected.
-  pkgs.python3.withPackages (ps: [(pkgs.lib.lowPrio ps.blackjax)])
+  pkgs.python3.withPackages (ps: [(pkgs.lib.lowPrio ps.blackjax) ps.arviz])

@@ -40,10 +40,10 @@ protocols or compatibility constructors are retained.
 | `alea-math` | Initialized 64-byte-aligned storage, Euclidean metrics, numerical primitives |
 | `alea-autodiff` | Enzyme adapters and finite-difference validation |
 | `alea-distributions` | Gaussian and Wiener/DDM models, analytic derivatives |
-| `alea-mcmc` | Composable fixed HMC/RWMH, reference covariance and experimental Fisher warmup |
+| `alea-mcmc` | Composable fixed HMC/RWMH, multinomial NUTS and opt-in WALNUTS; reference covariance and experimental Fisher warmup |
 | `alea-smc` | Particle-kernel contracts; filtering/PMCMC are not implemented |
 | `alea-ffi` | Audited synchronous foreign boundaries |
-| `alea-runtime` | Allocation-free streaming, aligned draw collection, classical diagnostics |
+| `alea-runtime` | Streaming, reproducible Rayon chains, bounded Tokio diagnostic subscriptions, modern ESS/R-hat |
 | `alea-cli` | `alea`, `alea-rwmh` profiling loop and `alea-gradient-check` |
 
 Core/math/MCMC production dependencies do not include `alea-ffi`; Wiener owns
@@ -60,12 +60,19 @@ sampling checks and allocation regressions.
 M4 [reference windowed adaptation](docs/m4-warmup.md) is implemented and validated.
 Optional HVP/batch targets, spectral low-rank metrics and leapfrog/OMF2/BCSS2
 composition are implemented. [Fisher warmup](docs/fisher-and-trajectories.md) is
-experimental; upstream trace equivalence and broad efficiency gates remain open.
+experimental; its completed promotion review retained the covariance default
+after one modern-diagnostic failure and unfavorable broad efficiency evidence.
 
-NUTS, WALNUTS, ChEES-HMC, RMHMC, parallel multi-chain execution,
-modern ESS/R-hat and particle algorithms remain planned. RWMH transitions are
-fixed-scale; explicit dual-averaging warmup retains the previous functionality.
-Classical diagnostics are named honestly, not presented as modern bulk ESS/R-hat.
+[M5 multinomial NUTS](docs/nuts.md) and [M6 runtime/diagnostics](docs/m6-runtime.md)
+are implemented with independent reference gates. M6 adds reproducible Rayon
+chains, rank/folded R-hat, bulk/tail ESS, mean MCSE and latest-only subscriptions.
+Bounded diagnostic windows are explicitly window-local; stopping is opt-in,
+not a guarantee of convergence. Classical helpers remain separately named.
+[M7 WALNUTS](docs/walnuts.md) implements bounded deterministic and randomized
+two-point dyadic refinement with exact reverse-selection weights, but remains
+opt-in after both declared performance suites failed promotion. ChEES-HMC,
+RMHMC and particle algorithms remain planned. RWMH transitions are fixed-scale;
+explicit dual-averaging warmup retains the previous functionality.
 The [migration audit](docs/migration-audit.md) inventories retained behavior,
 test replacements and dormant research sources; CI guards the inventory.
 This is not yet a production inference engine.

@@ -153,10 +153,12 @@ fn dense_apply_sqrt_openblas(dim: usize, lower_col_major: &[f64], src: &[f64], d
 ))]
 #[inline]
 fn dense_apply_inverse_simd(dim: usize, lower_col_major: &[f64], src: &[f64], dst: &mut [f64]) {
+    use std::simd::Simd;
     use std::simd::num::SimdFloat;
-    use std::simd::{Simd, StdFloat};
 
-    // f64x8 = 512-bit: one AVX-512 instruction or two AVX2.
+    // Portable lanes do not imply AVX-512/AVX2 on the baseline CPU target.
+    // Separate multiply/add avoids scalar software-FMA calls when the compiler
+    // cannot assume hardware FMA, and matches the scalar kernel's arithmetic.
     const LANES: usize = 8;
     type Vf = Simd<f64, LANES>;
 
@@ -197,8 +199,7 @@ fn dense_apply_inverse_simd(dim: usize, lower_col_major: &[f64], src: &[f64], ds
         while i + LANES <= n {
             let lv = Vf::from_slice(&col_rest[i..]);
             let dv = Vf::from_slice(&dst_rest[i..]);
-            // FMA: dst -= col * xk  →  -col * xk + dst
-            lv.mul_add(-vxk, dv).copy_to_slice(&mut dst_rest[i..]);
+            (dv - lv * vxk).copy_to_slice(&mut dst_rest[i..]);
             i += LANES;
         }
         // Scalar tail
@@ -236,14 +237,13 @@ fn dense_apply_inverse_simd(dim: usize, lower_col_major: &[f64], src: &[f64], ds
             let mut vs2 = Vf::splat(0.0);
             let mut vs3 = Vf::splat(0.0);
             while j + 4 * LANES <= n {
-                // FMA: vsum += col * dst
-                vs0 = Vf::from_slice(&col_rest[j..]).mul_add(Vf::from_slice(&dst_hi[j..]), vs0);
-                vs1 = Vf::from_slice(&col_rest[j + LANES..])
-                    .mul_add(Vf::from_slice(&dst_hi[j + LANES..]), vs1);
-                vs2 = Vf::from_slice(&col_rest[j + 2 * LANES..])
-                    .mul_add(Vf::from_slice(&dst_hi[j + 2 * LANES..]), vs2);
-                vs3 = Vf::from_slice(&col_rest[j + 3 * LANES..])
-                    .mul_add(Vf::from_slice(&dst_hi[j + 3 * LANES..]), vs3);
+                vs0 += Vf::from_slice(&col_rest[j..]) * Vf::from_slice(&dst_hi[j..]);
+                vs1 +=
+                    Vf::from_slice(&col_rest[j + LANES..]) * Vf::from_slice(&dst_hi[j + LANES..]);
+                vs2 += Vf::from_slice(&col_rest[j + 2 * LANES..])
+                    * Vf::from_slice(&dst_hi[j + 2 * LANES..]);
+                vs3 += Vf::from_slice(&col_rest[j + 3 * LANES..])
+                    * Vf::from_slice(&dst_hi[j + 3 * LANES..]);
                 j += 4 * LANES;
             }
             let vsum = (vs0 + vs1) + (vs2 + vs3);
@@ -268,7 +268,6 @@ fn dense_apply_inverse_simd(dim: usize, lower_col_major: &[f64], src: &[f64], ds
 #[inline]
 fn dense_apply_sqrt_simd(dim: usize, lower_col_major: &[f64], src: &[f64], dst: &mut [f64]) {
     use std::simd::Simd;
-    use std::simd::StdFloat;
 
     const LANES: usize = 8;
     const BLOCK: usize = 16;
@@ -292,7 +291,7 @@ fn dense_apply_sqrt_simd(dim: usize, lower_col_major: &[f64], src: &[f64], dst: 
                 let c = Vf::from_slice(&col[i..i + LANES]);
                 let d = Vf::from_slice(&dst[i..i + LANES]);
 
-                let updated = zj.mul_add(c, d);
+                let updated = zj * c + d;
                 updated.copy_to_slice(&mut dst[i..i + LANES]);
 
                 i += LANES;

@@ -284,6 +284,10 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Hmc<
         &self.metric
     }
 
+    pub(crate) fn into_parts(self) -> (PointState<'a, T>, M, I) {
+        (self.point, self.metric, self.integrator)
+    }
+
     pub(crate) fn set_step_size(&mut self, step: StepSize) {
         self.options.step_size = step;
     }

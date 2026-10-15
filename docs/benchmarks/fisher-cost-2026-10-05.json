@@ -1,0 +1,369 @@
+{
+  "schema": 1,
+  "finished_utc": "2026-10-05T12:09:24.257696+00:00",
+  "platform": "Linux-7.2.3-x86_64-with-glibc2.42",
+  "cpuinfo": "processor\t: 0\nvendor_id\t: GenuineIntel\ncpu family\t: 6\nmodel\t\t: 142\nmodel name\t: Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz\nstepping\t: 10\nmicrocode\t: 0xf6\ncpu MHz\t\t: 2300.133\ncache size\t: 6144 KB\nphysical id\t: 0\nsiblings\t: 8\ncore id\t\t: 0\ncpu cores\t: 4\napicid\t\t: 0\ninitial apicid\t: 0\nfpu\t\t: yes\nfpu_exception\t: yes\ncpuid level\t: 22\nwp\t\t: yes\nflags\t\t: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb pti ssbd ibrs ibpb stibp tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust sgx bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt intel_pt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp vnmi md_clear flush_l1d arch_capabilities\nvmx flags\t: vnmi preemption_timer invvpid ept_x_only ept_ad ept_1gb flexpriority tsc_offset vtpr mtf vapic ept vpid unrestricted_guest ple pml ept_violation_ve ept_mode_based_exec\nbugs\t\t: cpu_meltdown spectre_v1 spectre_v2 spec_store_bypass l1tf mds swapgs itlb_multihit srbds mmio_stale_data retbleed gds spectre_v2_user vmscape\nbogomips\t: 3600.00\nclflush size\t: 64\ncache_alignment\t: 64\naddress sizes\t: 39 bits physical, 48 bits virtual\npower management:",
+  "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+  "gnu_time": "time (GNU Time) 1.9",
+  "binary": "/home/usu/documents/dev/matmod/crates/target/release/examples/fisher_profile",
+  "binary_sha256": "e6a4d456b1cbba316a85f592dc56ede7ac9e789547de9c422607a9efaebd5922",
+  "source_sha256": {
+    "flake.lock": "7eca6ab6c18ac495e0a317626c8c7b76a0c625cd53a445274002634b3e7ba476",
+    "crates/Cargo.lock": "4083a163525dc85fa1782bd245a5690f3555a1e555955cacd295385e1b8e8020",
+    "crates/Cargo.toml": "20b792c4bfba195321d331514728fb93fc6cd6ae1e1c24e85a6382d987473f2b",
+    "crates/alea-math/src/fisher.rs": "de38d5699050b8341c5ab337b7cd5ae170529ffe20c4e484d152d62a62092815",
+    "crates/alea-mcmc/src/adapt/fisher.rs": "eb4e8c7dd3974a93325be926575d4e3404669d073d0a68e68bc4f2b2ad6d5569",
+    "crates/alea-mcmc/examples/fisher_profile.rs": "adb1a0e07ca32e4a9cdf30b78b01f7e24175e2e3d5302249e02201bdf9a4348d",
+    "crates/alea-mcmc/benches/support/warmup.rs": "c0c1b991dce3dbd63300be0bcefd4ad28cfaedbb545d7a1cc985c80733c010f4",
+    "tools/fisher-cost.py": "dd9bc8376cc0fd31595af4fcc9097a3c8ba38c13b8616b374a4286ab0d0ffc06"
+  },
+  "environment": {
+    "RUSTFLAGS": null,
+    "CARGO_ENCODED_RUSTFLAGS": null,
+    "CARGO_PROFILE_RELEASE_DEBUG": null,
+    "RAYON_NUM_THREADS": null,
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": null
+  },
+  "warmup_rounds": 2,
+  "measured_rounds": 8,
+  "results": {
+    "fit64": {
+      "arguments": [
+        "fit",
+        "50",
+        "64",
+        "64"
+      ],
+      "samples": [
+        {
+          "wall_seconds": 0.17781655599992519,
+          "user_seconds": 0.15,
+          "system_seconds": 0.02,
+          "peak_rss_kib": 4608,
+          "round": 0
+        },
+        {
+          "wall_seconds": 0.17598680399987643,
+          "user_seconds": 0.15,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4608,
+          "round": 1
+        },
+        {
+          "wall_seconds": 0.17690276899975288,
+          "user_seconds": 0.15,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4548,
+          "round": 2
+        },
+        {
+          "wall_seconds": 0.1727296720000595,
+          "user_seconds": 0.14,
+          "system_seconds": 0.02,
+          "peak_rss_kib": 4608,
+          "round": 3
+        },
+        {
+          "wall_seconds": 0.17726123699958407,
+          "user_seconds": 0.15,
+          "system_seconds": 0.02,
+          "peak_rss_kib": 4608,
+          "round": 4
+        },
+        {
+          "wall_seconds": 0.17289278299995203,
+          "user_seconds": 0.15,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4608,
+          "round": 5
+        },
+        {
+          "wall_seconds": 0.17336304800028302,
+          "user_seconds": 0.15,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4608,
+          "round": 6
+        },
+        {
+          "wall_seconds": 0.17385051199926238,
+          "user_seconds": 0.15,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4608,
+          "round": 7
+        }
+      ],
+      "wall_mean_seconds": 0.17510042262483694,
+      "wall_stdev_seconds": 0.0021096886048752807
+    },
+    "fit256": {
+      "arguments": [
+        "fit",
+        "20",
+        "256",
+        "160"
+      ],
+      "samples": [
+        {
+          "wall_seconds": 2.0494090940001115,
+          "user_seconds": 1.96,
+          "system_seconds": 0.06,
+          "peak_rss_kib": 15700,
+          "round": 0
+        },
+        {
+          "wall_seconds": 2.078760501999568,
+          "user_seconds": 1.98,
+          "system_seconds": 0.07,
+          "peak_rss_kib": 15688,
+          "round": 1
+        },
+        {
+          "wall_seconds": 2.1015352939994045,
+          "user_seconds": 2.0,
+          "system_seconds": 0.07,
+          "peak_rss_kib": 15700,
+          "round": 2
+        },
+        {
+          "wall_seconds": 2.132098265999957,
+          "user_seconds": 2.02,
+          "system_seconds": 0.08,
+          "peak_rss_kib": 15700,
+          "round": 3
+        },
+        {
+          "wall_seconds": 2.0870483419994343,
+          "user_seconds": 1.98,
+          "system_seconds": 0.08,
+          "peak_rss_kib": 15716,
+          "round": 4
+        },
+        {
+          "wall_seconds": 2.0828183710000303,
+          "user_seconds": 1.99,
+          "system_seconds": 0.06,
+          "peak_rss_kib": 15740,
+          "round": 5
+        },
+        {
+          "wall_seconds": 2.0577710300003673,
+          "user_seconds": 1.96,
+          "system_seconds": 0.07,
+          "peak_rss_kib": 15700,
+          "round": 6
+        },
+        {
+          "wall_seconds": 2.087225598999794,
+          "user_seconds": 1.99,
+          "system_seconds": 0.07,
+          "peak_rss_kib": 15732,
+          "round": 7
+        }
+      ],
+      "wall_mean_seconds": 2.0845833122498334,
+      "wall_stdev_seconds": 0.025498579265126536
+    },
+    "covariance64": {
+      "arguments": [
+        "covariance",
+        "10",
+        "64"
+      ],
+      "samples": [
+        {
+          "wall_seconds": 0.01563409399932425,
+          "user_seconds": 0.01,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3044,
+          "round": 0
+        },
+        {
+          "wall_seconds": 0.016015804000744538,
+          "user_seconds": 0.01,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3044,
+          "round": 1
+        },
+        {
+          "wall_seconds": 0.016416272000242316,
+          "user_seconds": 0.01,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3044,
+          "round": 2
+        },
+        {
+          "wall_seconds": 0.01580765299968334,
+          "user_seconds": 0.01,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3044,
+          "round": 3
+        },
+        {
+          "wall_seconds": 0.01549488399996335,
+          "user_seconds": 0.01,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3044,
+          "round": 4
+        },
+        {
+          "wall_seconds": 0.0178407489993333,
+          "user_seconds": 0.01,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3044,
+          "round": 5
+        },
+        {
+          "wall_seconds": 0.023072284000591026,
+          "user_seconds": 0.01,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 2856,
+          "round": 6
+        },
+        {
+          "wall_seconds": 0.017618720999962534,
+          "user_seconds": 0.01,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 2856,
+          "round": 7
+        }
+      ],
+      "wall_mean_seconds": 0.017237557624980582,
+      "wall_stdev_seconds": 0.0025177366089996975
+    },
+    "diagonal64": {
+      "arguments": [
+        "diagonal",
+        "10",
+        "64"
+      ],
+      "samples": [
+        {
+          "wall_seconds": 0.0314360439997472,
+          "user_seconds": 0.02,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3172,
+          "round": 0
+        },
+        {
+          "wall_seconds": 0.032036851000157185,
+          "user_seconds": 0.02,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3172,
+          "round": 1
+        },
+        {
+          "wall_seconds": 0.031936249000864336,
+          "user_seconds": 0.02,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3172,
+          "round": 2
+        },
+        {
+          "wall_seconds": 0.03326987599939457,
+          "user_seconds": 0.03,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3172,
+          "round": 3
+        },
+        {
+          "wall_seconds": 0.032303388000400446,
+          "user_seconds": 0.02,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3172,
+          "round": 4
+        },
+        {
+          "wall_seconds": 0.03166764100024011,
+          "user_seconds": 0.02,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3172,
+          "round": 5
+        },
+        {
+          "wall_seconds": 0.0326846599991768,
+          "user_seconds": 0.02,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3172,
+          "round": 6
+        },
+        {
+          "wall_seconds": 0.032165753999834124,
+          "user_seconds": 0.02,
+          "system_seconds": 0.0,
+          "peak_rss_kib": 3172,
+          "round": 7
+        }
+      ],
+      "wall_mean_seconds": 0.032187557874976847,
+      "wall_stdev_seconds": 0.0005798239196857712
+    },
+    "lowrank64": {
+      "arguments": [
+        "lowrank",
+        "10",
+        "64"
+      ],
+      "samples": [
+        {
+          "wall_seconds": 0.15875809800036222,
+          "user_seconds": 0.13,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4752,
+          "round": 0
+        },
+        {
+          "wall_seconds": 0.1541883810004947,
+          "user_seconds": 0.13,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4848,
+          "round": 1
+        },
+        {
+          "wall_seconds": 0.16368841999974393,
+          "user_seconds": 0.14,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4792,
+          "round": 2
+        },
+        {
+          "wall_seconds": 0.1585332209997432,
+          "user_seconds": 0.13,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4776,
+          "round": 3
+        },
+        {
+          "wall_seconds": 0.15925600100035808,
+          "user_seconds": 0.13,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4904,
+          "round": 4
+        },
+        {
+          "wall_seconds": 0.15908788700016885,
+          "user_seconds": 0.13,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4792,
+          "round": 5
+        },
+        {
+          "wall_seconds": 0.15626645300017117,
+          "user_seconds": 0.13,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4848,
+          "round": 6
+        },
+        {
+          "wall_seconds": 0.16151393499967526,
+          "user_seconds": 0.13,
+          "system_seconds": 0.01,
+          "peak_rss_kib": 4768,
+          "round": 7
+        }
+      ],
+      "wall_mean_seconds": 0.15891154950008968,
+      "wall_stdev_seconds": 0.0029084158622689157
+    }
+  }
+}

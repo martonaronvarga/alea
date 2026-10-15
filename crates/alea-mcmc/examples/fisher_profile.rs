@@ -1,5 +1,5 @@
 //! Repeat fixed work for perf/Callgrind/hyperfine, without Criterion's analysis.
-//! `fisher_profile fit <repetitions> <dimension> <history>` or
+//! `fisher_profile fit <repetitions> <dimension> <history> [rank]` or
 //! `fisher_profile <covariance|diagonal|lowrank> <repetitions> <dimension>`.
 //! Use the same compiled binary for timing and profiling; no CSV in the loop.
 #[allow(dead_code)]
@@ -18,10 +18,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     if mode == "fit" {
         let history: usize = args.next().ok_or("missing history")?.parse()?;
-        if history < 2 || args.next().is_some() {
-            return Err("history must be at least two; unexpected arguments".into());
+        let rank: usize = args.next().map_or(Ok(4), |value| value.parse())?;
+        if history < 2 || rank == 0 || rank > dimension || args.next().is_some() {
+            return Err(
+                "history must be at least two and rank in 1..=dimension; unexpected arguments"
+                    .into(),
+            );
         }
-        fit(repetitions, dimension, history)?;
+        fit(repetitions, dimension, history, rank)?;
     } else {
         let method = match mode.as_str() {
             "covariance" => workload::Method::Covariance,
@@ -42,7 +46,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 #[cfg(feature = "faer")]
-fn fit(repetitions: usize, dimension: usize, history: usize) -> Result<(), Box<dyn Error>> {
+fn fit(
+    repetitions: usize,
+    dimension: usize,
+    history: usize,
+    rank: usize,
+) -> Result<(), Box<dyn Error>> {
     use alea_core::target::LogDensityGradient;
     use alea_mcmc::adapt::FisherMetricAdapter;
     use rand::{RngExt, SeedableRng, rngs::SmallRng};
@@ -63,12 +72,12 @@ fn fit(repetitions: usize, dimension: usize, history: usize) -> Result<(), Box<d
     let mut scales = vec![0.0; dimension];
     adapter.scales_into(&vec![1.0; dimension], 1e-5, &mut scales)?;
     for _ in 0..repetitions {
-        black_box(adapter.fit_low_rank(black_box(&scales), 1e-5, 2.0, 4)?);
+        black_box(adapter.fit_low_rank(black_box(&scales), 1e-5, 2.0, rank)?);
     }
     Ok(())
 }
 
 #[cfg(not(feature = "faer"))]
-fn fit(_: usize, _: usize, _: usize) -> Result<(), Box<dyn Error>> {
+fn fit(_: usize, _: usize, _: usize, _: usize) -> Result<(), Box<dyn Error>> {
     Err("fit requires faer".into())
 }

@@ -45,7 +45,7 @@ impl AcceptanceTarget {
 }
 
 /// A nonzero binary trajectory depth with representable node/step counts.
-/// This validates arithmetic, not a resource budget or a NUTS implementation.
+/// This validates arithmetic, not a practical memory or execution-time budget.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TreeDepth(usize);
 

@@ -1,6 +1,9 @@
 //! Classical diagnostics retained from the pre-migration runtime.
 //! Neither estimator is rank-normalized; these are not M6's bulk/tail ESS or modern R-hat.
 
+/// Modern cross-chain diagnostics, distinct from the classical helpers below.
+pub mod modern;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum DiagnosticError {
     #[error("diagnostic needs finite, nonconstant draws and enough observations")]

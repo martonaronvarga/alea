@@ -20,6 +20,13 @@ alea-smc = { path = "alea-smc" }
 alea-ffi = { path = "alea-ffi" }
 alea-cli = { path = "alea-cli" }
 rand = "0.10.1"
+chacha20 = { version = "0.10", default-features = false, features = ["rng"] }
+rayon = "1.12"
+tokio = { version = "1", features = ["sync", "rt", "macros"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+arc-swap = "1"
+rustfft = "6"
+statrs = { version = "0.18", default-features = false }
 thiserror = "2.0.18"
 tracing = "0.1.44"
 approx = "0.5.1"

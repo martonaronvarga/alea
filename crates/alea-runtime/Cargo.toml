@@ -14,8 +14,19 @@ alea-mcmc.workspace = true
 alea-math.workspace = true
 rand.workspace = true
 thiserror.workspace = true
+chacha20.workspace = true
+rayon.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+arc-swap.workspace = true
+rustfft.workspace = true
+statrs.workspace = true
 
 [dev-dependencies]
 alea-core.workspace = true
 alea-distributions.workspace = true
 allocation-counter.workspace = true
+
+[features]
+default = []
+faer = ["alea-mcmc/faer"]

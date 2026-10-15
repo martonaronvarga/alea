@@ -191,6 +191,7 @@
               ++ pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [perf valgrind]);
           };
           blas = mkRustShell rustToolchain {
+            nativeBuildInputs = [pkgs.time];
             buildInputs = [openblasLp64];
             # Fenix's upstream linker does not embed Nix library rpaths.
             # Scope runtime lookup to this opt-in shell, never the default shell.

@@ -34,6 +34,28 @@ struct Eigen {
     values: Diag<f64>,
 }
 
+// Four independent accumulation chains expose vectorization without fast-math,
+// allocation, or process-global backend settings. Reordering is guarded by the
+// independent conditioning/spectrum fixtures, not by bitwise fit replay.
+fn dot(a: &[f64], b: &[f64]) -> f64 {
+    debug_assert_eq!(a.len(), b.len());
+    let mut sums = [0.0; 4];
+    let mut aa = a.chunks_exact(4);
+    let mut bb = b.chunks_exact(4);
+    for (a, b) in aa.by_ref().zip(bb.by_ref()) {
+        for j in 0..4 {
+            sums[j] += a[j] * b[j];
+        }
+    }
+    let tail: f64 = aa
+        .remainder()
+        .iter()
+        .zip(bb.remainder())
+        .map(|(a, b)| a * b)
+        .sum();
+    ((sums[0] + sums[1]) + (sums[2] + sums[3])) + tail
+}
+
 fn eigen(matrix: &Mat<f64>) -> Result<Eigen, FisherFitError> {
     if (0..matrix.ncols()).any(|j| (0..matrix.nrows()).any(|i| !matrix[(i, j)].is_finite())) {
         return Err(FisherFitError::Numerical);
@@ -247,19 +269,19 @@ pub fn fit_low_rank(
             for i in 0..d {
                 candidate[i] = data[(i, col)];
             }
-            let original = candidate.iter().map(|v| v * v).sum::<f64>().sqrt();
+            let original = dot(&candidate, &candidate).sqrt();
             if !original.is_finite() {
                 return Err(FisherFitError::Numerical);
             }
             for _ in 0..2 {
                 for u in basis.chunks_exact(d) {
-                    let dot: f64 = u.iter().zip(&candidate).map(|(a, b)| a * b).sum();
+                    let dot = dot(u, &candidate);
                     for (v, &u) in candidate.iter_mut().zip(u) {
                         *v -= dot * u;
                     }
                 }
             }
-            let norm = candidate.iter().map(|v| v * v).sum::<f64>().sqrt();
+            let norm = dot(&candidate, &candidate).sqrt();
             if !norm.is_finite() {
                 return Err(FisherFitError::Numerical);
             }
@@ -326,4 +348,24 @@ pub fn fit_low_rank(
         }),
         OwnedBuffer::from_fn(retained.len(), |i| values[retained[i]]),
     )?)
+}
+
+#[cfg(test)]
+mod reduction_tests {
+    use super::dot;
+
+    #[test]
+    fn dot_covers_empty_tails_and_unaligned_slices() {
+        let a: Vec<_> = (0..70).map(|i| f64::from(i - 30)).collect();
+        let b: Vec<_> = (0..70).map(|i| f64::from(2 * i - 11)).collect();
+        for offset in 0..4 {
+            for len in 0..65 {
+                let a = &a[offset..offset + len];
+                let b = &b[offset..offset + len];
+                let reference: f64 = a.iter().zip(b).map(|(a, b)| a * b).sum();
+                // These small integers and all partial sums are exact in f64.
+                assert_eq!(dot(a, b), reference);
+            }
+        }
+    }
 }
