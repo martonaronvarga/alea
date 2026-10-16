@@ -1,0 +1,75 @@
+pub mod alea_autodiff
+pub mod alea_autodiff::autodiff
+pub enum alea_autodiff::autodiff::AutodiffError
+pub alea_autodiff::autodiff::AutodiffError::Dimension
+pub alea_autodiff::autodiff::AutodiffError::NonFinite
+impl core::clone::Clone for alea_autodiff::autodiff::AutodiffError
+pub fn alea_autodiff::autodiff::AutodiffError::clone(&self) -> alea_autodiff::autodiff::AutodiffError
+impl core::error::Error for alea_autodiff::autodiff::AutodiffError
+impl core::fmt::Debug for alea_autodiff::autodiff::AutodiffError
+pub fn alea_autodiff::autodiff::AutodiffError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_autodiff::autodiff::AutodiffError
+pub fn alea_autodiff::autodiff::AutodiffError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_autodiff::autodiff::AutodiffError
+pub struct alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>
+impl<F, H, D> alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>
+pub fn alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>::new(dimension: usize, gradient: F, hvp: H, tensors: D) -> Self
+impl<F, H, D> alea_core::capability::HessianVector for alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
+pub fn alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>::potential_hvp(&self, position: &[f64], vector: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>
+impl<F, H, D> alea_core::capability::PotentialHessianDerivative for alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
+pub fn alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>::potential_hessian_and_derivatives(&self, position: &[f64], hessian: &mut [f64], derivatives: &mut [f64]) -> core::result::Result<(), Self::Error>
+impl<F, H, D> alea_core::target::LogDensityGradient for alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
+pub type alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>::Error = alea_autodiff::autodiff::AutodiffError
+pub fn alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>::dimension(&self) -> usize
+pub fn alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>::logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
+pub struct alea_autodiff::autodiff::EnzymeModel<F>
+impl<F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64> alea_autodiff::autodiff::EnzymeModel<F>
+pub fn alea_autodiff::autodiff::EnzymeModel<F>::new(dimension: usize, derivative: F) -> Self
+impl<F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64> alea_core::model::ConstrainedModel for alea_autodiff::autodiff::EnzymeModel<F>
+pub type alea_autodiff::autodiff::EnzymeModel<F>::Error = alea_autodiff::autodiff::AutodiffError
+pub fn alea_autodiff::autodiff::EnzymeModel<F>::dimension(&self) -> usize
+pub fn alea_autodiff::autodiff::EnzymeModel<F>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+pub mod alea_autodiff::gradient_check
+pub enum alea_autodiff::gradient_check::GradientCheckError<E: core::error::Error + 'static>
+pub alea_autodiff::gradient_check::GradientCheckError::Displacement
+pub alea_autodiff::gradient_check::GradientCheckError::Displacement::index: usize
+pub alea_autodiff::gradient_check::GradientCheckError::Evaluation(alea_core::target::EvaluationError<E>)
+pub alea_autodiff::gradient_check::GradientCheckError::Options
+impl<E: core::error::Error + 'static> core::convert::From<alea_core::target::EvaluationError<E>> for alea_autodiff::gradient_check::GradientCheckError<E>
+pub fn alea_autodiff::gradient_check::GradientCheckError<E>::from(source: alea_core::target::EvaluationError<E>) -> Self
+impl<E: core::error::Error + 'static> core::error::Error for alea_autodiff::gradient_check::GradientCheckError<E> where alea_core::target::EvaluationError<E>: core::error::Error, Self: core::fmt::Debug + core::fmt::Display
+pub fn alea_autodiff::gradient_check::GradientCheckError<E>::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl<E: core::error::Error + 'static> core::fmt::Display for alea_autodiff::gradient_check::GradientCheckError<E> where alea_core::target::EvaluationError<E>: core::fmt::Display
+pub fn alea_autodiff::gradient_check::GradientCheckError<E>::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<E: core::fmt::Debug + core::error::Error + 'static> core::fmt::Debug for alea_autodiff::gradient_check::GradientCheckError<E>
+pub fn alea_autodiff::gradient_check::GradientCheckError<E>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_autodiff::gradient_check::GradientCheckOptions
+pub alea_autodiff::gradient_check::GradientCheckOptions::absolute_tolerance: f64
+pub alea_autodiff::gradient_check::GradientCheckOptions::relative_step: f64
+pub alea_autodiff::gradient_check::GradientCheckOptions::relative_tolerance: f64
+impl core::clone::Clone for alea_autodiff::gradient_check::GradientCheckOptions
+pub fn alea_autodiff::gradient_check::GradientCheckOptions::clone(&self) -> alea_autodiff::gradient_check::GradientCheckOptions
+impl core::default::Default for alea_autodiff::gradient_check::GradientCheckOptions
+pub fn alea_autodiff::gradient_check::GradientCheckOptions::default() -> Self
+impl core::fmt::Debug for alea_autodiff::gradient_check::GradientCheckOptions
+pub fn alea_autodiff::gradient_check::GradientCheckOptions::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_autodiff::gradient_check::GradientCheckOptions
+pub struct alea_autodiff::gradient_check::GradientComponent
+pub alea_autodiff::gradient_check::GradientComponent::absolute_error: f64
+pub alea_autodiff::gradient_check::GradientComponent::analytic: f64
+pub alea_autodiff::gradient_check::GradientComponent::finite_difference: f64
+pub alea_autodiff::gradient_check::GradientComponent::index: usize
+pub alea_autodiff::gradient_check::GradientComponent::passed: bool
+impl core::clone::Clone for alea_autodiff::gradient_check::GradientComponent
+pub fn alea_autodiff::gradient_check::GradientComponent::clone(&self) -> alea_autodiff::gradient_check::GradientComponent
+impl core::fmt::Debug for alea_autodiff::gradient_check::GradientComponent
+pub fn alea_autodiff::gradient_check::GradientComponent::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_autodiff::gradient_check::GradientComponent
+pub struct alea_autodiff::gradient_check::GradientReport
+pub alea_autodiff::gradient_check::GradientReport::components: alloc::vec::Vec<alea_autodiff::gradient_check::GradientComponent>
+pub alea_autodiff::gradient_check::GradientReport::log_density: f64
+impl alea_autodiff::gradient_check::GradientReport
+pub fn alea_autodiff::gradient_check::GradientReport::passed(&self) -> bool
+impl core::fmt::Debug for alea_autodiff::gradient_check::GradientReport
+pub fn alea_autodiff::gradient_check::GradientReport::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub fn alea_autodiff::gradient_check::check_gradient<T: alea_core::target::LogDensityGradient + ?core::marker::Sized>(target: &T, position: &[f64], options: alea_autodiff::gradient_check::GradientCheckOptions) -> core::result::Result<alea_autodiff::gradient_check::GradientReport, alea_autodiff::gradient_check::GradientCheckError<<T as alea_core::target::LogDensityGradient>::Error>>

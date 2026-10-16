@@ -201,9 +201,17 @@ failure modes.
 
 This is module-level inheritance, not yet the final public-item audit. Mixed files
 and crate facades are assigned the lowest defensible state and remain behind an
-open promotion gate. M13 still needs rustdoc/API extraction, item-level overrides
-or module separation, exactness-law records, compile-fail conformance cases and an
-accepted semver snapshot before the inventory task can be marked complete.
+open promotion gate. M13 still needs path-level overrides or module separation,
+exactness-law records, compile-fail conformance cases and accepted compatibility
+decisions before the inventory task can be marked complete.
+
+The first item-level compatibility baseline is recorded in
+[`m13-api-boundary.md`](m13-api-boundary.md). The pinned nightly CI row regenerates
+5,057 reachable default-feature entries across all eight library crates with
+`cargo-public-api`; every other row verifies the committed files, counts and
+digests. This makes additions, removals and signature changes reviewable, but it
+does not promote the recorded pre-alpha surface. Feature-specific snapshots and
+path-level maturity refinement for mixed facades remain open.
 
 ## Research re-entry gates
 

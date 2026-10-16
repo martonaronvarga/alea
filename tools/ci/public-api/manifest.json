@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "tool": "cargo-public-api 0.51.0",
+  "rustc": "rustc 1.97.0-nightly (7af3402cd 2026-04-16)",
+  "policy": {
+    "default_features": false,
+    "omit": [
+      "blanket-impls",
+      "auto-trait-impls"
+    ],
+    "parameter_names": false
+  },
+  "packages": {
+    "alea-autodiff": {
+      "file": "alea-autodiff.txt",
+      "items": 75,
+      "sha256": "905f2acf09997d31859feb22e784da32196ef0becec41866fd6a0359497a833c"
+    },
+    "alea-core": {
+      "file": "alea-core.txt",
+      "items": 483,
+      "sha256": "85db92d365e815f52b6afe433062e3d8d1bf7357f79fef7fe12f8aea71f0147a"
+    },
+    "alea-distributions": {
+      "file": "alea-distributions.txt",
+      "items": 622,
+      "sha256": "a81f4899cd70fcbd03c5f5cc281e6550bac7ec5815648033e1c546541ac86f64"
+    },
+    "alea-ffi": {
+      "file": "alea-ffi.txt",
+      "items": 76,
+      "sha256": "35a1c2952e61e2c0d5e90be27e1c19554e3f2b587038d2e2c8d43f83d174a900"
+    },
+    "alea-math": {
+      "file": "alea-math.txt",
+      "items": 313,
+      "sha256": "9ceb07c66dea8c246655625c00d4e47c1548f52c0a6e79d266bc3b27cd4eada1"
+    },
+    "alea-mcmc": {
+      "file": "alea-mcmc.txt",
+      "items": 3144,
+      "sha256": "c746a65be961a63b0b114f9a72cd506e810d73da8415038a2cbd7e3879632f02"
+    },
+    "alea-runtime": {
+      "file": "alea-runtime.txt",
+      "items": 337,
+      "sha256": "9fb9713a64a47c385487c497f57b34adc9efec6ef1ca02740adbe9141886f9d1"
+    },
+    "alea-smc": {
+      "file": "alea-smc.txt",
+      "items": 7,
+      "sha256": "5eaafde2d1561f0557301057ba9138384c776136f6535df10366b1e5b8ac6ca0"
+    }
+  }
+}

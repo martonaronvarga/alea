@@ -181,7 +181,9 @@
         };
         devShells = {
           # Default: one pinned nightly with matching Clippy + Miri + rust-src.
-          default = mkRustShell rustToolchain {};
+          default = mkRustShell rustToolchain {
+            nativeBuildInputs = [pkgs.cargo-public-api];
+          };
           nightly = self.devShells.${system}.default;
           stable = mkRustShell stableToolchain {};
           # Focused profiling tools without the full research/Python/R environment.

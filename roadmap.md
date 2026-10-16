@@ -1256,7 +1256,9 @@ the stable surface.
   The first enforced slice inventories every source module containing an unrestricted
   public declaration, every explicit Cargo feature and every Cargo binary. Research
   entries carry machine-checked promotion blockers. Item-level API snapshots and
-  mixed-module refinement remain before this task is complete.
+  mixed-module refinement remain before this task is complete. The default-feature
+  reachable API is now extracted reproducibly for all eight library crates; mapping
+  paths within mixed facades to finer maturity states remains.
 - [ ] Define the initial stable/reference surface around fused targets, transforms,
   Euclidean metrics, fixed HMC/RWMH, covariance warmup, NUTS and diagnostics.
   Research remains accessible through explicit modules/features without duplicating
@@ -1269,8 +1271,11 @@ the stable surface.
   chain, sink and diagnostic-observable boundaries before unsealing more traits.
 - [ ] Add compile-fail tests for invalid ownership, adaptation-after-freeze,
   incompatible correction/proposal and exact/approximate composition.
-- [ ] Baseline public API snapshots and semver checks; audit validated constructors,
+- [~] Baseline public API snapshots and semver checks; audit validated constructors,
   `#[must_use]`, `#[non_exhaustive]`, standard traits, error sources and rustdoc laws.
+  The initial 5,057-entry default-feature baseline is pinned and checked in CI.
+  Feature-specific baselines, compatibility adjudication and the listed API audits
+  remain before completion.
 - [ ] Decide which current public modules remain internal before the first release;
   do not preserve pre-alpha exposure solely for compatibility.
 

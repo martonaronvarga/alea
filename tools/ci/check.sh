@@ -8,6 +8,8 @@ python3 tools/ci/migration.py
 python3 tools/ci/test_migration.py
 python3 tools/ci/maturity.py
 python3 tools/ci/test_maturity.py
+python3 tools/ci/public_api.py --validate
+python3 tools/ci/test_public_api.py
 python3 tools/fisher-reference/generate.py --check
 python3 tools/fisher-reference/upstream/adjudicate.py --check
 python3 tools/fisher-reference/upstream/test_adjudicate.py
@@ -22,3 +24,6 @@ cargo check "${args[@]}" --all-targets
 cargo test "${args[@]}"
 cargo clippy "${args[@]}" --all-targets -- -D warnings
 RUSTDOCFLAGS='-D warnings' cargo doc "${args[@]}" --no-deps
+if command -v cargo-public-api >/dev/null 2>&1; then
+  python3 tools/ci/public_api.py --check
+fi

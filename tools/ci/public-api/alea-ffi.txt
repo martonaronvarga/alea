@@ -1,0 +1,76 @@
+pub mod alea_ffi
+#[non_exhaustive] pub enum alea_ffi::CubatureError
+pub alea_ffi::CubatureError::Backend
+pub alea_ffi::CubatureError::Backend::code: std::os::raw::c_int
+pub alea_ffi::CubatureError::BoundsLength
+pub alea_ffi::CubatureError::Callback
+pub alea_ffi::CubatureError::Callback::code: std::os::raw::c_int
+pub alea_ffi::CubatureError::CallbackDimension
+pub alea_ffi::CubatureError::DimensionOverflow
+pub alea_ffi::CubatureError::InvalidBounds
+pub alea_ffi::CubatureError::InvalidBounds::index: usize
+pub alea_ffi::CubatureError::InvalidTolerance
+pub alea_ffi::CubatureError::MissingCallback
+pub alea_ffi::CubatureError::NonFiniteOutput
+pub alea_ffi::CubatureError::NonFiniteOutput::index: usize
+pub alea_ffi::CubatureError::NonFiniteResult
+pub alea_ffi::CubatureError::NonFiniteResult::index: usize
+pub alea_ffi::CubatureError::OutputLength
+pub alea_ffi::CubatureError::OutputLength::error: usize
+pub alea_ffi::CubatureError::OutputLength::expected: usize
+pub alea_ffi::CubatureError::OutputLength::value: usize
+impl core::clone::Clone for alea_ffi::CubatureError
+pub fn alea_ffi::CubatureError::clone(&self) -> alea_ffi::CubatureError
+impl core::cmp::Eq for alea_ffi::CubatureError
+impl core::cmp::PartialEq for alea_ffi::CubatureError
+pub fn alea_ffi::CubatureError::eq(&self, other: &alea_ffi::CubatureError) -> bool
+impl core::error::Error for alea_ffi::CubatureError
+impl core::fmt::Debug for alea_ffi::CubatureError
+pub fn alea_ffi::CubatureError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_ffi::CubatureError
+pub fn alea_ffi::CubatureError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_ffi::CubatureError
+impl core::marker::StructuralPartialEq for alea_ffi::CubatureError
+#[repr(C)] pub enum alea_ffi::ErrorNorm
+pub alea_ffi::ErrorNorm::Individual = 0
+pub alea_ffi::ErrorNorm::L1 = 3
+pub alea_ffi::ErrorNorm::L2 = 2
+pub alea_ffi::ErrorNorm::LInf = 4
+pub alea_ffi::ErrorNorm::Paired = 1
+impl core::clone::Clone for alea_ffi::ErrorNorm
+pub fn alea_ffi::ErrorNorm::clone(&self) -> alea_ffi::ErrorNorm
+impl core::fmt::Debug for alea_ffi::ErrorNorm
+pub fn alea_ffi::ErrorNorm::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_ffi::ErrorNorm
+pub struct alea_ffi::Bounds<'a>
+pub alea_ffi::Bounds::xmax: &'a [f64]
+pub alea_ffi::Bounds::xmin: &'a [f64]
+impl<'a> alea_ffi::Bounds<'a>
+pub fn alea_ffi::Bounds<'a>::dimension(self) -> usize
+pub fn alea_ffi::Bounds<'a>::new(xmin: &'a [f64], xmax: &'a [f64]) -> Self
+pub fn alea_ffi::Bounds<'a>::try_new(xmin: &'a [f64], xmax: &'a [f64]) -> alea_ffi::CubatureResult<Self>
+impl<'a> core::clone::Clone for alea_ffi::Bounds<'a>
+pub fn alea_ffi::Bounds<'a>::clone(&self) -> alea_ffi::Bounds<'a>
+impl<'a> core::fmt::Debug for alea_ffi::Bounds<'a>
+pub fn alea_ffi::Bounds<'a>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'a> core::marker::Copy for alea_ffi::Bounds<'a>
+pub struct alea_ffi::Options
+pub alea_ffi::Options::max_eval: usize
+pub alea_ffi::Options::norm: alea_ffi::ErrorNorm
+pub alea_ffi::Options::req_abs_error: f64
+pub alea_ffi::Options::req_rel_error: f64
+impl core::clone::Clone for alea_ffi::Options
+pub fn alea_ffi::Options::clone(&self) -> alea_ffi::Options
+impl core::default::Default for alea_ffi::Options
+pub fn alea_ffi::Options::default() -> Self
+impl core::fmt::Debug for alea_ffi::Options
+pub fn alea_ffi::Options::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_ffi::Options
+pub fn alea_ffi::hcubature<F: core::ops::function::FnMut(&[f64], &mut [f64]) -> std::os::raw::c_int>(fdim: u32, bounds: alea_ffi::Bounds<'_>, opts: alea_ffi::Options, f: F) -> alea_ffi::CubatureResult<(alloc::vec::Vec<f64>, alloc::vec::Vec<f64>)>
+pub unsafe fn alea_ffi::hcubature_fn<T>(fdim: u32, bounds: alea_ffi::Bounds<'_>, opts: alea_ffi::Options, f: alea_ffi::Integrand, userdata: &mut T) -> alea_ffi::CubatureResult<(alloc::vec::Vec<f64>, alloc::vec::Vec<f64>)>
+pub unsafe fn alea_ffi::hcubature_fn_into<T>(fdim: u32, bounds: alea_ffi::Bounds<'_>, opts: alea_ffi::Options, f: alea_ffi::Integrand, userdata: &mut T, val: &mut [f64], err: &mut [f64]) -> alea_ffi::CubatureResult<()>
+pub fn alea_ffi::hcubature_into<F: core::ops::function::FnMut(&[f64], &mut [f64]) -> std::os::raw::c_int>(fdim: u32, bounds: alea_ffi::Bounds<'_>, opts: alea_ffi::Options, val: &mut [f64], err: &mut [f64], f: F) -> alea_ffi::CubatureResult<()>
+pub unsafe fn alea_ffi::hcubature_ptr(fdim: u32, f: alea_ffi::Integrand, fdata: *mut std::os::raw::c_void, bounds: alea_ffi::Bounds<'_>, opts: alea_ffi::Options, val: &mut [f64], err: &mut [f64]) -> alea_ffi::CubatureResult<()>
+pub type alea_ffi::CubatureResult<T> = core::result::Result<T, alea_ffi::CubatureError>
+pub type alea_ffi::Integrand = core::option::Option<fn(ndim: std::os::raw::c_uint, x: *const f64, arg1: *mut std::os::raw::c_void, fdim: std::os::raw::c_uint, fval: *mut f64) -> std::os::raw::c_int>
+pub type alea_ffi::IntegrandFn<'a> = (dyn core::ops::function::FnMut(&[f64], &mut [f64]) -> std::os::raw::c_int + 'a)
