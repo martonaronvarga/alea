@@ -1251,8 +1251,12 @@ semantics are settled so particle and ordinary modeling APIs do not diverge.
 Goal: make supported reality visible in code and documentation before enlarging
 the stable surface.
 
-- [ ] Inventory every public item, Cargo feature and CLI command in a machine-readable
+- [~] Inventory every public item, Cargo feature and CLI command in a machine-readable
   maturity ledger; CI rejects unlabeled or accidentally promoted research exports.
+  The first enforced slice inventories every source module containing an unrestricted
+  public declaration, every explicit Cargo feature and every Cargo binary. Research
+  entries carry machine-checked promotion blockers. Item-level API snapshots and
+  mixed-module refinement remain before this task is complete.
 - [ ] Define the initial stable/reference surface around fused targets, transforms,
   Euclidean metrics, fixed HMC/RWMH, covariance warmup, NUTS and diagnostics.
   Research remains accessible through explicit modules/features without duplicating

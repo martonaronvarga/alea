@@ -6,6 +6,8 @@ args=(--manifest-path crates/Cargo.toml --workspace --locked)
 python3 tools/ci/architecture.py
 python3 tools/ci/migration.py
 python3 tools/ci/test_migration.py
+python3 tools/ci/maturity.py
+python3 tools/ci/test_maturity.py
 python3 tools/fisher-reference/generate.py --check
 python3 tools/fisher-reference/upstream/adjudicate.py --check
 python3 tools/fisher-reference/upstream/test_adjudicate.py

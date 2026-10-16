@@ -1,0 +1,635 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "allow_release_candidates": false
+  },
+  "profiles": {
+    "design_contract": {
+      "maturity": "S0",
+      "adoption": "not_exposed",
+      "guarantee": "contract_only",
+      "rationale": "The public declarations preserve a design contract, not a usable inference capability."
+    },
+    "research_approximate": {
+      "maturity": "S1",
+      "adoption": "approximate",
+      "guarantee": "approximate_target",
+      "rationale": "The method deliberately targets an approximation and is segregated from exact-target inference."
+    },
+    "research_exact": {
+      "maturity": "S1",
+      "adoption": "opt_in",
+      "guarantee": "exact_target",
+      "rationale": "An exact-target mechanism is implemented, but validation or adoption gates remain open."
+    },
+    "research_exactness_pending": {
+      "maturity": "S1",
+      "adoption": "opt_in",
+      "guarantee": "exactness_pending",
+      "rationale": "The intended exact transition still has an open implemented-map exactness obligation."
+    },
+    "research_mixed": {
+      "maturity": "S1",
+      "adoption": "opt_in",
+      "guarantee": "mixed",
+      "rationale": "This module exposes capabilities with different evidence or target guarantees and is conservatively research-only."
+    },
+    "research_component": {
+      "maturity": "S1",
+      "adoption": "opt_in",
+      "guarantee": "component",
+      "rationale": "The component is usable for research, but one or more promotion axes remain open."
+    },
+    "research_utility": {
+      "maturity": "S1",
+      "adoption": "opt_in",
+      "guarantee": "utility",
+      "rationale": "The utility is developmental and has no release-stability commitment."
+    },
+    "validated_exact_opt_in": {
+      "maturity": "S2",
+      "adoption": "opt_in",
+      "guarantee": "exact_target",
+      "rationale": "The exact-target kernel is validated in its declared scope but is not the default policy."
+    },
+    "validated_exact_recommended": {
+      "maturity": "S2",
+      "adoption": "recommended",
+      "guarantee": "exact_target",
+      "rationale": "The exact-target kernel is validated and is the current recommended dynamic transition."
+    },
+    "validated_exact_reference": {
+      "maturity": "S2",
+      "adoption": "reference",
+      "guarantee": "exact_target",
+      "rationale": "The exact-target kernel is the validated comparison or fallback implementation."
+    },
+    "validated_component_opt_in": {
+      "maturity": "S2",
+      "adoption": "opt_in",
+      "guarantee": "component",
+      "rationale": "The component is validated in its declared scope but remains an explicit choice."
+    },
+    "validated_component_reference": {
+      "maturity": "S2",
+      "adoption": "reference",
+      "guarantee": "component",
+      "rationale": "The component is validated in its declared scope and anchors the reference path."
+    },
+    "validated_utility_opt_in": {
+      "maturity": "S2",
+      "adoption": "opt_in",
+      "guarantee": "utility",
+      "rationale": "The utility is validated for its current internal or explicit-use scope."
+    },
+    "validated_utility_reference": {
+      "maturity": "S2",
+      "adoption": "reference",
+      "guarantee": "utility",
+      "rationale": "The utility is validated in its declared scope and used by the reference workflow."
+    }
+  },
+  "source_modules": [
+    {
+      "path": "crates/alea-autodiff/src/autodiff.rs",
+      "profile": "research_mixed",
+      "summary": "First-order Enzyme support is validated, while generated higher-order support remains research-only.",
+      "promotion_gate": "Broaden generated-derivative and pinned-nightly portability evidence."
+    },
+    {
+      "path": "crates/alea-autodiff/src/gradient_check.rs",
+      "profile": "validated_utility_reference",
+      "summary": "Finite-difference gradient validation utility."
+    },
+    {
+      "path": "crates/alea-autodiff/src/lib.rs",
+      "profile": "research_mixed",
+      "summary": "Crate facade inherits the mixed maturity of first- and higher-order adapters.",
+      "promotion_gate": "Split or independently graduate exported derivative capabilities."
+    },
+    {
+      "path": "crates/alea-core/src/capability.rs",
+      "profile": "research_mixed",
+      "summary": "Optional derivative and position-metric capabilities span validated and research scopes.",
+      "promotion_gate": "Complete conformance suites for each externally implementable capability."
+    },
+    {
+      "path": "crates/alea-core/src/density.rs",
+      "profile": "validated_component_reference",
+      "summary": "Density and gradient value contracts."
+    },
+    {
+      "path": "crates/alea-core/src/error.rs",
+      "profile": "validated_utility_reference",
+      "summary": "Core error taxonomy used by validated reference paths."
+    },
+    {
+      "path": "crates/alea-core/src/lib.rs",
+      "profile": "research_mixed",
+      "summary": "Core facade re-exports validated contracts alongside research and design-only boundaries.",
+      "promotion_gate": "Define and snapshot the intended stable re-export surface."
+    },
+    {
+      "path": "crates/alea-core/src/model.rs",
+      "profile": "validated_component_reference",
+      "summary": "Composed and transformed model contracts."
+    },
+    {
+      "path": "crates/alea-core/src/model/primitive.rs",
+      "profile": "validated_component_reference",
+      "summary": "Primitive-model target composition."
+    },
+    {
+      "path": "crates/alea-core/src/state_space.rs",
+      "profile": "design_contract",
+      "summary": "State-space extension contracts without an implemented generalized inference path.",
+      "promotion_gate": "Implement and validate a consuming inference vertical before exposure."
+    },
+    {
+      "path": "crates/alea-core/src/target.rs",
+      "profile": "validated_component_reference",
+      "summary": "Fused target evaluation and transactional point state."
+    },
+    {
+      "path": "crates/alea-core/src/transform/layout.rs",
+      "profile": "validated_component_reference",
+      "summary": "Validated parameter layout construction."
+    },
+    {
+      "path": "crates/alea-core/src/transform/matrix.rs",
+      "profile": "validated_component_reference",
+      "summary": "Matrix-valued parameter transforms."
+    },
+    {
+      "path": "crates/alea-core/src/transform/mod.rs",
+      "profile": "validated_component_reference",
+      "summary": "Scalar, vector, and matrix transform facade."
+    },
+    {
+      "path": "crates/alea-core/src/transport.rs",
+      "profile": "validated_component_opt_in",
+      "summary": "Frozen affine transport-map algebra."
+    },
+    {
+      "path": "crates/alea-distributions/src/error.rs",
+      "profile": "validated_utility_reference",
+      "summary": "Distribution construction and evaluation errors."
+    },
+    {
+      "path": "crates/alea-distributions/src/gaussian.rs",
+      "profile": "validated_component_reference",
+      "summary": "Analytic Gaussian reference target."
+    },
+    {
+      "path": "crates/alea-distributions/src/latent.rs",
+      "profile": "validated_component_opt_in",
+      "summary": "Latent-model observation boundary in its tested scope."
+    },
+    {
+      "path": "crates/alea-distributions/src/lib.rs",
+      "profile": "validated_component_reference",
+      "summary": "Narrow validated distribution and model facade."
+    },
+    {
+      "path": "crates/alea-distributions/src/wiener/mod.rs",
+      "profile": "validated_component_reference",
+      "summary": "Wiener first-passage model facade."
+    },
+    {
+      "path": "crates/alea-distributions/src/wiener/model.rs",
+      "profile": "validated_component_reference",
+      "summary": "Wiener model composition."
+    },
+    {
+      "path": "crates/alea-distributions/src/wiener/primitive.rs",
+      "profile": "validated_component_reference",
+      "summary": "Wiener primitive density interface."
+    },
+    {
+      "path": "crates/alea-distributions/src/wiener/types.rs",
+      "profile": "validated_component_reference",
+      "summary": "Validated Wiener parameter and observation types."
+    },
+    {
+      "path": "crates/alea-distributions/src/wiener/wiener4.rs",
+      "profile": "validated_component_reference",
+      "summary": "Four-parameter Wiener kernel."
+    },
+    {
+      "path": "crates/alea-distributions/src/wiener/wiener5.rs",
+      "profile": "validated_component_reference",
+      "summary": "Five-parameter Wiener kernel."
+    },
+    {
+      "path": "crates/alea-distributions/src/wiener/wiener7.rs",
+      "profile": "validated_component_reference",
+      "summary": "Seven-parameter Wiener kernel."
+    },
+    {
+      "path": "crates/alea-ffi/src/cubature.rs",
+      "profile": "validated_utility_opt_in",
+      "summary": "Native cubature boundary used by current distribution code."
+    },
+    {
+      "path": "crates/alea-ffi/src/lib.rs",
+      "profile": "validated_utility_opt_in",
+      "summary": "Internal native-integration facade."
+    },
+    {
+      "path": "crates/alea-math/src/affine.rs",
+      "profile": "validated_component_opt_in",
+      "summary": "Frozen affine map algebra."
+    },
+    {
+      "path": "crates/alea-math/src/buffer.rs",
+      "profile": "validated_component_reference",
+      "summary": "Aligned initialized storage contracts."
+    },
+    {
+      "path": "crates/alea-math/src/fisher.rs",
+      "profile": "validated_component_opt_in",
+      "summary": "Analytic Fisher metric formulas in their declared families."
+    },
+    {
+      "path": "crates/alea-math/src/interpolation.rs",
+      "profile": "validated_component_reference",
+      "summary": "Grid and linear interpolation primitives."
+    },
+    {
+      "path": "crates/alea-math/src/lib.rs",
+      "profile": "research_mixed",
+      "summary": "Math facade includes validated primitives and research low-rank fitting.",
+      "promotion_gate": "Define a stable facade that does not imply promotion of Fisher fitting."
+    },
+    {
+      "path": "crates/alea-math/src/metric.rs",
+      "profile": "validated_component_reference",
+      "summary": "Identity, diagonal, and dense Euclidean metric algebra."
+    },
+    {
+      "path": "crates/alea-math/src/metric/low_rank.rs",
+      "profile": "research_component",
+      "summary": "Low-rank fitted metric representation used by experimental Fisher warmup.",
+      "promotion_gate": "Close M4F statistical, memory, and high-dimensional fitting gates."
+    },
+    {
+      "path": "crates/alea-math/src/metric/structured.rs",
+      "profile": "validated_component_opt_in",
+      "summary": "Block and sparse constant metric algebra."
+    },
+    {
+      "path": "crates/alea-math/src/numeric.rs",
+      "profile": "validated_utility_reference",
+      "summary": "Checked numerical helper functions."
+    },
+    {
+      "path": "crates/alea-math/src/random.rs",
+      "profile": "validated_utility_reference",
+      "summary": "Reference random-number helper functions."
+    },
+    {
+      "path": "crates/alea-mcmc/src/adapt.rs",
+      "profile": "research_mixed",
+      "summary": "Adaptation facade spans reference warmup and experimental geometry learners.",
+      "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
+    },
+    {
+      "path": "crates/alea-mcmc/src/adapt/chees.rs",
+      "profile": "validated_component_opt_in",
+      "summary": "ChEES tuning policy in the declared identity or prewhitened scope."
+    },
+    {
+      "path": "crates/alea-mcmc/src/adapt/covariance.rs",
+      "profile": "validated_component_reference",
+      "summary": "Covariance accumulation for reference warmup."
+    },
+    {
+      "path": "crates/alea-mcmc/src/adapt/fisher.rs",
+      "profile": "research_component",
+      "summary": "Experimental Fisher profile fitting and warmup policy.",
+      "promotion_gate": "Close the recorded M4F diagnostic, efficiency, and memory gates."
+    },
+    {
+      "path": "crates/alea-mcmc/src/adapt/fisher/weighted.rs",
+      "profile": "research_component",
+      "summary": "Weighted Fisher fitting internals exposed for research composition.",
+      "promotion_gate": "Graduate only with the enclosing Fisher warmup policy."
+    },
+    {
+      "path": "crates/alea-mcmc/src/adapt/joint.rs",
+      "profile": "research_component",
+      "summary": "Experimental joint adaptation policy.",
+      "promotion_gate": "Add broad stability and retained-kernel evidence."
+    },
+    {
+      "path": "crates/alea-mcmc/src/adapt/manifold.rs",
+      "profile": "research_component",
+      "summary": "Experimental manifold Gaussian-process tuner.",
+      "promotion_gate": "Close SoftAbs scaling, geometry, and RMHMC exactness dependencies."
+    },
+    {
+      "path": "crates/alea-mcmc/src/adapt/pathfinder.rs",
+      "profile": "research_component",
+      "summary": "Experimental raw multi-path initialization.",
+      "promotion_gate": "Add PSIS, nonlinear transport, and robust multimodal evidence."
+    },
+    {
+      "path": "crates/alea-mcmc/src/adapt/step.rs",
+      "profile": "validated_component_reference",
+      "summary": "Dual-averaging step-size adaptation."
+    },
+    {
+      "path": "crates/alea-mcmc/src/adapt/transport.rs",
+      "profile": "research_component",
+      "summary": "Experimental learned affine warmup.",
+      "promotion_gate": "Reverse the recorded held-out efficiency result with a new protocol."
+    },
+    {
+      "path": "crates/alea-mcmc/src/adapt/window.rs",
+      "profile": "validated_component_reference",
+      "summary": "Reference windowed covariance warmup."
+    },
+    {
+      "path": "crates/alea-mcmc/src/advanced.rs",
+      "profile": "research_component",
+      "summary": "Advanced integration selection policies.",
+      "promotion_gate": "Resolve resonance failures and add representative split-model evidence."
+    },
+    {
+      "path": "crates/alea-mcmc/src/atlas.rs",
+      "profile": "research_component",
+      "summary": "Bounded ATLAS curvature probe, not a complete sampler.",
+      "promotion_gate": "Implement the complete extended proposal and correction."
+    },
+    {
+      "path": "crates/alea-mcmc/src/batch.rs",
+      "profile": "research_component",
+      "summary": "Experimental batched transition machinery.",
+      "promotion_gate": "Add accelerator execution and representative workload evidence."
+    },
+    {
+      "path": "crates/alea-mcmc/src/chees.rs",
+      "profile": "validated_exact_opt_in",
+      "summary": "ChEES-HMC transition in its identity or prewhitened scope."
+    },
+    {
+      "path": "crates/alea-mcmc/src/config.rs",
+      "profile": "validated_component_reference",
+      "summary": "Validated sampler configuration values."
+    },
+    {
+      "path": "crates/alea-mcmc/src/ghmc.rs",
+      "profile": "research_exact",
+      "summary": "GHMC and delayed-rejection variants with narrow mechanics evidence.",
+      "promotion_gate": "Broaden stationarity, delayed-rejection, and tuning-cost validation."
+    },
+    {
+      "path": "crates/alea-mcmc/src/hamiltonian.rs",
+      "profile": "validated_component_reference",
+      "summary": "Euclidean Hamiltonian phase and energy operations."
+    },
+    {
+      "path": "crates/alea-mcmc/src/hmc.rs",
+      "profile": "validated_exact_reference",
+      "summary": "Fixed Euclidean HMC reference transition."
+    },
+    {
+      "path": "crates/alea-mcmc/src/integrator.rs",
+      "profile": "research_mixed",
+      "summary": "Integrator facade includes reference leapfrog and experimental higher-order policies.",
+      "promotion_gate": "Separate validated kernels from policies with unresolved end-to-end evidence."
+    },
+    {
+      "path": "crates/alea-mcmc/src/lib.rs",
+      "profile": "research_mixed",
+      "summary": "MCMC facade currently re-exports validated, experimental, and approximate mechanisms.",
+      "promotion_gate": "Create explicit public maturity boundaries before API stabilization."
+    },
+    {
+      "path": "crates/alea-mcmc/src/mams.rs",
+      "profile": "research_mixed",
+      "summary": "MAMS exact correction and MCLMC approximate dynamics share this research module.",
+      "promotion_gate": "Separate exact and approximate public interfaces and broaden validation."
+    },
+    {
+      "path": "crates/alea-mcmc/src/nuts.rs",
+      "profile": "validated_exact_recommended",
+      "summary": "Multinomial NUTS dynamic transition."
+    },
+    {
+      "path": "crates/alea-mcmc/src/riemannian.rs",
+      "profile": "research_exactness_pending",
+      "summary": "RMHMC transition with an open finite-solve reverse-branch exactness gate.",
+      "promotion_gate": "Implement per-proposal reversibility or a derived correction and validate it adversarially."
+    },
+    {
+      "path": "crates/alea-mcmc/src/riemannian/fisher.rs",
+      "profile": "research_component",
+      "summary": "Fisher-position-metric RMHMC workspace.",
+      "promotion_gate": "Graduate only after the enclosing RMHMC exactness and performance gates."
+    },
+    {
+      "path": "crates/alea-mcmc/src/riemannian/softabs.rs",
+      "profile": "research_component",
+      "summary": "Dense SoftAbs metric construction and derivative workspace.",
+      "promotion_gate": "Address derivative order, scaling, numerical, and enclosing RMHMC gates."
+    },
+    {
+      "path": "crates/alea-mcmc/src/rwmh.rs",
+      "profile": "validated_exact_reference",
+      "summary": "Fixed-scale random-walk Metropolis-Hastings baseline."
+    },
+    {
+      "path": "crates/alea-mcmc/src/walnuts.rs",
+      "profile": "research_exact",
+      "summary": "Validated WALNUTS construction with an unpromoted policy and negative performance review.",
+      "promotion_gate": "Close the recorded target-call and held-out efficiency gates."
+    },
+    {
+      "path": "crates/alea-runtime/src/chees.rs",
+      "profile": "validated_component_opt_in",
+      "summary": "Runtime orchestration for opt-in ChEES adaptation."
+    },
+    {
+      "path": "crates/alea-runtime/src/diagnostics.rs",
+      "profile": "validated_utility_reference",
+      "summary": "Classical and shared diagnostic calculations."
+    },
+    {
+      "path": "crates/alea-runtime/src/diagnostics/modern.rs",
+      "profile": "validated_utility_reference",
+      "summary": "Rank-normalized split R-hat and bulk or tail ESS diagnostics."
+    },
+    {
+      "path": "crates/alea-runtime/src/draws.rs",
+      "profile": "validated_component_reference",
+      "summary": "Aligned retained-draw collection."
+    },
+    {
+      "path": "crates/alea-runtime/src/ensemble.rs",
+      "profile": "validated_component_reference",
+      "summary": "Deterministic multi-chain execution."
+    },
+    {
+      "path": "crates/alea-runtime/src/lib.rs",
+      "profile": "validated_component_reference",
+      "summary": "Reference chain-running facade."
+    },
+    {
+      "path": "crates/alea-runtime/src/monitor.rs",
+      "profile": "validated_component_reference",
+      "summary": "Bounded diagnostic subscription and monitoring."
+    },
+    {
+      "path": "crates/alea-runtime/src/output.rs",
+      "profile": "validated_component_reference",
+      "summary": "Runtime output and sink contracts."
+    },
+    {
+      "path": "crates/alea-smc/src/lib.rs",
+      "profile": "design_contract",
+      "summary": "Particle-system traits without a complete inference implementation.",
+      "promotion_gate": "Implement resampling, filtering, estimation, and PMCMC verticals before exposure."
+    }
+  ],
+  "cargo_features": [
+    {
+      "crate": "alea-autodiff",
+      "feature": "default",
+      "profile": "validated_component_reference",
+      "summary": "Analytic and finite-difference-compatible baseline."
+    },
+    {
+      "crate": "alea-autodiff",
+      "feature": "std-autodiff",
+      "profile": "research_component",
+      "summary": "Pinned-nightly standard autodiff adapter.",
+      "promotion_gate": "Complete generated-derivative, compiler-version, and portability evidence."
+    },
+    {
+      "crate": "alea-cli",
+      "feature": "default",
+      "profile": "research_utility",
+      "summary": "Development CLI baseline.",
+      "promotion_gate": "Provide stable manifests, persistence, output schemas, and end-to-end commands."
+    },
+    {
+      "crate": "alea-cli",
+      "feature": "std-autodiff",
+      "profile": "research_utility",
+      "summary": "Nightly gradient-check CLI support.",
+      "promotion_gate": "Graduate with the underlying autodiff feature and CLI workflow."
+    },
+    {
+      "crate": "alea-distributions",
+      "feature": "branch-hints",
+      "profile": "research_component",
+      "summary": "Compiler branch-hint optimization experiment.",
+      "promotion_gate": "Demonstrate portable benefit and preserve numerical behavior."
+    },
+    {
+      "crate": "alea-distributions",
+      "feature": "default",
+      "profile": "validated_component_reference",
+      "summary": "Portable scalar distribution baseline."
+    },
+    {
+      "crate": "alea-distributions",
+      "feature": "simd",
+      "profile": "validated_component_opt_in",
+      "summary": "Explicit portable-SIMD distribution kernels in their tested scope."
+    },
+    {
+      "crate": "alea-math",
+      "feature": "default",
+      "profile": "validated_component_reference",
+      "summary": "Portable scalar math baseline."
+    },
+    {
+      "crate": "alea-math",
+      "feature": "faer",
+      "profile": "research_component",
+      "summary": "Optional Faer factorization backend spanning validated and research consumers.",
+      "promotion_gate": "Finish backend parity, portability, and cold-factorization evidence."
+    },
+    {
+      "crate": "alea-math",
+      "feature": "openblas",
+      "profile": "research_component",
+      "summary": "Optional system OpenBLAS backend.",
+      "promotion_gate": "Complete packaging, ABI, platform, and backend-parity gates."
+    },
+    {
+      "crate": "alea-math",
+      "feature": "simd",
+      "profile": "validated_component_opt_in",
+      "summary": "Explicit portable-SIMD math kernels in their tested scope."
+    },
+    {
+      "crate": "alea-mcmc",
+      "feature": "default",
+      "profile": "research_mixed",
+      "summary": "The default build contains validated and explicitly research MCMC modules.",
+      "promotion_gate": "Establish public feature or module maturity boundaries before release."
+    },
+    {
+      "crate": "alea-mcmc",
+      "feature": "faer",
+      "profile": "research_component",
+      "summary": "Faer-backed metric and fitting paths.",
+      "promotion_gate": "Graduate with the underlying math backend and each consuming policy."
+    },
+    {
+      "crate": "alea-mcmc",
+      "feature": "openblas",
+      "profile": "research_component",
+      "summary": "OpenBLAS-backed metric and fitting paths.",
+      "promotion_gate": "Graduate with the underlying math backend and each consuming policy."
+    },
+    {
+      "crate": "alea-mcmc",
+      "feature": "simd",
+      "profile": "validated_component_opt_in",
+      "summary": "Explicit portable-SIMD MCMC hot loops in their tested scope."
+    },
+    {
+      "crate": "alea-runtime",
+      "feature": "default",
+      "profile": "validated_component_reference",
+      "summary": "Portable deterministic runtime baseline."
+    },
+    {
+      "crate": "alea-runtime",
+      "feature": "faer",
+      "profile": "research_component",
+      "summary": "Runtime forwarding for Faer-backed fitting paths.",
+      "promotion_gate": "Graduate with the underlying backend and consuming warmup policies."
+    }
+  ],
+  "cli_commands": [
+    {
+      "crate": "alea-cli",
+      "name": "alea",
+      "path": "src/main.rs",
+      "profile": "research_utility",
+      "summary": "Development fixed-HMC smoke command.",
+      "promotion_gate": "Replace the smoke program with a manifest-driven inference workflow."
+    },
+    {
+      "crate": "alea-cli",
+      "name": "alea-gradient-check",
+      "path": "src/bin/gradient_check.rs",
+      "profile": "research_utility",
+      "summary": "Development gradient-validation command.",
+      "promotion_gate": "Stabilize model input, reporting schema, and nightly behavior."
+    },
+    {
+      "crate": "alea-cli",
+      "name": "alea-rwmh",
+      "path": "src/bin/rwmh.rs",
+      "profile": "research_utility",
+      "summary": "Development RWMH benchmark command.",
+      "promotion_gate": "Replace benchmark-only arguments and output with a stable workflow contract."
+    }
+  ]
+}

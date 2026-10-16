@@ -180,6 +180,31 @@ of the underlying algorithms.
 | CLI binaries | S1 utilities | development | No complete model-to-diagnostics inference command, manifest, persistence or stable output contract. |
 | Preserved `research/` and `archive/` prototypes | S0 | not exposed | Recovery/provenance material only; migration inventory is not executed semantic evidence. |
 
+## Machine-readable enforcement
+
+[`tools/ci/maturity-ledger.json`](../tools/ci/maturity-ledger.json) is the
+executable counterpart to this policy. Its first M13 slice records an exact entry
+for every source module containing an unrestricted public declaration, every
+explicit Cargo feature and every Cargo binary. Each entry names a reusable profile
+that fixes maturity, adoption and target-guarantee vocabulary. Research entries
+also retain a concrete promotion blocker; CI rejects assigning a validated profile
+while that blocker remains.
+
+[`tools/ci/maturity.py`](../tools/ci/maturity.py) discovers the live workspace
+surface instead of trusting ledger cardinalities. A new public module, feature or
+binary therefore fails CI until it is classified, while a stale ledger entry fails
+after removal. It also prevents design-only contracts from being adopted,
+approximate-target mechanisms from using an exact-looking adoption state,
+exactness-pending mechanisms from moving above S1, and S3/S4 claims before the
+release-candidate policy is deliberately opened. Mutation tests exercise those
+failure modes.
+
+This is module-level inheritance, not yet the final public-item audit. Mixed files
+and crate facades are assigned the lowest defensible state and remain behind an
+open promotion gate. M13 still needs rustdoc/API extraction, item-level overrides
+or module separation, exactness-law records, compile-fail conformance cases and an
+accepted semver snapshot before the inventory task can be marked complete.
+
 ## Research re-entry gates
 
 Negative promotion reviews stay closed until a new protocol addresses the recorded
