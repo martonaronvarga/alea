@@ -67,6 +67,172 @@ pub fn evaluate_hvp<T: HessianVector + ?Sized>(
     Ok(())
 }
 
+/// Optional dense potential Hessian and its coordinate derivatives.
+///
+/// Matrices use row-major storage. The derivative block for coordinate `k`
+/// begins at `k * dimension * dimension` and contains `dH/dq_k`. This
+/// capability is intentionally explicit: a Hessian-vector product alone cannot
+/// recover the third derivatives required by a general SoftAbs metric.
+pub trait PotentialHessianDerivative: HessianVector {
+    /// Writes the potential Hessian and all of its coordinate derivatives.
+    ///
+    /// # Errors
+    /// Returns the target/backend error without erasing its concrete type.
+    fn potential_hessian_and_derivatives(
+        &self,
+        position: &[f64],
+        hessian: &mut [f64],
+        derivatives: &mut [f64],
+    ) -> Result<(), Self::Error>;
+}
+
+/// A position-dependent positive-definite momentum metric and its derivatives.
+///
+/// The metric and each derivative matrix use row-major storage. Coordinate `k`
+/// owns derivative block `k * d * d .. (k + 1) * d * d`. Implementations may
+/// use the caller-owned workspace but must overwrite every output entry on
+/// success and remain semantically fixed while borrowed by a sampler.
+pub trait PositionMetric {
+    type Error: Error + 'static;
+
+    fn dimension(&self) -> usize;
+
+    /// Number of scalar scratch entries required by
+    /// [`Self::metric_and_derivatives`].
+    fn workspace_len(&self) -> usize {
+        0
+    }
+
+    /// Evaluates the metric and all coordinate derivatives.
+    ///
+    /// # Errors
+    /// Returns the concrete metric/backend error. The output buffers are scratch
+    /// and must be discarded after an error or panic.
+    fn metric_and_derivatives(
+        &self,
+        position: &[f64],
+        metric: &mut [f64],
+        derivatives: &mut [f64],
+        workspace: &mut [f64],
+    ) -> Result<(), Self::Error>;
+}
+
+/// Checked position-metric evaluation failure.
+#[derive(Debug, thiserror::Error)]
+pub enum PositionMetricError<E: Error + 'static> {
+    #[error("position-metric storage size overflow")]
+    SizeOverflow,
+    #[error("position-metric buffer dimensions do not match dimension {dimension}")]
+    Dimension { dimension: usize },
+    #[error("position-metric input entry {index} is not finite")]
+    NonFinitePosition { index: usize },
+    #[error("position-metric backend failed: {0}")]
+    Backend(#[source] E),
+    #[error("position-metric output entry {index} is missing or not finite")]
+    NonFiniteMetric { index: usize },
+    #[error("position-metric derivative entry {index} is missing or not finite")]
+    NonFiniteDerivative { index: usize },
+    #[error("position-metric matrix is asymmetric at ({row}, {column})")]
+    AsymmetricMetric { row: usize, column: usize },
+    #[error("position-metric derivative {coordinate} is asymmetric at ({row}, {column})")]
+    AsymmetricDerivative {
+        coordinate: usize,
+        row: usize,
+        column: usize,
+    },
+}
+
+fn square_len(dimension: usize) -> Option<usize> {
+    dimension
+        .checked_mul(dimension)
+        .filter(|&len| len <= isize::MAX as usize / size_of::<f64>())
+}
+
+fn symmetric_pair(a: f64, b: f64) -> bool {
+    let scale = 1.0 + a.abs().max(b.abs());
+    (a - b).abs() <= 64.0 * f64::EPSILON * scale
+}
+
+/// Validates and canonicalizes a position-dependent metric evaluation without
+/// allocating. Near-symmetric roundoff is replaced by the pairwise average.
+/// Positive definiteness is checked by the sampler's factorization, because this
+/// wrapper deliberately has no linear-algebra backend policy.
+///
+/// # Errors
+/// Returns size, shape, finite-output, symmetry, or original backend failures.
+pub fn evaluate_position_metric<M: PositionMetric + ?Sized>(
+    provider: &M,
+    position: &[f64],
+    metric: &mut [f64],
+    derivatives: &mut [f64],
+    workspace: &mut [f64],
+) -> Result<(), PositionMetricError<M::Error>> {
+    let dimension = provider.dimension();
+    let Some(matrix_len) = square_len(dimension) else {
+        return Err(PositionMetricError::SizeOverflow);
+    };
+    let Some(derivative_len) = matrix_len
+        .checked_mul(dimension)
+        .filter(|&len| len <= isize::MAX as usize / size_of::<f64>())
+    else {
+        return Err(PositionMetricError::SizeOverflow);
+    };
+    if position.len() != dimension
+        || metric.len() != matrix_len
+        || derivatives.len() != derivative_len
+        || workspace.len() != provider.workspace_len()
+    {
+        return Err(PositionMetricError::Dimension { dimension });
+    }
+    if let Some(index) = position.iter().position(|value| !value.is_finite()) {
+        return Err(PositionMetricError::NonFinitePosition { index });
+    }
+    metric.fill(f64::NAN);
+    derivatives.fill(f64::NAN);
+    workspace.fill(f64::NAN);
+    provider
+        .metric_and_derivatives(position, metric, derivatives, workspace)
+        .map_err(PositionMetricError::Backend)?;
+    if let Some(index) = metric.iter().position(|value| !value.is_finite()) {
+        return Err(PositionMetricError::NonFiniteMetric { index });
+    }
+    if let Some(index) = derivatives.iter().position(|value| !value.is_finite()) {
+        return Err(PositionMetricError::NonFiniteDerivative { index });
+    }
+    for row in 0..dimension {
+        for column in 0..row {
+            let lower = row * dimension + column;
+            let upper = column * dimension + row;
+            if !symmetric_pair(metric[lower], metric[upper]) {
+                return Err(PositionMetricError::AsymmetricMetric { row, column });
+            }
+            let average = 0.5 * (metric[lower] + metric[upper]);
+            metric[lower] = average;
+            metric[upper] = average;
+        }
+    }
+    for coordinate in 0..dimension {
+        let offset = coordinate * matrix_len;
+        for row in 0..dimension {
+            for column in 0..row {
+                let lower = offset + row * dimension + column;
+                let upper = offset + column * dimension + row;
+                if !symmetric_pair(derivatives[lower], derivatives[upper]) {
+                    return Err(PositionMetricError::AsymmetricDerivative {
+                        coordinate,
+                        row,
+                        column,
+                    });
+                }
+                let average = 0.5 * (derivatives[lower] + derivatives[upper]);
+                derivatives[lower] = average;
+                derivatives[upper] = average;
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Physical layout is a backend choice, independent of logical chain identity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BatchLayout {

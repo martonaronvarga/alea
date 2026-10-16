@@ -14,6 +14,7 @@ pub mod hmc;
 pub mod integrator;
 pub mod mams;
 pub mod nuts;
+pub mod riemannian;
 pub mod rwmh;
 mod trajectory_weight;
 pub mod walnuts;
@@ -38,6 +39,12 @@ pub use mams::{
     MamsDivergence, MamsError, MamsOptions, MamsTransition,
 };
 pub use nuts::{Nuts, NutsOptions, NutsTransition};
+pub use riemannian::{
+    FisherMetricConfigError, HierarchicalNormalFisherMetric, ImplicitSolveEvent, ImplicitStage,
+    LogisticFisherMetric, Rmhmc, RmhmcConfigError, RmhmcCosts, RmhmcError, RmhmcOptions,
+    RmhmcTermination, RmhmcTransition, SoftAbsConfigError, SoftAbsError, SoftAbsMetric,
+    SoftAbsOptions,
+};
 pub use rwmh::{Rwmh, RwmhOptions, RwmhTransition};
 pub use walnuts::{
     Walnuts, WalnutsConfigError, WalnutsError, WalnutsMicrostepDistribution, WalnutsOptions,

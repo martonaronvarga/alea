@@ -1,7 +1,11 @@
 #![cfg_attr(feature = "std-autodiff", feature(autodiff))]
 #[path = "../examples/support/models.rs"]
 mod fixtures;
-use alea_autodiff::gradient_check::{GradientCheckOptions, check_gradient};
+use alea_autodiff::{
+    autodiff::EnzymeManifoldModel,
+    gradient_check::{GradientCheckOptions, check_gradient},
+};
+use alea_core::capability::{HessianVector, PotentialHessianDerivative};
 use alea_core::model::{AnalyticModel, ConstrainedModel, TransformedTarget};
 use alea_core::target::{LogDensityGradient, evaluate};
 use alea_core::transform::{ParameterLayout, Transform};
@@ -140,6 +144,41 @@ fn diagnostics_reject_bad_configuration_and_detect_bad_gradients() {
             .unwrap()
             .passed()
     );
+}
+
+#[test]
+fn manifold_adapter_preserves_analytic_higher_order_operations() {
+    let model = EnzymeManifoldModel::new(
+        2,
+        |q: &[f64], gradient: &mut [f64], _: f64| {
+            gradient[0] -= q[0];
+            gradient[1] -= 2.0 * q[1];
+            -0.5 * q[0] * q[0] - q[1] * q[1]
+        },
+        |_: &[f64], vector: &[f64], output: &mut [f64]| {
+            output[0] = vector[0];
+            output[1] = 2.0 * vector[1];
+        },
+        |_: &[f64], hessian: &mut [f64], derivatives: &mut [f64]| {
+            hessian.copy_from_slice(&[1.0, 0.0, 0.0, 2.0]);
+            derivatives.fill(0.0);
+        },
+    );
+    let mut gradient = [0.0; 2];
+    assert!((model.logp_grad(&[0.3, -0.4], &mut gradient).unwrap() + 0.205).abs() < f64::EPSILON);
+    assert_eq!(gradient, [-0.3, 0.8]);
+    let mut product = [0.0; 2];
+    model
+        .potential_hvp(&[0.3, -0.4], &[2.0, 3.0], &mut product)
+        .unwrap();
+    assert_eq!(product, [2.0, 6.0]);
+    let mut hessian = [0.0; 4];
+    let mut derivatives = [1.0; 8];
+    model
+        .potential_hessian_and_derivatives(&[0.3, -0.4], &mut hessian, &mut derivatives)
+        .unwrap();
+    assert_eq!(hessian, [1.0, 0.0, 0.0, 2.0]);
+    assert_eq!(derivatives, [0.0; 8]);
 }
 
 #[test]

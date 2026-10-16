@@ -60,6 +60,58 @@ fn potential_hvp_sign_shapes_and_partial_outputs() {
         Err(HvpError::NonFiniteOutput { index: 1 })
     ));
 }
+
+struct RoundedMetric;
+impl PositionMetric for RoundedMetric {
+    type Error = Infallible;
+    fn dimension(&self) -> usize {
+        2
+    }
+    fn workspace_len(&self) -> usize {
+        3
+    }
+    fn metric_and_derivatives(
+        &self,
+        _: &[f64],
+        metric: &mut [f64],
+        derivatives: &mut [f64],
+        workspace: &mut [f64],
+    ) -> Result<(), Self::Error> {
+        metric.copy_from_slice(&[2.0, 0.25, 0.25 + f64::EPSILON, 3.0]);
+        derivatives.copy_from_slice(&[1.0, 0.5, 0.5, 0.0, 0.0, -0.2, -0.2, 1.0]);
+        workspace.fill(1.0);
+        Ok(())
+    }
+}
+
+#[test]
+fn position_metric_checks_shapes_and_canonicalizes_roundoff_symmetry() {
+    let mut metric = [0.0; 4];
+    let mut derivatives = [0.0; 8];
+    let mut workspace = [0.0; 3];
+    evaluate_position_metric(
+        &RoundedMetric,
+        &[0.1, -0.2],
+        &mut metric,
+        &mut derivatives,
+        &mut workspace,
+    )
+    .unwrap();
+    assert_eq!(metric[1].to_bits(), metric[2].to_bits());
+    assert_eq!(derivatives[5].to_bits(), derivatives[6].to_bits());
+    let before = metric;
+    assert!(
+        evaluate_position_metric(
+            &RoundedMetric,
+            &[0.1],
+            &mut metric,
+            &mut derivatives,
+            &mut workspace,
+        )
+        .is_err()
+    );
+    assert_eq!(metric, before);
+}
 #[test]
 fn batched_layouts_preserve_lane_identity_and_detect_partial_output() {
     for layout in [BatchLayout::ChainMajor, BatchLayout::CoordinateMajor] {

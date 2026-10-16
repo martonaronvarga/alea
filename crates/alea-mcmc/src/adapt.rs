@@ -4,6 +4,7 @@ mod chees;
 mod covariance;
 mod fisher;
 mod joint;
+mod manifold;
 mod pathfinder;
 mod step;
 mod transport;
@@ -26,6 +27,10 @@ pub use fisher::{
 };
 pub use joint::{
     JointHmcWarmup, JointWarmupError, JointWarmupOptions, JointWarmupReport, JointWarmupResult,
+};
+pub use manifold::{
+    FrozenManifoldParameters, ManifoldBayesTuner, ManifoldObservation, ManifoldTunerOptions,
+    ManifoldTuningError, RmhmcManifoldWarmup, wang_diminishing_probability,
 };
 pub use pathfinder::{
     MultiPathfinderOptions, PathfinderConfigError, PathfinderError, PathfinderReport,
