@@ -1,0 +1,508 @@
+{
+  "schema_version": 1,
+  "transitions": [
+    {
+      "path": "alea_mcmc::advanced::ForceGradientHmc",
+      "source": "crates/alea-mcmc/src/advanced.rs",
+      "guarantee": "exact_target",
+      "maturity": "S1",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "Each transition independently samples Gaussian momentum for the declared constant Euclidean metric."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "A fixed finite composition proposes one endpoint; any incomplete or nonfinite path has zero acceptance."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "Both analytic and shifted-force realizations use the symmetric five-stage composition with a signed reverse map."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "The analytic composition is symplectic and the Hessian-free realization is unit-volume in its declared map."
+        },
+        "selection": {
+          "status": "closed",
+          "claim": "Endpoint Hamiltonians enter the ordinary Metropolis correction with an explicit numerical cutoff."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Divergence rejects and target, metric, or derivative errors leave the coherent live point unchanged."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/src/advanced.rs",
+          "symbol": "force_gradient_variants_reverse_and_preserve_unit_volume"
+        }
+      ],
+      "promotion_gate": "Resolve the declared equal-force resonance failures and validate representative derivative workloads."
+    },
+    {
+      "path": "alea_mcmc::advanced::GaussianSplitHmc",
+      "source": "crates/alea-mcmc/src/advanced.rs",
+      "guarantee": "exact_target",
+      "maturity": "S1",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "Each transition independently samples identity-mass Gaussian momentum."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "The fixed split composition proposes one endpoint; incomplete or nonfinite paths are rejected."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "Residual half-kicks surround an exact diagonal Gaussian flow in a symmetric signed composition."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "Kick and exact harmonic-flow stages are each unit-volume."
+        },
+        "selection": {
+          "status": "closed",
+          "claim": "The full endpoint Hamiltonian enters the ordinary Metropolis correction."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Numerical rejection or backend failure never publishes the proposal cache."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/src/advanced.rs",
+          "symbol": "exact_gaussian_flow_matches_closed_orbit_and_reverses"
+        }
+      ],
+      "promotion_gate": "Add representative split-model evidence and a release-level capability contract."
+    },
+    {
+      "path": "alea_mcmc::advanced::SplitForceHmc",
+      "source": "crates/alea-mcmc/src/advanced.rs",
+      "guarantee": "exact_target",
+      "maturity": "S1",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "Each transition independently samples Gaussian momentum for the constant Euclidean metric."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "The bounded nested trajectory proposes one endpoint and rejects incomplete force evaluations."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "The cheap-force substeps and expensive-force half-kicks form a symmetric signed composition."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "Every kick and drift stage is a shear with unit phase-volume Jacobian."
+        },
+        "selection": {
+          "status": "closed",
+          "claim": "A full endpoint density and kinetic energy enter the ordinary Metropolis correction."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Partial cheap, expensive, or full evaluations cannot commit a proposal."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/m10_advanced.rs",
+          "symbol": "split_force_and_force_gradient_kernels_are_costed_and_stationary"
+        }
+      ],
+      "promotion_gate": "Validate representative split models and total cost beyond analytic fixtures."
+    },
+    {
+      "path": "alea_mcmc::chees::CheesHmc",
+      "source": "crates/alea-mcmc/src/chees.rs",
+      "guarantee": "exact_target",
+      "maturity": "S2",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "Each retained transition independently samples Gaussian momentum from the frozen constant metric."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "A frozen distribution samples a positive finite integration count before the fixed trajectory."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "Every supported count applies the same symmetric signed Euclidean integrator."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "The declared integrator is volume preserving and count randomization is independent of phase state."
+        },
+        "selection": {
+          "status": "closed",
+          "claim": "Endpoint Hamiltonians enter the ordinary Metropolis correction after the count is sampled."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Divergence rejects; backend errors leave the live point coherent and unmodified."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/src/chees.rs",
+          "symbol": "retained_kernel_randomizes_lengths_without_adaptation_state"
+        }
+      ]
+    },
+    {
+      "path": "alea_mcmc::ghmc::DrGhmc",
+      "source": "crates/alea-mcmc/src/ghmc.rs",
+      "guarantee": "exact_target",
+      "maturity": "S1",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "A validated Gaussian autoregressive refresh updates the explicit persistent momentum."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "Both bounded proposal stages and the reverse first-stage ghost map are executed explicitly."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "Each deterministic stage is a momentum-flipped involution built from a symmetric integrator."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "The stage maps are volume preserving and the Gaussian refresh preserves the extended target."
+        },
+        "selection": {
+          "status": "closed",
+          "claim": "Stage two includes the reverse-to-forward first-stage rejection probability ratio."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Failed actual or ghost maps reject and retain the prescribed negative refreshed momentum."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/src/ghmc.rs",
+          "symbol": "delayed_rejection_scalar_ratio_obeys_pairwise_balance_oracle"
+        }
+      ],
+      "promotion_gate": "Broaden delayed-rejection stationarity, tuning, and total-work validation."
+    },
+    {
+      "path": "alea_mcmc::ghmc::Ghmc",
+      "source": "crates/alea-mcmc/src/ghmc.rs",
+      "guarantee": "exact_target",
+      "maturity": "S1",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "A validated Gaussian autoregressive refresh updates the explicit persistent momentum."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "The fixed symmetric trajectory has the same forward and momentum-flipped reverse support."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "Integration plus momentum flip is an involution; the conventional outer flip preserves the GHMC convention."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "The integrator is volume preserving and the autoregressive refresh preserves Gaussian momentum density."
+        },
+        "selection": {
+          "status": "closed",
+          "claim": "Endpoint Hamiltonians enter the ordinary Metropolis correction."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Rejection stores negative refreshed momentum; backend failure publishes neither position nor momentum."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/src/ghmc.rs",
+          "symbol": "ghmc_numerical_rejection_keeps_negative_refreshed_momentum"
+        }
+      ],
+      "promotion_gate": "Broaden persistent-kernel stationarity, tuning, and held-out efficiency evidence."
+    },
+    {
+      "path": "alea_mcmc::hmc::Hmc",
+      "source": "crates/alea-mcmc/src/hmc.rs",
+      "guarantee": "exact_target",
+      "maturity": "S2",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "Each transition independently samples Gaussian momentum from the constant Euclidean metric."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "The fixed nonzero trajectory has matching forward and signed reverse support."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "The supported integrator is symmetric and reverses under signed step and momentum flip."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "The Euclidean integrator is a composition of unit-volume kick and drift maps."
+        },
+        "selection": {
+          "status": "closed",
+          "claim": "Endpoint Hamiltonians enter the ordinary Metropolis correction with numerical divergence rejection."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Rejection, divergence, backend error, or panic cannot publish a partial proposal cache."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/hmc_validation.rs",
+          "symbol": "full_transitions_match_independent_scalar_reference"
+        }
+      ]
+    },
+    {
+      "path": "alea_mcmc::mams::ApproximateMclmc",
+      "source": "crates/alea-mcmc/src/mams.rs",
+      "guarantee": "approximate_target",
+      "maturity": "S1",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "The chain carries a unit direction and optionally applies the declared angular refresh kernel."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "Construction and every transition expose an ApproximateTarget acknowledgement."
+        },
+        "reversibility": {
+          "status": "omitted_by_design",
+          "claim": "No exact finite-step involution claim is made for the unadjusted persistent-direction chain."
+        },
+        "volume_or_density": {
+          "status": "omitted_by_design",
+          "claim": "The noncanonical isokinetic correction is measured and reported but deliberately not applied."
+        },
+        "selection": {
+          "status": "omitted_by_design",
+          "claim": "There is no Metropolis acceptance step; finite-step bias is part of the declared guarantee."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Backend failure publishes neither the point nor the persistent direction."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/src/mams.rs",
+          "symbol": "unadjusted_kernel_requires_and_reports_approximate_marker"
+        }
+      ],
+      "promotion_gate": "Retain explicit approximate-target segregation and add broad finite-step bias characterization."
+    },
+    {
+      "path": "alea_mcmc::mams::Mams",
+      "source": "crates/alea-mcmc/src/mams.rs",
+      "guarantee": "exact_target",
+      "maturity": "S1",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "Each transition samples a fresh uniform unit direction independently of the position."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "The fixed isokinetic trajectory and velocity-reversed path have matching finite support."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "Analytic score kicks and drifts compose with an explicit terminal direction reversal."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "Each noncanonical kick contributes its analytic kinetic/Jacobian correction to the proposal ratio."
+        },
+        "selection": {
+          "status": "closed",
+          "claim": "Metropolis selection uses log-density change minus the accumulated isokinetic correction."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Numerical rejection or target failure leaves the coherent live point unchanged."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/src/mams.rs",
+          "symbol": "mams_recovers_standard_gaussian_first_two_moments"
+        }
+      ],
+      "promotion_gate": "Broaden diagnostics, tuning, and held-out efficiency beyond the present identity-mass fixtures."
+    },
+    {
+      "path": "alea_mcmc::nuts::Nuts",
+      "source": "crates/alea-mcmc/src/nuts.rs",
+      "guarantee": "exact_target",
+      "maturity": "S2",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "Each transition independently samples Gaussian momentum from the frozen constant metric."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "Random direction doubling uses the same bounded complete-step support in forward and reverse trees."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "Every tree edge uses the symmetric signed Euclidean integrator and velocity-based turning rule."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "Tree edges are unit-volume maps under the frozen Euclidean metric."
+        },
+        "selection": {
+          "status": "closed",
+          "claim": "Max-shifted multinomial weights preserve candidate multiplicity during progressive tree merges."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "A failed new subtree is discarded; no partial endpoint can corrupt the live point."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/nuts_sampling.rs",
+          "symbol": "four_targets_match_executed_stan_blackjax_and_nuts_rs"
+        }
+      ]
+    },
+    {
+      "path": "alea_mcmc::riemannian::Rmhmc",
+      "source": "crates/alea-mcmc/src/riemannian.rs",
+      "guarantee": "exactness_pending",
+      "maturity": "S1",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "Momentum is sampled from the position-dependent Gaussian metric and the Hamiltonian includes its log determinant."
+        },
+        "support": {
+          "status": "open",
+          "claim": "A bounded forward implicit solve does not establish that the reverse solve selects the same numerical branch."
+        },
+        "reversibility": {
+          "status": "open",
+          "claim": "Sampled signed-reversal regressions exist, but the production transition performs no per-proposal involution check."
+        },
+        "volume_or_density": {
+          "status": "open",
+          "claim": "Low-dimensional numerical Jacobian evidence does not close the finite-tolerance map assumption on adversarial metrics."
+        },
+        "selection": {
+          "status": "open",
+          "claim": "The current energy-only Metropolis correction is valid only if the open support, reversibility, and volume assumptions hold."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Forward implicit failure is a typed rejection and backend error cannot publish partial state."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/src/riemannian.rs",
+          "symbol": "generalized_leapfrog_signed_reversal_and_volume"
+        }
+      ],
+      "promotion_gate": "Enforce reverse support per proposal or derive another correction, then validate the implemented map adversarially."
+    },
+    {
+      "path": "alea_mcmc::rwmh::Rwmh",
+      "source": "crates/alea-mcmc/src/rwmh.rs",
+      "guarantee": "exact_target",
+      "maturity": "S2",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "Each transition samples an independent centered Gaussian random-walk increment."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "The finite positive-definite proposal scale gives identical forward and reverse support."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "Centered Gaussian translation has a symmetric forward/reverse proposal density."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "The translation Jacobian is one and the symmetric proposal-density terms cancel."
+        },
+        "selection": {
+          "status": "closed",
+          "claim": "Metropolis selection uses the target log-density difference."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Numerical rejection, backend error, or panic leaves the cached live point unchanged."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/rwmh.rs",
+          "symbol": "gaussian_moments_for_all_proposal_covariances"
+        }
+      ]
+    },
+    {
+      "path": "alea_mcmc::walnuts::Walnuts",
+      "source": "crates/alea-mcmc/src/walnuts.rs",
+      "guarantee": "exact_target",
+      "maturity": "S1",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "Each transition independently samples Gaussian momentum from the frozen constant metric."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "The bounded local-refinement construction explicitly discovers and replays reverse critical support."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "Every microtrajectory uses the signed reversible Euclidean leapfrog map."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "Leapfrog microsteps preserve phase volume; refinement changes selection mass rather than map Jacobian."
+        },
+        "selection": {
+          "status": "closed",
+          "claim": "Candidate weight includes Hamiltonian mass and the explicit reverse-to-forward refinement probability ratio."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Exhausted refinement or numerical failure stops support extension without committing partial state."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/src/walnuts/tests.rs",
+          "symbol": "randomized_two_point_distribution_has_the_published_support_and_ratio"
+        }
+      ],
+      "promotion_gate": "Close the recorded target-call and held-out efficiency gates before policy promotion."
+    }
+  ]
+}

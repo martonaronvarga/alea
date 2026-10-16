@@ -216,6 +216,16 @@ baseline. This makes additions, removals and signature changes reviewable, but i
 does not promote the recorded pre-alpha surface. Feature-specific snapshots and
 path-level maturity refinement for mixed facades remain open.
 
+[`tools/ci/exactness-ledger.json`](../tools/ci/exactness-ledger.json) separately
+records the finite-precision laws of every public default-feature `MarkovChain`.
+Its checker discovers transitions from the accepted API snapshot and requires
+refresh, support, reversibility, volume/proposal-density, selection/correction and
+failure claims plus executable evidence. An exact-target entry cannot carry an
+open or deliberately omitted law; an approximate transition must expose its
+omitted correction; an exactness-pending transition must retain an open law. The
+current 13-transition review is summarized in
+[`m13-exactness-audit.md`](m13-exactness-audit.md).
+
 ## Research re-entry gates
 
 Negative promotion reviews stay closed until a new protocol addresses the recorded

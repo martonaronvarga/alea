@@ -10,6 +10,8 @@ python3 tools/ci/maturity.py
 python3 tools/ci/test_maturity.py
 python3 tools/ci/public_api.py --validate
 python3 tools/ci/test_public_api.py
+python3 tools/ci/exactness.py
+python3 tools/ci/test_exactness.py
 python3 tools/fisher-reference/generate.py --check
 python3 tools/fisher-reference/upstream/adjudicate.py --check
 python3 tools/fisher-reference/upstream/test_adjudicate.py

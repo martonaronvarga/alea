@@ -1267,8 +1267,11 @@ the stable surface.
   implementations or implying semver stability. Additive `reference` facades and a
   downstream-style end-to-end test now cover this path; root research re-exports
   and supported feature combinations still require adjudication.
-- [ ] Audit exact/approximate claims for every transition and correction. Record
+- [~] Audit exact/approximate claims for every transition and correction. Record
   refresh, support, reversal/involution, volume/Jacobian, selection and failure laws.
+  The enforced implemented-map ledger now covers all 13 public default-feature
+  `MarkovChain` implementations and their selection/correction laws. Standalone
+  public proposal/integrator components and feature-specific surfaces remain.
 - [ ] Close the RMHMC reverse-support gate or relabel the current transition so it
   cannot be mistaken for an exact validated kernel.
 - [ ] Add reusable conformance suites for externally implementable target, metric,
