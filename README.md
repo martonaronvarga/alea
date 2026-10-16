@@ -74,7 +74,7 @@ opt-in after both declared performance suites failed promotion.
 [M8 alternatives](docs/m8-alternatives.md) add deterministic shared ChEES-HMC
 warmup, persistent and delayed-rejection GHMC, bounded ATLAS curvature probes,
 and separate exact MAMS/explicitly approximate MCLMC paths. They remain opt-in;
-RMHMC and particle algorithms remain planned. RWMH transitions are fixed-scale;
+particle algorithms remain planned. RWMH transitions are fixed-scale;
 explicit dual-averaging warmup retains the previous functionality.
 [M9 geometry](docs/m9-geometry.md) adds frozen low-rank affine targets,
 consuming warmup-only learning, block/sparse constant metrics and bounded
@@ -85,6 +85,15 @@ metric/step/two-stage warmup, exact and nested split flows, analytic and
 Hessian-free force-gradient experiments, and explicit transactional batched
 layouts. Its equal-force suite exposed fixed-trajectory resonance, so all M10
 paths remain opt-in and the reference covariance/leapfrog defaults are unchanged.
+[M11 Riemannian methods](docs/m11-riemannian.md) add a typed position-metric
+contract, generalized implicit leapfrog, selected Fisher metrics, dense SoftAbs,
+and consumed Wang-style manifold warmup. They remain research: the current
+finite-tolerance implicit transition does not yet enforce a per-proposal reverse/
+involution check, and the declared comparison also rejects default promotion
+because dense RMHMC remains much slower than Euclidean NUTS and ChEES-HMC.
+The [maturity and promotion policy](docs/maturity-and-promotion.md) distinguishes
+implemented research, validated components, release candidates, stable APIs and
+default selection. No Alea crate is stable yet.
 The [migration audit](docs/migration-audit.md) inventories retained behavior,
 test replacements and dormant research sources; CI guards the inventory.
 This is not yet a production inference engine.

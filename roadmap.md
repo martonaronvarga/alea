@@ -1,15 +1,15 @@
 # Alea: canonical engineering roadmap
 
 Status: active, pre-alpha<br>
-Last reviewed: 2026-09-30<br>
-Last milestone update: 2026-10-15 — M7 WALNUTS-D/R2P implemented and evaluated; not promoted<br>
-Last architecture update: 2026-09-30 — composable geometry/integration and optional target capabilities<br>
+Last reviewed: 2026-10-16<br>
+Last milestone update: 2026-10-16 — research/promotion audit; M11 exactness gate reopened; maturity milestones M13–M17 added<br>
+Last architecture update: 2026-10-16 — maturity/adoption states and per-crate graduation gates<br>
 Scope: architecture, correctness, numerical validation, performance, and implementation order
 
 This is the canonical roadmap for Alea. It replaces the earlier project plan. Keep it
 current as design decisions are accepted and milestones are completed.
 
-## Settled scope and execution order — 2026-09-30
+## Settled scope and execution order — reviewed 2026-10-16
 
 Alea is a **typed probabilistic modeling framework and composable inference library**.
 Multiple distributions, priors/likelihood composition, hierarchical models and
@@ -24,15 +24,16 @@ and stopping outside it. `Hmc<T,M,I>` is the current canonical implementation, n
 the final universal interface. WALNUTS belongs to step control/trajectory/correction;
 isokinetic dynamics do not masquerade as a different leapfrog coefficient.
 
-Next executable slices: robust initialization and independent Fisher validation;
-typed observations/weighted estimators/decaying scalar adapters; extraction of the
-existing HMC into tested engine components; reference NUTS; modern diagnostics and
-CPU runtime; WALNUTS. Interleave modeling B1/B2 and benchmark V1/V2 below—do not wait
-for every advanced sampler before providing ordinary model-building functionality.
+M4–M11 have now produced reference or research implementations. The next executable
+sequence is M13 exactness/public maturity boundaries, M14 B1/B2 modeling verticals,
+M15 turnkey sessions, M16 unified validation, and M17 per-crate release graduation.
+M12 particle inference begins after shared B1 support/event/batch semantics settle.
+Advanced sampler retuning is not the default work queue; each negative promotion
+decision has an explicit re-entry gate.
 
-Identity initialization is now the default; the single-score rule is explicitly
-experimental. Retained draws still use frozen adaptation. Diminishing adaptation
-and automatic stopping require separate theory, containment and diagnostic gates.
+Identity initialization is the default; the single-score rule is experimental.
+Retained draws still use frozen adaptation. Diminishing adaptation and automatic
+stopping require separate theory, containment and diagnostic gates.
 
 ## Updating this document
 
@@ -44,15 +45,46 @@ For every material change:
 4. Update `Last reviewed` after a whole-roadmap review.
 
 Task markers are `[ ]` planned, `[~]` in progress, `[x]` complete with evidence, and
-`[!]` blocked with the blocker stated. An algorithm is complete only when its correctness,
-numerical, statistical, and performance gates pass.
+`[!]` blocked with the blocker stated. A checked implementation task means its
+declared work/evidence is complete; it does not imply promotion. An algorithm is
+validated/promoted only when the applicable maturity gates below pass.
 
-## Current priority: stabilize the implemented baseline
+## Maturity and promotion model — 2026-10-16
 
-At the user's direction, new algorithms and engine abstraction work wait behind
-correctness hardening. Native modeling remains in scope; the next work is not a
-catalogue expansion. Preserve the reference HMC/covariance policy and all historical
-tests while closing the experimental Fisher/low-rank numerical gaps.
+Implementation, validation, API stability and default selection are separate
+decisions. Alea now uses the S0 design, S1 research, S2 validated, S3 release-
+candidate and S4 stable states defined in the
+[maturity and promotion policy](docs/maturity-and-promotion.md). Adoption is a
+separate label: reference, recommended, opt-in, approximate, or not exposed.
+
+No Alea crate is S4 today. The strongest baseline components are S2: core target
+and state contracts, transforms, Euclidean metric algebra, fixed HMC/RWMH,
+covariance warmup, multinomial NUTS, independent-chain runtime and modern
+diagnostics. They are validated within their documented scope, but the workspace
+is still `publish = false`, pre-alpha, and lacks the end-to-end modeling, release,
+portability and compatibility gates required for a stable public API.
+
+Research milestones may close with negative promotion decisions. Their checked
+implementation tasks remain historical evidence; their promotion gates remain
+open until a new predeclared protocol addresses the recorded failure. Exact-target
+claims additionally require the implemented floating-point proposal—not only the
+ideal equations—to satisfy its reversibility, volume/Jacobian and support
+assumptions. Approximate methods remain typed and reported separately.
+
+## Current priority: M13 exactness and public maturity boundaries
+
+Do not add another sampler family before the public surface is classified and
+exact/approximate claims match the implemented maps. Preserve the S2 covariance-
+NUTS reference, label research exports, add downstream conformance/API snapshots,
+and close or explicitly contain RMHMC's finite-tolerance reverse-support gap.
+Then deliver B1/B2 modeling verticals through the same validated reference path.
+
+## Completed baseline hardening and remaining performance assertions
+
+This completed sequence hardened Fisher/low-rank numerics and produced the negative
+M4F promotion decision. Preserve the reference HMC/covariance policy, historical
+failures and all regression evidence. Any new statistical performance assertion
+requires a new predeclared protocol.
 
 - [x] Reproduce f64 cancellation in accepted low-rank corrections; reject unsupported
   spectral/basis conditioning with a typed error instead of constructing singular
@@ -887,7 +919,7 @@ Gaussian, correlated Gaussian, logistic, banana, funnel, and Wiener targets.
 
 Exit gate passed locally on 2026-09-28: [M2 record](docs/m2-model-boundary.md).
 
-### M3 — correct Euclidean HMC
+### M3 — correct Euclidean HMC (implemented; S2 component)
 
 Goal: small, correct, allocation-free fixed-length HMC.
 
@@ -917,7 +949,7 @@ Exit gate passed locally on 2026-09-28 using BlackJAX:
 [M3 completion record](docs/m3-hmc-completion.md). No external speed ranking or
 universal mixing guarantee is implied. Modern diagnostics remain in M6.
 
-### M4 — step-size and metric adaptation
+### M4 — step-size and metric adaptation (implemented; S2 reference)
 
 Goal: validated covariance-only reference warmup (implemented).
 
@@ -971,7 +1003,7 @@ Full reduced fitting can cost O(d k^2 + k^3), k <= min(d, 2n). An output rank ca
 does not bound intermediate decomposition size. Bound n as well; introduce a
 sketch/randomized solver only with its own numerical and approximation gates.
 
-### M5 — multinomial NUTS
+### M5 — multinomial NUTS (implemented; S2 recommended kernel)
 
 Goal: classical multinomial NUTS as a correctness oracle, not the endpoint.
 
@@ -998,7 +1030,7 @@ warmup outputs convert without target evaluation or RNG consumption. Covariance
 defaults and M4F's experimental status remain unchanged. See `docs/nuts.md` and
 `tools/nuts-reference/README.md` for conventions, reproduction and limitations.
 
-### M6 — multi-chain runtime and diagnostics (implemented)
+### M6 — multi-chain runtime and diagnostics (implemented; S2 reference)
 
 Goal: deterministic parallel inference and trustworthy diagnostics.
 
@@ -1060,7 +1092,7 @@ reduces support stops, but is about 53% below Fisher NUTS minimum ESS/second on
 stochastic volatility while using 7.2x the calls. The negative promotion decision
 is unchanged. See [R2P completion evidence](docs/benchmarks/m7-r2p-protocol.md).
 
-### M8 — ChEES-HMC, GHMC and multiscale alternatives
+### M8 — ChEES-HMC, GHMC and multiscale alternatives (implemented; opt-in)
 
 Goal: ensemble-adapted static HMC as a NUTS alternative.
 
@@ -1089,7 +1121,7 @@ MCLMC are separate typed paths. On the declared four-target release run, ChEES h
 is not promoted as a broad speed claim, and every M8 kernel remains opt-in. See
 [M8 implementation and evidence](docs/m8-alternatives.md).
 
-### M9 — learned and structured geometry
+### M9 — learned and structured geometry (implemented; not promoted)
 
 - [x] Frozen invertible transport target with log-Jacobian/gradient tests.
 - [x] Warmup-only learning; prove retained draws never train the transform.
@@ -1114,7 +1146,7 @@ selected a worse point on this Gaussian. M9 closes with a negative promotion
 decision; all additions remain optional. See
 [M9 implementation and evidence](docs/m9-geometry.md).
 
-### M10 — advanced integration and accelerator research
+### M10 — advanced integration and accelerator research (implemented; not promoted)
 
 - [x] Joint geometry/step/coefficient warmup with epoch boundaries and final freeze.
 - [x] HVP-based curvature estimates, conservative stability bounds and s-AIA experiments.
@@ -1138,34 +1170,64 @@ fixed-trajectory resonance (maximum R-hat 1.0259 and 1.2112). The suite-wide exi
 gate is therefore negative and no M10 path is promoted. See
 [M10 implementation and evidence](docs/m10-advanced-integration.md).
 
-### M11 — Riemannian HMC and adaptive manifold methods
+### M11 — Riemannian HMC and adaptive manifold methods (S1 research)
 
 Goal: position-dependent geometry after Euclidean mechanics are proven.
 
-- [ ] Position-dependent metric contract.
-- [ ] Metric log determinant, inverse solve/action, and derivatives.
-- [ ] Generalized implicit leapfrog with bounded iterations and diagnostics.
-- [ ] Experimental SoftAbs Hessian metric.
-- [ ] Fisher metrics for selected model families.
-- [ ] Analytic/Enzyme Hessian-vector and metric-derivative operations.
-- [ ] Explicit events for failed implicit solves.
+- [x] Position-dependent metric contract.
+- [x] Metric log determinant, inverse solve/action, and derivatives.
+- [x] Research generalized implicit leapfrog with bounded forward iterations,
+  residual diagnostics and transactional rejection.
+- [x] Experimental SoftAbs Hessian metric.
+- [x] Fisher metrics for selected model families.
+- [x] Analytic/Enzyme Hessian-vector and metric-derivative operations.
+- [x] Explicit events for failed implicit solves.
+- [ ] Enforce numerical reverse support with a per-proposal momentum-flipped
+  involution/reversibility check, or derive and implement another valid correction.
+  A fixed forward residual does not establish that the reverse implicit solve
+  selects the same branch.
+- [ ] Validate the implemented proposal's volume/Jacobian assumption across
+  nonlinear metrics, multiple/no-solution cases, tolerances and iteration budgets.
+- [ ] Execute independent RMHMC references and broader stationarity/SBC suites on
+  logistic, hierarchical and funnel-like targets.
+- [ ] Validate generated second/third derivatives in the pinned Enzyme toolchain;
+  analytic callbacks alone do not close the generated-derivative gate.
+- [ ] Replace or bound explicit dense inverse/O(d^4) SoftAbs work and benchmark
+  scalar/Faer/BLAS paths with derivative, factorization and solve costs separated.
 
-Exit gate: reversibility and stationary-distribution tests pass; published logistic and
-hierarchical targets agree; costs separate derivatives, factorization, solves, and dynamics.
+Exit gate: the production numerical map enforces reverse support and its required
+volume/Jacobian property; independent published targets and SBC agree; costs
+separate derivatives, factorization, solves, reverse checks and dynamics. This
+gate is open.
 
 #### Adaptive manifold follow-up
 
 Goal: evaluate Wang et al. and later adaptations on validated RMHMC.
 
-- [ ] Independently reproduce relevant algorithms.
-- [ ] Separate warmup-only adaptation from valid transition mechanics.
-- [ ] Compare with Euclidean NUTS, ChEES-HMC, and base RMHMC.
-- [ ] Promote only methods with correctness and measured efficiency evidence.
+- [x] Implement a bounded warmup-only Wang-style finite-grid GP search.
+- [x] Separate warmup-only adaptation from valid transition mechanics.
+- [x] Compare with Euclidean NUTS, ChEES-HMC, and base RMHMC.
+- [x] Reject default promotion under the declared logistic comparison.
+- [ ] Re-run adaptation evidence only after the underlying RMHMC transition clears
+  exactness, using independently reproduced held-out paper targets and total cost.
 
 Exit gate: reproducible paper benchmarks, stationarity tests, and a written support/reject
 decision for each method.
 
-### M12 — SMC and particle MCMC
+October 16 review: the typed position-metric boundary, dense generalized leapfrog,
+selected analytic Fisher families, bounded SoftAbs and higher-order callback
+adapter are implemented as research paths. Existing one-dimensional reversal,
+numerical-Jacobian, derivative, stationary, failure and allocation tests remain
+useful but do not prove that every finite-tolerance implicit proposal is reversible:
+the production transition has no reverse-branch/involution check. The exact-target
+promotion gate is therefore open, consistent with the numerical issue described by
+Lelièvre, Santet and Stoltz. A consumed finite-grid Wang-style GP tuner preserves
+warmup-only adaptation. On the declared logistic comparison it improved fixed
+RMHMC mixing, but remained about 12 times slower than NUTS and 66 times slower
+than ChEES; all M11 samplers and adaptation remain S1 research opt-ins. See
+[M11 implementation and decision](docs/m11-riemannian.md).
+
+### M12 — SMC and particle MCMC (planned; S0 contracts only)
 
 Goal: state-space inference independent of Hamiltonian internals.
 
@@ -1178,6 +1240,137 @@ Goal: state-space inference independent of Hamiltonian internals.
 
 Exit gate: unbiased likelihood-estimator tests where applicable; agreement on analytically
 solvable linear-Gaussian models; resampling passes distributional/boundary tests.
+
+M12 remains independent of Hamiltonian research, but its public traits must be
+derived from working vertical slices rather than stabilized in their current
+three-trait placeholder form. Schedule its first filter after B1 event/batch/support
+semantics are settled so particle and ordinary modeling APIs do not diverge.
+
+### M13 — exactness audit and public maturity boundaries
+
+Goal: make supported reality visible in code and documentation before enlarging
+the stable surface.
+
+- [ ] Inventory every public item, Cargo feature and CLI command in a machine-readable
+  maturity ledger; CI rejects unlabeled or accidentally promoted research exports.
+- [ ] Define the initial stable/reference surface around fused targets, transforms,
+  Euclidean metrics, fixed HMC/RWMH, covariance warmup, NUTS and diagnostics.
+  Research remains accessible through explicit modules/features without duplicating
+  implementations or implying semver stability.
+- [ ] Audit exact/approximate claims for every transition and correction. Record
+  refresh, support, reversal/involution, volume/Jacobian, selection and failure laws.
+- [ ] Close the RMHMC reverse-support gate or relabel the current transition so it
+  cannot be mistaken for an exact validated kernel.
+- [ ] Add reusable conformance suites for externally implementable target, metric,
+  chain, sink and diagnostic-observable boundaries before unsealing more traits.
+- [ ] Add compile-fail tests for invalid ownership, adaptation-after-freeze,
+  incompatible correction/proposal and exact/approximate composition.
+- [ ] Baseline public API snapshots and semver checks; audit validated constructors,
+  `#[must_use]`, `#[non_exhaustive]`, standard traits, error sources and rustdoc laws.
+- [ ] Decide which current public modules remain internal before the first release;
+  do not preserve pre-alpha exposure solely for compatibility.
+
+Exit: every public export has an enforced maturity/adoption state, exactness claims
+match implemented numerical maps, downstream conformance projects compile, and an
+API diff is reviewable. This is an API-boundary milestone, not a sampler promotion.
+
+### M14 — complete native modeling and distribution verticals
+
+Goal: turn the validated target boundary into a usable probabilistic modeling API.
+
+- [ ] Complete B1 normalized-distribution, unnormalized-factor, support/event/batch
+  and optional sampling capability contracts.
+- [ ] Deliver Tier-1 distributions with checked parameters, tails/boundaries,
+  normalization, derivatives, RNG tests and allocation/performance records.
+- [ ] Complete B2 typed parameters, shared references, plates/reductions,
+  deterministic computations, priors/likelihoods and one-Jacobian lowering.
+- [ ] Add named dimensions/coordinates and block metadata that survive transforms,
+  output and structured-geometry selection without entering numerical hot loops.
+- [ ] Add prior/posterior prediction and generated quantities as separate workflows.
+- [ ] Deliver normal regression, hierarchical logistic and hierarchical DDM from
+  model construction through diagnostics and prediction, each checked against an
+  independently implemented analytic/external model.
+- [ ] Complete B3 multivariate/categorical/correlation-prior and stable finite-
+  mixture verticals only after the same per-distribution gates pass.
+
+Exit: fresh downstream code builds the three examples without repository-private
+helpers; analytic/finite-difference/Enzyme derivatives agree where supported;
+simulation-based calibration and predictive checks pass their predeclared suites.
+
+### M15 — turnkey inference sessions and durable runtime semantics
+
+Goal: one mature user workflow over the S2 reference components without hiding
+the underlying numerical policy.
+
+- [ ] Add a validated session builder for model/target, initialization, covariance
+  warmup, NUTS or fixed HMC/RWMH, chains, seed, retained budget, observables, sinks,
+  diagnostics and cancellation.
+- [ ] Return a typed run outcome that distinguishes success, diagnostic warning,
+  user cancellation, numerical exhaustion and backend failure while retaining all
+  valid completed draws and provenance.
+- [ ] Define versioned owned output separate from borrowed hot-path records; support
+  bounded streaming and non-overwriting durable sinks.
+- [ ] Specify checkpoint/restart for chain point, RNG, frozen geometry and run phase,
+  or explicitly reject unsupported mid-warmup checkpoints. Verify replay scope.
+- [ ] Exercise backpressure, subscriber loss, observer panic, worker failure,
+  cancellation races, shutdown/join and long-run bounded memory.
+- [ ] Make resource budgets explicit: chains, threads, tree depth, warmup windows,
+  diagnostic windows, output storage and wall-clock cancellation.
+- [ ] Keep Rayon pools caller-owned and Tokio outside numerical loops; libraries
+  emit structured events but never install a subscriber.
+
+Exit: the same session API runs sequential/Rayon, streaming/collected and
+cancelled/resumed reference inference with documented deterministic boundaries,
+bounded resources and no hidden adaptation.
+
+### M16 — reproducible validation, calibration and performance service
+
+Goal: replace bespoke milestone CSVs with one falsifiable experiment system.
+
+- [ ] Complete V1/V2 machine-readable manifests/results with source/toolchain/data
+  hashes, model measure, policy, seeds, hardware/threading, actual work counters,
+  cold/warmup/retained time, peak RSS and failure records.
+- [ ] Build `alea-bench` on the manifest library; subprocess isolation separates
+  JIT/compiler/process startup from retained execution and prevents RSS contamination.
+- [ ] Version controlled, pathological and representative target corpora, including
+  hierarchical, stochastic-volatility, latent Gaussian, Wiener/DDM and selected
+  PosteriorDB models with tuning and held-out partitions.
+- [ ] Add simulation-based calibration and predictive validation for generative
+  model verticals; preserve rank/ESS/R-hat as necessary, not sufficient, evidence.
+- [ ] Run matched Stan, BlackJAX/JAX, nuts-rs/nutpie and relevant reference tools
+  under explicit differences in adaptation, precision, JIT and process accounting.
+- [ ] Add multi-host performance tracking with uncertainty/regression bands and
+  separate correctness CI from noisy hardware alerts.
+- [ ] Generate a promotion report from the ledger and artifacts; thresholds and
+  excluded claims are part of the manifest and cannot be edited after results.
+
+Exit: a second user can regenerate a complete report from one manifest; deliberately
+wrong gradients, biased/stuck chains, schema drift and lost failures are detected;
+no promotion relies on an untracked `/tmp` artifact.
+
+### M17 — release engineering and stable API graduation
+
+Goal: graduate each crate independently from S2 through S3 to S4 rather than
+declaring the whole workspace mature at once.
+
+- [ ] Complete Cargo metadata, licenses, feature documentation, MSRV policy,
+  platform/CPU support matrix and reproducible signed source artifacts.
+- [ ] Enforce `missing_docs` and runnable fresh-project examples for the intended
+  stable surface; document errors, panics, safety, determinism and resource costs.
+- [ ] Run Linux/macOS/Windows and supported-architecture CI, MSRV, stable/nightly
+  features, Miri, native FFI sanitizers, fuzz/property suites and operational soaks.
+- [ ] Stabilize pure-Rust core/math/reference-MCMC APIs first; graduate optional
+  Enzyme, native FFI and research algorithms on their own evidence schedules.
+- [ ] Implement the versioned compiled-target ABI only with two real consumers,
+  ownership/panic/version negotiation tests and an explicit compatibility policy.
+- [ ] Publish migration guides, deprecation and bug/security reporting policies;
+  run automated API/semver checks for every release candidate.
+- [ ] Complete at least one S3 release cycle without unresolved correctness,
+  unsoundness, data-loss or schema-compatibility defects before any 1.0/S4 claim.
+
+Exit: each published crate states its own S4 surface and compatibility window;
+research APIs cannot be imported accidentally as stable defaults; fresh downstream
+projects reproduce documented inference workflows and release artifacts.
 
 ## Validation suite
 
@@ -1203,9 +1396,11 @@ they are never differentiated as continuous parameters. Details: [settled plan](
 
 ### V1/V2 — comparable experiments and diagnostic validation
 
-- [ ] Versioned machine-readable experiment manifest/results, fixed target corpus,
+- [~] Versioned machine-readable experiment manifest/results, fixed target corpus,
   exact evaluation counters, separate warmup/retained timings and memory/allocation scope.
-- [ ] Independent diagnostic fixtures and deliberate failure cases before automatic stopping.
+- [x] Independent modern-diagnostic fixtures and deliberate stuck/shifted/ragged/
+  nonfinite failure cases exist for M6; model-level SBC and the unified experiment
+  manifest remain open.
 - [ ] Predeclared workload, uncertainty, failure-rate and promotion thresholds.
 - [ ] `alea-bench` CLI after the manifest/library contracts exist; do not expose
   sampler choices that have no implementation.
@@ -1285,7 +1480,12 @@ PGO and native CPU flags only after the portable path is stable.
 - nuts-rs: <https://github.com/pymc-devs/nuts-rs>
 - ChEES-HMC: <https://proceedings.mlr.press/v130/hoffman21a.html>
 - Girolami-Calderhead RMHMC: <https://arxiv.org/abs/0907.1100>
+- Numerical reversibility checks for nonseparable HMC: <https://arxiv.org/abs/2303.15918>
+- RMHMC finite-tolerance study: <https://arxiv.org/abs/2111.09995>
 - Wang et al. (2013): <https://proceedings.mlr.press/v28/wang13e.pdf>
+- Pathfinder: <https://jmlr.org/papers/v23/21-0889.html>
+- Pareto-smoothed importance sampling: <https://www.jmlr.org/papers/v25/19-556.html>
+- Simulation-based calibration: <https://mc-stan.org/docs/stan-users-guide/simulation-based-calibration.html>
 
 ### Autodiff and transformation architecture
 
@@ -1345,6 +1545,8 @@ PGO and native CPU flags only after the portable path is stable.
 | 2026-09-30 | Keep native distributions and typed modeling first-class alongside the composable inference engine; defer a separate textual language, not modeling itself. | accepted; B1/B2/B3 and settled plan |
 | 2026-09-30 | Extract dynamics, step control, trajectory and correction from the tested HMC; do not force WALNUTS or isokinetic dynamics into a coefficient-only integrator. | accepted; A3/A4/A6 |
 | 2026-09-30 | Require independently validated diagnostics before automatic stopping; keep retained adaptation frozen until stronger adaptive-MCMC gates pass. | accepted; A2/V2/A5 |
+| 2026-10-16 | Separate implementation, validation, API stability and default selection. Record maturity and adoption independently; a completed negative experiment does not promote a method. | accepted; maturity policy and M13–M17 |
+| 2026-10-16 | Reopen the RMHMC exactness gate: a bounded forward implicit residual and sampled reversal test do not guarantee reverse-branch support for every proposal. Require a runtime involution check or another derived correction before exact-target promotion. | open M11/M13 gate |
 
 ## Immediate next actions
 
@@ -1352,15 +1554,18 @@ Use the breaking architecture and APIs in [docs/architecture.md](docs/architectu
 Do not reintroduce old crate paths, mutable-state compatibility APIs or duplicate
 samplers while implementing subsequent milestones.
 
-1. M4F's evidence and promotion review are complete. Preserve its experimental
-   status and the covariance reference unless a new predeclared protocol clears
-   the retained modern-diagnostic failure and efficiency concerns.
-2. M7 WALNUTS is implemented but did not clear its suite-wide performance exit.
-   Preserve the stronger full-range/reverse-support contract; retune only under a
-   new declared protocol, not against the existing seeds.
-3. M5 reference NUTS and M6 independent CPU chains/modern diagnostics are complete.
-   Preserve window-local monitoring semantics and independent diagnostic fixtures.
-4. Defer accelerator runtime and general RMHMC as ordered above; pursue M8 only
-   with its own reference, correctness and total-cost gates.
-5. Keep the Enzyme backend optional, extend its real-model coverage, and implement
-   external targets against the versioned ABI design only when that backend is scheduled.
+1. Execute M13 first: inventory the public surface, enforce maturity labels and
+   exact/approximate guarantees, and close or explicitly contain the RMHMC
+   reverse-support gap. Do not call M11 exact before that gate passes.
+2. Preserve covariance warmup and multinomial NUTS as the S2 reference path.
+   M4F, M7 and M8–M11 remain opt-in under their recorded negative or incomplete
+   promotion reviews; new claims require new predeclared held-out protocols.
+3. Deliver M14 B1/B2 vertical slices so Alea becomes usable as a modeling framework,
+   not only a collection of target-bound kernels. Keep Enzyme optional and validate
+   every advertised derivative order in its pinned executable toolchain.
+4. Build M15's session/runtime surface only over validated reference components,
+   then consolidate existing benchmark scripts into M16 manifests and model-level SBC.
+5. Implement M12 particle inference after shared support/event/batch semantics settle.
+   Derive its public traits from working filters rather than freezing placeholders.
+6. Attempt M17/S3 release graduation crate by crate. Implement the compiled-target
+   ABI only when two real consumers and version-negotiation tests justify it.

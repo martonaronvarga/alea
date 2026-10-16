@@ -1,14 +1,17 @@
 # Alea: settled product, architecture and implementation plan
 
-2026-09-30. Canonical decisions linked from [roadmap.md](../roadmap.md).
+Originally settled 2026-09-30; maturity review 2026-10-16. Canonical decisions
+are linked from [roadmap.md](../roadmap.md).
 Scope confirmed by the user: **a modeling framework with several distributions,
 not only an inference engine**. Implementation status remains explicit; this
 document does not claim that the future traits/algorithms already exist.
 
-Execution-priority update: stabilize the existing baseline before A2/A3 or new
-features. Close the numerical, rollback and independent-reference gates in A1;
-keep new optimizers, engines and algorithms deferred. See the
-[baseline hardening record](baseline-hardening.md). The product scope below is unchanged.
+Execution-priority update: M4–M11 research implementations now exist, but most
+advanced methods failed or have not cleared promotion. The next work is the M13
+exactness/public-surface audit, then B1/B2 modeling verticals and a stable session
+workflow—not another broad algorithm expansion. The
+[maturity and promotion policy](maturity-and-promotion.md) defines S0–S4 and the
+gates used below. The product scope is unchanged.
 
 ## 1. Product identity and limits
 
@@ -230,24 +233,25 @@ log-CDF/quantile/reparameterized sampling are optional explicit capabilities.
 
 ## 5. Concrete implementation slices and dependencies
 
-| Slice | Files/area | Exit gate |
+| Slice | Current result | Remaining exit gate |
 |---|---|---|
-| A0 current handoff | M4, capability, metric, splitting files | reference warmup, backend/Miri/AD checks; Fisher remains experimental |
-| A1 Fisher hardening | `adapt/fisher`, math fit, reference tools | pinned nuts-rs traces, extreme/rank-deficient cases, tail-initialization experiments |
-| A2 adaptive policies | MCMC adaptation modules | weighted batch oracle, transactional scalar optimizers, decaying schedules, freeze tests |
-| A3 transition extraction | `hmc`, `hamiltonian`, new focused engine modules | same fixed-HMC references/statistics; compile-fail incompatible proposals; no hot allocation |
-| B1 native distributions | core contracts + distributions | distribution-specific numerical/derivative tests and benchmarks |
-| B2 typed models | core model/layout + examples | same density/gradient as independent models; no duplicate Jacobians or mutable aliases |
-| V1 experiment artifacts | runtime/CLI + reference tools | deterministic manifest replay and audited actual evaluation counters |
-| A4 reference NUTS (M5) | trajectory/selection modules | Stan/BlackJAX/nuts-rs oracles, bounded tree storage, no candidate internal stages |
-| V2 + A5 (M6) | diagnostics + runtime | independent rank-normalized diagnostics, reproducible CPU chains, fault fixtures |
-| A6 WALNUTS (M7) | controller/trajectory/correction | published reverse-construction tests and multiscale benchmark evidence |
+| A0–A3 reference mechanics/adaptation | S2 core/HMC/covariance; Fisher S1 | Preserve reference behavior; enforce public maturity and exact/approximate boundaries in M13. |
+| A4 reference NUTS (M5) | S2 with independent Stan/BlackJAX/nuts-rs evidence | Turnkey model/session, SBC, portability, downstream and API-release gates. |
+| A5 runtime/diagnostics (M6) | S2 bounded CPU runtime and modern diagnostics | Durable output/restart, operational soak, platform and compatibility gates. |
+| A6 WALNUTS (M7) | Correct opt-in implementation; negative performance promotion | New predeclared held-out efficiency protocol only; preserve reverse construction. |
+| A7 alternatives/geometry/integration (M8–M10) | Research/validated components; no default promotions | Method-specific re-entry gates in the maturity policy; no suite result promotes unrelated methods. |
+| A8 Riemannian methods (M11) | S1 research | Numerical reverse-support/involution, volume/Jacobian, independent reference, derivative and total-cost gates. |
+| B1/B2/B3 modeling | Foundations only | M14 distribution/model verticals, predictions, independent models and SBC. |
+| V1/V2 validation | Diagnostics and many bespoke artifacts exist | M16 unified immutable manifests, held-out corpus, SBC and reproducible reports. |
+| R1 public surface | Not started | M13 maturity ledger, conformance/compile-fail/API snapshots and exactness audit. |
+| R2 session/runtime | Not started | M15 end-to-end builder, durable outcomes, checkpoint policy and bounded operations. |
+| R3 release | Pre-alpha, `publish = false` | M17 per-crate S3 cycle, semver/MSRV/platform/docs/artifact gates. |
 
-Ordering: A1 → A2 → A3 → A4 → A5 → A6. Deliver B1 and V1 alongside A1–A3,
-B2 alongside A4–A5; B3 follows validated B1/B2. If resources are serial, alternate
-small vertical slices rather than deferring all modeling until WALNUTS finishes.
-Do not implement the nine-component abstraction ahead of extracting and testing
-the existing canonical case. No backwards-compatibility aliases are required.
+Ordering from the current state is M13 → M14 → M15 → M16 → M17, with M12 SMC
+beginning after shared B1 support/event/batch semantics settle. Small vertical
+slices are preferred to a repository-wide framework rewrite. Do not implement the
+nine-component abstraction ahead of extracting it from concrete validated uses;
+do not retain pre-alpha public exposure merely for backwards compatibility.
 
 Modern diagnostics precede automatic stopping and performance promotion. Publish
 latest-only immutable summaries to a separate monitor; sampler workers never wait
@@ -257,10 +261,12 @@ have independent references or be rejected rather than silently truncated/reweig
 Stein score/moment summaries are optional diagnostics only: integration-by-parts
 boundary conditions and finite moments must hold for the target.
 
-ChEES/GHMC, DR-G-HMC, ATLAS and MAMS follow the proven interfaces. Transports,
-sparse/block geometry, Pathfinder and advanced splitting follow their roadmap gates.
-RMHMC and accelerator FSM execution remain later; the native modeling framework
-does not depend on either. The compiled target ABI is designed but not implemented.
+ChEES/GHMC, DR-G-HMC, ATLAS, MAMS, transports, sparse/block geometry, Pathfinder,
+advanced splitting and RMHMC now have research implementations of differing scope.
+None is a dependency of the native modeling framework, and none becomes stable by
+being publicly exported. The current RMHMC proposal has an open finite-tolerance
+reverse-support gate. Accelerator execution and the compiled target ABI remain
+unimplemented; the ABI requires two real consumers before its surface is frozen.
 
 ## 6. Benchmark protocol and falsifiable success
 
