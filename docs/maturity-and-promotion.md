@@ -183,33 +183,36 @@ of the underlying algorithms.
 ## Machine-readable enforcement
 
 [`tools/ci/maturity-ledger.json`](../tools/ci/maturity-ledger.json) is the
-executable counterpart to this policy. Its first M13 slice records an exact entry
-for every source module containing an unrestricted public declaration, every
-explicit Cargo feature and every Cargo binary. Each entry names a reusable profile
-that fixes maturity, adoption and target-guarantee vocabulary. Research entries
-also retain a concrete promotion blocker; CI rejects assigning a validated profile
-while that blocker remains.
+executable counterpart to this policy. It records an exact entry for every source
+module containing an unrestricted public declaration, every named public API
+namespace, every explicit Cargo feature and every Cargo binary. Each entry names a
+reusable profile that fixes maturity, adoption and target-guarantee vocabulary.
+Research entries also retain a concrete promotion blocker; CI rejects assigning a
+validated profile while that blocker remains.
 
 [`tools/ci/maturity.py`](../tools/ci/maturity.py) discovers the live workspace
-surface instead of trusting ledger cardinalities. A new public module, feature or
-binary therefore fails CI until it is classified, while a stale ledger entry fails
-after removal. It also prevents design-only contracts from being adopted,
+surface instead of trusting ledger cardinalities. A new public module, named
+reference namespace, feature or binary therefore fails CI until it is classified,
+while a stale ledger entry fails after removal. It also prevents design-only
+contracts from being adopted,
 approximate-target mechanisms from using an exact-looking adoption state,
 exactness-pending mechanisms from moving above S1, and S3/S4 claims before the
 release-candidate policy is deliberately opened. Mutation tests exercise those
 failure modes.
 
-This is module-level inheritance, not yet the final public-item audit. Mixed files
-and crate facades are assigned the lowest defensible state and remain behind an
-open promotion gate. M13 still needs path-level overrides or module separation,
+Source files still use module-level inheritance rather than final public-item
+classification. The additive `reference` facades provide the first narrower path
+boundary, while mixed root facades retain the lowest defensible state and an open
+promotion gate. M13 still needs research/approximate path refinement,
 exactness-law records, compile-fail conformance cases and accepted compatibility
 decisions before the inventory task can be marked complete.
 
 The first item-level compatibility baseline is recorded in
 [`m13-api-boundary.md`](m13-api-boundary.md). The pinned nightly CI row regenerates
-5,057 reachable default-feature entries across all eight library crates with
-`cargo-public-api`; every other row verifies the committed files, counts and
-digests. This makes additions, removals and signature changes reviewable, but it
+the current 6,089 reachable default-feature entries across all eight library crates
+with `cargo-public-api`; every other row verifies the committed files, counts and
+digests. The initial 5,057-entry inventory remains documented as the pre-boundary
+baseline. This makes additions, removals and signature changes reviewable, but it
 does not promote the recorded pre-alpha surface. Feature-specific snapshots and
 path-level maturity refinement for mixed facades remain open.
 

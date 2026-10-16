@@ -54,6 +54,27 @@ reference boundary around fixed HMC/RWMH, covariance warmup, NUTS and their requ
 Hamiltonian/configuration types. WALNUTS, Fisher fitting, learned geometry, advanced
 integration, M8 alternatives and RMHMC must remain explicitly research or opt-in.
 
+## Additive reference namespace
+
+The first boundary refinement adds `reference` facades to `alea-core`, `alea-math`,
+`alea-mcmc` and `alea-runtime`. They compose the existing fused target and transform
+contracts, constant Euclidean metrics, exact-target HMC/RWMH/NUTS kernels, finite
+covariance warmup, draw collection and classical diagnostics. They are aliases of
+the existing implementations, not forks with independent numerical behavior.
+
+The accepted baseline now contains 6,089 rendered entries: 661 for `alea-core`,
+459 for `alea-math`, 3,775 for `alea-mcmc`, and 414 for `alea-runtime`, with the
+other crate counts unchanged. Of these, 267 entries have a named `reference` path.
+The 1,032-line increase is larger because rustdoc expands reachable inherent and
+trait implementations through each alias; it does not represent duplicate
+implementations.
+
+These S2 facades remain pre-release and make no semver promise. The MCMC reference
+facade deliberately excludes Fisher fitting, WALNUTS policy, learned geometry,
+advanced integration, M8 alternatives, approximate MCLMC and RMHMC. Root exports
+remain available for compatibility during M13, but retain their more conservative
+module-level maturity classifications.
+
 ## Limits and next review
 
 This baseline uses no default features. Feature declarations themselves are already
@@ -65,8 +86,8 @@ The baseline detects additions, removals and rendered signature/implementation
 changes. It does not decide whether a difference is semver-compatible, correctly
 documented or mature. The next M13 review must:
 
-- associate the reachable paths in mixed facades with explicit reference/research/
-  approximate boundaries;
+- finish associating paths outside the new reference facades with explicit research
+  or approximate boundaries;
 - decide which root re-exports become internal or move behind deliberate modules;
 - audit validated constructors, `#[must_use]`, `#[non_exhaustive]`, standard traits,
   error sources and rustdoc laws;

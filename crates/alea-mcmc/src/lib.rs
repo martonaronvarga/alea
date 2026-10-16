@@ -60,3 +60,26 @@ pub trait MarkovChain {
     fn step<R: rand::Rng + ?Sized>(&mut self, rng: &mut R)
     -> Result<Self::Transition, Self::Error>;
 }
+
+/// Validated exact-target kernels and finite warmup used by the reference path.
+///
+/// This namespace is intentionally narrower than the crate root. In particular it
+/// excludes Fisher fitting, WALNUTS policy, learned geometry, alternative dynamics,
+/// approximate MCLMC, advanced integration, and Riemannian research. The aliases
+/// share the existing implementations and carry no separate numerical behavior.
+pub mod reference {
+    pub use crate::MarkovChain;
+    pub use crate::adapt::{
+        AdaptationError, CovarianceError, DualAveraging, HmcWarmup, HmcWarmupReport,
+        HmcWarmupResult, MetricKind, OnlineCovariance, SearchOptions, SearchResult,
+        WarmupConfigError, WarmupError, WarmupMetric, WarmupOptions, WarmupStage, WarmupSummary,
+        WindowSchedule, find_reasonable_step_size, warmup_rwmh,
+    };
+    pub use crate::config::{AcceptanceTarget, SamplerConfigError, TreeDepth};
+    pub use crate::hamiltonian::Divergence;
+    pub use crate::hmc::{Hmc, HmcConfigError, HmcError, HmcOptions, HmcTransition, StepSize};
+    pub use crate::nuts::{
+        Nuts, NutsConfigError, NutsError, NutsOptions, NutsTermination, NutsTransition,
+    };
+    pub use crate::rwmh::{NumericalRejection, Rwmh, RwmhError, RwmhOptions, RwmhTransition};
+}

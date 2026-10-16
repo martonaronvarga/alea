@@ -18,8 +18,8 @@
     },
     "alea-core": {
       "file": "alea-core.txt",
-      "items": 483,
-      "sha256": "85db92d365e815f52b6afe433062e3d8d1bf7357f79fef7fe12f8aea71f0147a"
+      "items": 661,
+      "sha256": "2b61f9140fb2267d62ee9d336eb48e7d03d80ce2debe5da86328fb888a5de60a"
     },
     "alea-distributions": {
       "file": "alea-distributions.txt",
@@ -33,18 +33,18 @@
     },
     "alea-math": {
       "file": "alea-math.txt",
-      "items": 313,
-      "sha256": "9ceb07c66dea8c246655625c00d4e47c1548f52c0a6e79d266bc3b27cd4eada1"
+      "items": 459,
+      "sha256": "26567ace955d0725b0fb07887f7f540512ec1ec5f46f9d285c9f9d41f5fdf14f"
     },
     "alea-mcmc": {
       "file": "alea-mcmc.txt",
-      "items": 3144,
-      "sha256": "c746a65be961a63b0b114f9a72cd506e810d73da8415038a2cbd7e3879632f02"
+      "items": 3775,
+      "sha256": "2d4da4787159157adda5e74d17995bc5d7b756f58d93853006056a2603e2ae96"
     },
     "alea-runtime": {
       "file": "alea-runtime.txt",
-      "items": 337,
-      "sha256": "9fb9713a64a47c385487c497f57b34adc9efec6ef1ca02740adbe9141886f9d1"
+      "items": 414,
+      "sha256": "dcfda85c35df14971c5d29137212634ad300b1b2a888b2bddb07694d7f651847"
     },
     "alea-smc": {
       "file": "alea-smc.txt",

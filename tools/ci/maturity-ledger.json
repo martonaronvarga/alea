@@ -76,6 +76,12 @@
       "guarantee": "component",
       "rationale": "The component is validated in its declared scope and anchors the reference path."
     },
+    "validated_reference_mixed": {
+      "maturity": "S2",
+      "adoption": "reference",
+      "guarantee": "mixed",
+      "rationale": "The facade composes validated reference components and exact-target kernels without exposing research mechanisms."
+    },
     "validated_utility_opt_in": {
       "maturity": "S2",
       "adoption": "opt_in",
@@ -490,6 +496,32 @@
       "profile": "design_contract",
       "summary": "Particle-system traits without a complete inference implementation.",
       "promotion_gate": "Implement resampling, filtering, estimation, and PMCMC verticals before exposure."
+    }
+  ],
+  "api_namespaces": [
+    {
+      "crate": "alea-core",
+      "path": "alea_core::reference",
+      "profile": "validated_component_reference",
+      "summary": "Validated fused target, density, and transform contracts for reference inference."
+    },
+    {
+      "crate": "alea-math",
+      "path": "alea_math::reference",
+      "profile": "validated_component_reference",
+      "summary": "Validated storage and constant Euclidean metric algebra for reference inference."
+    },
+    {
+      "crate": "alea-mcmc",
+      "path": "alea_mcmc::reference",
+      "profile": "validated_reference_mixed",
+      "summary": "Validated exact-target HMC, RWMH, NUTS and finite covariance warmup reference path."
+    },
+    {
+      "crate": "alea-runtime",
+      "path": "alea_runtime::reference",
+      "profile": "validated_component_reference",
+      "summary": "Validated draw collection and diagnostic utilities for reference inference."
     }
   ],
   "cargo_features": [

@@ -311,3 +311,149 @@ pub fn alea_math::random::NormalGenerator::default() -> alea_math::random::Norma
 impl core::fmt::Debug for alea_math::random::NormalGenerator
 pub fn alea_math::random::NormalGenerator::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn alea_math::random::standard_normal<R: rand_core::Rng + ?core::marker::Sized>(rng: &mut R) -> f64
+pub mod alea_math::reference
+#[non_exhaustive] pub enum alea_math::reference::MetricError
+pub alea_math::reference::MetricError::DimensionOverflow
+pub alea_math::reference::MetricError::DimensionOverflow::dim: usize
+pub alea_math::reference::MetricError::IllConditionedCorrection
+pub alea_math::reference::MetricError::InvalidBasis
+pub alea_math::reference::MetricError::InvalidDiagonal
+pub alea_math::reference::MetricError::InvalidDiagonal::index: usize
+pub alea_math::reference::MetricError::InvalidSparseStructure
+pub alea_math::reference::MetricError::NonFiniteFactor
+pub alea_math::reference::MetricError::NonFiniteFactor::column: usize
+pub alea_math::reference::MetricError::NonFiniteFactor::row: usize
+pub alea_math::reference::MetricError::NonZeroUpperTriangle
+pub alea_math::reference::MetricError::NonZeroUpperTriangle::column: usize
+pub alea_math::reference::MetricError::NonZeroUpperTriangle::row: usize
+pub alea_math::reference::MetricError::StorageLength
+pub alea_math::reference::MetricError::StorageLength::actual: usize
+pub alea_math::reference::MetricError::StorageLength::expected: usize
+pub alea_math::reference::MetricError::VectorLength
+pub alea_math::reference::MetricError::VectorLength::destination_len: usize
+pub alea_math::reference::MetricError::VectorLength::expected: usize
+pub alea_math::reference::MetricError::VectorLength::source_len: usize
+impl core::clone::Clone for alea_math::metric::MetricError
+pub fn alea_math::metric::MetricError::clone(&self) -> alea_math::metric::MetricError
+impl core::cmp::Eq for alea_math::metric::MetricError
+impl core::cmp::PartialEq for alea_math::metric::MetricError
+pub fn alea_math::metric::MetricError::eq(&self, other: &alea_math::metric::MetricError) -> bool
+impl core::error::Error for alea_math::metric::MetricError
+impl core::fmt::Debug for alea_math::metric::MetricError
+pub fn alea_math::metric::MetricError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_math::metric::MetricError
+pub fn alea_math::metric::MetricError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::metric::MetricError
+impl core::marker::StructuralPartialEq for alea_math::metric::MetricError
+pub struct alea_math::reference::CholeskyFactor
+impl alea_math::metric::CholeskyFactor
+pub fn alea_math::metric::CholeskyFactor::as_slice(&self) -> &[f64]
+pub fn alea_math::metric::CholeskyFactor::dimension(&self) -> usize
+pub fn alea_math::metric::CholeskyFactor::new_lower(dim: usize, lower_col_major: alea_math::buffer::OwnedBuffer) -> core::result::Result<Self, alea_math::metric::MetricError>
+impl core::fmt::Debug for alea_math::metric::CholeskyFactor
+pub fn alea_math::metric::CholeskyFactor::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_math::reference::DenseMetric
+impl alea_math::metric::DenseMetric
+pub fn alea_math::metric::DenseMetric::factor(&self) -> &alea_math::metric::CholeskyFactor
+pub fn alea_math::metric::DenseMetric::new(factor: alea_math::metric::CholeskyFactor) -> Self
+impl alea_math::metric::EuclideanMetric for alea_math::metric::DenseMetric
+pub fn alea_math::metric::DenseMetric::dimension(&self) -> usize
+pub fn alea_math::metric::DenseMetric::kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_math::metric::MetricError>
+pub fn alea_math::metric::DenseMetric::log_det(&self) -> f64
+pub fn alea_math::metric::DenseMetric::sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+pub fn alea_math::metric::DenseMetric::velocity(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+impl core::fmt::Debug for alea_math::metric::DenseMetric
+pub fn alea_math::metric::DenseMetric::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_math::reference::DiagonalMetric
+impl alea_math::metric::DiagonalMetric
+pub fn alea_math::metric::DiagonalMetric::new(diag: alea_math::buffer::OwnedBuffer) -> core::result::Result<Self, alea_math::metric::MetricError>
+impl alea_math::metric::EuclideanMetric for alea_math::metric::DiagonalMetric
+pub fn alea_math::metric::DiagonalMetric::dimension(&self) -> usize
+pub fn alea_math::metric::DiagonalMetric::kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_math::metric::MetricError>
+pub fn alea_math::metric::DiagonalMetric::log_det(&self) -> f64
+pub fn alea_math::metric::DiagonalMetric::sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+pub fn alea_math::metric::DiagonalMetric::velocity(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+impl core::fmt::Debug for alea_math::metric::DiagonalMetric
+pub fn alea_math::metric::DiagonalMetric::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_math::reference::IdentityMetric
+impl alea_math::metric::IdentityMetric
+pub fn alea_math::metric::IdentityMetric::new(dim: usize) -> Self
+impl alea_math::metric::EuclideanMetric for alea_math::metric::IdentityMetric
+pub fn alea_math::metric::IdentityMetric::dimension(&self) -> usize
+pub fn alea_math::metric::IdentityMetric::kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_math::metric::MetricError>
+pub fn alea_math::metric::IdentityMetric::log_det(&self) -> f64
+pub fn alea_math::metric::IdentityMetric::sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+pub fn alea_math::metric::IdentityMetric::velocity(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+impl core::clone::Clone for alea_math::metric::IdentityMetric
+pub fn alea_math::metric::IdentityMetric::clone(&self) -> alea_math::metric::IdentityMetric
+impl core::fmt::Debug for alea_math::metric::IdentityMetric
+pub fn alea_math::metric::IdentityMetric::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::metric::IdentityMetric
+pub struct alea_math::reference::OwnedBuffer<T>
+impl<T: core::default::Default> alea_math::buffer::OwnedBuffer<T>
+pub fn alea_math::buffer::OwnedBuffer<T>::new(len: usize) -> Self
+pub fn alea_math::buffer::OwnedBuffer<T>::resize(&mut self, new_len: usize)
+impl<T> alea_math::buffer::OwnedBuffer<T>
+pub fn alea_math::buffer::OwnedBuffer<T>::alignment(&self) -> usize
+pub fn alea_math::buffer::OwnedBuffer<T>::as_mut_slice(&mut self) -> &mut [T]
+pub fn alea_math::buffer::OwnedBuffer<T>::as_slice(&self) -> &[T]
+pub fn alea_math::buffer::OwnedBuffer<T>::capacity(&self) -> usize
+pub fn alea_math::buffer::OwnedBuffer<T>::clear(&mut self)
+pub fn alea_math::buffer::OwnedBuffer<T>::drain(&mut self, range: core::ops::range::Range<usize>) -> alloc::vec::Vec<T>
+pub fn alea_math::buffer::OwnedBuffer<T>::from_fn(len: usize, init: impl core::ops::function::FnMut(usize) -> T) -> Self
+pub fn alea_math::buffer::OwnedBuffer<T>::truncate(&mut self, len: usize)
+impl<T: core::clone::Clone> core::clone::Clone for alea_math::buffer::OwnedBuffer<T>
+pub fn alea_math::buffer::OwnedBuffer<T>::clone(&self) -> alea_math::buffer::OwnedBuffer<T>
+impl<T: core::fmt::Debug> core::fmt::Debug for alea_math::buffer::OwnedBuffer<T>
+pub fn alea_math::buffer::OwnedBuffer<T>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<T> core::convert::AsMut<[T]> for alea_math::buffer::OwnedBuffer<T>
+pub fn alea_math::buffer::OwnedBuffer<T>::as_mut(&mut self) -> &mut [T]
+impl<T> core::convert::AsRef<[T]> for alea_math::buffer::OwnedBuffer<T>
+pub fn alea_math::buffer::OwnedBuffer<T>::as_ref(&self) -> &[T]
+impl<T> core::ops::deref::Deref for alea_math::buffer::OwnedBuffer<T>
+pub type alea_math::buffer::OwnedBuffer<T>::Target = [T]
+pub fn alea_math::buffer::OwnedBuffer<T>::deref(&self) -> &[T]
+impl<T> core::ops::deref::DerefMut for alea_math::buffer::OwnedBuffer<T>
+pub fn alea_math::buffer::OwnedBuffer<T>::deref_mut(&mut self) -> &mut [T]
+pub trait alea_math::reference::EuclideanMetric
+pub fn alea_math::reference::EuclideanMetric::dimension(&self) -> usize
+pub fn alea_math::reference::EuclideanMetric::kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_math::metric::MetricError>
+pub fn alea_math::reference::EuclideanMetric::log_det(&self) -> f64
+pub fn alea_math::reference::EuclideanMetric::sample_momentum(&self, standard_normal: &[f64], momentum: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+pub fn alea_math::reference::EuclideanMetric::velocity(&self, momentum: &[f64], velocity: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+impl alea_math::metric::EuclideanMetric for alea_math::metric::BlockDiagonalMetric
+pub fn alea_math::metric::BlockDiagonalMetric::dimension(&self) -> usize
+pub fn alea_math::metric::BlockDiagonalMetric::kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_math::metric::MetricError>
+pub fn alea_math::metric::BlockDiagonalMetric::log_det(&self) -> f64
+pub fn alea_math::metric::BlockDiagonalMetric::sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+pub fn alea_math::metric::BlockDiagonalMetric::velocity(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+impl alea_math::metric::EuclideanMetric for alea_math::metric::DenseMetric
+pub fn alea_math::metric::DenseMetric::dimension(&self) -> usize
+pub fn alea_math::metric::DenseMetric::kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_math::metric::MetricError>
+pub fn alea_math::metric::DenseMetric::log_det(&self) -> f64
+pub fn alea_math::metric::DenseMetric::sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+pub fn alea_math::metric::DenseMetric::velocity(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+impl alea_math::metric::EuclideanMetric for alea_math::metric::DiagonalMetric
+pub fn alea_math::metric::DiagonalMetric::dimension(&self) -> usize
+pub fn alea_math::metric::DiagonalMetric::kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_math::metric::MetricError>
+pub fn alea_math::metric::DiagonalMetric::log_det(&self) -> f64
+pub fn alea_math::metric::DiagonalMetric::sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+pub fn alea_math::metric::DiagonalMetric::velocity(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+impl alea_math::metric::EuclideanMetric for alea_math::metric::IdentityMetric
+pub fn alea_math::metric::IdentityMetric::dimension(&self) -> usize
+pub fn alea_math::metric::IdentityMetric::kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_math::metric::MetricError>
+pub fn alea_math::metric::IdentityMetric::log_det(&self) -> f64
+pub fn alea_math::metric::IdentityMetric::sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+pub fn alea_math::metric::IdentityMetric::velocity(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+impl alea_math::metric::EuclideanMetric for alea_math::metric::LowRankDiagonalMetric
+pub fn alea_math::metric::LowRankDiagonalMetric::dimension(&self) -> usize
+pub fn alea_math::metric::LowRankDiagonalMetric::kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_math::metric::MetricError>
+pub fn alea_math::metric::LowRankDiagonalMetric::log_det(&self) -> f64
+pub fn alea_math::metric::LowRankDiagonalMetric::sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+pub fn alea_math::metric::LowRankDiagonalMetric::velocity(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+impl alea_math::metric::EuclideanMetric for alea_math::metric::SparseCholeskyMetric
+pub fn alea_math::metric::SparseCholeskyMetric::dimension(&self) -> usize
+pub fn alea_math::metric::SparseCholeskyMetric::kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_math::metric::MetricError>
+pub fn alea_math::metric::SparseCholeskyMetric::log_det(&self) -> f64
+pub fn alea_math::metric::SparseCholeskyMetric::sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+pub fn alea_math::metric::SparseCholeskyMetric::velocity(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>

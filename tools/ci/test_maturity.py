@@ -34,6 +34,23 @@ class MaturityGuardTests(unittest.TestCase):
             )
         )
 
+    def test_unlisted_api_namespace_fails(self):
+        self.check_rejected(lambda ledger: ledger["api_namespaces"].pop())
+
+    def test_duplicate_api_namespace_fails(self):
+        self.check_rejected(
+            lambda ledger: ledger["api_namespaces"].__setitem__(
+                1, copy.deepcopy(ledger["api_namespaces"][0])
+            )
+        )
+
+    def test_api_namespace_must_match_crate(self):
+        self.check_rejected(
+            lambda ledger: ledger["api_namespaces"][0].__setitem__(
+                "path", "wrong::reference"
+            )
+        )
+
     def test_unknown_profile_fails(self):
         self.check_rejected(
             lambda ledger: ledger["source_modules"][0].__setitem__("profile", "unknown")

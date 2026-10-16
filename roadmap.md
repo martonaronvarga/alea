@@ -1256,13 +1256,17 @@ the stable surface.
   The first enforced slice inventories every source module containing an unrestricted
   public declaration, every explicit Cargo feature and every Cargo binary. Research
   entries carry machine-checked promotion blockers. Item-level API snapshots and
-  mixed-module refinement remain before this task is complete. The default-feature
-  reachable API is now extracted reproducibly for all eight library crates; mapping
-  paths within mixed facades to finer maturity states remains.
-- [ ] Define the initial stable/reference surface around fused targets, transforms,
+  mixed-module refinement remain before this task is complete. Named reference
+  namespaces are now also inventoried from the accepted API snapshots. The
+  default-feature reachable API is extracted reproducibly for all eight library
+  crates; mapping the remaining paths in mixed facades to finer maturity states
+  remains.
+- [~] Define the initial stable/reference surface around fused targets, transforms,
   Euclidean metrics, fixed HMC/RWMH, covariance warmup, NUTS and diagnostics.
   Research remains accessible through explicit modules/features without duplicating
-  implementations or implying semver stability.
+  implementations or implying semver stability. Additive `reference` facades and a
+  downstream-style end-to-end test now cover this path; root research re-exports
+  and supported feature combinations still require adjudication.
 - [ ] Audit exact/approximate claims for every transition and correction. Record
   refresh, support, reversal/involution, volume/Jacobian, selection and failure laws.
 - [ ] Close the RMHMC reverse-support gate or relabel the current transition so it
@@ -1273,7 +1277,8 @@ the stable surface.
   incompatible correction/proposal and exact/approximate composition.
 - [~] Baseline public API snapshots and semver checks; audit validated constructors,
   `#[must_use]`, `#[non_exhaustive]`, standard traits, error sources and rustdoc laws.
-  The initial 5,057-entry default-feature baseline is pinned and checked in CI.
+  The initial 5,057-entry default-feature baseline was pinned and checked in CI; the
+  reviewed additive reference facades bring the current baseline to 6,089 entries.
   Feature-specific baselines, compatibility adjudication and the listed API audits
   remain before completion.
 - [ ] Decide which current public modules remain internal before the first release;

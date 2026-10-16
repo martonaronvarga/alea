@@ -1,8 +1,8 @@
 """Enforce Alea's public maturity, adoption, and guarantee inventory.
 
-The ledger deliberately works at source-module granularity for its first M13
-slice: every file containing an unrestricted ``pub`` declaration inherits one
-explicit profile. Later M13 work will refine this to item-level API snapshots.
+The ledger combines source-module classification with explicit public namespace
+boundaries: every file containing an unrestricted ``pub`` declaration inherits
+one profile, while named facades expose narrower adoption contracts.
 """
 
 from __future__ import annotations
@@ -55,6 +55,18 @@ def discover_features(root: Path) -> set[tuple[str, str]]:
         crate = document["package"]["name"]
         features.update((crate, name) for name in document.get("features", {}))
     return features
+
+
+def discover_api_namespaces(root: Path) -> set[tuple[str, str]]:
+    """Discover top-level ``reference`` facades from accepted API snapshots."""
+    namespaces = set()
+    snapshot_root = root / "tools/ci/public-api"
+    for snapshot in snapshot_root.glob("alea-*.txt"):
+        crate = snapshot.stem
+        expected = f"pub mod {crate.replace('-', '_')}::reference"
+        if expected in snapshot.read_text().splitlines():
+            namespaces.add((crate, expected.removeprefix("pub mod ")))
+    return namespaces
 
 
 def discover_cli_commands(root: Path) -> set[tuple[str, str, str]]:
@@ -141,6 +153,17 @@ def validate_entries(entries: list[dict], profiles: dict, identity_fields: tuple
 
 
 def validate(root: Path, ledger: dict) -> dict[str, Counter]:
+    expected_sections = {
+        "schema_version",
+        "policy",
+        "profiles",
+        "source_modules",
+        "api_namespaces",
+        "cargo_features",
+        "cli_commands",
+    }
+    if set(ledger) != expected_sections:
+        raise ValueError(f"maturity ledger must contain exactly {sorted(expected_sections)}")
     if ledger.get("schema_version") != 1:
         raise ValueError("unsupported maturity-ledger schema")
     policy = ledger.get("policy")
@@ -157,11 +180,15 @@ def validate(root: Path, ledger: dict) -> dict[str, Counter]:
         validate_profile(name, profile, allow_release_candidates)
 
     modules = ledger.get("source_modules")
+    namespaces = ledger.get("api_namespaces")
     features = ledger.get("cargo_features")
     commands = ledger.get("cli_commands")
-    if not all(isinstance(entries, list) for entries in (modules, features, commands)):
+    if not all(
+        isinstance(entries, list) for entries in (modules, namespaces, features, commands)
+    ):
         raise ValueError("maturity ledger inventories must be lists")
     validate_entries(modules, profiles, ("path",), "source module")
+    validate_entries(namespaces, profiles, ("crate", "path"), "API namespace")
     validate_entries(features, profiles, ("crate", "feature"), "Cargo feature")
     validate_entries(commands, profiles, ("crate", "name", "path"), "CLI command")
 
@@ -171,6 +198,17 @@ def validate(root: Path, ledger: dict) -> dict[str, Counter]:
         missing = sorted(discovered_modules - recorded_modules)
         stale = sorted(recorded_modules - discovered_modules)
         raise ValueError(f"public module inventory mismatch; missing={missing}, stale={stale}")
+
+    recorded_namespaces = {(entry["crate"], entry["path"]) for entry in namespaces}
+    discovered_namespaces = discover_api_namespaces(root)
+    if recorded_namespaces != discovered_namespaces:
+        missing = sorted(discovered_namespaces - recorded_namespaces)
+        stale = sorted(recorded_namespaces - discovered_namespaces)
+        raise ValueError(f"API namespace inventory mismatch; missing={missing}, stale={stale}")
+    for crate, path in recorded_namespaces:
+        expected = f"{crate.replace('-', '_')}::reference"
+        if path != expected:
+            raise ValueError(f"API namespace {path!r} does not match crate {crate!r}")
 
     recorded_features = {(entry["crate"], entry["feature"]) for entry in features}
     discovered_features = discover_features(root)
@@ -192,6 +230,9 @@ def validate(root: Path, ledger: dict) -> dict[str, Counter]:
 
     return {
         "modules": Counter(profiles[entry["profile"]]["maturity"] for entry in modules),
+        "namespaces": Counter(
+            profiles[entry["profile"]]["maturity"] for entry in namespaces
+        ),
         "features": Counter(profiles[entry["profile"]]["maturity"] for entry in features),
         "commands": Counter(profiles[entry["profile"]]["maturity"] for entry in commands),
     }
@@ -203,6 +244,7 @@ def check(root: Path) -> None:
     print(
         "maturity inventory: "
         f"modules={dict(sorted(counts['modules'].items()))}; "
+        f"namespaces={dict(sorted(counts['namespaces'].items()))}; "
         f"features={dict(sorted(counts['features'].items()))}; "
         f"commands={dict(sorted(counts['commands'].items()))}"
     )

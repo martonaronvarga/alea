@@ -14,3 +14,14 @@ pub mod interpolation;
 pub mod metric;
 pub mod numeric;
 pub mod random;
+
+/// Validated storage and constant Euclidean geometry for reference inference.
+///
+/// Structured, low-rank, fitted, and position-dependent geometry remains
+/// available through its named modules without inheriting this adoption status.
+pub mod reference {
+    pub use crate::buffer::OwnedBuffer;
+    pub use crate::metric::{
+        CholeskyFactor, DenseMetric, DiagonalMetric, EuclideanMetric, IdentityMetric, MetricError,
+    };
+}

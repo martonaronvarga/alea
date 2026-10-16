@@ -334,4 +334,81 @@ impl alea_runtime::output::DiagnosticTransition for alea_mcmc::walnuts::WalnutsT
 pub fn alea_mcmc::walnuts::WalnutsTransition::diagnostic_stats(&self) -> alea_runtime::output::TransitionStats
 impl alea_runtime::output::DiagnosticTransition for alea_runtime::output::TransitionStats
 pub fn alea_runtime::output::TransitionStats::diagnostic_stats(&self) -> alea_runtime::output::TransitionStats
+pub mod alea_runtime::reference
+pub enum alea_runtime::reference::DiagnosticError
+pub alea_runtime::reference::DiagnosticError::InvalidDraws
+pub alea_runtime::reference::DiagnosticError::Shape
+impl core::clone::Clone for alea_runtime::diagnostics::DiagnosticError
+pub fn alea_runtime::diagnostics::DiagnosticError::clone(&self) -> alea_runtime::diagnostics::DiagnosticError
+impl core::cmp::Eq for alea_runtime::diagnostics::DiagnosticError
+impl core::cmp::PartialEq for alea_runtime::diagnostics::DiagnosticError
+pub fn alea_runtime::diagnostics::DiagnosticError::eq(&self, other: &alea_runtime::diagnostics::DiagnosticError) -> bool
+impl core::error::Error for alea_runtime::diagnostics::DiagnosticError
+impl core::fmt::Debug for alea_runtime::diagnostics::DiagnosticError
+pub fn alea_runtime::diagnostics::DiagnosticError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_runtime::diagnostics::DiagnosticError
+pub fn alea_runtime::diagnostics::DiagnosticError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_runtime::diagnostics::DiagnosticError
+impl core::marker::StructuralPartialEq for alea_runtime::diagnostics::DiagnosticError
+pub enum alea_runtime::reference::DrawError<E: core::error::Error + 'static>
+pub alea_runtime::reference::DrawError::Chain(E)
+pub alea_runtime::reference::DrawError::Dimension
+pub alea_runtime::reference::DrawError::Dimension::actual: usize
+pub alea_runtime::reference::DrawError::Dimension::expected: usize
+pub alea_runtime::reference::DrawError::Size
+impl<E: core::fmt::Debug + core::error::Error + 'static> core::fmt::Debug for alea_runtime::draws::DrawError<E>
+pub fn alea_runtime::draws::DrawError<E>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<E> core::error::Error for alea_runtime::draws::DrawError<E> where E: core::error::Error + 'static + core::error::Error, Self: core::fmt::Debug + core::fmt::Display
+pub fn alea_runtime::draws::DrawError<E>::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl<E> core::fmt::Display for alea_runtime::draws::DrawError<E> where E: core::fmt::Display + core::error::Error + 'static
+pub fn alea_runtime::draws::DrawError<E>::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub enum alea_runtime::reference::ModernDiagnosticError
+pub alea_runtime::reference::ModernDiagnosticError::Nonfinite
+pub alea_runtime::reference::ModernDiagnosticError::Shape
+pub alea_runtime::reference::ModernDiagnosticError::Undefined
+impl core::clone::Clone for alea_runtime::diagnostics::modern::Error
+pub fn alea_runtime::diagnostics::modern::Error::clone(&self) -> alea_runtime::diagnostics::modern::Error
+impl core::cmp::Eq for alea_runtime::diagnostics::modern::Error
+impl core::cmp::PartialEq for alea_runtime::diagnostics::modern::Error
+pub fn alea_runtime::diagnostics::modern::Error::eq(&self, other: &alea_runtime::diagnostics::modern::Error) -> bool
+impl core::error::Error for alea_runtime::diagnostics::modern::Error
+impl core::fmt::Debug for alea_runtime::diagnostics::modern::Error
+pub fn alea_runtime::diagnostics::modern::Error::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_runtime::diagnostics::modern::Error
+pub fn alea_runtime::diagnostics::modern::Error::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_runtime::diagnostics::modern::Error
+impl core::marker::StructuralPartialEq for alea_runtime::diagnostics::modern::Error
+pub struct alea_runtime::reference::Draws
+impl alea_runtime::draws::Draws
+pub fn alea_runtime::draws::Draws::as_slice(&self) -> &[f64]
+pub fn alea_runtime::draws::Draws::dimension(&self) -> usize
+pub fn alea_runtime::draws::Draws::is_empty(&self) -> bool
+pub fn alea_runtime::draws::Draws::len(&self) -> usize
+pub fn alea_runtime::draws::Draws::row(&self, index: usize) -> core::option::Option<&[f64]>
+impl core::fmt::Debug for alea_runtime::draws::Draws
+pub fn alea_runtime::draws::Draws::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_runtime::reference::ModernSummary
+pub alea_runtime::reference::ModernSummary::bulk_ess: f64
+pub alea_runtime::reference::ModernSummary::folded_rhat: f64
+pub alea_runtime::reference::ModernSummary::mcse_mean: f64
+pub alea_runtime::reference::ModernSummary::mean: f64
+pub alea_runtime::reference::ModernSummary::mean_ess: f64
+pub alea_runtime::reference::ModernSummary::rank_rhat: f64
+pub alea_runtime::reference::ModernSummary::rhat: f64
+pub alea_runtime::reference::ModernSummary::tail_ess: f64
+impl core::clone::Clone for alea_runtime::diagnostics::modern::Summary
+pub fn alea_runtime::diagnostics::modern::Summary::clone(&self) -> alea_runtime::diagnostics::modern::Summary
+impl core::cmp::PartialEq for alea_runtime::diagnostics::modern::Summary
+pub fn alea_runtime::diagnostics::modern::Summary::eq(&self, other: &alea_runtime::diagnostics::modern::Summary) -> bool
+impl core::fmt::Debug for alea_runtime::diagnostics::modern::Summary
+pub fn alea_runtime::diagnostics::modern::Summary::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_runtime::diagnostics::modern::Summary
+impl core::marker::StructuralPartialEq for alea_runtime::diagnostics::modern::Summary
+pub fn alea_runtime::reference::acceptance_rate(accepted: usize, total: usize) -> f64
+pub fn alea_runtime::reference::autocorrelation_ess(values: &[f64]) -> core::result::Result<f64, alea_runtime::diagnostics::DiagnosticError>
+pub fn alea_runtime::reference::classical_split_rhat(chains: &[&[f64]]) -> core::result::Result<f64, alea_runtime::diagnostics::DiagnosticError>
+pub fn alea_runtime::reference::collect_draws<C: alea_mcmc::MarkovChain, R: rand_core::Rng + ?core::marker::Sized>(chain: &mut C, rows: usize, rng: &mut R) -> core::result::Result<alea_runtime::draws::Draws, alea_runtime::draws::DrawError<<C as alea_mcmc::MarkovChain>::Error>>
+pub fn alea_runtime::reference::ebfmi(energy: &[f64]) -> core::result::Result<f64, alea_runtime::diagnostics::modern::Error>
+pub fn alea_runtime::reference::run_chain<C, R>(chain: &mut C, steps: usize, rng: &mut R, observe: impl core::ops::function::FnMut(&[f64], &<C as alea_mcmc::MarkovChain>::Transition) -> core::ops::control_flow::ControlFlow<()>) -> core::result::Result<usize, <C as alea_mcmc::MarkovChain>::Error> where C: alea_mcmc::MarkovChain, R: rand_core::Rng + ?core::marker::Sized
+pub fn alea_runtime::reference::summarize_modern(chains: &[&[f64]]) -> core::result::Result<alea_runtime::diagnostics::modern::Summary, alea_runtime::diagnostics::modern::Error>
 pub fn alea_runtime::run_chain<C, R>(chain: &mut C, steps: usize, rng: &mut R, observe: impl core::ops::function::FnMut(&[f64], &<C as alea_mcmc::MarkovChain>::Transition) -> core::ops::control_flow::ControlFlow<()>) -> core::result::Result<usize, <C as alea_mcmc::MarkovChain>::Error> where C: alea_mcmc::MarkovChain, R: rand_core::Rng + ?core::marker::Sized
