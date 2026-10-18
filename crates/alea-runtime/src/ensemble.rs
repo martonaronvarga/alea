@@ -118,7 +118,10 @@ pub enum RunError<E: std::error::Error + 'static> {
 /// # Errors
 /// Validates all configuration before advancing RNGs. Reports the first error
 /// in input chain order after joining the current chunk. Other chains may have
-/// completed their chunk. Panics propagate after Rayon joins borrowed work.
+/// completed their chunk.
+///
+/// # Panics
+/// Panics from a chain or sink propagate after Rayon joins all borrowed work.
 pub fn run<C, S>(
     chains: &mut [Chain<C, S>],
     options: &RunOptions,

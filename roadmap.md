@@ -2,7 +2,7 @@
 
 Status: active, pre-alpha<br>
 Last reviewed: 2026-10-16<br>
-Last milestone update: 2026-10-16 — research/promotion audit; M11 exactness gate reopened; maturity milestones M13–M17 added<br>
+Last milestone update: 2026-10-18 — external target/metric/chain/diagnostic/sink conformance enforced<br>
 Last architecture update: 2026-10-16 — maturity/adoption states and per-crate graduation gates<br>
 Scope: architecture, correctness, numerical validation, performance, and implementation order
 
@@ -1274,8 +1274,11 @@ the stable surface.
   public proposal/integrator components and feature-specific surfaces remain.
 - [ ] Close the RMHMC reverse-support gate or relabel the current transition so it
   cannot be mistaken for an exact validated kernel.
-- [ ] Add reusable conformance suites for externally implementable target, metric,
+- [x] Add reusable conformance suites for externally implementable target, metric,
   chain, sink and diagnostic-observable boundaries before unsealing more traits.
+  A separately locked downstream package supplies independent implementations,
+  reusable laws, borrowed-sink composition, warning-denied lint and rustdoc gates;
+  sealed integrators and design-only SMC traits remain deliberately excluded.
 - [ ] Add compile-fail tests for invalid ownership, adaptation-after-freeze,
   incompatible correction/proposal and exact/approximate composition.
 - [~] Baseline public API snapshots and semver checks; audit validated constructors,

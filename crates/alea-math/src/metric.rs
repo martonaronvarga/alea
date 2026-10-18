@@ -482,18 +482,47 @@ fn dense_apply_sqrt_default(dim: usize, lower_col_major: &[f64], src: &[f64], ds
     }
 }
 
-/// A constant Euclidean momentum mass matrix: p = L z, velocity = M^-1 p.
-/// Methods must check both vector dimensions before mutating output and reuse
-/// caller storage. Finite values may still overflow; samplers validate results.
+/// An externally implementable constant Euclidean momentum mass matrix.
+///
+/// For a symmetric positive-definite mass `M = L L^T`, momentum sampling maps
+/// `z ~ N(0, I)` to `p = L z`, velocity is `M^-1 p`, kinetic energy is
+/// `p^T M^-1 p / 2`, and [`EuclideanMetric::log_det`] is `log(det(M))`.
+/// The dimension and matrix must remain fixed while borrowed.
+///
+/// Every operation must check all vector dimensions before mutating output and
+/// must reuse caller storage. Aliasing source and output is not expressible through
+/// the safe interface. Finite values may still overflow for ill-conditioned
+/// metrics; samplers validate numerical results before publishing a transition.
 pub trait EuclideanMetric {
+    /// Fixed coordinate dimension of this mass matrix.
     fn dimension(&self) -> usize;
+
+    /// Writes `M^-1 p` into `velocity`.
+    ///
+    /// # Errors
+    /// Returns [`MetricError::VectorLength`] without mutating `velocity` when
+    /// either slice does not have [`Self::dimension`] entries.
     fn velocity(&self, momentum: &[f64], velocity: &mut [f64]) -> Result<(), MetricError>;
+
+    /// Maps a standard-normal draw to momentum distributed as `N(0, M)`.
+    ///
+    /// # Errors
+    /// Returns [`MetricError::VectorLength`] without mutating `momentum` when
+    /// either slice does not have [`Self::dimension`] entries.
     fn sample_momentum(
         &self,
         standard_normal: &[f64],
         momentum: &mut [f64],
     ) -> Result<(), MetricError>;
+
+    /// Returns `log(det(M))`, which must be finite for a valid metric.
     fn log_det(&self) -> f64;
+
+    /// Computes `p^T M^-1 p / 2` using caller-owned scratch.
+    ///
+    /// # Errors
+    /// Returns the error from [`Self::velocity`]. Shape errors leave `scratch`
+    /// untouched.
     fn kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> Result<f64, MetricError> {
         self.velocity(momentum, scratch)?;
         Ok(0.5

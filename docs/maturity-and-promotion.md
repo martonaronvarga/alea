@@ -204,8 +204,15 @@ Source files still use module-level inheritance rather than final public-item
 classification. The additive `reference` facades provide the first narrower path
 boundary, while mixed root facades retain the lowest defensible state and an open
 promotion gate. M13 still needs research/approximate path refinement,
-exactness-law records, compile-fail conformance cases and accepted compatibility
+compile-fail conformance cases and accepted compatibility
 decisions before the inventory task can be marked complete.
+
+External implementations of the current open target, Euclidean metric, Markov
+chain and diagnostic boundaries, together with the borrowed draw sink, are now
+compiled and law-tested by the separately locked
+[`tools/downstream-conformance`](../tools/downstream-conformance) package. This is
+downstream evidence for those specific contracts, not a promise that sealed
+integrators or design-only particle traits are ready to open.
 
 The first item-level compatibility baseline is recorded in
 [`m13-api-boundary.md`](m13-api-boundary.md). The pinned nightly CI row regenerates

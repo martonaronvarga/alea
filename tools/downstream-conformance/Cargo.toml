@@ -1,0 +1,16 @@
+[package]
+name = "alea-downstream-conformance"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[workspace]
+
+[dependencies]
+alea-core = { path = "../../crates/alea-core" }
+alea-math = { path = "../../crates/alea-math" }
+alea-mcmc = { path = "../../crates/alea-mcmc" }
+alea-runtime = { path = "../../crates/alea-runtime" }
+rand = "0.10.1"
+tokio-util = { version = "0.7", features = ["rt"] }

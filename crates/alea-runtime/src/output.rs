@@ -40,7 +40,13 @@ pub struct TransitionStats {
     pub tree_depth: Option<usize>,
 }
 
-/// Adapter for monitoring; the original transition remains available to sinks.
+/// Externally implementable, side-effect-free adapter for monitoring.
+///
+/// The original transition remains available to sinks. Repeated projection of one
+/// transition must return identical metadata without evaluating a target, consuming
+/// randomness, or mutating sampler state. Unsupported quantities are `None`, not
+/// invented zeros. Probabilities are finite and lie in `[0, 1]`; present energy is
+/// finite and represents the transition's initial Hamiltonian.
 pub trait DiagnosticTransition {
     /// Returns common metadata without evaluating the target or consuming RNG.
     fn diagnostic_stats(&self) -> TransitionStats;

@@ -15,6 +15,8 @@ use std::ops::ControlFlow;
 ///
 /// # Errors
 /// Propagates the original chain error without invoking the observer for a failed step.
+///
+/// # Panics
 /// Panics from the observer propagate; already completed transitions remain committed.
 pub fn run_chain<C, R>(
     chain: &mut C,

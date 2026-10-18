@@ -51,12 +51,24 @@ pub use walnuts::{
     WalnutsTermination, WalnutsTransition,
 };
 
-/// A chain owns its current point and reusable workspace; the target is bound at construction.
-/// Implementations must retain a coherent live point after rejection or error.
+/// An externally implementable, target-bound Markov chain.
+///
+/// A chain owns its current point and reusable workspace; the target is bound at
+/// construction. The position dimension must remain fixed and every published
+/// coordinate must be finite. A successful step publishes exactly one coherent
+/// retained state, including a repeat after rejection. An error must leave the
+/// previous position coherent and observable. RNG consumption need not roll back.
 pub trait MarkovChain {
+    /// Original transition failure, preserved by runners.
     type Error: std::error::Error + 'static;
+    /// Sampler-specific metadata for one completed transition.
     type Transition;
+    /// Current coherent retained position.
     fn position(&self) -> &[f64];
+    /// Attempts one transition using caller-owned randomness.
+    ///
+    /// # Errors
+    /// Returns the original transition failure without publishing partial state.
     fn step<R: rand::Rng + ?Sized>(&mut self, rng: &mut R)
     -> Result<Self::Transition, Self::Error>;
 }
