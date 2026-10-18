@@ -4,13 +4,12 @@ Date: 2026-09-29. Baseline: `50b66bb` plus the uncommitted M3 work present befor
 the nine-crate migration. This supplements [architecture.md](architecture.md)
 and the canonical [roadmap](../roadmap.md); it does not reinstate old APIs.
 
-## Inventory and enforcement
+## Historical inventory
 
-The machine-readable inventory is
-[`tools/ci/migration-ledger.json`](../tools/ci/migration-ledger.json). It accounts
-for **118 source/fixture paths**: 113 tracked deletions and five additional M3
-paths that were uncommitted before migration. Each entry lists its destination or
-an explicit scaffolding disposition. Split files list multiple destinations.
+The accepted machine inventory accounted for **118 source/fixture paths**: 113
+tracked deletions and five additional M3 paths that were uncommitted before
+migration. Each entry listed its destination or an explicit scaffolding
+disposition. Split files listed multiple destinations.
 
 The baseline contains **188 test definitions**:
 
@@ -21,21 +20,19 @@ The baseline contains **188 test definitions**:
 | Dormant research tests preserved | 22 | Uncompiled DDM tests, still not claimed as executed coverage |
 | Removed scaffolding | 1 | `data_prep::it_works`, the generated `add(2, 2) == 4` test |
 
-`tools/ci/migration.py` checks destination existence, replacement test definitions,
-and Git-blob hashes of preserved research/reference sources. It does not require
-old Git history (works with shallow CI clones). Local docs are not prerequisites
-of the source gate. The inventory is a regression guard, **not** a semantic proof
-or a substitute for executing native, backend, statistical, Enzyme and Miri tests.
+The inventory and its mutation harness were migration-acceptance scaffolding, not
+semantic proof. They were retired on 2026-10-18 after the live architecture,
+maturity, public-API and exactness gates superseded them. The exact ledgers and
+scripts remain available in Git at `1f90ea7`; this document preserves the human
+record without making every future CI run revalidate a completed file move.
 
 ### Feature-level continuation
 
-`tools/ci/migration-features.json` adds 31 capability groups with old symbols,
+The accepted feature inventory added 31 capability groups with old symbols,
 source paths, new owners, behavioral obligations, regression tests and explicit
 remaining work. Working algorithms, newly ported utilities, preserved research,
-tooling and placeholder-only declarations have distinct statuses. CI rejects
-missing baseline files/tests/features, duplicate entries, nonexistent evidence,
-or an implementation claim without canonical regression tests. Nine mutation
-tests exercise the guard itself; the original 118-path/188-test baseline is fixed.
+tooling and placeholder-only declarations had distinct statuses. Nine mutation
+tests exercised that migration-only guard; the fixed baseline remains in history.
 
 The dormant `GridSpec`/`LinearSpline1D` functionality is now compiled as
 `alea_math::interpolation::{UniformGrid,LinearSpline}`. It retains spacing,
@@ -120,18 +117,18 @@ build script. `research/inference-prototypes/` preserves extension/proposal/fami
 contracts, NUTS configuration and text-only inference selection. Empty particle
 filter/PMCMC files were not algorithms. No fake algorithm exports were reinstated.
 
-The RMarkdown analysis and Stan C++ reference programs/binaries are retained.
+The RMarkdown analysis and Stan C++ reference sources are retained. Generated,
+host-specific Stan executables are ignored rather than versioned.
 The cubature submodule remains at commit
 `4ba70a7d595a00cfb15b02763013e0088013adb7`, now under `alea-ffi/vendor/cubature`.
 Checked-in BlackJAX fixture bytes are unchanged, including uncommitted M3 fixtures.
 
 ## Updating this record
 
-When porting a research item, update its ledger disposition and destination, add
-executable replacement tests, and only then retire the preserved source. When
-changing a test contract, record its replacement rather than silently dropping
-its inventory entry. Preserve the historical baseline and distinguish source
-retention from executed coverage.
+Do not extend the completed migration baseline for current work. Update the
+roadmap, maturity ledger, API snapshots and executable tests that own the live
+surface. Preserve this historical record and distinguish source retention from
+executed coverage.
 
 ## Executed verification
 
@@ -147,8 +144,8 @@ Initial verification after restoring the missing functionality on the migrated p
 - Compiled `std::autodiff`/Enzyme gate: **15 tests passed**, Clippy passed and all
   six gradient-check model cases executed successfully.
 - Release-mode RWMH/adaptation/collection/streaming: **13 tests passed**.
-- Both inventory/dependency gates pass; cubature commit and preserved fixture/
-  research bytes verified. `git diff --check` was clean.
+- Both then-current inventory/dependency gates passed; the cubature commit and
+  preserved fixture/research bytes were verified. `git diff --check` was clean.
 - `nix flake check --no-build` passed on an untracked-source-inclusive temporary
   snapshot for x86_64-linux. This is evaluation, **not** a Nix package build or
   verification on the three other advertised platforms. The `alea-rwmh` dense
@@ -161,8 +158,8 @@ assertions pass; no universal speedup is inferred from the crate split.
 The feature-inventory continuation added five interpolation and four latent-model
 regression tests. The exact staged snapshot passed the stable workspace gate with
 **182 tests/doctests**; the combined SIMD+Faer+OpenBLAS gate passed **183**. Both
-included all-target checking, warning-denied Clippy/rustdoc and **9 inventory-guard
-mutation tests**. All nine new Rust tests also passed in release mode. The eight
+included all-target checking, warning-denied Clippy/rustdoc and **9 historical
+inventory-guard mutation tests**. All nine new Rust tests also passed in release mode. The eight
 Miri-compatible new tests passed strict-provenance/symbolic-alignment Miri; the
 allocation-counter test is intentionally native-only. This supplements, rather
 than reruns, the earlier full Miri and Enzyme gates. Documentation and AI artifacts

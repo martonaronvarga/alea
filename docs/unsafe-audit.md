@@ -83,14 +83,17 @@ not represented as Miri coverage.
 From the repository root:
 
 ```sh
-nix develop .#stable --command cargo test --manifest-path crates/Cargo.toml -p ffi --locked
+nix develop .#stable --command cargo test --manifest-path crates/Cargo.toml -p alea-ffi --locked
 nix develop --command bash tools/ci/miri.sh
-nix develop .#blas --command bash tools/ci/check.sh kernels/simd,kernels/faer,kernels/openblas,runtime/experimental
+nix develop .#blas --command bash tools/ci/check.sh alea-mcmc/simd,alea-distributions/simd,alea-mcmc/faer,alea-mcmc/openblas workspace
 ```
 
 Miri executes the production Rust trampoline with representative C-like raw
-buffers, including `MaybeUninit`, and the supported pure-Rust metric/target/phase
-paths. It cannot execute arbitrary C/OpenBLAS. Native C failure injection,
+buffers, including `MaybeUninit`, and bounded pure-Rust metric/target/phase
+ownership, rollback and deterministic algorithmic contracts. Long statistical
+and calibration workloads run in native CI. Exact transcendental replay uses
+Miri's deterministic-float mode because its default deliberately perturbs those
+results. Miri cannot execute arbitrary C/OpenBLAS. Native C failure injection,
 sanitizers and backend reference tests are complementary, not interchangeable.
 No audit here proves third-party code safe under every platform, allocator failure,
 resource-exhaustion scenario or malicious `unsafe` caller.

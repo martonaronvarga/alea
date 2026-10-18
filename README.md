@@ -94,8 +94,9 @@ because dense RMHMC remains much slower than Euclidean NUTS and ChEES-HMC.
 The [maturity and promotion policy](docs/maturity-and-promotion.md) distinguishes
 implemented research, validated components, release candidates, stable APIs and
 default selection. No Alea crate is stable yet.
-The [migration audit](docs/migration-audit.md) inventories retained behavior,
-test replacements and dormant research sources; CI guards the inventory.
+The [migration audit](docs/migration-audit.md) is the historical record of the
+nine-crate migration. Current architecture, maturity, API and exactness gates
+guard the live surface.
 This is not yet a production inference engine.
 
 ## Development

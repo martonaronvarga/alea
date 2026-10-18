@@ -18,14 +18,18 @@ jobs:
         include:
           - shell: stable
             features: ''
+            scope: all
           - shell: stable
             features: alea-mcmc/faer
+            scope: workspace
           - shell: default
             features: alea-mcmc/simd,alea-distributions/simd,alea-distributions/branch-hints
+            scope: workspace
           - shell: blas
             features: alea-mcmc/simd,alea-distributions/simd,alea-mcmc/faer,alea-mcmc/openblas
+            scope: workspace
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
           persist-credentials: false
@@ -34,12 +38,13 @@ jobs:
         env:
           ALEA_SHELL: ${{ matrix.shell }}
           ALEA_FEATURES: ${{ matrix.features }}
-        run: nix develop ".#$ALEA_SHELL" --command bash tools/ci/check.sh "$ALEA_FEATURES"
+          ALEA_SCOPE: ${{ matrix.scope }}
+        run: nix develop ".#$ALEA_SHELL" --command bash tools/ci/check.sh "$ALEA_FEATURES" "$ALEA_SCOPE"
   autodiff:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
           persist-credentials: false
@@ -48,9 +53,9 @@ jobs:
         run: nix develop .#autodiff --command bash tools/ci/autodiff.sh
   miri:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
           persist-credentials: false

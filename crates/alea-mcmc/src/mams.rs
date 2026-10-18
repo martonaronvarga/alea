@@ -588,6 +588,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        miri,
+        ignore = "statistical workload runs natively; Miri covers bounded map contracts"
+    )]
     fn mams_recovers_standard_gaussian_first_two_moments() {
         let target = Gaussian::new(3);
         let mut chain = Mams::new(

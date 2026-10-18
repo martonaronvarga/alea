@@ -141,13 +141,17 @@ adapting. Final low-rank fitting precedes geometry freeze. See
 
 ```sh
 nix develop .#stable --command bash tools/ci/check.sh
-nix develop .#stable --command bash tools/ci/check.sh alea-math/faer
-nix develop --command bash tools/ci/check.sh alea-math/simd,alea-distributions/simd,alea-distributions/branch-hints
-nix develop .#blas --command bash tools/ci/check.sh alea-math/simd,alea-distributions/simd,alea-math/faer,alea-math/openblas
+nix develop .#stable --command bash tools/ci/check.sh alea-mcmc/faer workspace
+nix develop --command bash tools/ci/check.sh alea-mcmc/simd,alea-distributions/simd,alea-distributions/branch-hints workspace
+nix develop .#blas --command bash tools/ci/check.sh alea-mcmc/simd,alea-distributions/simd,alea-mcmc/faer,alea-mcmc/openblas workspace
 nix develop --command bash tools/ci/miri.sh
 nix develop .#autodiff --command bash tools/ci/autodiff.sh
 nix develop .#stable --command cargo bench --manifest-path crates/Cargo.toml -p alea-mcmc --bench hmc --locked
 ```
+
+The default `all` scope runs feature-independent policy, evidence and downstream
+conformance gates as well as workspace checks. CI runs that scope once, then uses
+the `workspace` scope for additional feature combinations.
 
 The cubature Git submodule was relocated without changing upstream bytes or its
 commit. Nix's default executable is now `alea`; the `matmod` wrapper/backend

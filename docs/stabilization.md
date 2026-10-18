@@ -10,17 +10,15 @@ Unused direct dependencies and unused raw cubature bindings have been removed.
 
 | Configuration | Toolchain / prerequisites |
 |---|---|
-| Default; Faer; runtime `experimental` sketches | Pinned stable |
-| SIMD; branch hints; aligned-buffer SIMD benchmark | Pinned nightly |
+| Default; Faer | Pinned stable |
+| SIMD; distribution branch hints | Pinned nightly |
 | OpenBLAS, including SIMD + Faer + OpenBLAS together | `nix develop .#blas`, LP64 ABI |
 | `std-autodiff` | Pinned `.#autodiff` nightly, release profile/fat LTO; executed M2 gate |
 
 Backend flags preserve the same metric API and mathematics; when combined,
-dense operations select OpenBLAS, then Faer, then SIMD, then scalar. Features
-do not remove default APIs. `parallel` and `bench` are retained no-op reserved
-flags, not claims of implemented parallelism. NUTS/SMC/policy sketches require
-`runtime/experimental` and remain explicitly unsupported, even when they compile.
-Unrepaired DDM modules remain uncompiled; only the tested latent adapter is public.
+dense operations select OpenBLAS, then Faer, then SIMD, then scalar. Features do
+not remove default APIs. Unrepaired DDM modules remain uncompiled; only the tested
+latent adapter is public.
 
 M2 replaces the unavailable-backend diagnostic with an executed Enzyme CI job.
 The separate upstream prebuilt compiler/plugin are content-pinned together;
@@ -33,9 +31,9 @@ Run the same checks used by `.github/workflows/ci.yml` from the root:
 
 ```sh
 nix develop .#stable --command bash tools/ci/check.sh
-nix develop .#stable --command bash tools/ci/check.sh kernels/faer,runtime/experimental
-nix develop --command bash tools/ci/check.sh kernels/simd,kernels/branch-hints,memory/simd
-nix develop .#blas --command bash tools/ci/check.sh kernels/simd,kernels/faer,kernels/openblas,runtime/experimental
+nix develop .#stable --command bash tools/ci/check.sh alea-mcmc/faer workspace
+nix develop --command bash tools/ci/check.sh alea-mcmc/simd,alea-distributions/simd,alea-distributions/branch-hints workspace
+nix develop .#blas --command bash tools/ci/check.sh alea-mcmc/simd,alea-distributions/simd,alea-mcmc/faer,alea-mcmc/openblas workspace
 nix develop --command bash tools/ci/miri.sh
 nix develop .#autodiff --command bash tools/ci/autodiff.sh
 ```

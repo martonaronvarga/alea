@@ -218,7 +218,8 @@ Implemented optional potential-HVP and explicit-layout batch target capabilities
 spectral low-rank metrics; paired foreground/background Fisher moments; optional
 `faer` reduced Fisher fitting; experimental consuming Fisher warmup; and statically
 dispatched leapfrog/OMF2/BCSS2 complete macrosteps in fixed HMC and both warmups.
-Existing implementations/tests and migration inventories are preserved. Public
+Existing implementations/tests are preserved; the historical migration audit
+remains in documentation and Git history. Public
 step counters now say `integration_steps`, not `leapfrog_steps`.
 
 [The research/design record](docs/fisher-and-trajectories.md) specifies signs,
@@ -252,10 +253,13 @@ use, so old paths and contracts are replaced rather than retained or deprecated.
   compatibility APIs and placeholder sampler exports, not working functionality.
 - Preserved dormant DDM/C++/inference sources separately as research. The
   [migration audit](docs/migration-audit.md) maps 118 old paths and 188 test
-  definitions (including uncommitted M3 work); CI guards destinations and tests.
+  definitions (including uncommitted M3 work). Its completed acceptance inventory
+  was retired after current-surface architecture, maturity, API and exactness
+  gates superseded it.
 - Added a 31-group feature inventory with implementation status, behavioral
-  obligations and test evidence. Ported grid/spline utilities from research into
-  math; added latent-adapter regressions and mutation tests for inventory guards.
+  obligations and test evidence for migration acceptance. Ported grid/spline
+  utilities from research into math and added latent-adapter regressions. The
+  migration-only mutation harness is now retained through Git history.
 - Migrated tests, M3 fixtures, benchmarks, Enzyme tooling and the cubature submodule.
   Updated Nix binaries and CI, including a production dependency-boundary gate.
 

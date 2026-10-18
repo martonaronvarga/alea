@@ -905,6 +905,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        miri,
+        ignore = "Miri perturbs transcendental results; CI replays deterministic floats"
+    )]
     fn exact_gaussian_flow_matches_closed_orbit_and_reverses() {
         let center: [f64; 2] = [0.3, -0.2];
         let precision: [f64; 2] = [1.0, 9.0];

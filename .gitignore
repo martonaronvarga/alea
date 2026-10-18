@@ -8,8 +8,6 @@ __pycache__/
 .nix-rust
 .nix-cmdstan
 archive/bin/
-# Local benchmark outputs belong in target/ or the ignored archive, not benches/.
-crates/kernels/benches/findiff
-crates/kernels/benches/oracle
-crates/kernels/benches/stan_harness
-crates/kernels/benches/wiener_w_grad_bug
+# Generated Stan reference executables are host-specific build products.
+tools/stan-reference/bench_wiener7
+tools/stan-reference/stantest

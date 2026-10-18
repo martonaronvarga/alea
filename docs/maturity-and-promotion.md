@@ -178,7 +178,7 @@ of the underlying algorithms.
 | SMC traits | S0 | not exposed as inference | No particle filter, resampler, likelihood estimator or PMCMC implementation. |
 | Cubature FFI | S2 in current native use | internal/opt-in | Cross-platform packaging, ABI/version and downstream native-build gates remain. |
 | CLI binaries | S1 utilities | development | No complete model-to-diagnostics inference command, manifest, persistence or stable output contract. |
-| Preserved `research/` and `archive/` prototypes | S0 | not exposed | Recovery/provenance material only; migration inventory is not executed semantic evidence. |
+| Preserved `research/` and `archive/` prototypes | S0 | not exposed | Recovery/provenance material only; the historical migration record is not executed semantic evidence. |
 
 ## Machine-readable enforcement
 
