@@ -203,9 +203,11 @@ failure modes.
 Source files still use module-level inheritance rather than final public-item
 classification. The additive `reference` facades provide the first narrower path
 boundary, while mixed root facades retain the lowest defensible state and an open
-promotion gate. M13 still needs research/approximate path refinement,
-compile-fail conformance cases and accepted compatibility
-decisions before the inventory task can be marked complete.
+promotion gate. A separately locked compiler-negative package now enforces phase
+ownership, consumed adaptation, WALNUTS integrator compatibility and the
+approximate-MCLMC/exact-NUTS boundary. M13 still needs research/approximate path
+refinement and accepted compatibility decisions before the inventory task can be
+marked complete.
 
 External implementations of the current open target, Euclidean metric, Markov
 chain and diagnostic boundaries, together with the borrowed draw sink, are now

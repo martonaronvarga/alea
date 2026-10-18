@@ -91,17 +91,21 @@ documented or mature. The next M13 review must:
 - decide which root re-exports become internal or move behind deliberate modules;
 - audit validated constructors, `#[must_use]`, `#[non_exhaustive]`, standard traits,
   error sources and rustdoc laws;
-- establish downstream conformance and compile-fail projects before freezing any
-  externally implementable trait; and
+- keep downstream conformance and compile-fail contracts aligned with every public
+  extension point proposed for freezing; and
 - add feature-specific snapshots for every feature proposed as supported.
 
 Until those reviews finish, API diffs are rejected for explicit human adjudication,
 not because the recorded pre-alpha surface is promised unchanged.
 
-The first half of the conformance gate is now enforced by the separately locked
+The positive half of the conformance gate is enforced by the separately locked
 [`tools/downstream-conformance`](../tools/downstream-conformance) package. It
 implements target, metric, chain and diagnostic traits externally and composes the
 borrowed runtime sink without private access. The reusable laws and explicit
 exclusions are recorded in
-[`m13-downstream-conformance.md`](m13-downstream-conformance.md). Compile-fail
-misuse coverage remains open, so no S3 API-freeze claim follows from this gate.
+[`m13-downstream-conformance.md`](m13-downstream-conformance.md). Its negative
+complement, [`tools/compile-fail`](../tools/compile-fail), verifies that invalid
+phase ownership, adaptation, integrator and exactness compositions fail at their
+call sites. These gates are necessary but not sufficient for S3: the remaining
+classification, constructor, documentation and feature-matrix reviews above still
+prevent an API-freeze claim.

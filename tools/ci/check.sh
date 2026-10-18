@@ -17,9 +17,15 @@ if [[ "$scope" == all ]]; then
   python3 tools/ci/exactness.py
   python3 tools/ci/test_exactness.py
   cargo fmt --manifest-path tools/downstream-conformance/Cargo.toml --all --check
+  cargo fmt --manifest-path tools/compile-fail/Cargo.toml --all --check
+  cargo fetch --manifest-path tools/downstream-conformance/Cargo.toml --locked
+  cargo fetch --manifest-path tools/compile-fail/Cargo.toml --locked
   cargo test --manifest-path tools/downstream-conformance/Cargo.toml --locked --offline
+  python3 tools/ci/compile_fail.py
   cargo clippy --manifest-path tools/downstream-conformance/Cargo.toml --all-targets --locked --offline -- -D warnings
+  cargo clippy --manifest-path tools/compile-fail/Cargo.toml --lib --locked --offline -- -D warnings
   RUSTDOCFLAGS='-D warnings' cargo doc --manifest-path tools/downstream-conformance/Cargo.toml --locked --offline --no-deps
+  RUSTDOCFLAGS='-D warnings' cargo doc --manifest-path tools/compile-fail/Cargo.toml --lib --locked --offline --no-deps
   python3 tools/fisher-reference/generate.py --check
   python3 tools/fisher-reference/upstream/adjudicate.py --check
   python3 tools/fisher-reference/upstream/test_adjudicate.py

@@ -1283,8 +1283,11 @@ the stable surface.
   A separately locked downstream package supplies independent implementations,
   reusable laws, borrowed-sink composition, warning-denied lint and rustdoc gates;
   sealed integrators and design-only SMC traits remain deliberately excluded.
-- [ ] Add compile-fail tests for invalid ownership, adaptation-after-freeze,
-  incompatible correction/proposal and exact/approximate composition.
+- [x] Add compile-fail tests for invalid ownership, adaptation-after-freeze,
+  incompatible correction/proposal and exact/approximate composition. A separately
+  locked downstream package checks structured compiler codes and primary spans for
+  consumed phase/warmup tokens, non-leapfrog WALNUTS conversion and rejection of an
+  approximate MCLMC chain by exact NUTS construction.
 - [~] Baseline public API snapshots and semver checks; audit validated constructors,
   `#[must_use]`, `#[non_exhaustive]`, standard traits, error sources and rustdoc laws.
   The initial 5,057-entry default-feature baseline was pinned and checked in CI; the

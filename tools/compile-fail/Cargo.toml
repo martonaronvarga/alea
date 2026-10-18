@@ -1,0 +1,34 @@
+[package]
+name = "alea-compile-fail"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+autoexamples = false
+
+[workspace]
+
+[dependencies]
+alea-core = { path = "../../crates/alea-core" }
+alea-math = { path = "../../crates/alea-math" }
+alea-mcmc = { path = "../../crates/alea-mcmc" }
+rand = "0.10.1"
+
+[lib]
+doctest = false
+
+[[example]]
+name = "phase_reuse"
+path = "cases/phase_reuse.rs"
+
+[[example]]
+name = "adaptation_after_freeze"
+path = "cases/adaptation_after_freeze.rs"
+
+[[example]]
+name = "incompatible_walnuts_integrator"
+path = "cases/incompatible_walnuts_integrator.rs"
+
+[[example]]
+name = "approximate_into_exact_nuts"
+path = "cases/approximate_into_exact_nuts.rs"

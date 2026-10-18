@@ -24,6 +24,12 @@ The package provides reusable law assertions and independent implementations for
 CI formats, tests, lints with warnings denied, and builds rustdoc for this package
 using its own lockfile. The suite deliberately excludes sealed integrators: opening
 an extension point is contingent on first deriving laws from concrete uses. It also
-excludes the S0 particle traits until M12 supplies working vertical slices. Invalid
-ownership, adaptation-after-freeze, and exact/approximate composition remain for
-the separate compile-fail gate.
+excludes the S0 particle traits until M12 supplies working vertical slices.
+
+The negative complement lives in the separately locked
+[`tools/compile-fail`](../tools/compile-fail) package. Its CI harness checks
+structured compiler diagnostics and primary source spans for phase-token reuse,
+adaptation after freeze, incompatible WALNUTS/integrator composition, and admission
+of an approximate MCLMC kernel to exact NUTS. Together the two packages verify both
+that documented public compositions work and that type-level exclusions remain
+unrepresentable.

@@ -19,5 +19,5 @@ RUSTDOCFLAGS='-D warnings' cargo doc --manifest-path tools/downstream-conformanc
 ```
 
 This package does not test sealed integrator internals or the design-only SMC traits.
-Compile-fail ownership and exact/approximate composition cases are a separate M13
-gate.
+Compiler-negative ownership and exact/approximate composition contracts live in
+the separate [`tools/compile-fail`](../compile-fail) package.
