@@ -29483,6 +29483,31 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "pub alea_runtime::session::Warmup::GradientDiagonal",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::session::Warmup::GradientDiagonal::final_restart: bool",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::session::Warmup::GradientDiagonal::iterations: usize",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::session::Warmup::GradientDiagonal::search: core::option::Option<alea_mcmc::adapt::window::SearchOptions>",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::session::Warmup::GradientDiagonal::target: alea_mcmc::config::AcceptanceTarget",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
       "item": "pub alea_runtime::session::Warmup::None",
       "profile": "validated_component_reference"
     },

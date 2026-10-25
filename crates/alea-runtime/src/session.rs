@@ -61,7 +61,10 @@ impl Kernel {
                     && a.max_energy_error() == b.max_energy_error()
             }
             (Self::Nuts(a), Self::Nuts(b)) => {
-                a.max_depth() == b.max_depth() && a.max_energy_error() == b.max_energy_error()
+                a.max_depth() == b.max_depth()
+                    && a.max_energy_error() == b.max_energy_error()
+                    && a.step_size_jitter() == b.step_size_jitter()
+                    && a.position_turning() == b.position_turning()
             }
             (Self::Rwmh(_), Self::Rwmh(_)) => true,
             _ => false,
@@ -93,12 +96,28 @@ pub enum Warmup {
         /// Explicit dual-averaging target.
         target: AcceptanceTarget,
     },
+    /// Opt-in native NUTS diagonal position/score adaptation, frozen before draws.
+    /// Combine with explicit jitter and position turning for the measured fast
+    /// profile. Covariance remains the reference constructor policy.
+    GradientDiagonal {
+        /// Number of warmup transitions, excluding bounded search probes.
+        iterations: usize,
+        /// Explicit acceptance target, typically 0.8.
+        target: AcceptanceTarget,
+        /// Optional bounded search at initialization and metric boundaries.
+        search: Option<SearchOptions>,
+        /// Restart fixed-geometry dual averaging at the final window. Disabling
+        /// this retains the continuous late tuning used by the measured profile.
+        final_restart: bool,
+    },
 }
 impl Warmup {
     fn iterations(self) -> usize {
         match self {
             Self::None => 0,
-            Self::Covariance { iterations, .. } | Self::RwmhScale { iterations, .. } => iterations,
+            Self::Covariance { iterations, .. }
+            | Self::GradientDiagonal { iterations, .. }
+            | Self::RwmhScale { iterations, .. } => iterations,
         }
     }
 }
@@ -513,6 +532,7 @@ impl SessionBuilder {
             (self.kernel, self.warmup),
             (_, Warmup::None)
                 | (Kernel::Hmc(_) | Kernel::Nuts(_), Warmup::Covariance { .. })
+                | (Kernel::Nuts(_), Warmup::GradientDiagonal { .. })
                 | (Kernel::Rwmh(_), Warmup::RwmhScale { .. })
         ) {
             return Err(ConfigurationError);
@@ -719,6 +739,15 @@ impl Session {
                         .with_metric(metric)
                         .with_target(target)
                         .with_search(search),
+                    Warmup::GradientDiagonal {
+                        iterations,
+                        target,
+                        search,
+                        ..
+                    } => WarmupOptions::new(iterations)
+                        .with_metric(MetricKind::Diagonal)
+                        .with_target(target)
+                        .with_search(search),
                     _ => WarmupOptions::new(0),
                 };
                 match self.spec.kernel {
@@ -741,13 +770,18 @@ impl Session {
                         GradientChain::Hmc(Box::new(chain))
                     }
                     Kernel::Nuts(o) => {
-                        let result = NutsWarmup::new(
+                        let mut warmup = NutsWarmup::new(
                             &target,
                             buffer(&self.spec.initial[id.0 as usize]),
                             o,
                             options,
-                        )?
-                        .run_controlled(&mut rng, |completed| {
+                        )?;
+                        if let Warmup::GradientDiagonal { final_restart, .. } = self.spec.warmup {
+                            warmup = warmup
+                                .with_gradient_diagonal()?
+                                .with_gradient_final_restart(final_restart);
+                        }
+                        let result = warmup.run_controlled(&mut rng, |completed| {
                             out.warmup_completed = completed;
                             !control.stopped()
                         })?;
@@ -1108,16 +1142,7 @@ impl<'a, T: LogDensityGradient> GradientChain<'a, T> {
     ) -> Result<Self, Failure<T::Error>> {
         Ok(match kernel {
             Kernel::Hmc(o) => Self::Hmc(Box::new(Hmc::new(target, q, metric, o)?)),
-            Kernel::Nuts(o) => {
-                let options = HmcOptions::new(o.step_size().value(), 1)
-                    .expect("validated step")
-                    .with_max_energy_error(o.max_energy_error())
-                    .expect("validated energy");
-                Self::Nuts(Box::new(Nuts::from_hmc(
-                    Hmc::new(target, q, metric, options)?,
-                    o.max_depth(),
-                )?))
-            }
+            Kernel::Nuts(o) => Self::Nuts(Box::new(Nuts::new(target, q, metric, o)?)),
             _ => return Err(Failure::Contract),
         })
     }

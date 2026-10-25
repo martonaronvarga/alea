@@ -126,9 +126,23 @@ impl Default for ModelBuilder {
 }
 impl ModelBuilder {
     pub fn new() -> Self {
-        let owner = NEXT_MODEL
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |x| x.checked_add(1))
-            .expect("model identity space exhausted");
+        // The fetch_update -> try_update rename is newer than the MSRV. Spell
+        // out its same checked retry loop to support both compiler generations.
+        let mut owner = NEXT_MODEL.load(Ordering::Relaxed);
+        loop {
+            let next = owner
+                .checked_add(1)
+                .expect("model identity space exhausted");
+            match NEXT_MODEL.compare_exchange_weak(
+                owner,
+                next,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => break,
+                Err(actual) => owner = actual,
+            }
+        }
         Self {
             owner,
             nodes: Vec::new(),

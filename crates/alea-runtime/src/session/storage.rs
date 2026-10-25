@@ -443,11 +443,20 @@ impl<'a> Input<'a> {
             1 => {
                 let depth = self.usize()?;
                 let energy = self.f64()?;
+                let jitter = self.f64()?;
+                let position = match self.byte()? {
+                    0 => false,
+                    1 => true,
+                    _ => return None,
+                };
                 Some(Kernel::Nuts(
                     NutsOptions::new(step, depth)
                         .ok()?
                         .with_max_energy_error(energy)
-                        .ok()?,
+                        .ok()?
+                        .with_step_size_jitter(jitter)
+                        .ok()?
+                        .with_position_turning(position),
                 ))
             }
             2 => Some(Kernel::Rwmh(RwmhOptions::new(step).ok()?)),
@@ -533,6 +542,8 @@ fn checkpoint_payload(cp: &Checkpoint) -> Vec<u8> {
             put_f64(&mut out, o.step_size().value());
             put_usize(&mut out, o.max_depth().value());
             put_f64(&mut out, o.max_energy_error());
+            put_f64(&mut out, o.step_size_jitter());
+            out.push(u8::from(o.position_turning()));
         }
         Kernel::Rwmh(o) => {
             out.push(2);
@@ -578,7 +589,7 @@ pub(super) fn write_checkpoint(
     if !cp.valid() {
         return Err(CheckpointError::Format);
     }
-    let mut bytes = b"ALEACP01".to_vec();
+    let mut bytes = b"ALEACP02".to_vec();
     frame(&mut bytes, &checkpoint_payload(cp));
     if bytes.len() > maximum_bytes {
         return Err(CheckpointError::Budget);
@@ -605,7 +616,7 @@ pub(super) fn read_checkpoint(
     if bytes.len() > maximum_bytes {
         return Err(CheckpointError::Budget);
     }
-    if bytes.get(..8) != Some(b"ALEACP01") {
+    if bytes.get(..8) != Some(b"ALEACP02") {
         return Err(CheckpointError::Format);
     }
     let mut reader = &bytes[8..];
@@ -667,6 +678,25 @@ mod tests {
             read_frame(&mut bytes.as_slice(), 1024),
             Err(SinkError::Budget)
         ));
+    }
+
+    #[test]
+    fn serialized_nuts_policy_rejects_invalid_jitter_and_boolean_tags() {
+        for (jitter, position) in [(f64::NAN, 0), (-0.1, 1), (1.0, 0), (0.1, 2), (0.1, 255)] {
+            let mut bytes = vec![1];
+            put_f64(&mut bytes, 0.2);
+            put_usize(&mut bytes, 5);
+            put_f64(&mut bytes, 1000.0);
+            put_f64(&mut bytes, jitter);
+            bytes.push(position);
+            assert!(Input(&bytes).kernel().is_none());
+        }
+        let mut cp = checkpoint();
+        cp.provenance.implementation = cp
+            .provenance
+            .implementation
+            .replace(";session/2;", ";session/1;");
+        assert!(!cp.valid(), "earlier sessions cannot authorize replay");
     }
 
     #[test]

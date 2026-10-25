@@ -6,8 +6,8 @@ use alea_runtime::{
     ensemble::Execution,
     output::ChainId,
     session::{
-        Checkpoint, Diagnostics, Failure, FrozenGeometry, Kernel, Resources, SessionBuilder,
-        Status, Warmup,
+        Checkpoint, CheckpointError, Diagnostics, Failure, FrozenGeometry, Kernel, Resources,
+        SessionBuilder, Status, Warmup,
         storage::{ChannelSink, Discard, DrawReader, DurableSink, Observer, Sink, SinkError},
     },
 };
@@ -302,6 +302,110 @@ fn cancelled_durable_checkpoints_replay_odd_dimensional_normal_cache_and_dense_m
             assert!(Checkpoint::read(dir.0.join("truncated"), 65_536).is_err());
         }
     }
+}
+
+#[test]
+fn nuts_options_survive_durable_restart_and_reject_changed_policy() {
+    let directory = Directory::new();
+    for (case, warmup) in [
+        Warmup::None,
+        covariance(MetricKind::Diagonal),
+        Warmup::GradientDiagonal {
+            iterations: 80,
+            target: 0.8.try_into().unwrap(),
+            search: None,
+            final_restart: false,
+        },
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let options = NutsOptions::new(0.2, 5)
+            .unwrap()
+            .with_step_size_jitter(0.1)
+            .unwrap()
+            .with_position_turning(true);
+        let kernel = Kernel::Nuts(options);
+        let run = |draws| {
+            builder(kernel, 1, draws)
+                .warmup(warmup)
+                .build()
+                .unwrap()
+                .run(
+                    |_| Ok(Normal { dimension: 3 }),
+                    Execution::Sequential,
+                    &Discard,
+                )
+                .unwrap()
+        };
+        let full = run(80);
+        let prefix = run(31);
+        let checkpoint = prefix.chains[0].checkpoint.as_ref().unwrap();
+        let Kernel::Nuts(frozen) = checkpoint.kernel() else {
+            panic!("NUTS checkpoint expected")
+        };
+        assert_eq!(frozen.step_size_jitter(), 0.1);
+        assert!(frozen.position_turning());
+        let path = directory.0.join(format!("nuts-options-{case}"));
+        checkpoint.write_new(&path, 65_536).unwrap();
+        let restored = Checkpoint::read(&path, 65_536).unwrap();
+        assert_eq!(&restored, checkpoint, "durable settings must be lossless");
+        let resumed = builder(kernel, 1, 80)
+            .restart(vec![restored.clone()])
+            .build()
+            .unwrap()
+            .run(
+                |_| Ok(Normal { dimension: 3 }),
+                Execution::Sequential,
+                &Discard,
+            )
+            .unwrap();
+        assert_eq!(resumed.chains[0].draws, full.chains[0].draws[31..]);
+        assert_eq!(resumed.chains[0].checkpoint, full.chains[0].checkpoint);
+        for changed in [
+            options.with_position_turning(false),
+            options.with_step_size_jitter(0.0).unwrap(),
+        ] {
+            assert!(
+                builder(Kernel::Nuts(changed), 1, 80)
+                    .restart(vec![restored.clone()])
+                    .build()
+                    .is_err()
+            );
+        }
+        let mut legacy = std::fs::read(&path).unwrap();
+        legacy[..8].copy_from_slice(b"ALEACP01");
+        let old = directory.0.join(format!("old-nuts-options-{case}"));
+        std::fs::write(&old, legacy).unwrap();
+        assert!(matches!(
+            Checkpoint::read(old, 65_536),
+            Err(CheckpointError::Format)
+        ));
+    }
+}
+
+#[test]
+fn gradient_diagonal_warmup_is_nuts_only_and_budgeted() {
+    let warmup = Warmup::GradientDiagonal {
+        iterations: 80,
+        target: 0.8.try_into().unwrap(),
+        search: None,
+        final_restart: false,
+    };
+    for kernel in [hmc(), rwmh()] {
+        assert!(builder(kernel, 1, 16).warmup(warmup).build().is_err());
+    }
+    let limits = Resources {
+        warmup: 79,
+        ..Resources::default()
+    };
+    assert!(
+        builder(nuts(), 1, 16)
+            .warmup(warmup)
+            .resources(limits)
+            .build()
+            .is_err()
+    );
 }
 
 #[test]
@@ -772,6 +876,19 @@ fn all_resource_products_and_pool_limits_are_admitted_before_work() {
 
 #[test]
 fn streaming_peak_memory_does_not_grow_with_draw_budget_and_finish_runs_after_join() {
+    // Some platforms initialize a retained standard-library thread-local block
+    // on the first session. Exclude that one-time runtime setup, then retain the
+    // strict zero-live-bytes and equal-peak checks for both complete steady runs.
+    builder(rwmh(), 1, 64)
+        .collect(false)
+        .build()
+        .unwrap()
+        .run_density(
+            |_| Ok(Normal { dimension: 3 }),
+            Execution::Sequential,
+            &Discard,
+        )
+        .unwrap();
     fn peak(draws: usize) -> u64 {
         let session = builder(rwmh(), 1, draws).collect(false).build().unwrap();
         let info = allocation_counter::measure(|| {

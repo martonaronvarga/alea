@@ -43,8 +43,8 @@
     },
     "alea-runtime": {
       "file": "alea-runtime.txt",
-      "items": 783,
-      "sha256": "9fcd4c9e26adf2ec07912df1534dda9f0f28ca1c6e96574d3c869d1b309cd873"
+      "items": 788,
+      "sha256": "f14ce40aa430d7227268edc0730939ddf6946c63a442abfd1189b3dfd974c2d1"
     },
     "alea-smc": {
       "file": "alea-smc.txt",

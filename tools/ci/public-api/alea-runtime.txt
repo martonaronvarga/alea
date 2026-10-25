@@ -613,6 +613,11 @@ pub alea_runtime::session::Warmup::Covariance::iterations: usize
 pub alea_runtime::session::Warmup::Covariance::metric: alea_mcmc::adapt::covariance::MetricKind
 pub alea_runtime::session::Warmup::Covariance::search: core::option::Option<alea_mcmc::adapt::window::SearchOptions>
 pub alea_runtime::session::Warmup::Covariance::target: alea_mcmc::config::AcceptanceTarget
+pub alea_runtime::session::Warmup::GradientDiagonal
+pub alea_runtime::session::Warmup::GradientDiagonal::final_restart: bool
+pub alea_runtime::session::Warmup::GradientDiagonal::iterations: usize
+pub alea_runtime::session::Warmup::GradientDiagonal::search: core::option::Option<alea_mcmc::adapt::window::SearchOptions>
+pub alea_runtime::session::Warmup::GradientDiagonal::target: alea_mcmc::config::AcceptanceTarget
 pub alea_runtime::session::Warmup::None
 pub alea_runtime::session::Warmup::RwmhScale
 pub alea_runtime::session::Warmup::RwmhScale::iterations: usize

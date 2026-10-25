@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+env:
+  PYTHONUTF8: '1'
+  CARGO_INCREMENTAL: '0'
 concurrency:
   group: rust-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -50,7 +53,7 @@ jobs:
           persist-credentials: false
       - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
       - name: Execute compiled Enzyme gradients and opaque derivative composition
-        run: nix develop .#autodiff --command bash tools/ci/autodiff.sh
+        run: python3 tools/ci/run.py --log "$RUNNER_TEMP/autodiff.log" -- nix develop .#autodiff --command bash tools/ci/autodiff.sh
   miri:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -60,4 +63,4 @@ jobs:
           submodules: recursive
           persist-credentials: false
       - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
-      - run: nix develop --command bash tools/ci/miri.sh
+      - run: python3 tools/ci/run.py --log "$RUNNER_TEMP/miri.log" -- nix develop --command bash tools/ci/miri.sh

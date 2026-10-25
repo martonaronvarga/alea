@@ -31,7 +31,7 @@ impl Provenance {
             implementation: concat!(
                 "alea-runtime/",
                 env!("CARGO_PKG_VERSION"),
-                ";session/1;chacha12/0.10;rand/0.10;numerics/3"
+                ";session/2;chacha12/0.10;rand/0.10;numerics/3"
             )
             .into(),
             dimension,
@@ -126,7 +126,7 @@ impl FrozenGeometry {
     }
 }
 
-/// Version-one retained-boundary restart state. Fields are read-only through
+/// Version-two retained-boundary restart state. Fields are read-only through
 /// accessors and validated on decode/admission. Mid-warmup checkpoints are not
 /// supported: no adaptive controller or partially estimated geometry is saved.
 #[derive(Debug, Clone, PartialEq)]

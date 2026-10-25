@@ -18,7 +18,7 @@ texts and third-party notices. Metadata and actual archive checks enforce this.
 | `alea-math` | Initialized aligned buffers; identity, diagonal and dense Euclidean metrics | Reference APIs have documentation enforcement; platform results and candidate cycle pending |
 | `alea-core` | Checked density/score, coherent point caches, transforms and layouts | Same; model assembly and higher-order capabilities graduate separately |
 | `alea-mcmc` | Fixed HMC/RWMH, multinomial NUTS, explicit covariance warmup | Same; named research modules retain their existing maturity and exactness limits |
-| `alea-runtime` | Reference sessions, deterministic logical chain identity, bounded output and diagnostics | Same; checkpoint/stream v1 compatibility requires a candidate cycle |
+| `alea-runtime` | Reference sessions, deterministic logical chain identity, bounded output and diagnostics | Same; checkpoint v2 and draw-stream v1 compatibility require a candidate cycle |
 | `alea-distributions` | Individually validated normalized laws and models | GPL native dependency; candidate evidence pending |
 | `alea-autodiff` | Analytic adapters and explicitly enabled Enzyme | Compiler/plugin pins and derivative orders graduate independently |
 | `alea-ffi` | Audited synchronous cubature | Vendored GPL-2.0-or-later sources, native toolchain and sanitizer evidence |
@@ -113,6 +113,18 @@ Production dependencies
 for this example require no native cubature, Enzyme, Nix, repository test fixtures
 or test-only helper crates. See [modeling](m14-modeling.md) and
 [sessions](m15-sessions.md) for native model and durable cancel/resume workflows.
+
+For native regression and positive-parameter models, diagnostics, bounded SBC,
+cancellation and exact durable recovery, run the fuller independent consumer:
+
+```sh
+python3 tools/release/fresh.py . --workflow --output /path/to/new-workflow-output
+```
+
+It retains `report.json`, a checkpoint and durable continuation draws. The
+[candidate protocol](reference-candidate-protocol.md) declares its seeds, budgets,
+analytic checks and descriptive performance observations. The package verifier
+runs this same workflow against the contents of actual `.crate` archives.
 
 ## Source artifacts and signing
 

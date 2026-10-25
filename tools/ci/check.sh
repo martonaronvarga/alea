@@ -8,6 +8,7 @@ if [[ "$scope" != all && "$scope" != workspace ]]; then
   exit 2
 fi
 args=(--manifest-path crates/Cargo.toml --workspace --locked)
+cargo fetch --manifest-path crates/Cargo.toml --locked
 if [[ "$scope" == all ]]; then
   python3 tools/ci/architecture.py
   python3 tools/ci/test_run.py

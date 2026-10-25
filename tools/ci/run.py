@@ -43,6 +43,7 @@ def run(command: list[str], log: Path) -> int:
 
 
 def main() -> None:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--log", type=Path, required=True)
     parser.add_argument("command", nargs=argparse.REMAINDER)

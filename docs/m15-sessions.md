@@ -26,7 +26,8 @@ point per chain. Logical IDs are the input-order indices, starting at zero. Set
 end index, seed, coordinate observables, diagnostics and resource limits. Defaults
 are explicit in `SessionBuilder`: NUTS step 0.1/depth 8, 1,000 retained draws,
 zero seed, collection enabled and **no warmup**. Adaptation requires an explicit
-`Warmup::Covariance` or `Warmup::RwmhScale` selection.
+`Warmup::Covariance`, `Warmup::GradientDiagonal` (NUTS only), or
+`Warmup::RwmhScale` selection.
 
 Covariance warmup uses the existing initial/slow/final window schedule, diagonal
 or dense covariance, a caller-selected acceptance target and optional bounded
@@ -35,6 +36,21 @@ search; fixed HMC warmup uses its requested
 trajectory length. RWMH uses identity proposal covariance and optional scale dual
 averaging, without gradients. Warmup is consumed before retained sampling; it
 never appears in sinks or retained diagnostics. Zero warmup consumes no warmup RNG.
+
+The measured fast NUTS profile is explicit:
+
+```rust,ignore
+let kernel = Kernel::Nuts(NutsOptions::new(0.2, 8)?
+    .with_step_size_jitter(0.1)?.with_position_turning(true));
+let warmup = Warmup::GradientDiagonal {
+    iterations: 512, target: 0.8.try_into()?, search: None, final_restart: false,
+};
+let session = builder.kernel(kernel).warmup(warmup).build()?;
+```
+
+This exposes the same frozen profile as the native parity experiment. It keeps
+covariance as the reference option and does not guarantee better diagnostics on
+every model. Jitter and turning are preserved through checkpoint/restart.
 
 `Session::run` accepts a gradient target factory; `run_density` accepts a density-only
 factory for RWMH. Each factory runs inside its chain worker, so its returned target
@@ -143,9 +159,10 @@ starting at zero can continue as a smaller session. A loaded checkpoint with a
 warmup phase tag is rejected. Warmup must be
 restarted from the supplied initial point/seed when it has not frozen.
 
-Checkpoint schema 1 uses `ALEACP01` and one checksummed frame containing provenance,
+Checkpoint schema 2 uses `ALEACP02` and one checksummed frame containing provenance,
 sampling phase, chain ID, absolute completion index, ChaCha12 word position, frozen
-kernel settings, frozen mass representation, position/log density/gradient cache,
+kernel settings (including NUTS jitter and position turning), frozen mass
+representation, position/log density/gradient cache,
 RWMH normal-generator spare and consecutive numerical rejection streak. Uniform
 stream identity is the logical chain ID. Identity, diagonal masses and full
 column-major lower mass factors retain their original encoding tags 0–2. Learned
@@ -162,10 +179,15 @@ transaction with another file. Durable output and checkpoints should use fresh
 segment paths; concatenate segments by `(chain,index)` after reconciling any
 undelivered record.
 
-The current implementation identity includes `numerics/3`, covering runtime SIMD,
+The current implementation identity includes `session/2` and `numerics/3`, covering runtime SIMD,
 relative-energy weight accumulation, high-dimensional kinetic reduction and
 Ziggurat momentum generation. It rejects `numerics/2` checkpoints as well as
 earlier implementations; draw stream schema remains unchanged.
+Schema-one checkpoints omitted nondefault NUTS jitter/turning settings and could
+silently reconstruct a different kernel. They are explicitly rejected with
+`CheckpointError::Format`; restart those old runs from their original model/seed
+instead of reinterpreting their bytes. Schema-two restart also rejects a requested
+jitter or turning policy different from the frozen checkpoint.
 Earlier implementation checkpoints are rejected. Earlier schema-one draw streams
 remain readable for analysis; reading data does not authorize checkpoint replay.
 

@@ -16,6 +16,9 @@ on:
     - cron: '19 3 * * 0'
 permissions:
   contents: read
+env:
+  PYTHONUTF8: '1'
+  CARGO_INCREMENTAL: '0'
 concurrency:
   group: release-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
@@ -47,6 +50,23 @@ jobs:
         run: python tools/ci/run.py --log "$RUNNER_TEMP/portable.log" -- bash tools/ci/portable.sh
       - name: Independent fresh project
         run: python tools/ci/run.py --log "$RUNNER_TEMP/fresh.log" -- python tools/release/fresh.py .
+      - name: Independent native-model and recovery workflow
+        run: python tools/ci/run.py --log "$RUNNER_TEMP/workflow.log" -- python tools/release/fresh.py . --workflow --output "$RUNNER_TEMP/alea-workflow"
+      - name: Paired fixed-work observations against accepted consolidation
+        if: matrix.toolchain == '1.95.0' && startsWith(matrix.runner, 'ubuntu-')
+        run: |
+          git fetch --depth=1 origin df17c0a0af7ab8aabc7753304e3beacd6d8c7135
+          git worktree add --detach "$RUNNER_TEMP/alea-baseline" FETCH_HEAD
+          python tools/ci/run.py --log "$RUNNER_TEMP/observations.log" -- python tools/release/observe.py . "$RUNNER_TEMP/alea-baseline" "$RUNNER_TEMP/alea-observations"
+      - name: Retain downstream observations
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: workflow-${{ matrix.runner }}-${{ matrix.toolchain }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/alea-workflow
+            ${{ runner.temp }}/alea-observations
+          if-no-files-found: warn
   artifacts:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -89,6 +109,10 @@ jobs:
           git worktree add --detach "$RUNNER_TEMP/alea-baseline" "$baseline"
           nix develop .#release --command python3 tools/release/metadata.py --candidate
           nix develop .#release --command bash tools/release/semver.sh "$RUNNER_TEMP/alea-baseline"
+      - name: Reference cycle semantic compatibility against accepted consolidation
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/alea-cycle-baseline" df17c0a0af7ab8aabc7753304e3beacd6d8c7135
+          python3 tools/ci/run.py --log "$RUNNER_TEMP/semver.log" -- nix develop .#release --command bash tools/release/semver.sh "$RUNNER_TEMP/alea-cycle-baseline"
       - name: Preserve unsigned preparation artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

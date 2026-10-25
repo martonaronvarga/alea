@@ -38,6 +38,7 @@ def main():
     example = unpacked / "tools/release/examples/reference.rs"
     example.parent.mkdir(parents=True)
     shutil.copyfile(root / "tools/release/examples/reference.rs", example)
+    shutil.copyfile(root / "tools/release/examples/workflow.rs", example.with_name("workflow.rs"))
     entries = []
     for package in metadata["packages"]:
         stem = package["name"] + "-" + package["version"]
@@ -57,6 +58,8 @@ def main():
                         "sha256": hashlib.sha256(destination.read_bytes()).hexdigest()})
     subprocess.run([sys.executable, str(root / "tools/release/fresh.py"), str(unpacked), "--packaged"],
                    cwd=root, check=True)
+    subprocess.run([sys.executable, str(root / "tools/release/fresh.py"), str(unpacked), "--packaged",
+                    "--workflow", "--output", str(output / "workflow")], cwd=root, check=True)
     (output / "packages.json").write_text(json.dumps({"schema_version": 1, "packages": entries,
                                                     "consumer_verified": True}, indent=2) + "\n")
     print(f"verified {len(entries)} source packages and fresh reference consumer")
