@@ -57,10 +57,23 @@ jobs:
   miri:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        scope: [storage, targets, hmc, nuts, research, runtime]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
           persist-credentials: false
       - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
-      - run: python3 tools/ci/run.py --log "$RUNNER_TEMP/miri.log" -- nix develop --command bash tools/ci/miri.sh
+      - env:
+          ALEA_MIRI_SCOPE: ${{ matrix.scope }}
+        run: python3 tools/ci/run.py --log "$RUNNER_TEMP/miri.log" -- nix develop --command bash tools/ci/miri.sh "$ALEA_MIRI_SCOPE"
+      - name: Retain interpreter diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: miri-${{ matrix.scope }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/miri.log
+          if-no-files-found: warn
