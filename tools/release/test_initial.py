@@ -31,6 +31,12 @@ class InitialReleaseTests(unittest.TestCase):
     def test_actual_review_endpoints_pass(self):
         validate(self.root, self.baseline)
 
+    def test_duplicate_rendered_declarations_use_the_review_set_semantics(self):
+        p = self.baseline / "tools/ci/public-api/alea-core.txt"
+        with p.open("a") as stream:
+            stream.write(p.read_text().splitlines()[0] + "\n")
+        validate(self.root, self.baseline)
+
     def test_self_baseline_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "independent"):
             validate(self.root, self.root)

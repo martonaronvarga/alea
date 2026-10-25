@@ -24,7 +24,7 @@ def validate(root: Path, baseline: Path) -> None:
             raise ValueError("initial-publication exception is only for 0.1.0")
     for name in PACKAGES:
         path = baseline / "tools/ci/public-api" / f"{name}.txt"
-        if digest(path.read_text().splitlines()) != review["packages"][name]["before"]:
+        if digest(set(path.read_text().splitlines())) != review["packages"][name]["before"]:
             raise ValueError(f"{name}: baseline is not the reviewed unpublished API")
     print("first-publication API endpoints verified; no semver compatibility claim")
 
