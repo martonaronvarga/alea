@@ -1,9 +1,12 @@
 # Release and compatibility policy
 
-Alea is pre-alpha. Every crate remains unpublished, and no API has completed an
-S3 release-candidate cycle. This policy defines how a crate can graduate; it does
-not declare the workspace stable. The [maturity policy](maturity-and-promotion.md)
-and machine-readable public API inventory continue to own component status.
+Alea is pre-alpha and every crate remains unpublished. The
+[2026-10-25 reference review](releases/2026-10-25-reference-candidate/README.md)
+completes the first candidate cycle for the four explicit core/math/MCMC/runtime
+`reference` namespaces (S3). Numerical implementations retain S2 validation and
+research retains its separate status. No crate is S4. The
+[maturity policy](maturity-and-promotion.md) and machine-readable public API
+inventory continue to own component status.
 
 ## Independent release units
 
@@ -15,10 +18,10 @@ texts and third-party notices. Metadata and actual archive checks enforce this.
 
 | Crate | First intended release scope | Present release constraints |
 |---|---|---|
-| `alea-math` | Initialized aligned buffers; identity, diagonal and dense Euclidean metrics | Reference APIs have documentation enforcement; platform results and candidate cycle pending |
-| `alea-core` | Checked density/score, coherent point caches, transforms and layouts | Same; model assembly and higher-order capabilities graduate separately |
-| `alea-mcmc` | Fixed HMC/RWMH, multinomial NUTS, explicit covariance warmup | Same; named research modules retain their existing maturity and exactness limits |
-| `alea-runtime` | Reference sessions, deterministic logical chain identity, bounded output and diagnostics | Same; checkpoint v2 and draw-stream v1 compatibility require a candidate cycle |
+| `alea-math` | Initialized aligned buffers; identity, diagonal and dense Euclidean metrics | Reference namespace S3; crate-wide stable compatibility and publication remain open |
+| `alea-core` | Checked density/score, coherent point caches, transforms and layouts | Reference namespace S3; model assembly and higher-order capabilities graduate separately |
+| `alea-mcmc` | Fixed HMC/RWMH, multinomial NUTS, explicit covariance warmup | Reference namespace S3; named research modules retain their maturity and exactness limits |
+| `alea-runtime` | Reference sessions, deterministic logical chain identity, bounded output and diagnostics | Reference namespace S3; reviewed checkpoint v2/draw-stream v1 scope, no cross-build replay promise |
 | `alea-distributions` | Individually validated normalized laws and models | GPL native dependency; candidate evidence pending |
 | `alea-autodiff` | Analytic adapters and explicitly enabled Enzyme | Compiler/plugin pins and derivative orders graduate independently |
 | `alea-ffi` | Audited synchronous cubature | Vendored GPL-2.0-or-later sources, native toolchain and sanitizer evidence |

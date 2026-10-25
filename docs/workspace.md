@@ -72,25 +72,28 @@ local Git excludes. Do not include agent artifacts in source commits or releases
 
 ## Next development sequence
 
-The next milestone is completion of **M17's reference release-candidate cycle**.
-The performance work supports that effort; it does not complete platform or
-compatibility validation. Approximate walltime parity was measured for an explicit
-gradient-diagonal, jittered, position-turning NUTS profile. Constructor defaults
-and research maturity remain as documented.
+The first **M17 reference candidate cycle is complete**. The
+[candidate review](releases/2026-10-25-reference-candidate/README.md) binds successful
+native CI, the independent downstream workflow, calibration/recovery, compatibility
+checks and a signed reproducible source archive to the exact code revision. Four
+reference namespaces qualify as S3. Constructor defaults and research maturity
+retain their documented classifications; all crates remain unpublished.
 
-Suggested order, with indicative working-day budgets rather than release promises:
+The next work is field feedback and per-crate stable-release preparation:
 
-1. Consolidation: archive payloads, retire build caches, validate and push the
-   accumulated baseline changes. Keep the checkout and source release compact.
-2. Next 1–3 working days: obtain native Linux/macOS/Windows and architecture CI
-   results for the pushed revision; fix portability and fresh-install failures.
-   Use the existing release workflow and retain successful and failed logs.
-3. Following 3–7 working days: exercise one external downstream workflow, including
-   model construction, warmup, diagnostics, cancellation and checkpoint recovery.
-   Document the explicit fast NUTS configuration and its diagnostic tradeoffs.
-4. After those results: review the exact reference API/schema compatibility scope,
-   seal and sign a candidate, and start its S3 feedback/soak cycle. Release timing
-   depends on resolving correctness, data-loss and compatibility defects.
+1. Use the candidate in an external application and record the user's installation,
+   modeling, diagnostics and recovery experience. The completed independent
+   consumer was agent-executed; external-human feedback is still outstanding.
+2. Maintain the frozen candidate baseline, run the existing scheduled soak and
+   native gates, and diagnose concrete regressions. Correctness, data-loss,
+   unsoundness or schema defects reset the affected cycle after repair.
+3. Before S4, settle each crate's compatibility scope for existing research exports,
+   confirm its support/deprecation commitments, and review actual publication.
+   Do not lift `publish = false` or infer stable status from S3 alone.
+
+There is no fixed publication date. Stable graduation depends on that evidence
+and an explicit per-crate publication decision. Keep candidate artifacts outside
+the checkout and back them up with their signed digest and evidence manifest.
 
 Keep RMHMC exactness, optional samplers and Enzyme compiler qualification on their
 own schedules. Add targeted seeds/surgical or cheap-target performance experiments

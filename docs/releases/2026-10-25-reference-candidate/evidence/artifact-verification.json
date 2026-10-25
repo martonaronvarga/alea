@@ -1,0 +1,79 @@
+[
+  {
+    "name": "source-preparation-40200300753",
+    "id": 12602021358,
+    "sha256": "0f19a5e3d5233164c2be3ba6ea040d285d224ef39d34865f34a68ac51508fa97",
+    "bytes": 70636997,
+    "digest_verified_against_github": true
+  },
+  {
+    "name": "workflow-windows-2025-1.95.0-40200300753",
+    "id": 12601867923,
+    "sha256": "1ace9987cb83fce1d61d4b9535269fef353f1ac1fa641abc279afcd3ee09dd4d",
+    "bytes": 16688,
+    "digest_verified_against_github": true
+  },
+  {
+    "name": "workflow-macos-15-stable-40200300753",
+    "id": 12601802850,
+    "sha256": "bd22590cb1ce169cd247e65402f62917151969cdac256d0f0268af29bb95ab77",
+    "bytes": 16699,
+    "digest_verified_against_github": true
+  },
+  {
+    "name": "workflow-ubuntu-24.04-arm-stable-40200300753",
+    "id": 12601701889,
+    "sha256": "1bd39ce2f6ceadfd4d03c8491f1a950a89e374b6f57221ddfdbc4085113e66d8",
+    "bytes": 16687,
+    "digest_verified_against_github": true
+  },
+  {
+    "name": "workflow-macos-15-1.95.0-40200300753",
+    "id": 12601488267,
+    "sha256": "7c74562b975873e0ea80d353c316fc592dedb2c48f43da5e9bea6b4543654300",
+    "bytes": 16696,
+    "digest_verified_against_github": true
+  },
+  {
+    "name": "workflow-macos-15-intel-1.95.0-40200300753",
+    "id": 12601347822,
+    "sha256": "fd6212959dc6ba46815023bb0ba559bbfabe09277b21018e8c0f8d992231f50f",
+    "bytes": 16690,
+    "digest_verified_against_github": true
+  },
+  {
+    "name": "workflow-ubuntu-24.04-arm-1.95.0-40200300753",
+    "id": 12601338474,
+    "sha256": "bcbdc29f0181f313a29561cd24bb8f3d6f7d9ead8f2b9fd7d7b3c02fe094d06d",
+    "bytes": 29803,
+    "digest_verified_against_github": true
+  },
+  {
+    "name": "workflow-macos-15-intel-stable-40200300753",
+    "id": 12601282526,
+    "sha256": "867dfa96d96e435d9ba49a38bcaffb93fe7ed581b31e24ba3166067eff7e32a3",
+    "bytes": 16687,
+    "digest_verified_against_github": true
+  },
+  {
+    "name": "workflow-ubuntu-24.04-1.95.0-40200300753",
+    "id": 12601213691,
+    "sha256": "b5c42ee71908260e4bed778b51390f3c2bf554f352d658a370df6dbde6995698",
+    "bytes": 29806,
+    "digest_verified_against_github": true
+  },
+  {
+    "name": "workflow-ubuntu-24.04-stable-40200300753",
+    "id": 12601138397,
+    "sha256": "bbee7212374261f1183710fe805a545bb1037999883ead0c659a29ddbc889b2a",
+    "bytes": 16684,
+    "digest_verified_against_github": true
+  },
+  {
+    "name": "workflow-windows-2025-stable-40200300753",
+    "id": 12601067577,
+    "sha256": "f9fcb3d5c34d2e36ef372b667c11da77193ff837d818762f022854c6b294dcb1",
+    "bytes": 16688,
+    "digest_verified_against_github": true
+  }
+]

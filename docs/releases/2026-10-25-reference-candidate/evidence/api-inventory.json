@@ -1,0 +1,104 @@
+{
+  "schema_version": 3,
+  "tool": "cargo-public-api 0.51.0",
+  "rustc": "rustc 1.97.0-nightly (7af3402cd 2026-04-16)",
+  "policy": {
+    "default_features": false,
+    "omit": [
+      "blanket-impls",
+      "auto-trait-impls"
+    ],
+    "parameter_names": true
+  },
+  "packages": {
+    "alea-autodiff": {
+      "file": "alea-autodiff.txt",
+      "items": 77,
+      "sha256": "a315f602007d55afc503c0c4aadc5f7224245b4fdf4bb4be5828f38e4887b9f9"
+    },
+    "alea-core": {
+      "file": "alea-core.txt",
+      "items": 883,
+      "sha256": "8d165babadf0ac513b1f5d4486f83afc51d3525e923c7cc348da1256991e9f34"
+    },
+    "alea-distributions": {
+      "file": "alea-distributions.txt",
+      "items": 963,
+      "sha256": "c921e6c1183ee080b556b9e17918212e6d58c38ef29abe7162368725652a8904"
+    },
+    "alea-ffi": {
+      "file": "alea-ffi.txt",
+      "items": 76,
+      "sha256": "35a1c2952e61e2c0d5e90be27e1c19554e3f2b587038d2e2c8d43f83d174a900"
+    },
+    "alea-math": {
+      "file": "alea-math.txt",
+      "items": 637,
+      "sha256": "058e73007713e380426df6f6265de79cbb6cb5e2cb0df20388a35b19d9ac2504"
+    },
+    "alea-mcmc": {
+      "file": "alea-mcmc.txt",
+      "items": 3679,
+      "sha256": "b2dcf493697eff359fa3712a212cb6aa3aa7798cee8a33f34a615b4f5b337ae5"
+    },
+    "alea-runtime": {
+      "file": "alea-runtime.txt",
+      "items": 788,
+      "sha256": "f14ce40aa430d7227268edc0730939ddf6946c63a442abfd1189b3dfd974c2d1"
+    },
+    "alea-smc": {
+      "file": "alea-smc.txt",
+      "items": 7,
+      "sha256": "5eaafde2d1561f0557301057ba9138384c776136f6535df10366b1e5b8ac6ca0"
+    }
+  },
+  "variants": {
+    "alea-distributions+branch-hints": {
+      "package": "alea-distributions",
+      "features": [
+        "alea-distributions/branch-hints"
+      ],
+      "same_as": "alea-distributions"
+    },
+    "alea-autodiff+std-autodiff": {
+      "package": "alea-autodiff",
+      "features": [
+        "alea-autodiff/std-autodiff"
+      ],
+      "same_as": "alea-autodiff"
+    },
+    "alea-distributions+simd": {
+      "package": "alea-distributions",
+      "features": [
+        "alea-distributions/simd"
+      ],
+      "same_as": "alea-distributions"
+    },
+    "alea-math+simd": {
+      "package": "alea-math",
+      "features": [
+        "alea-math/simd"
+      ],
+      "same_as": "alea-math"
+    },
+    "alea-mcmc+simd": {
+      "package": "alea-mcmc",
+      "features": [
+        "alea-mcmc/simd"
+      ],
+      "same_as": "alea-mcmc"
+    }
+  },
+  "feature_packages": {
+    "alea-math+faer": {
+      "file": "alea-math+faer.txt",
+      "items": 655,
+      "sha256": "cc6d2a29e4af59c9aa20bdc0097d5afee7a7b4c77d8e8aa76a29c2c5daee7e0c"
+    },
+    "alea-mcmc+faer": {
+      "file": "alea-mcmc+faer.txt",
+      "items": 3684,
+      "sha256": "49901d8473fa67c9c79f64bc1c33e8312c4f50a482df5e67c3f7a65bce292649"
+    }
+  }
+}

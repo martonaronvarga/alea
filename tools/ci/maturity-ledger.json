@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "policy": {
-    "allow_release_candidates": false
+    "allow_release_candidates": true
   },
   "profiles": {
     "design_contract": {
@@ -93,6 +93,18 @@
       "adoption": "reference",
       "guarantee": "utility",
       "rationale": "The utility is validated in its declared scope and used by the reference workflow."
+    },
+    "candidate_component_reference": {
+      "maturity": "S3",
+      "adoption": "reference",
+      "guarantee": "component",
+      "rationale": "The 2026-10-25 reference candidate review records native platform/feature/Miri/sanitizer/soak, independent downstream calibration/recovery, compatibility and signed reproducible artifacts for revision 148c22cab4517395f8a65568ca18c0a90eaa4bc5. See docs/releases/2026-10-25-reference-candidate/README.md. Numerical implementations retain S2 and research retains its own maturity."
+    },
+    "candidate_reference_mixed": {
+      "maturity": "S3",
+      "adoption": "reference",
+      "guarantee": "mixed",
+      "rationale": "The 2026-10-25 reference candidate review records native platform/feature/Miri/sanitizer/soak, independent downstream calibration/recovery, compatibility and signed reproducible artifacts for revision 148c22cab4517395f8a65568ca18c0a90eaa4bc5. See docs/releases/2026-10-25-reference-candidate/README.md. Numerical implementations retain S2 and research retains its own maturity."
     }
   },
   "source_modules": [
@@ -599,14 +611,14 @@
     {
       "crate": "alea-core",
       "path": "alea_core::reference",
-      "profile": "validated_component_reference",
-      "summary": "Validated fused target, density, and transform contracts for reference inference."
+      "profile": "candidate_component_reference",
+      "summary": "Candidate fused target, density, and transform contracts for reference inference."
     },
     {
       "crate": "alea-math",
       "path": "alea_math::reference",
-      "profile": "validated_component_reference",
-      "summary": "Validated storage and constant Euclidean metric algebra for reference inference."
+      "profile": "candidate_component_reference",
+      "summary": "Candidate storage and constant Euclidean metric algebra for reference inference."
     },
     {
       "crate": "alea-mcmc",
@@ -618,14 +630,14 @@
     {
       "crate": "alea-mcmc",
       "path": "alea_mcmc::reference",
-      "profile": "validated_reference_mixed",
-      "summary": "Validated exact-target HMC, RWMH, NUTS and finite covariance warmup reference path."
+      "profile": "candidate_reference_mixed",
+      "summary": "Candidate exact-target HMC, RWMH, NUTS and finite covariance warmup reference path."
     },
     {
       "crate": "alea-runtime",
       "path": "alea_runtime::reference",
-      "profile": "validated_component_reference",
-      "summary": "Validated reference sessions, finite warmup composition, owned/durable output and bounded diagnostics; pre-release S2."
+      "profile": "candidate_component_reference",
+      "summary": "Candidate reference sessions, finite warmup composition, owned/durable output and bounded diagnostics; S3 reference namespace, implementations retain their validation classes."
     }
   ],
   "root_items": [

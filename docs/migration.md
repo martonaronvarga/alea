@@ -1,7 +1,9 @@
 # Pre-alpha migration and future deprecations
 
-All current crates are unpublished and below S3. Pin source revisions and retain
-the lockfile when upgrading. The complete reviewed API changes are in
+All current crates are unpublished. Four explicit reference namespaces have an
+[S3 candidate review](releases/2026-10-25-reference-candidate/README.md); no crate
+has an S4 stability promise. Pin source revisions and retain the lockfile when
+upgrading. The complete reviewed API changes are in
 `tools/ci/api-review.json`; the inventory is not a complete Rust semver proof.
 
 Use the explicit `alea_core::reference`, `alea_math::reference`,
@@ -21,7 +23,10 @@ and predictions. Build a named layout and apply its Jacobian once. Ordinary
 log-density factors do not advertise normalized sampling capabilities.
 
 M15 sessions use logical chain IDs and caller-owned execution pools. Durable draw
-streams/checkpoints use schema v1 and typed incompatibility errors. Restart only
+streams use schema1; current checkpoints use `ALEACP02` and implementation
+`session/2`, preserving NUTS jitter and turning. V1 checkpoints explicitly reject
+with `CheckpointError::Format`; retain their draws and start a new session from
+the original model/configuration. Restart only
 frozen checkpoints with the same model/build/backend/seed identity. Do not rename
 an incompatible checkpoint or edit its provenance to force admission. Keep old
 data and use the original pinned reader when no migration reader is available.
@@ -35,6 +40,9 @@ Native NUTS warmup changes seeded trajectories. A session selecting NUTS now
 uses NUTS transitions during adaptation instead of eight-step HMC. Starting with
 the same seed and initial position therefore gives different warmup RNG
 consumption, fitted geometry, step size and retained draws. Reproduce historical
-results with their archived source and protocol. Frozen schema-v1 checkpoints
-remain unchanged: adaptation state is not persisted, and restart still restores
-the frozen metric, step and RNG state. No mid-warmup migration is supported.
+results with their archived source and protocol. That warmup change did not
+alter the frozen checkpoint container; the subsequent candidate-cycle repair
+deliberately advances it to v2 to fix incomplete policy replay. Restart restores
+the frozen metric, step, policy and RNG state. Adaptation state is not persisted;
+no mid-warmup migration is supported. Numerical identity remains `numerics/3`,
+and the separate owned-record provenance schema remains1.

@@ -1,0 +1,1269 @@
+{
+  "total_count": 12,
+  "jobs": [
+    {
+      "id": 121189862607,
+      "run_id": 40200300753,
+      "workflow_name": "Release preparation",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300753",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qMzw",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862607",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300753/job/121189862607",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:03:13Z",
+      "name": "operations",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:36Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:36Z",
+          "completed_at": "2026-10-25T14:01:40Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:40Z",
+          "completed_at": "2026-10-25T14:01:43Z"
+        },
+        {
+          "name": "Native C allocation/callback failures under ASan and UBSan",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:43Z",
+          "completed_at": "2026-10-25T14:02:35Z"
+        },
+        {
+          "name": "Parser mutations, configuration/layout properties and bounded operational soak",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:02:35Z",
+          "completed_at": "2026-10-25T14:03:11Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-25T14:03:11Z",
+          "completed_at": "2026-10-25T14:03:11Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-25T14:03:11Z",
+          "completed_at": "2026-10-25T14:03:11Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862607",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000337,
+      "runner_name": "GitHub Actions 1000000337",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862747,
+      "run_id": 40200300753,
+      "workflow_name": "Release preparation",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300753",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qNWw",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862747",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300753/job/121189862747",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:05:21Z",
+      "name": "artifacts",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:36Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:36Z",
+          "completed_at": "2026-10-25T14:01:40Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:40Z",
+          "completed_at": "2026-10-25T14:01:45Z"
+        },
+        {
+          "name": "Artifact contracts, API inventory and fresh archived-source workflow",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:45Z",
+          "completed_at": "2026-10-25T14:04:10Z"
+        },
+        {
+          "name": "Candidate semantic compatibility (no self-baseline)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 5,
+          "started_at": "2026-10-25T14:04:10Z",
+          "completed_at": "2026-10-25T14:04:10Z"
+        },
+        {
+          "name": "Reference cycle semantic compatibility against accepted consolidation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-25T14:04:10Z",
+          "completed_at": "2026-10-25T14:05:16Z"
+        },
+        {
+          "name": "Preserve unsigned preparation artifacts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-25T14:05:16Z",
+          "completed_at": "2026-10-25T14:05:19Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-25T14:05:19Z",
+          "completed_at": "2026-10-25T14:05:19Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-25T14:05:19Z",
+          "completed_at": "2026-10-25T14:05:19Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862747",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000338,
+      "runner_name": "GitHub Actions 1000000338",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862769,
+      "run_id": 40200300753,
+      "workflow_name": "Release preparation",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300753",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qNcQ",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862769",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300753/job/121189862769",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:35Z",
+      "completed_at": "2026-10-25T14:03:59Z",
+      "name": "portable (macos-15, stable)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:36Z",
+          "completed_at": "2026-10-25T14:01:38Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:38Z",
+          "completed_at": "2026-10-25T14:01:44Z"
+        },
+        {
+          "name": "Install declared compiler",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:44Z",
+          "completed_at": "2026-10-25T14:01:54Z"
+        },
+        {
+          "name": "Reference contracts and docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:54Z",
+          "completed_at": "2026-10-25T14:03:19Z"
+        },
+        {
+          "name": "Independent fresh project",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:03:19Z",
+          "completed_at": "2026-10-25T14:03:45Z"
+        },
+        {
+          "name": "Independent native-model and recovery workflow",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-25T14:03:46Z",
+          "completed_at": "2026-10-25T14:03:54Z"
+        },
+        {
+          "name": "Paired fixed-work observations against accepted consolidation",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-25T14:03:54Z",
+          "completed_at": "2026-10-25T14:03:54Z"
+        },
+        {
+          "name": "Retain downstream observations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:03:54Z",
+          "completed_at": "2026-10-25T14:03:55Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-25T14:03:55Z",
+          "completed_at": "2026-10-25T14:03:56Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-25T14:03:56Z",
+          "completed_at": "2026-10-25T14:03:57Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862769",
+      "labels": [
+        "macos-15"
+      ],
+      "runner_id": 1000000340,
+      "runner_name": "GitHub Actions 1000000340",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862814,
+      "run_id": 40200300753,
+      "workflow_name": "Release preparation",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300753",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qNng",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862814",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300753/job/121189862814",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:02:47Z",
+      "name": "portable (ubuntu-24.04, stable)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:34Z",
+          "completed_at": "2026-10-25T14:01:35Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:40Z"
+        },
+        {
+          "name": "Install declared compiler",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:40Z",
+          "completed_at": "2026-10-25T14:01:47Z"
+        },
+        {
+          "name": "Reference contracts and docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:47Z",
+          "completed_at": "2026-10-25T14:02:29Z"
+        },
+        {
+          "name": "Independent fresh project",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:02:29Z",
+          "completed_at": "2026-10-25T14:02:40Z"
+        },
+        {
+          "name": "Independent native-model and recovery workflow",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-25T14:02:40Z",
+          "completed_at": "2026-10-25T14:02:44Z"
+        },
+        {
+          "name": "Paired fixed-work observations against accepted consolidation",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-25T14:02:44Z",
+          "completed_at": "2026-10-25T14:02:44Z"
+        },
+        {
+          "name": "Retain downstream observations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:02:44Z",
+          "completed_at": "2026-10-25T14:02:45Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-25T14:02:45Z",
+          "completed_at": "2026-10-25T14:02:45Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-25T14:02:45Z",
+          "completed_at": "2026-10-25T14:02:45Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862814",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000339,
+      "runner_name": "GitHub Actions 1000000339",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862835,
+      "run_id": 40200300753,
+      "workflow_name": "Release preparation",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300753",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qNsw",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862835",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300753/job/121189862835",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:35Z",
+      "completed_at": "2026-10-25T14:05:26Z",
+      "name": "portable (macos-15-intel, stable)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:36Z",
+          "completed_at": "2026-10-25T14:01:38Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:38Z",
+          "completed_at": "2026-10-25T14:01:44Z"
+        },
+        {
+          "name": "Install declared compiler",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:44Z",
+          "completed_at": "2026-10-25T14:01:56Z"
+        },
+        {
+          "name": "Reference contracts and docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:56Z",
+          "completed_at": "2026-10-25T14:04:19Z"
+        },
+        {
+          "name": "Independent fresh project",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:04:19Z",
+          "completed_at": "2026-10-25T14:05:07Z"
+        },
+        {
+          "name": "Independent native-model and recovery workflow",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-25T14:05:07Z",
+          "completed_at": "2026-10-25T14:05:20Z"
+        },
+        {
+          "name": "Paired fixed-work observations against accepted consolidation",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-25T14:05:20Z",
+          "completed_at": "2026-10-25T14:05:20Z"
+        },
+        {
+          "name": "Retain downstream observations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:05:20Z",
+          "completed_at": "2026-10-25T14:05:22Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-25T14:05:22Z",
+          "completed_at": "2026-10-25T14:05:23Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-25T14:05:23Z",
+          "completed_at": "2026-10-25T14:05:24Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862835",
+      "labels": [
+        "macos-15-intel"
+      ],
+      "runner_id": 1000000344,
+      "runner_name": "GitHub Actions 1000000344",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862844,
+      "run_id": 40200300753,
+      "workflow_name": "Release preparation",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300753",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qNvA",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862844",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300753/job/121189862844",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:04:04Z",
+      "name": "portable (ubuntu-24.04, 1.95.0)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:36Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:36Z",
+          "completed_at": "2026-10-25T14:01:40Z"
+        },
+        {
+          "name": "Install declared compiler",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:40Z",
+          "completed_at": "2026-10-25T14:01:48Z"
+        },
+        {
+          "name": "Reference contracts and docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:48Z",
+          "completed_at": "2026-10-25T14:02:52Z"
+        },
+        {
+          "name": "Independent fresh project",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:02:52Z",
+          "completed_at": "2026-10-25T14:03:12Z"
+        },
+        {
+          "name": "Independent native-model and recovery workflow",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-25T14:03:12Z",
+          "completed_at": "2026-10-25T14:03:19Z"
+        },
+        {
+          "name": "Paired fixed-work observations against accepted consolidation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-25T14:03:19Z",
+          "completed_at": "2026-10-25T14:04:00Z"
+        },
+        {
+          "name": "Retain downstream observations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:04:00Z",
+          "completed_at": "2026-10-25T14:04:01Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-25T14:04:01Z",
+          "completed_at": "2026-10-25T14:04:02Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-25T14:04:02Z",
+          "completed_at": "2026-10-25T14:04:02Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862844",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000348,
+      "runner_name": "GitHub Actions 1000000348",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862853,
+      "run_id": 40200300753,
+      "workflow_name": "Release preparation",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300753",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qNxQ",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862853",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300753/job/121189862853",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:36Z",
+      "completed_at": "2026-10-25T14:03:43Z",
+      "name": "portable (ubuntu-24.04-arm, 1.95.0)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:37Z",
+          "completed_at": "2026-10-25T14:01:38Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:38Z",
+          "completed_at": "2026-10-25T14:01:41Z"
+        },
+        {
+          "name": "Install declared compiler",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:41Z",
+          "completed_at": "2026-10-25T14:01:46Z"
+        },
+        {
+          "name": "Reference contracts and docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:46Z",
+          "completed_at": "2026-10-25T14:02:43Z"
+        },
+        {
+          "name": "Independent fresh project",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:02:43Z",
+          "completed_at": "2026-10-25T14:03:00Z"
+        },
+        {
+          "name": "Independent native-model and recovery workflow",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-25T14:03:00Z",
+          "completed_at": "2026-10-25T14:03:08Z"
+        },
+        {
+          "name": "Paired fixed-work observations against accepted consolidation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-25T14:03:08Z",
+          "completed_at": "2026-10-25T14:03:40Z"
+        },
+        {
+          "name": "Retain downstream observations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:03:40Z",
+          "completed_at": "2026-10-25T14:03:41Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-25T14:03:41Z",
+          "completed_at": "2026-10-25T14:03:41Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-25T14:03:41Z",
+          "completed_at": "2026-10-25T14:03:41Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862853",
+      "labels": [
+        "ubuntu-24.04-arm"
+      ],
+      "runner_id": 1000000341,
+      "runner_name": "GitHub Actions 1000000341",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862874,
+      "run_id": 40200300753,
+      "workflow_name": "Release preparation",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300753",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qN2g",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862874",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300753/job/121189862874",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:04:21Z",
+      "name": "portable (windows-2025, stable)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:36Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:36Z",
+          "completed_at": "2026-10-25T14:01:47Z"
+        },
+        {
+          "name": "Install declared compiler",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:47Z",
+          "completed_at": "2026-10-25T14:01:52Z"
+        },
+        {
+          "name": "Reference contracts and docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:52Z",
+          "completed_at": "2026-10-25T14:03:43Z"
+        },
+        {
+          "name": "Independent fresh project",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:03:43Z",
+          "completed_at": "2026-10-25T14:04:08Z"
+        },
+        {
+          "name": "Independent native-model and recovery workflow",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-25T14:04:08Z",
+          "completed_at": "2026-10-25T14:04:16Z"
+        },
+        {
+          "name": "Paired fixed-work observations against accepted consolidation",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-25T14:04:16Z",
+          "completed_at": "2026-10-25T14:04:16Z"
+        },
+        {
+          "name": "Retain downstream observations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:04:16Z",
+          "completed_at": "2026-10-25T14:04:17Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-25T14:04:17Z",
+          "completed_at": "2026-10-25T14:04:19Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-25T14:04:19Z",
+          "completed_at": "2026-10-25T14:04:19Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862874",
+      "labels": [
+        "windows-2025"
+      ],
+      "runner_id": 1000000346,
+      "runner_name": "GitHub Actions 1000000346",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862884,
+      "run_id": 40200300753,
+      "workflow_name": "Release preparation",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300753",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qN5A",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862884",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300753/job/121189862884",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:36Z",
+      "completed_at": "2026-10-25T14:03:17Z",
+      "name": "portable (ubuntu-24.04-arm, stable)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:37Z",
+          "completed_at": "2026-10-25T14:01:38Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:38Z",
+          "completed_at": "2026-10-25T14:01:41Z"
+        },
+        {
+          "name": "Install declared compiler",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:41Z",
+          "completed_at": "2026-10-25T14:01:47Z"
+        },
+        {
+          "name": "Reference contracts and docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:47Z",
+          "completed_at": "2026-10-25T14:02:47Z"
+        },
+        {
+          "name": "Independent fresh project",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:02:47Z",
+          "completed_at": "2026-10-25T14:03:07Z"
+        },
+        {
+          "name": "Independent native-model and recovery workflow",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-25T14:03:07Z",
+          "completed_at": "2026-10-25T14:03:15Z"
+        },
+        {
+          "name": "Paired fixed-work observations against accepted consolidation",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-25T14:03:15Z",
+          "completed_at": "2026-10-25T14:03:15Z"
+        },
+        {
+          "name": "Retain downstream observations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:03:15Z",
+          "completed_at": "2026-10-25T14:03:16Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-25T14:03:16Z",
+          "completed_at": "2026-10-25T14:03:16Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-25T14:03:16Z",
+          "completed_at": "2026-10-25T14:03:16Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862884",
+      "labels": [
+        "ubuntu-24.04-arm"
+      ],
+      "runner_id": 1000000342,
+      "runner_name": "GitHub Actions 1000000342",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862890,
+      "run_id": 40200300753,
+      "workflow_name": "Release preparation",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300753",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qN6g",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862890",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300753/job/121189862890",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:35Z",
+      "completed_at": "2026-10-25T14:03:56Z",
+      "name": "portable (macos-15, 1.95.0)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:36Z",
+          "completed_at": "2026-10-25T14:01:37Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:37Z",
+          "completed_at": "2026-10-25T14:01:43Z"
+        },
+        {
+          "name": "Install declared compiler",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:43Z",
+          "completed_at": "2026-10-25T14:01:53Z"
+        },
+        {
+          "name": "Reference contracts and docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:53Z",
+          "completed_at": "2026-10-25T14:03:23Z"
+        },
+        {
+          "name": "Independent fresh project",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:03:23Z",
+          "completed_at": "2026-10-25T14:03:45Z"
+        },
+        {
+          "name": "Independent native-model and recovery workflow",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-25T14:03:45Z",
+          "completed_at": "2026-10-25T14:03:52Z"
+        },
+        {
+          "name": "Paired fixed-work observations against accepted consolidation",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-25T14:03:52Z",
+          "completed_at": "2026-10-25T14:03:52Z"
+        },
+        {
+          "name": "Retain downstream observations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:03:52Z",
+          "completed_at": "2026-10-25T14:03:53Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-25T14:03:53Z",
+          "completed_at": "2026-10-25T14:03:53Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-25T14:03:53Z",
+          "completed_at": "2026-10-25T14:03:54Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862890",
+      "labels": [
+        "macos-15"
+      ],
+      "runner_id": 1000000343,
+      "runner_name": "GitHub Actions 1000000343",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862903,
+      "run_id": 40200300753,
+      "workflow_name": "Release preparation",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300753",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qN9w",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862903",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300753/job/121189862903",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:35Z",
+      "completed_at": "2026-10-25T14:10:02Z",
+      "name": "portable (macos-15-intel, 1.95.0)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:34Z",
+          "completed_at": "2026-10-25T14:01:35Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:47Z"
+        },
+        {
+          "name": "Install declared compiler",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:47Z",
+          "completed_at": "2026-10-25T14:02:14Z"
+        },
+        {
+          "name": "Reference contracts and docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:02:14Z",
+          "completed_at": "2026-10-25T14:08:05Z"
+        },
+        {
+          "name": "Independent fresh project",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:08:05Z",
+          "completed_at": "2026-10-25T14:09:35Z"
+        },
+        {
+          "name": "Independent native-model and recovery workflow",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-25T14:09:35Z",
+          "completed_at": "2026-10-25T14:09:56Z"
+        },
+        {
+          "name": "Paired fixed-work observations against accepted consolidation",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-25T14:09:56Z",
+          "completed_at": "2026-10-25T14:09:56Z"
+        },
+        {
+          "name": "Retain downstream observations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:09:56Z",
+          "completed_at": "2026-10-25T14:09:58Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-25T14:09:58Z",
+          "completed_at": "2026-10-25T14:09:59Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-25T14:09:59Z",
+          "completed_at": "2026-10-25T14:09:59Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862903",
+      "labels": [
+        "macos-15-intel"
+      ],
+      "runner_id": 1000000345,
+      "runner_name": "GitHub Actions 1000000345",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862911,
+      "run_id": 40200300753,
+      "workflow_name": "Release preparation",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300753",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qN_w",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862911",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300753/job/121189862911",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:35Z",
+      "completed_at": "2026-10-25T14:05:06Z",
+      "name": "portable (windows-2025, 1.95.0)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:36Z",
+          "completed_at": "2026-10-25T14:01:38Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:38Z",
+          "completed_at": "2026-10-25T14:01:53Z"
+        },
+        {
+          "name": "Install declared compiler",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:53Z",
+          "completed_at": "2026-10-25T14:02:04Z"
+        },
+        {
+          "name": "Reference contracts and docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:02:04Z",
+          "completed_at": "2026-10-25T14:04:11Z"
+        },
+        {
+          "name": "Independent fresh project",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:04:11Z",
+          "completed_at": "2026-10-25T14:04:50Z"
+        },
+        {
+          "name": "Independent native-model and recovery workflow",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-25T14:04:50Z",
+          "completed_at": "2026-10-25T14:05:00Z"
+        },
+        {
+          "name": "Paired fixed-work observations against accepted consolidation",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-25T14:05:00Z",
+          "completed_at": "2026-10-25T14:05:00Z"
+        },
+        {
+          "name": "Retain downstream observations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:05:00Z",
+          "completed_at": "2026-10-25T14:05:02Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-25T14:05:02Z",
+          "completed_at": "2026-10-25T14:05:04Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-25T14:05:04Z",
+          "completed_at": "2026-10-25T14:05:04Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862911",
+      "labels": [
+        "windows-2025"
+      ],
+      "runner_id": 1000000347,
+      "runner_name": "GitHub Actions 1000000347",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

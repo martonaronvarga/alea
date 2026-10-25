@@ -40,6 +40,12 @@ No Alea crate is S4 today. All workspace crates are `publish = false`, the proje
 is pre-alpha, and neither semver compatibility nor the complete modeling workflow
 has been declared stable.
 
+The [2026-10-25 candidate review](releases/2026-10-25-reference-candidate/README.md)
+qualifies the four explicit core/math/MCMC/runtime `reference` namespaces as S3.
+Their composed user workflow, native platforms, compatibility and signed artifact
+checks pass. This namespace classification leaves individual numerical
+implementations S2 and research S1; it does not graduate whole crates.
+
 ## Evidence axes
 
 Each promotion review records all of the following, using `not applicable` only
@@ -197,8 +203,10 @@ reference/approximate namespace, root item, feature or binary therefore fails CI
 until it is classified, while a stale ledger entry fails after removal. It also
 prevents design-only contracts from being adopted,
 approximate-target mechanisms from using an exact-looking adoption state,
-exactness-pending mechanisms from moving above S1, and S3/S4 claims before the
-release-candidate policy is deliberately opened. Mutation tests exercise those
+exactness-pending mechanisms from moving above S1. The candidate policy now admits
+S3 only for the four reviewed reference namespaces; source modules, individual
+items, features and commands cannot inherit that promotion. S4 remains rejected
+until a separate stable-publication policy review. Mutation tests exercise those
 failure modes.
 
 Every distinct rendered public declaration/implementation is now classified in

@@ -53,7 +53,7 @@ def main():
             errors.append(f"{name}: independent publication needs explicit release review")
     print(json.dumps({"schema_version": 1, "packages": len(metadata["packages"]),
                       "preparation_errors": errors, "license_blockers": blocked,
-                      "release_claim": "pre-alpha; no S3/S4 graduation"}, indent=2))
+                      "release_claim": "pre-alpha; metadata checks do not grant release maturity"}, indent=2))
     if errors or (args.candidate and blocked):
         raise SystemExit(1)
 

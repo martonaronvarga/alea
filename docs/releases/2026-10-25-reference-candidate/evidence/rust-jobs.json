@@ -1,0 +1,889 @@
+{
+  "total_count": 11,
+  "jobs": [
+    {
+      "id": 121189862367,
+      "run_id": 40200300691,
+      "workflow_name": "Rust gates",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300691",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qL3w",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862367",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300691/job/121189862367",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:07:24Z",
+      "name": "native (blas, alea-mcmc/simd,alea-distributions/simd,alea-mcmc/faer,alea-mcmc/openblas, workspace)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:35Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:36Z",
+          "completed_at": "2026-10-25T14:01:39Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:39Z",
+          "completed_at": "2026-10-25T14:01:43Z"
+        },
+        {
+          "name": "Format, check, test, Clippy, docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:43Z",
+          "completed_at": "2026-10-25T14:07:21Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:07:21Z",
+          "completed_at": "2026-10-25T14:07:21Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-25T14:07:21Z",
+          "completed_at": "2026-10-25T14:07:21Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862367",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000326,
+      "runner_name": "GitHub Actions 1000000326",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862516,
+      "run_id": 40200300691,
+      "workflow_name": "Rust gates",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300691",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qMdA",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862516",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300691/job/121189862516",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:04:15Z",
+      "name": "autodiff",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:35Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:38Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:38Z",
+          "completed_at": "2026-10-25T14:01:42Z"
+        },
+        {
+          "name": "Execute compiled Enzyme gradients and opaque derivative composition",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:42Z",
+          "completed_at": "2026-10-25T14:04:12Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:04:12Z",
+          "completed_at": "2026-10-25T14:04:12Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-25T14:04:12Z",
+          "completed_at": "2026-10-25T14:04:12Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862516",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000327,
+      "runner_name": "GitHub Actions 1000000327",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862521,
+      "run_id": 40200300691,
+      "workflow_name": "Rust gates",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300691",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qMeQ",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862521",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300691/job/121189862521",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:08:14Z",
+      "name": "native (stable, alea-mcmc/faer, workspace)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:35Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:38Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:38Z",
+          "completed_at": "2026-10-25T14:01:43Z"
+        },
+        {
+          "name": "Format, check, test, Clippy, docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:43Z",
+          "completed_at": "2026-10-25T14:08:12Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:08:12Z",
+          "completed_at": "2026-10-25T14:08:12Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-25T14:08:12Z",
+          "completed_at": "2026-10-25T14:08:12Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862521",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000330,
+      "runner_name": "GitHub Actions 1000000330",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862537,
+      "run_id": 40200300691,
+      "workflow_name": "Rust gates",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300691",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qMiQ",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862537",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300691/job/121189862537",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:03:14Z",
+      "name": "miri (runtime)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:36Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:36Z",
+          "completed_at": "2026-10-25T14:01:40Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:40Z",
+          "completed_at": "2026-10-25T14:01:44Z"
+        },
+        {
+          "name": "Run python3 tools/ci/run.py --log \"$RUNNER_TEMP/miri.log\" -- nix develop --command bash tools/ci/miri.sh \"$ALEA_MIRI_SCOPE\"",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:44Z",
+          "completed_at": "2026-10-25T14:03:10Z"
+        },
+        {
+          "name": "Retain interpreter diagnostics",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:03:10Z",
+          "completed_at": "2026-10-25T14:03:12Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-25T14:03:12Z",
+          "completed_at": "2026-10-25T14:03:12Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-25T14:03:12Z",
+          "completed_at": "2026-10-25T14:03:12Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862537",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000329,
+      "runner_name": "GitHub Actions 1000000329",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862540,
+      "run_id": 40200300691,
+      "workflow_name": "Rust gates",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300691",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qMjA",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862540",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300691/job/121189862540",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:06:26Z",
+      "name": "native (default, alea-mcmc/simd,alea-distributions/simd,alea-distributions/branch-hints, workspace)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:36Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:36Z",
+          "completed_at": "2026-10-25T14:01:39Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:39Z",
+          "completed_at": "2026-10-25T14:01:43Z"
+        },
+        {
+          "name": "Format, check, test, Clippy, docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:43Z",
+          "completed_at": "2026-10-25T14:06:23Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:06:23Z",
+          "completed_at": "2026-10-25T14:06:23Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-25T14:06:23Z",
+          "completed_at": "2026-10-25T14:06:23Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862540",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000328,
+      "runner_name": "GitHub Actions 1000000328",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862550,
+      "run_id": 40200300691,
+      "workflow_name": "Rust gates",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300691",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qMlg",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862550",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300691/job/121189862550",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:04:24Z",
+      "name": "miri (research)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:34Z",
+          "completed_at": "2026-10-25T14:01:35Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:38Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:38Z",
+          "completed_at": "2026-10-25T14:01:42Z"
+        },
+        {
+          "name": "Run python3 tools/ci/run.py --log \"$RUNNER_TEMP/miri.log\" -- nix develop --command bash tools/ci/miri.sh \"$ALEA_MIRI_SCOPE\"",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:42Z",
+          "completed_at": "2026-10-25T14:04:21Z"
+        },
+        {
+          "name": "Retain interpreter diagnostics",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:04:21Z",
+          "completed_at": "2026-10-25T14:04:22Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-25T14:04:22Z",
+          "completed_at": "2026-10-25T14:04:22Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-25T14:04:22Z",
+          "completed_at": "2026-10-25T14:04:23Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862550",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000331,
+      "runner_name": "GitHub Actions 1000000331",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862553,
+      "run_id": 40200300691,
+      "workflow_name": "Rust gates",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300691",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qMmQ",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862553",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300691/job/121189862553",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:07:11Z",
+      "name": "miri (nuts)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:36Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:36Z",
+          "completed_at": "2026-10-25T14:01:39Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:39Z",
+          "completed_at": "2026-10-25T14:01:44Z"
+        },
+        {
+          "name": "Run python3 tools/ci/run.py --log \"$RUNNER_TEMP/miri.log\" -- nix develop --command bash tools/ci/miri.sh \"$ALEA_MIRI_SCOPE\"",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:44Z",
+          "completed_at": "2026-10-25T14:07:07Z"
+        },
+        {
+          "name": "Retain interpreter diagnostics",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:07:07Z",
+          "completed_at": "2026-10-25T14:07:09Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-25T14:07:09Z",
+          "completed_at": "2026-10-25T14:07:09Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-25T14:07:09Z",
+          "completed_at": "2026-10-25T14:07:09Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862553",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000332,
+      "runner_name": "GitHub Actions 1000000332",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862557,
+      "run_id": 40200300691,
+      "workflow_name": "Rust gates",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300691",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qMnQ",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862557",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300691/job/121189862557",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:07:10Z",
+      "name": "native (stable, all)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:35Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:38Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:38Z",
+          "completed_at": "2026-10-25T14:01:42Z"
+        },
+        {
+          "name": "Format, check, test, Clippy, docs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:42Z",
+          "completed_at": "2026-10-25T14:07:08Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T14:07:08Z",
+          "completed_at": "2026-10-25T14:07:08Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-25T14:07:08Z",
+          "completed_at": "2026-10-25T14:07:08Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862557",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000336,
+      "runner_name": "GitHub Actions 1000000336",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862582,
+      "run_id": 40200300691,
+      "workflow_name": "Rust gates",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300691",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qMtg",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862582",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300691/job/121189862582",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:04:05Z",
+      "name": "miri (targets)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:35Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:38Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:38Z",
+          "completed_at": "2026-10-25T14:01:42Z"
+        },
+        {
+          "name": "Run python3 tools/ci/run.py --log \"$RUNNER_TEMP/miri.log\" -- nix develop --command bash tools/ci/miri.sh \"$ALEA_MIRI_SCOPE\"",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:42Z",
+          "completed_at": "2026-10-25T14:04:03Z"
+        },
+        {
+          "name": "Retain interpreter diagnostics",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:04:03Z",
+          "completed_at": "2026-10-25T14:04:04Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-25T14:04:04Z",
+          "completed_at": "2026-10-25T14:04:04Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-25T14:04:04Z",
+          "completed_at": "2026-10-25T14:04:04Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862582",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000334,
+      "runner_name": "GitHub Actions 1000000334",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862590,
+      "run_id": 40200300691,
+      "workflow_name": "Rust gates",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300691",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qMvg",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862590",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300691/job/121189862590",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:04:19Z",
+      "name": "miri (hmc)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:34Z",
+          "completed_at": "2026-10-25T14:01:35Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:40Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:40Z",
+          "completed_at": "2026-10-25T14:01:43Z"
+        },
+        {
+          "name": "Run python3 tools/ci/run.py --log \"$RUNNER_TEMP/miri.log\" -- nix develop --command bash tools/ci/miri.sh \"$ALEA_MIRI_SCOPE\"",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:43Z",
+          "completed_at": "2026-10-25T14:04:17Z"
+        },
+        {
+          "name": "Retain interpreter diagnostics",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:04:17Z",
+          "completed_at": "2026-10-25T14:04:18Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-25T14:04:18Z",
+          "completed_at": "2026-10-25T14:04:18Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-25T14:04:18Z",
+          "completed_at": "2026-10-25T14:04:18Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862590",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000333,
+      "runner_name": "GitHub Actions 1000000333",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121189862604,
+      "run_id": 40200300691,
+      "workflow_name": "Rust gates",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/martonaronvarga/alea/actions/runs/40200300691",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORtzceM8AAAAcN3qMzA",
+      "head_sha": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+      "url": "https://api.github.com/repos/martonaronvarga/alea/actions/jobs/121189862604",
+      "html_url": "https://github.com/martonaronvarga/alea/actions/runs/40200300691/job/121189862604",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-25T14:01:32Z",
+      "started_at": "2026-10-25T14:01:34Z",
+      "completed_at": "2026-10-25T14:05:08Z",
+      "name": "miri (storage)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T14:01:34Z",
+          "completed_at": "2026-10-25T14:01:35Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T14:01:35Z",
+          "completed_at": "2026-10-25T14:01:38Z"
+        },
+        {
+          "name": "Run cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T14:01:38Z",
+          "completed_at": "2026-10-25T14:01:42Z"
+        },
+        {
+          "name": "Run python3 tools/ci/run.py --log \"$RUNNER_TEMP/miri.log\" -- nix develop --command bash tools/ci/miri.sh \"$ALEA_MIRI_SCOPE\"",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T14:01:42Z",
+          "completed_at": "2026-10-25T14:05:06Z"
+        },
+        {
+          "name": "Retain interpreter diagnostics",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T14:05:06Z",
+          "completed_at": "2026-10-25T14:05:07Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-25T14:05:07Z",
+          "completed_at": "2026-10-25T14:05:07Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-25T14:05:07Z",
+          "completed_at": "2026-10-25T14:05:07Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/martonaronvarga/alea/check-runs/121189862604",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000335,
+      "runner_name": "GitHub Actions 1000000335",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

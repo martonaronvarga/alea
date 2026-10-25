@@ -2,7 +2,7 @@
 
 Status: active, pre-alpha<br>
 Last reviewed: 2026-10-16<br>
-Last milestone update: 2026-10-25 — M17 preparation and measured native NUTS parity completed; candidate cycle open<br>
+Last milestone update: 2026-10-25 — M17 reference candidate cycle complete; four reference namespaces S3, stable publication open<br>
 Last architecture update: 2026-10-16 — maturity/adoption states and per-crate graduation gates<br>
 Scope: architecture, correctness, numerical validation, performance, and implementation order
 
@@ -61,8 +61,9 @@ No Alea crate is S4 today. The strongest baseline components are S2: core target
 and state contracts, transforms, Euclidean metric algebra, fixed HMC/RWMH,
 covariance warmup, multinomial NUTS, independent-chain runtime and modern
 diagnostics. They are validated within their documented scope, but the workspace
-is still `publish = false`, pre-alpha, and lacks the end-to-end modeling, release,
-portability and compatibility gates required for a stable public API.
+is still `publish = false` and pre-alpha. Four explicit reference namespaces have
+completed the S3 workflow/platform/compatibility cycle; crate-wide stable scope,
+publication and support commitments remain open.
 
 Research milestones may close with negative promotion decisions. Their checked
 implementation tasks remain historical evidence; their promotion gates remain
@@ -80,15 +81,18 @@ three downstream inference/prediction workflows and bounded calibration gates.
 M15 composes these components into validated sessions with partial typed outcomes,
 bounded/durable output and frozen-phase replay. M16 adds sealed source-bound
 experiments, calibration and reproducible reports with a negative promotion review.
-Preserve covariance/NUTS as the S2 reference; completed milestones
-do not promote research samplers or establish S3/S4 release readiness.
+Preserve covariance/NUTS as the S2 numerical reference; research samplers retain
+their promotion obligations. The composed reference namespaces now have a
+separate S3 candidate review; none of these milestones establishes S4.
 
 The 2026-10-23 [native parity report](docs/benchmarks/walltime-parity-2026-10-23/README.md)
 records approximately comparable walltime for the explicit fast NUTS profile.
-Next consolidate source and evidence, execute native platform CI, and exercise a
-fresh downstream candidate before an S3 review. The
+The [completed candidate review](docs/releases/2026-10-25-reference-candidate/README.md)
+records native platform CI, downstream calibration/recovery, compatibility and
+signed source/package evidence. Next obtain external application feedback and
+prepare per-crate stable compatibility/publication decisions. The
 [development sequence and workspace policy](docs/workspace.md) describe the order,
-indicative working-day budgets and archive restoration. No default or maturity
+candidate retention and archive restoration. No default or maturity
 change follows automatically from benchmark performance.
 
 ## Completed baseline hardening and remaining performance assertions
@@ -1427,7 +1431,8 @@ in with the immutable evidence. No promotion/1.5x gate or sampler default change
 Goal: graduate each crate independently from S2 through S3 to S4 rather than
 declaring the whole workspace mature at once.
 
-Release preparation implemented 2026-10-21; **graduation remains open**. The
+Release preparation implemented 2026-10-21; **reference S3 candidate cycle completed
+2026-10-25, S4 graduation remains open**. The
 [release policy](docs/releases.md), [migration guide](docs/migration.md), package
 READMEs, metadata validation, independent source/package consumers, deterministic
 source archives with SSH signing/verification, semantic compatibility wrapper and
@@ -1439,31 +1444,39 @@ artifacts build a fresh reference consumer. Source archives reproduce byte for
 byte, including from unpacked source without Git. Native ASan/UBSan, bounded
 parser mutations and a 409,600-step/200-restart replay soak pass.
 Strict Miri passes all six aligned-buffer tests; actionlint validates the release
-workflow. These local results do not replace the pending native platform runs.
+workflow. These original local preparation results are supplemented by the exact
+candidate's successful native runs in the
+[candidate review](docs/releases/2026-10-25-reference-candidate/README.md).
 
 Licensing is now declared per package: MIT OR Apache-2.0 for the six reusable Rust
 libraries; GPL-3.0-or-later for ffi/distributions/cli. Full texts and upstream notices
 ship in each package; dependency-graph and archive checks enforce the split.
-Prepared source archives now have a verified signature from the configured
-maintainer SSH key. Still required: successful native platform CI and an actual
-S3 candidate cycle, with a signed final candidate artifact.
-No publication, S3/S4 promotion or numerical-default change is claimed. The ABI
-stays design-only because it has no two real consumers. Configuration of a CI
-lane is not recorded as execution of that lane.
+Candidate `148c22c` passes all ten native platform/compiler lanes and the complete
+feature/Enzyme/Miri, sanitizer/property/soak and artifact/semver gates. The full
+independent workflow passes from all native lanes, actual packages and the signed
+archived source, including 32 retained SBC datasets and exact 64+192 draw recovery.
+The cycle repaired incomplete NUTS checkpoint policy replay, deliberately advancing
+checkpoints to v2 while preserving draw-stream v1. All nine package hashes and the
+source archive match independent CI output. The four reference namespaces qualify
+as S3; implementations and research retain their existing classifications. No
+publication, S4 or numerical-default change is claimed. The ABI stays design-only
+because it has no two real consumers.
 
 - [x] Complete Cargo metadata, licenses, feature documentation, MSRV policy,
   platform/CPU support matrix and reproducible signed source artifacts.
 - [x] Enforce `missing_docs` and runnable fresh-project examples for the intended
   stable surface; document errors, panics, safety, determinism and resource costs.
-- [ ] Run Linux/macOS/Windows and supported-architecture CI, MSRV, stable/nightly
+- [x] Run Linux/macOS/Windows and supported-architecture CI, MSRV, stable/nightly
   features, Miri, native FFI sanitizers, fuzz/property suites and operational soaks.
+- [x] Qualify the four explicit reference namespaces as S3 through the signed
+  candidate, independent downstream calibration/recovery and multi-host observations.
 - [ ] Stabilize pure-Rust core/math/reference-MCMC APIs first; graduate optional
   Enzyme, native FFI and research algorithms on their own evidence schedules.
 - [ ] Implement the versioned compiled-target ABI only with two real consumers,
   ownership/panic/version negotiation tests and an explicit compatibility policy.
 - [x] Publish migration guides, deprecation and bug/security reporting policies;
   run automated API/semver checks for every release candidate.
-- [ ] Complete at least one S3 release cycle without unresolved correctness,
+- [x] Complete at least one S3 release cycle without unresolved correctness,
   unsoundness, data-loss or schema-compatibility defects before any 1.0/S4 claim.
 
 Exit: each published crate states its own S4 surface and compatibility window;
@@ -1641,10 +1654,10 @@ Use the breaking architecture and APIs in [docs/architecture.md](docs/architectu
 Do not reintroduce old crate paths, mutable-state compatibility APIs or duplicate
 samplers while implementing subsequent milestones.
 
-1. Consolidate and validate the reference candidate, obtain native platform CI
-   and downstream results, then attempt M17/S3 graduation crate by crate over M13–M16
-   boundaries, models, sessions and source-bound experiments. Preserve explicit
-   outcomes, resource budgets and frozen retained adaptation.
+1. Obtain external application feedback on the completed S3 reference candidate,
+   maintain its native/soak checks, and settle per-crate stable compatibility and
+   publication decisions. Preserve explicit outcomes, resource budgets and frozen
+   retained adaptation; a newly found release-blocking defect resets its cycle.
 2. Preserve covariance warmup and multinomial NUTS as the S2 reference path.
    M4F, M7 and M8–M11 retain their recorded promotion gates. RMHMC remains
    `ExactnessPendingRmhmc`; do not call its M11 map exact.

@@ -2,9 +2,10 @@
 
 Checked target, transform and model contracts for Alea inference.
 
-Pre-alpha, unpublished (`publish = false`). No S3/S4 or semver stability claim.
-The `reference` namespace identifies the validated starting surface; research
-modules require explicit imports.
+Pre-alpha, unpublished (`publish = false`). The explicit `reference` namespace
+has an [S3 candidate review](https://github.com/martonaronvarga/alea/blob/main/docs/releases/2026-10-25-reference-candidate/README.md).
+Individual implementations retain their validation/research classifications.
+No S4 or crate-wide semver stability promise; research requires explicit imports.
 
 See the [release policy](https://github.com/martonaronvarga/alea/blob/main/docs/releases.md)
 for platform, MSRV, feature and compatibility contracts, and the

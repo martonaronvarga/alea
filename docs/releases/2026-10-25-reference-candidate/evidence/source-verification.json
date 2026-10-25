@@ -1,0 +1,20 @@
+{
+  "source_revision": "148c22cab4517395f8a65568ca18c0a90eaa4bc5",
+  "sha256": "d89d4a6720db3e0196cd3efffa28e423a673a2926be58b5088b61f4a71ddfa6f",
+  "verified_source_files": 1417,
+  "signature_namespace": "alea-source-v1",
+  "signer_identity": "git@martonaronvarga.dev",
+  "signer_fingerprint": "SHA256:0nc+zHneaGaj321FxCvtrTWhtqb4NKYJUPBD3k/lFE0",
+  "equal_archives": {
+    "alea-source.tar.gz": "d89d4a6720db3e0196cd3efffa28e423a673a2926be58b5088b61f4a71ddfa6f",
+    "alea-source-again.tar.gz": "d89d4a6720db3e0196cd3efffa28e423a673a2926be58b5088b61f4a71ddfa6f",
+    "alea-source-from-archive.tar.gz": "d89d4a6720db3e0196cd3efffa28e423a673a2926be58b5088b61f4a71ddfa6f",
+    "ci/source-preparation-40200300753/alea-source.tar.gz": "d89d4a6720db3e0196cd3efffa28e423a673a2926be58b5088b61f4a71ddfa6f"
+  },
+  "ci_artifact_digests_verified": 11,
+  "independent_source_workflow_passed": true,
+  "independent_packaged_workflow_passed": true,
+  "nine_local_package_digests_equal_ci": true,
+  "replay_scope": "same implementation, compiler/options, dependencies, target semantics and backend",
+  "native_workflows": 10
+}

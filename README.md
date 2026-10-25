@@ -62,11 +62,12 @@ packages (`alea-ffi`, `alea-distributions`, `alea-cli`) use **GPL-3.0-or-later**
 Upstream code and benchmark data keep their original terms. See
 [licensing and attribution](LICENSING.md) before redistributing a combined build.
 
-Release preparation and the remaining per-crate S3/S4 requirements are documented
-in the [release policy](docs/releases.md), with [migration notes](docs/migration.md)
-and a [fresh-project reference example](tools/release/examples/reference.rs).
-All crates remain unpublished; configured release CI does not imply a completed
-candidate cycle or a stable API claim.
+The [reference candidate review](docs/releases/2026-10-25-reference-candidate/README.md)
+records successful native platform CI, downstream calibration/recovery and signed
+reproducible artifacts. Four explicit reference namespaces qualify as S3; every
+crate remains unpublished and no API is S4. See the [release policy](docs/releases.md),
+[migration notes](docs/migration.md) and
+[fresh-project reference example](tools/release/examples/reference.rs).
 
 M0–M3 gates have been completed: safe core, constrained transforms, executed
 `std::autodiff`/Enzyme and fixed-length Euclidean HMC. The architecture migration
