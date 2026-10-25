@@ -11,7 +11,7 @@ from run import annotation, run
 
 class RunnerTests(unittest.TestCase):
     def test_workflow_command_data_is_escaped(self):
-        self.assertEqual(annotation("100%\r\n::error::another"),
+        self.assertEqual(annotation("100%\0\r\n::error::another"),
                          "100%25%0D%0A::error::another")
 
     def test_failed_process_retains_log_and_status_with_bounded_annotation(self):

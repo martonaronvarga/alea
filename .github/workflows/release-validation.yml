@@ -47,7 +47,10 @@ jobs:
           rustup default "$ALEA_TOOLCHAIN"
           rustc -vV
       - name: Reference contracts and docs
-        run: python tools/ci/run.py --log "$RUNNER_TEMP/portable.log" -- bash tools/ci/portable.sh
+        run: |
+          shell_path="$BASH"
+          if [[ "$RUNNER_OS" == Windows ]]; then shell_path=$(cygpath -w "$shell_path"); fi
+          python tools/ci/run.py --log "$RUNNER_TEMP/portable.log" -- "$shell_path" tools/ci/portable.sh
       - name: Independent fresh project
         run: python tools/ci/run.py --log "$RUNNER_TEMP/fresh.log" -- python tools/release/fresh.py .
       - name: Independent native-model and recovery workflow

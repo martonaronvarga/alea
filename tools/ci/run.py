@@ -16,7 +16,7 @@ import sys
 
 def annotation(text: str) -> str:
     """Escape workflow-command data so log text cannot create extra commands."""
-    return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    return text.replace("\0", "").replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
 
 def run(command: list[str], log: Path) -> int:

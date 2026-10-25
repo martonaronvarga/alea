@@ -876,22 +876,11 @@ fn all_resource_products_and_pool_limits_are_admitted_before_work() {
 
 #[test]
 fn streaming_peak_memory_does_not_grow_with_draw_budget_and_finish_runs_after_join() {
-    // Some platforms initialize a retained standard-library thread-local block
-    // on the first session. Exclude that one-time runtime setup, then retain the
-    // strict zero-live-bytes and equal-peak checks for both complete steady runs.
-    builder(rwmh(), 1, 64)
-        .collect(false)
-        .build()
-        .unwrap()
-        .run_density(
-            |_| Ok(Normal { dimension: 3 }),
-            Execution::Sequential,
-            &Discard,
-        )
-        .unwrap();
     fn peak(draws: usize) -> u64 {
-        let session = builder(rwmh(), 1, draws).collect(false).build().unwrap();
         let info = allocation_counter::measure(|| {
+            // Count the owner's complete lifetime: cancellation's OS mutex can
+            // allocate lazily on macOS and remains live until this session drops.
+            let session = builder(rwmh(), 1, draws).collect(false).build().unwrap();
             let out = session
                 .run_density(
                     |_| Ok(Normal { dimension: 3 }),
