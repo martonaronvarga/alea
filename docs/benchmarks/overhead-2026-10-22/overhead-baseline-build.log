@@ -1,7 +1,0 @@
-   Compiling alea-ffi v0.1.0 (/home/usu/documents/dev/alea/crates/alea-ffi)
-   Compiling alea-math v0.1.0 (/home/usu/documents/dev/alea/crates/alea-math)
-   Compiling alea-core v0.1.0 (/home/usu/documents/dev/alea/crates/alea-core)
-   Compiling alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
-   Compiling alea-distributions v0.1.0 (/home/usu/documents/dev/alea/crates/alea-distributions)
-   Compiling alea-runtime v0.1.0 (/home/usu/documents/dev/alea/crates/alea-runtime)
-    Finished `release` profile [optimized] target(s) in 36.32s

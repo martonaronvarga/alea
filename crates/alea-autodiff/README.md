@@ -1,22 +1,23 @@
 # alea-autodiff
 
-Optional compiled derivative adapters for Alea targets.
+Derivative adapters and Enzyme source generation for Alea models.
 
-Pre-alpha, unpublished (`publish = false`). No S3/S4 or semver stability claim.
-This crate graduates independently from the reference inference crates.
+Analytic adapters connect supplied derivatives to the model interfaces. The
+`codegen::enzyme_source` exporter turns a compiled model into Rust source with
+gradients, Hessian-vector products, Hessians, and third derivatives.
 
-`codegen::enzyme_source` lowers a typed native model ahead of time to fused Rust
-and Enzyme-generated gradients, HVPs, Hessians and third derivatives. It includes
-the parameter transforms and their Jacobians and feeds the existing sampler
-capabilities. See [the native-model guide](https://github.com/martonaronvarga/alea/blob/main/docs/enzyme-native-models.md)
-and `tools/enzyme-conformance` for a complete build-script consumer. The generated
-code requires the pinned Enzyme nightly; the exporter and analytic path work on
-stable Rust.
+The exporter and analytic adapters work on stable Rust. Compiling the generated
+automatic derivatives requires the pinned nightly compiler and matching Enzyme
+component:
 
-See the [release policy](https://github.com/martonaronvarga/alea/blob/main/docs/releases.md)
-for platform, MSRV, feature and compatibility contracts, and the
-[maturity ledger](https://github.com/martonaronvarga/alea/blob/main/docs/maturity-and-promotion.md)
-for scope and outstanding evidence.
+```sh
+nix develop .#autodiff --command cargo test \
+  --manifest-path tools/enzyme-conformance/Cargo.toml --release --locked
+```
+
+See [compiling models with Enzyme](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/enzyme-native-models.md) for model
+construction, build scripts, derivative conventions, and supported operations.
+Keep Enzyme and stable builds in separate Cargo target directories.
 
 ## License
 

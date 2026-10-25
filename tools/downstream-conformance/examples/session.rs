@@ -1,19 +1,19 @@
 //! One session API for native models, bounded output and cancelled/resumed NUTS.
-use alea_core::{
-    model::{
-        ModelError,
-        assembly::{AssemblyError, CompiledModel, ModelBuilder},
-    },
-    target::LogDensityGradient,
-};
-use alea_mcmc::{NutsOptions, adapt::MetricKind};
-use alea_runtime::{
+use alea::sampling::{NutsOptions, adapt::MetricKind};
+use alea::{
     ensemble::Execution,
     session::SessionBuilder,
     session::{
         Checkpoint, Kernel, Status, Warmup,
         storage::{DrawReader, DurableSink, Observer},
     },
+};
+use alea::{
+    model::{
+        ModelError,
+        assembly::{AssemblyError, CompiledModel, ModelBuilder},
+    },
+    target::LogDensityGradient,
 };
 use std::{fs::File, path::Path};
 use tokio_util::sync::CancellationToken;
@@ -28,7 +28,7 @@ fn model() -> CompiledModel {
     b.compile().unwrap()
 }
 fn factory(
-    _: alea_runtime::output::ChainId,
+    _: alea::output::ChainId,
 ) -> Result<impl LogDensityGradient<Error = ModelError<AssemblyError>>, ModelError<AssemblyError>> {
     model().into_target()
 }
@@ -62,7 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let partial = session.run(
         factory,
         Execution::Sequential,
-        &Observer(|d: &alea_runtime::session::OwnedDraw| {
+        &Observer(|d: &alea::session::OwnedDraw| {
             if d.index == 31 {
                 cancel.cancel();
             }

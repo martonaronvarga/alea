@@ -1,7 +1,6 @@
-use alea_core::capability::{PositionMetric, evaluate_position_metric};
-use alea_enzyme_conformance as generated;
-use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
-use alea_mcmc::{
+use alea::capability::{PositionMetric, evaluate_position_metric};
+use alea::math::{buffer::OwnedBuffer, metric::IdentityMetric};
+use alea::sampling::{
     NutsOptions,
     adapt::{
         CurvatureProbeOptions, JointNutsWarmup, JointWarmupOptions, NutsWarmup, WarmupOptions,
@@ -9,6 +8,7 @@ use alea_mcmc::{
     advanced::{AdvancedHmcOptions, ForceGradientHmc, ForceGradientMode},
     riemannian::{ExactnessPendingRmhmc, RmhmcOptions, SoftAbsMetric, SoftAbsOptions},
 };
+use alea_enzyme_conformance as generated;
 use rand::{SeedableRng, rngs::SmallRng};
 
 #[test]

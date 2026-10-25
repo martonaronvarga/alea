@@ -47,7 +47,7 @@ def load_toml(path: Path) -> dict:
 
 def discover_public_modules(root: Path) -> set[str]:
     modules = set()
-    for path in root.glob("crates/alea-*/src/**/*.rs"):
+    for path in root.glob("crates/*/src/**/*.rs"):
         source = path.read_text()
         if PUBLIC_DECLARATION.search(source) or PUBLIC_MACRO.search(source):
             modules.add(path.relative_to(root).as_posix())
@@ -56,7 +56,7 @@ def discover_public_modules(root: Path) -> set[str]:
 
 def discover_features(root: Path) -> set[tuple[str, str]]:
     features = set()
-    for manifest in root.glob("crates/alea-*/Cargo.toml"):
+    for manifest in root.glob("crates/*/Cargo.toml"):
         document = load_toml(manifest)
         crate = document["package"]["name"]
         features.update((crate, name) for name in document.get("features", {}))
@@ -67,7 +67,7 @@ def discover_api_namespaces(root: Path) -> set[tuple[str, str]]:
     """Discover named maturity facades from accepted API snapshots."""
     namespaces = set()
     snapshot_root = root / "tools/ci/public-api"
-    for snapshot in snapshot_root.glob("alea-*.txt"):
+    for snapshot in snapshot_root.glob("alea*.txt"):
         crate = snapshot.stem.split("+", 1)[0]
         crate_path = crate.replace("-", "_")
         lines = set(snapshot.read_text().splitlines())
@@ -82,7 +82,7 @@ def discover_root_items(root: Path) -> set[tuple[str, str]]:
     """Discover non-module items exported directly from each crate root."""
     items = set()
     snapshot_root = root / "tools/ci/public-api"
-    for snapshot in snapshot_root.glob("alea-*.txt"):
+    for snapshot in snapshot_root.glob("alea*.txt"):
         crate = snapshot.stem.split("+", 1)[0]
         crate_path = crate.replace("-", "_")
         for line in snapshot.read_text().splitlines():
@@ -99,14 +99,14 @@ def discover_api_items(root: Path) -> set[tuple[str, str]]:
     """Every rendered declaration/impl is individually classified, including aliases."""
     return {
         (snapshot.stem.split("+", 1)[0], line)
-        for snapshot in (root / "tools/ci/public-api").glob("alea-*.txt")
+        for snapshot in (root / "tools/ci/public-api").glob("alea*.txt")
         for line in snapshot.read_text().splitlines()
     }
 
 
 def discover_cli_commands(root: Path) -> set[tuple[str, str, str]]:
     commands = set()
-    for manifest in root.glob("crates/alea-*/Cargo.toml"):
+    for manifest in root.glob("crates/*/Cargo.toml"):
         document = load_toml(manifest)
         package = document["package"]
         crate = package["name"]

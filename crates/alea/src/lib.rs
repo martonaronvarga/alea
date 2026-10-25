@@ -1,0 +1,48 @@
+#![doc = include_str!("../README.md")]
+#![forbid(unsafe_code)]
+
+#[doc(inline)]
+pub use alea_core::{capability, density, distribution, model, target, transform, transport};
+#[doc(inline)]
+pub use alea_math as math;
+#[doc(inline)]
+pub use alea_runtime::{diagnostics, draws, ensemble, monitor, output, run_chain, session};
+
+/// Sampling algorithms, integrators, and warmup.
+pub mod sampling {
+    #[doc(inline)]
+    pub use alea_mcmc::*;
+}
+
+#[cfg(feature = "autodiff")]
+#[doc(inline)]
+pub use alea_autodiff as autodiff;
+#[cfg(feature = "distributions")]
+#[doc(inline)]
+pub use alea_distributions as distributions;
+#[cfg(feature = "distributions")]
+#[doc(inline)]
+pub use alea_distributions::wiener;
+
+/// Common imports for building models and running inference.
+///
+/// Optional distribution and derivative types follow the enabled Cargo features.
+/// Specialized algorithms remain available through [`sampling`].
+pub mod prelude {
+    #[doc(inline)]
+    pub use alea_core::prelude::*;
+    #[cfg(feature = "distributions")]
+    #[doc(inline)]
+    pub use alea_distributions::prelude::*;
+    #[cfg(feature = "distributions")]
+    #[doc(inline)]
+    pub use alea_distributions::scalar::{
+        Bernoulli, Beta, Binomial, Exponential, Gamma, LogNormal, Normal, Poisson, StudentT,
+    };
+    #[doc(inline)]
+    pub use alea_math::prelude::*;
+    #[doc(inline)]
+    pub use alea_mcmc::prelude::*;
+    #[doc(inline)]
+    pub use alea_runtime::prelude::*;
+}

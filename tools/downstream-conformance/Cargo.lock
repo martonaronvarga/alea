@@ -3,8 +3,19 @@
 version = 4
 
 [[package]]
+name = "alea"
+version = "0.1.1"
+dependencies = [
+ "alea-core",
+ "alea-distributions",
+ "alea-math",
+ "alea-mcmc",
+ "alea-runtime",
+]
+
+[[package]]
 name = "alea-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "alea-math",
  "rand",
@@ -13,7 +24,7 @@ dependencies = [
 
 [[package]]
 name = "alea-distributions"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "alea-core",
  "alea-ffi",
@@ -28,18 +39,14 @@ dependencies = [
 name = "alea-downstream-conformance"
 version = "0.0.0"
 dependencies = [
- "alea-core",
- "alea-distributions",
- "alea-math",
- "alea-mcmc",
- "alea-runtime",
+ "alea",
  "rand",
  "tokio-util",
 ]
 
 [[package]]
 name = "alea-ffi"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "cc",
  "thiserror",
@@ -47,7 +54,7 @@ dependencies = [
 
 [[package]]
 name = "alea-math"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aligned-vec",
  "pulp",
@@ -57,7 +64,7 @@ dependencies = [
 
 [[package]]
 name = "alea-mcmc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "alea-core",
  "alea-math",
@@ -69,7 +76,7 @@ dependencies = [
 
 [[package]]
 name = "alea-runtime"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "alea-core",
  "alea-math",

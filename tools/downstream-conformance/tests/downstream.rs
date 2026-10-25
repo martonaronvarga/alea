@@ -1,12 +1,12 @@
-use alea_core::prelude::LogDensityGradient;
-use alea_downstream_conformance::{
-    TargetCase, assert_chain_conformance, assert_metric_conformance, assert_target_conformance,
-};
-use alea_math::prelude::{EuclideanMetric, MetricError};
-use alea_mcmc::prelude::MarkovChain;
-use alea_runtime::{
+use alea::math::prelude::{EuclideanMetric, MetricError};
+use alea::prelude::LogDensityGradient;
+use alea::sampling::prelude::MarkovChain;
+use alea::{
     ensemble::{self, Chain, Execution, RunOptions, Termination, chain_rng},
     output::{ChainId, DiagnosticTransition, Draw, Phase, TransitionStats},
+};
+use alea_downstream_conformance::{
+    TargetCase, assert_chain_conformance, assert_metric_conformance, assert_target_conformance,
 };
 use rand::{Rng, RngExt, SeedableRng, rngs::SmallRng};
 use std::{fmt, num::NonZeroUsize, ops::ControlFlow};

@@ -306,9 +306,9 @@ pub type ControlledHmcWarmupResult<'a, T, I = Leapfrog> = Result<
 /// Metric construction allocates at slow-window boundaries only.
 ///
 /// ```
-/// use alea_distributions::Gaussian;
-/// use alea_math::buffer::OwnedBuffer;
-/// use alea_mcmc::{HmcOptions, adapt::{HmcWarmup, WarmupOptions}};
+/// use alea::distributions::Gaussian;
+/// use alea::math::buffer::OwnedBuffer;
+/// use alea::sampling::{HmcOptions, adapt::{HmcWarmup, WarmupOptions}};
 /// use rand::{SeedableRng, rngs::SmallRng};
 /// let target = Gaussian::new(2);
 /// let warmup = HmcWarmup::new(&target, OwnedBuffer::new(2),
@@ -321,8 +321,8 @@ pub type ControlledHmcWarmupResult<'a, T, I = Leapfrog> = Result<
 /// ```
 /// Warmup itself cannot be passed to a retained-draw runner:
 /// ```compile_fail
-/// use alea_core::target::LogDensityGradient;
-/// use alea_mcmc::{MarkovChain, adapt::HmcWarmup};
+/// use alea::target::LogDensityGradient;
+/// use alea::sampling::{MarkovChain, adapt::HmcWarmup};
 /// fn sample<C: MarkovChain>(_: C) {}
 /// fn unfinished<T: LogDensityGradient>(warmup: HmcWarmup<'_, T>) {
 ///     sample(warmup);

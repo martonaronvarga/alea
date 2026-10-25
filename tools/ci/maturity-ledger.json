@@ -648,9 +648,21 @@
       "profile": "design_contract",
       "summary": "Particle-system traits without a complete inference implementation.",
       "promotion_gate": "Implement resampling, filtering, estimation, and PMCMC verticals before exposure."
+    },
+    {
+      "path": "crates/alea/src/lib.rs",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     }
   ],
   "api_namespaces": [
+    {
+      "crate": "alea",
+      "path": "alea::prelude",
+      "profile": "validated_component_reference",
+      "summary": "Common imports; numerical guarantees remain specific to each method."
+    },
     {
       "crate": "alea-core",
       "path": "alea_core::prelude",
@@ -690,6 +702,146 @@
     }
   ],
   "root_items": [
+    {
+      "crate": "alea",
+      "item": "autodiff",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "capability",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "density",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "diagnostics",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "distribution",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "distributions",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "draws",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "ensemble",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "math",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "model",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "monitor",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "output",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "prelude",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "run_chain",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "sampling",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "session",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "target",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "transform",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "transport",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "wiener",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
     {
       "crate": "alea-distributions",
       "item": "Gaussian",
@@ -846,6 +998,62 @@
   ],
   "cargo_features": [
     {
+      "crate": "alea",
+      "feature": "autodiff",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "feature": "branch-hints",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "feature": "default",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "feature": "distributions",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "feature": "faer",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "feature": "openblas",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "feature": "simd",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "feature": "std-autodiff",
+      "profile": "research_mixed",
+      "summary": "Public facade over the existing implementation modules.",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
       "crate": "alea-autodiff",
       "feature": "default",
       "profile": "validated_component_reference",
@@ -992,6 +1200,222 @@
     }
   ],
   "api_items": [
+    {
+      "crate": "alea",
+      "item": "pub mod alea",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub mod alea::prelude",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub mod alea::sampling",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::autodiff",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::capability",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::density",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::diagnostics",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::distribution",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::distributions",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::draws",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::ensemble",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::math",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::model",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::monitor",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::output",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::<<alea_core::prelude::*>>",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::<<alea_distributions::prelude::*>>",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::<<alea_math::prelude::*>>",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::<<alea_mcmc::prelude::*>>",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::<<alea_runtime::prelude::*>>",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::Bernoulli",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::Beta",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::Binomial",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::Exponential",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::Gamma",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::LogNormal",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::Normal",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::Poisson",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::prelude::StudentT",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::run_chain",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::sampling::<<alea_mcmc::*>>",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::session",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::target",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::transform",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::transport",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::wiener",
+      "profile": "research_mixed",
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
     {
       "crate": "alea-autodiff",
       "item": "impl alea_autodiff::gradient_check::GradientReport",

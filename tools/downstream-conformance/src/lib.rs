@@ -4,10 +4,10 @@
 //! compile as an ordinary dependent package and cannot access crate-private APIs.
 #![forbid(unsafe_code)]
 
-use alea_core::prelude::{LogDensityGradient, evaluate};
-use alea_math::prelude::EuclideanMetric;
-use alea_mcmc::prelude::MarkovChain;
-use alea_runtime::output::DiagnosticTransition;
+use alea::math::prelude::EuclideanMetric;
+use alea::output::DiagnosticTransition;
+use alea::prelude::{LogDensityGradient, evaluate};
+use alea::sampling::prelude::MarkovChain;
 use rand::Rng;
 
 /// One independently known target value and gradient.
@@ -220,7 +220,7 @@ pub mod modeling;
 /// Panics on invalid fixtures/tolerance, errors, NaNs or disagreement.
 pub fn assert_distribution_conformance<D>(distribution: &D, cases: &[(f64, f64)], tolerance: f64)
 where
-    D: alea_core::distribution::Distribution<Event = f64>,
+    D: alea::distribution::Distribution<Event = f64>,
 {
     assert!(!cases.is_empty());
     assert!(tolerance.is_finite() && tolerance >= 0.0);

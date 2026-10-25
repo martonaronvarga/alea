@@ -34,7 +34,8 @@ class PublicApiSnapshotTests(unittest.TestCase):
 
     def test_library_discovery_excludes_binary_only_cli(self):
         libraries = public_api.discover_libraries(self.root)
-        self.assertEqual(len(libraries), 8)
+        self.assertEqual(len(libraries), 9)
+        self.assertIn("alea", libraries)
         self.assertNotIn("alea-cli", libraries)
 
     def test_removed_package_fails(self):

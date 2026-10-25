@@ -1,7 +1,7 @@
 #![deny(missing_docs)]
 use thiserror::Error;
 
-/// Typed, allocation-free transform error vocabulary for the M2 model boundary.
+/// Typed, allocation-free transform error vocabulary for parameter transforms.
 /// Numerical failures do not clamp a parameter onto its support boundary.
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]

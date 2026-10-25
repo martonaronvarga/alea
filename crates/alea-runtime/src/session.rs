@@ -2,7 +2,7 @@
 //!
 //! Targets are constructed inside each chain worker. A compiled model may therefore
 //! use chain-local `RefCell` scratch without being `Sync`. No adaptation survives
-//! warmup. See `docs/m15-sessions.md` for durable format and deterministic scope.
+//! warmup. See `docs/sessions.md` for durable format and deterministic scope.
 #![deny(missing_docs)]
 mod state;
 pub mod storage;

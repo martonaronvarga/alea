@@ -6,13 +6,13 @@ impl CompiledModel {
     /// Emits the body of an unconstrained Rust scalar log-density function.
     ///
     /// The caller supplies `q: &[f64; layout().unconstrained_dimension()]` and a
-    /// dependency named `alea_core`. The body includes every parameter transform
+    /// dependency named `alea`. The body includes every parameter transform
     /// and exactly one log Jacobian per block. Data/plates are specialized at
     /// source-generation time. Invalid numerical evaluations return NaN. Pair
     /// with [`Self::rust_validation`] before evaluation to retain the rounded-SPD
     /// domain check without differentiating a numerical admission algorithm.
     ///
-    /// Use `alea_autodiff::codegen::enzyme_source` to emit a complete generated
+    /// Use `alea::autodiff::codegen::enzyme_source` to emit a complete generated
     /// target for inclusion from a build script on the pinned Enzyme compiler.
     ///
     /// # Errors

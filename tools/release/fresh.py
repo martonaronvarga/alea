@@ -22,7 +22,7 @@ def main():
         (project / "src").mkdir()
         dependencies = "\n".join(
             f'{name} = {{ path = {json.dumps(str(source / "crates" / name))} }}'
-            for name in ("alea-core", "alea-math", "alea-mcmc", "alea-runtime")
+            for name in ("alea",)
         )
         if args.workflow:
             dependencies += '\nserde_json = "1"\ntokio-util = { version = "0.7", features = ["rt"] }'
@@ -41,7 +41,7 @@ def main():
         (project / "src/main.rs").write_bytes((source / "tools/release/examples" / example).read_bytes())
         env = dict(os.environ)
         # A fresh manifest/lock resolves independently; reuse only compiled objects.
-        env.setdefault("CARGO_TARGET_DIR", str(source / "target/m17-fresh"))
+        env.setdefault("CARGO_TARGET_DIR", str(source / "target/fresh"))
         offline = ["--offline"] if args.offline else []
         subprocess.run(["cargo", "generate-lockfile", *offline], cwd=project, env=env, check=True)
         # A workspace fetch need not contain the independently resolved graph,

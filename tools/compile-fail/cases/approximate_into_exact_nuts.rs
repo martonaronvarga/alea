@@ -1,5 +1,5 @@
-use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
-use alea_mcmc::{
+use alea::math::{buffer::OwnedBuffer, metric::IdentityMetric};
+use alea::sampling::{
     Nuts,
     approximate::{ApproximateMclmc, ApproximateMclmcOptions, ApproximateTarget},
     config::TreeDepth,

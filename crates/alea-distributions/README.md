@@ -1,14 +1,25 @@
 # alea-distributions
 
-Normalized probability distributions and native Alea models.
+Probability laws, model factors, and Wiener reaction-time likelihoods for Alea.
 
-Pre-alpha, unpublished (`publish = false`). No S3/S4 or semver stability claim.
-This crate graduates independently from the reference inference crates.
+The scalar and multivariate laws provide normalized log probabilities. Optional
+traits supply sampling and derivatives. Constructors check parameter domains;
+sampling uses a random-number generator supplied by the caller.
 
-See the [release policy](https://github.com/martonaronvarga/alea/blob/main/docs/releases.md)
-for platform, MSRV, feature and compatibility contracts, and the
-[maturity ledger](https://github.com/martonaronvarga/alea/blob/main/docs/maturity-and-promotion.md)
-for scope and outstanding evidence.
+```rust
+use alea::distribution::Distribution;
+use alea::distributions::scalar::Normal;
+
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+let observation_model = Normal::new(0.0, 1.0)?;
+println!("log density = {}", observation_model.log_prob(&0.3)?);
+# Ok(())
+# }
+```
+
+See [distributions](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/distributions.md), [model factors](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/modeling.md),
+and [Wiener models](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/wiener.md) for examples and parameter conventions.
+Building this crate requires a C compiler for native cubature.
 
 ## License
 

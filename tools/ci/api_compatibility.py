@@ -58,7 +58,7 @@ def check(root):
     if review["decision"] not in {"pre_release_break", "compatible"} or not review["rationale"].strip():
         raise ValueError("API changes require an explicit compatibility decision and rationale")
     snapshots = root / "tools/ci/public-api"
-    if set(review["packages"]) != {path.stem for path in snapshots.glob("alea-*.txt")}:
+    if set(review["packages"]) != {path.stem for path in snapshots.glob("alea*.txt")}:
         raise ValueError("compatibility package inventory mismatch")
     for package, accepted in review["packages"].items():
         after = set((snapshots / f"{package}.txt").read_text().splitlines())

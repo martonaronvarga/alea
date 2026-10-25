@@ -23,13 +23,13 @@ jobs:
             features: ''
             scope: all
           - shell: stable
-            features: alea-mcmc/faer
+            features: alea/faer,alea/distributions
             scope: workspace
           - shell: default
-            features: alea-mcmc/simd,alea-distributions/simd,alea-distributions/branch-hints
+            features: alea/simd,alea/distributions,alea/branch-hints
             scope: workspace
           - shell: blas
-            features: alea-mcmc/simd,alea-distributions/simd,alea-mcmc/faer,alea-mcmc/openblas
+            features: alea/simd,alea/distributions,alea/faer,alea/openblas
             scope: workspace
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

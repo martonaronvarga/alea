@@ -17,12 +17,38 @@ import subprocess
 import tarfile
 
 ROOT = Path(__file__).resolve().parents[2]
-TREES = {"crates", "tools", "nix", "docs", ".github"}
-FILES = {"README.md", "roadmap.md", "flake.nix", "flake.lock", ".gitmodules",
+FILES = {"README.md", "flake.nix", "flake.lock", ".gitmodules",
          ".gitignore", ".gitattributes",
          "LICENSE", "LICENSE-MIT", "LICENSE-APACHE", "LICENSE-GPL", "NOTICE",
-         "LICENSING.md", "THIRD_PARTY_NOTICES.md", "SECURITY.md", "CONTRIBUTING.md"}
-EXCLUDED = {"target", "__pycache__", ".git", ".agent", ".codex"}
+         "LICENSING.md", "THIRD_PARTY_NOTICES.md", "CONTRIBUTING.md"}
+EXCLUDED = {"target", "__pycache__", ".git", ".agent", ".codex", "AGENTS.md", "SECURITY.md", "design.md", "roadmap.md", "models.md", "archive", "research", "data"}
+
+DOCS = {
+    "README.md", "installation.md", "getting-started.md", "modeling.md",
+    "sampling.md", "diagnostics.md", "sessions.md", "distributions.md",
+    "wiener.md", "troubleshooting.md", "releases.md",
+    "enzyme-native-models.md", "metric-contract.md",
+}
+TOOLS = {"ci", "release", "documentation", "downstream-conformance", "compile-fail", "enzyme-conformance"}
+
+
+def allowed_source_path(relative: PurePosixPath) -> bool:
+    """Only build inputs, executable checks, licenses, and the user guide ship."""
+    parts = relative.parts
+    if (relative.is_absolute() or not parts or ".." in parts
+            or any(p in EXCLUDED for p in parts)):
+        return False
+    if str(relative) in {"tools/release/observe.py", "tools/release/examples/probe.rs"}:
+        return False
+    if len(parts) == 1:
+        return str(relative) in FILES
+    if parts[0] == "docs":
+        return len(parts) == 2 and parts[1] in DOCS
+    if parts[0] == "tools":
+        return parts[1] in TOOLS
+    if parts[0] == ".github":
+        return len(parts) == 3 and parts[1] == "workflows" and parts[2] in {"ci.yml", "release-validation.yml"}
+    return parts[0] in {"crates", "nix"}
 
 
 def source_files(root: Path) -> list[Path]:
@@ -39,8 +65,7 @@ def source_files(root: Path) -> list[Path]:
             relative = PurePosixPath(entry["path"])
             if (relative.is_absolute() or ".." in relative.parts or not relative.parts
                     or relative.as_posix() != entry["path"]
-                    or any(p in EXCLUDED for p in relative.parts)
-                    or (relative.parts[0] not in TREES and str(relative) not in FILES)):
+                    or not allowed_source_path(relative)):
                 raise ValueError("unsafe source manifest path")
             path = root / relative
             if (not path.resolve().is_relative_to(root.resolve()) or path.is_symlink()
@@ -63,7 +88,7 @@ def source_files(root: Path) -> list[Path]:
         if not entry:
             continue
         relative = Path(entry)
-        if relative.parts[0] not in TREES and entry not in FILES:
+        if not allowed_source_path(PurePosixPath(relative.as_posix())):
             continue
         p = root / entry
         if p.is_symlink():
@@ -76,7 +101,7 @@ def source_files(root: Path) -> list[Path]:
     result = []
     for p in sorted(names):
         relative = p.relative_to(root)
-        if relative.parts[0] not in TREES and str(relative) not in FILES:
+        if not allowed_source_path(PurePosixPath(relative.as_posix())):
             continue
         if any(s in EXCLUDED for s in relative.parts):
             continue

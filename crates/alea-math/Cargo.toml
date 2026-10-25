@@ -30,6 +30,7 @@ cc = { workspace = true, optional = true }
 pkg-config = { workspace = true, optional = true }
 
 [dev-dependencies]
+alea = { workspace = true }
 criterion.workspace = true
 allocation-counter.workspace = true
 

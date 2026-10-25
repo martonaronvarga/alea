@@ -1,5 +1,5 @@
-use alea_core::model::assembly::ModelBuilder;
-use alea_distributions::modeling::normal_observation;
+use alea::distributions::modeling::normal_observation;
+use alea::model::assembly::ModelBuilder;
 fn main() {
     let mut builder = ModelBuilder::new();
     let location = builder.real("location").unwrap();

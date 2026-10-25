@@ -500,9 +500,9 @@ fn merge<const POSITION: bool, T: LogDensityGradient + ?Sized, R: Rng + ?Sized>(
 ///
 /// # Examples
 /// ```
-/// use alea_distributions::Gaussian;
-/// use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
-/// use alea_mcmc::{Nuts, NutsOptions};
+/// use alea::distributions::Gaussian;
+/// use alea::math::{buffer::OwnedBuffer, metric::IdentityMetric};
+/// use alea::sampling::{Nuts, NutsOptions};
 /// use rand::{SeedableRng, rngs::SmallRng};
 /// let target = Gaussian::new(2);
 /// let mut chain = Nuts::new(&target, OwnedBuffer::new(2),
@@ -563,8 +563,8 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Nuts
         Self::from_parts(hmc.into_parts(), options)
     }
     /// Consume a frozen HMC chain, retaining its cache, metric, step and integrator.
-    /// No target reevaluation or RNG draw occurs. This supports both reference M4
-    /// and explicitly experimental M4F warmup, without promoting Fisher defaults.
+    /// No target reevaluation or RNG draw occurs. This supports both covariance
+    /// and Fisher warmup, preserving the selected geometry.
     /// The HMC cutoff is retained in magnitude but becomes one-sided for NUTS.
     /// # Errors
     /// Rejects unaddressable workspace or a changed target/metric contract.

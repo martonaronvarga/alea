@@ -37,6 +37,30 @@ class SourceTests(unittest.TestCase):
             archive(self.root, one)
         self.assertEqual(verify_archive(one), 2)
 
+    def test_local_notes_datasets_and_history_never_ship(self):
+        excluded = ["AGENTS.md", "design.md", "roadmap.md", "models.md", "SECURITY.md",
+                    "research/calculation.rs", "archive/old.rs", "data/observations.csv",
+                    "docs/benchmarks/report.json", "docs/settled-plan.md",
+                    "tools/stan-reference/probe.cpp", "tools/release/observe.py",
+                    "tools/release/examples/probe.rs", "crates/alea/design.md",
+                    "crates/alea/tests/data/private.csv"]
+        for name in excluded:
+            p = self.root / name
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text("local-only")
+        self.assertFalse(set(excluded) & {p.relative_to(self.root).as_posix() for p in source_files(self.root)})
+
+    def test_unpacked_manifest_cannot_reintroduce_excluded_material(self):
+        content = b"local-only"
+        for name in ["design.md", "docs/benchmarks/results.json", "research/notes.rs", "AGENTS.md"]:
+            (self.root / "SOURCE-MANIFEST.json").write_text(json.dumps({
+                "schema_version": 1,
+                "files": [{"path": name, "mode": 0o644,
+                           "sha256": hashlib.sha256(content).hexdigest()}],
+            }))
+            with self.assertRaisesRegex(ValueError, "unsafe source manifest"):
+                source_files(self.root)
+
     def test_source_content_changes_digest(self):
         before = archive(self.root, self.root / "one.tar.gz")
         (self.root / "crates/alea-core/src/lib.rs").write_text("changed")

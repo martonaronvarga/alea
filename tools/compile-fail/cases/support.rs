@@ -1,4 +1,4 @@
-use alea_core::target::{DimensionError, LogDensityGradient};
+use alea::target::{DimensionError, LogDensityGradient};
 
 pub(crate) struct Gaussian {
     dimension: usize,

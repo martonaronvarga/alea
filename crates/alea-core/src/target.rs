@@ -176,9 +176,9 @@ impl EvaluationWorkspace {
 ///
 /// # Examples
 /// ```
-/// use alea_math::buffer::OwnedBuffer;
-/// use alea_distributions::Gaussian;
-/// use alea_core::target::{
+/// use alea::math::buffer::OwnedBuffer;
+/// use alea::distributions::Gaussian;
+/// use alea::target::{
 ///     EvaluationWorkspace, PointState,
 /// };
 /// let target = Gaussian::new(2);
@@ -192,9 +192,9 @@ impl EvaluationWorkspace {
 ///
 /// Cached coordinates cannot be independently mutated:
 /// ```compile_fail
-/// # use alea_math::buffer::OwnedBuffer;
-/// use alea_distributions::Gaussian;
-/// use alea_core::target::{PointState};
+/// # use alea::math::buffer::OwnedBuffer;
+/// use alea::distributions::Gaussian;
+/// use alea::target::{PointState};
 /// let target = Gaussian::new(1);
 /// let mut point = PointState::new(&target, OwnedBuffer::new(1)).unwrap();
 /// point.position()[0] = 7.0;

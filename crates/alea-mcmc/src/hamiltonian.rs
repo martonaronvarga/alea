@@ -428,9 +428,9 @@ impl<'a, T: LogDensityGradient + ?Sized> PhaseWorkspace<'a, T> {
 /// Dropping a token discards the proposal; it never changes the starting snapshot.
 /// A failed advance cannot leave a token that callers could save:
 /// ```compile_fail
-/// use alea_core::target::LogDensityGradient;
-/// use alea_math::metric::EuclideanMetric;
-/// use alea_mcmc::hamiltonian::{Phase, SignedStep};
+/// use alea::target::LogDensityGradient;
+/// use alea::math::metric::EuclideanMetric;
+/// use alea::sampling::hamiltonian::{Phase, SignedStep};
 /// fn advance<T: LogDensityGradient, M: EuclideanMetric>(phase: Phase<'_, '_, T, M>) {
 ///     let _result = phase.step(SignedStep::new(0.1).unwrap());
 ///     let _invalid_reuse = phase.point(); // phase was moved, even on error

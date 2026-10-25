@@ -1,5 +1,5 @@
 //! Classical diagnostics retained from the pre-migration runtime.
-//! Neither estimator is rank-normalized; these are not M6's bulk/tail ESS or modern R-hat.
+//! Neither estimator is rank-normalized; use `modern` for bulk/tail ESS and rank-normalized R-hat.
 #![deny(missing_docs)]
 
 /// Modern cross-chain diagnostics, distinct from the classical helpers below.

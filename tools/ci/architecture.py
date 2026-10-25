@@ -9,6 +9,7 @@ import subprocess
 
 
 ALLOWED = {
+    "alea": {"alea-core", "alea-math", "alea-mcmc", "alea-runtime", "alea-distributions", "alea-autodiff"},
     "alea-math": set(),
     "alea-core": {"alea-math"},
     "alea-autodiff": {"alea-core"},
@@ -45,4 +46,4 @@ if __name__ == "__main__":
         "--no-deps", "--format-version", "1", "--locked",
     ]))
     check(metadata)
-    print("nine canonical crates; production boundaries and dependency names verified")
+    print("canonical workspace crates; production boundaries and dependency names verified")

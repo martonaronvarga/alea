@@ -1,4 +1,4 @@
-use alea_core::distribution::{
+use alea::distribution::{
     ContinuousDistribution, Distribution, DistributionError, EventShape, ParameterScore, Support,
 };
 use alea_downstream_conformance::assert_distribution_conformance;

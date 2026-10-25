@@ -32,17 +32,21 @@ default = []
 std-autodiff = ["alea-autodiff/std-autodiff"]
 
 [[bin]]
+doc = false
 name = "alea"
 path = "src/main.rs"
 
 [[bin]]
+doc = false
 name = "alea-gradient-check"
 path = "src/bin/gradient_check.rs"
 
 [[bin]]
+doc = false
 name = "alea-rwmh"
 path = "src/bin/rwmh.rs"
 
 [[bin]]
+doc = false
 name = "alea-bench"
 path = "src/bin/bench.rs"

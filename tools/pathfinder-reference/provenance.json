@@ -1,7 +1,0 @@
-{
-  "reference": "Stan2.38.0 stan/services/pathfinder/psis.hpp",
-  "generator_sha256": "a89ed77f8e176362779380be45ba252a29bde9d102cd170f9343feeb0e3f3b8d",
-  "fixture_sha256": "d3592851dd0dcadf07121703ee14d57e98c7d2e6268ea116f7a88b95a186b608",
-  "policy": "three executed finite-log-weight cases; absolute weights and Pareto-shape tolerance2e-12",
-  "compiler": "GCC15.2 via .#stable; C++17 -O1 -D_REENTRANT; pinned TBB"
-}

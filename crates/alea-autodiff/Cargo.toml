@@ -21,6 +21,7 @@ alea-core.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+alea = { workspace = true, features = ["distributions"] }
 alea-math.workspace = true
 alea-distributions.workspace = true
 allocation-counter.workspace = true

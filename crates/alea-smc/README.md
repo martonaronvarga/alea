@@ -1,14 +1,10 @@
 # alea-smc
 
-Research particle-kernel contracts for Alea.
+Interfaces for particle weights, mutation, and resampling.
 
-Pre-alpha, unpublished (`publish = false`). No S3/S4 or semver stability claim.
-This crate graduates independently from the reference inference crates.
-
-See the [release policy](https://github.com/martonaronvarga/alea/blob/main/docs/releases.md)
-for platform, MSRV, feature and compatibility contracts, and the
-[maturity ledger](https://github.com/martonaronvarga/alea/blob/main/docs/maturity-and-promotion.md)
-for scope and outstanding evidence.
+The crate defines contracts for composing particle algorithms. It does not supply
+a particle filter or particle MCMC implementation. Use `alea-mcmc` and
+`alea-runtime` for the [sampling workflows](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/sampling.md) in the user guide.
 
 ## License
 

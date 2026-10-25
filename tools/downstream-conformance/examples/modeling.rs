@@ -1,24 +1,24 @@
 //! Run with cargo run --manifest-path tools/downstream-conformance/Cargo.toml --example modeling.
-use alea_core::{
+use alea::diagnostics::modern;
+use alea::distributions::{
+    modeling::ddm_upper_probability,
+    scalar::{Bernoulli, Normal},
+    wiener::{Boundary, WienerObservation},
+};
+use alea::math::buffer::OwnedBuffer;
+use alea::sampling::{
+    HmcOptions, Nuts,
+    adapt::{HmcWarmup, WarmupOptions},
+    config::TreeDepth,
+};
+use alea::{
     distribution::Sample,
     model::{
         assembly::CompiledModel,
         prediction::{NamedOutput, posterior_predict},
     },
 };
-use alea_distributions::{
-    modeling::ddm_upper_probability,
-    scalar::{Bernoulli, Normal},
-    wiener::{Boundary, WienerObservation},
-};
 use alea_downstream_conformance::modeling::{Observation, hierarchy, regression};
-use alea_math::buffer::OwnedBuffer;
-use alea_mcmc::{
-    HmcOptions, Nuts,
-    adapt::{HmcWarmup, WarmupOptions},
-    config::TreeDepth,
-};
-use alea_runtime::diagnostics::modern;
 use rand::{SeedableRng, rngs::SmallRng};
 fn run(name: &str, make: impl Fn() -> CompiledModel) -> Result<(), Box<dyn std::error::Error>> {
     let model = make();

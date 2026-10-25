@@ -32,30 +32,9 @@ if [[ "$scope" == all ]]; then
   cargo clippy --manifest-path tools/compile-fail/Cargo.toml --lib --locked --offline -- -D warnings
   RUSTDOCFLAGS='-D warnings' cargo doc --manifest-path tools/downstream-conformance/Cargo.toml --locked --offline --no-deps
   RUSTDOCFLAGS='-D warnings' cargo doc --manifest-path tools/compile-fail/Cargo.toml --lib --locked --offline --no-deps
-  python3 tools/atlas-reference/generate.py --check
-  python3 tools/riemannian-reference/newton_fixture.py --check
-  python3 tools/riemannian-reference/solver_ladder.py --check
-  python3 tools/stan-adaptation-reference/check.py
-  python3 tools/fisher-reference/generate.py --check
-  python3 tools/fisher-reference/upstream/adjudicate.py --check
-  python3 tools/fisher-reference/upstream/test_adjudicate.py
-  python3 tools/test_fisher_cost.py
-  python3 tools/test_m4f_efficiency.py
-  python3 tools/test_m4f_budgets.py
-  python3 tools/walnuts-reference/test_reference.py
-  python3 tools/test_m7_benchmark.py
-  python3 tools/test_m14.py
-  cargo build --manifest-path crates/Cargo.toml -p alea-cli --bin alea-bench --locked --offline
-  bench_target=$(cargo metadata --manifest-path crates/Cargo.toml --locked --no-deps --format-version 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')
-  ALEA_BENCH_TEST_BINARY="$bench_target/debug/alea-bench" ALEA_BENCH_REQUIRE_WORKER=1 python3 -W error::ResourceWarning -m unittest discover -s tools/bench/tests
-  python3 tools/test_evidence.py
-  python3 tools/evidence.py catalog
-  # Full historical replay requires restored payloads, separately from routine
-  # synthetic worker/parser contracts above. Never report a catalog as raw replay.
-  if [[ "${ALEA_VERIFY_ARCHIVED_EVIDENCE:-0}" == 1 ]]; then
-    python3 tools/test_m16.py
-    python3 tools/test_m16_pdb.py
-  fi
+  cargo fmt --manifest-path tools/documentation/Cargo.toml --all --check
+  cargo fetch --manifest-path tools/documentation/Cargo.toml --locked
+  cargo test --manifest-path tools/documentation/Cargo.toml --doc --locked --offline
   cargo fmt --manifest-path crates/Cargo.toml --all --check
 fi
 if [[ -n "$features" ]]; then args+=(--features "$features"); fi

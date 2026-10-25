@@ -1,17 +1,23 @@
 # alea-math
 
-Aligned storage and Euclidean geometry for Alea inference.
+Aligned storage and numerical geometry for Alea.
 
-Version 0.1.0 is being prepared for its first stable publication. Use the owning
-modules or `prelude::*` for common imports. The published release will cover every
-public Rust item and feature with the 0.1.x compatibility promise. Experimental
-methods remain explicitly marked; their numerical limitations and default status
-do not change. Preparation alone is not S4 qualification.
+The crate provides initialized buffers, Euclidean metrics, Cholesky factors,
+interpolation, and numerical helpers. Most applications reach these through the
+samplers; import them directly when selecting a metric or supplying storage.
 
-See the [release policy](https://github.com/martonaronvarga/alea/blob/main/docs/releases.md)
-for platform, MSRV, feature and compatibility contracts, and the
-[maturity ledger](https://github.com/martonaronvarga/alea/blob/main/docs/maturity-and-promotion.md)
-for scope and outstanding evidence.
+```rust
+use alea::math::{buffer::OwnedBuffer, metric::IdentityMetric};
+
+let position = OwnedBuffer::from_fn(3, |i| i as f64);
+let metric = IdentityMetric::new(3);
+assert_eq!(position.len(), 3);
+# let _ = metric;
+```
+
+The default backend uses stable Rust 1.95 or later. Optional `faer`, `openblas`,
+and `simd` features have separate compiler and library requirements. See
+[installation](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/installation.md) and [metric conventions](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/metric-contract.md).
 
 ## License
 

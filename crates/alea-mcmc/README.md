@@ -1,17 +1,36 @@
 # alea-mcmc
 
-Reference HMC, NUTS and explicitly selected research MCMC methods.
+Hamiltonian Monte Carlo, NUTS, random-walk Metropolis, and warmup for Alea.
 
-Version 0.1.0 is being prepared for its first stable publication. Use the owning
-modules or `prelude::*` for common imports. The published release will cover every
-public Rust item and feature with the 0.1.x compatibility promise. Experimental
-methods remain explicitly marked; their numerical limitations and default status
-do not change. Preparation alone is not S4 qualification.
+Choose checked sampler options, supply a target, and retain a coherent chain
+state after every completed transition. Warmup is explicit and ends before
+retained sampling.
 
-See the [release policy](https://github.com/martonaronvarga/alea/blob/main/docs/releases.md)
-for platform, MSRV, feature and compatibility contracts, and the
-[maturity ledger](https://github.com/martonaronvarga/alea/blob/main/docs/maturity-and-promotion.md)
-for scope and outstanding evidence.
+```rust
+use alea::sampling::{adapt::MetricKind, NutsOptions};
+use alea::session::{Kernel, Warmup};
+
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+let kernel = Kernel::Nuts(NutsOptions::new(0.2, 8)?);
+let warmup = Warmup::Covariance {
+    iterations: 1_000,
+    metric: MetricKind::Diagonal,
+    target: 0.8.try_into()?,
+    search: None,
+};
+# let _ = (kernel, warmup);
+# Ok(())
+# }
+```
+
+Use these settings with an `alea-runtime` session, or construct a chain directly.
+See [sampling](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/sampling.md) for the choices and
+[your first model](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/getting-started.md) for a complete program.
+
+Specialized methods are available in named modules. Read their numerical
+assumptions before use. `ApproximateMclmc` and `ExactnessPendingRmhmc` have different
+guarantees from ordinary corrected Euclidean HMC. Optional backends are described
+in [installation](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/installation.md).
 
 ## License
 

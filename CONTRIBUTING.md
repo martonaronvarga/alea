@@ -1,28 +1,79 @@
-# Contributing
+# Contributing to Alea
 
-Contributions follow the target package's license: MIT OR Apache-2.0 for the six
-reusable Rust libraries, GPL-3.0-or-later for ffi/distributions/cli. Preserve all
-upstream notices and identify copied or adapted material and its source license.
-See [LICENSING.md](LICENSING.md); the project license does not relicense others' work.
+Bug reports, examples, documentation improvements, and numerical fixes are
+welcome. For a substantial API or algorithm change, open an
+[issue](https://github.com/martonaronvarga/alea/issues) first so we can discuss the
+intended behavior and how to check it.
 
-Start with a small reproducer and identify the owning crate. Preserve checked
-construction, typed model errors, coherent cache rollback and explicit finite
-warmup. Research algorithms retain their maturity/exactness labels. See the
-[architecture](docs/architecture.md), [maturity policy](docs/maturity-and-promotion.md)
-and [release policy](docs/releases.md) before changing public contracts.
+## Build and test
 
-Use the lock-pinned development shells. Run focused tests first, then the related
-integration/property tests and `nix develop .#stable --command bash tools/ci/check.sh`.
-Use the pinned nightly/BLAS/Enzyme lanes only for the corresponding features.
-Public API changes require inventory regeneration and explicit compatibility
-review; schema changes require versioning and reader tests. Do not regenerate
-historical benchmark evidence to make a current change pass.
+Install Rust 1.95 or later and a C compiler, then clone with submodules:
 
-See [workspace maintenance](docs/workspace.md) for build-cache retention, archived
-benchmark restoration and full historical reader checks. Routine CI validates
-benchmark contracts and the payload catalog; raw historical replay is explicit.
+```sh
+git clone --recurse-submodules https://github.com/martonaronvarga/alea.git
+cd alea
+cargo test --manifest-path crates/Cargo.toml --workspace --locked
+```
 
-Report ordinary bugs through the [issue tracker](https://github.com/martonaronvarga/alea/issues)
-with revision, compiler, features, platform, seed and minimal input. Report
-security-sensitive issues through [SECURITY.md](SECURITY.md). Include relevant
-validation and remaining limitations in change descriptions.
+If you use Nix, `nix develop .#stable` supplies the stable toolchain. The default
+shell supplies the pinned nightly compiler, and `.#blas` and `.#autodiff` provide
+the optional native environments.
+
+Start with tests for the code you changed:
+
+```sh
+cargo test --manifest-path crates/Cargo.toml -p alea-mcmc --test nuts_contracts
+cargo fmt --manifest-path crates/Cargo.toml --all -- --check
+cargo clippy --manifest-path crates/Cargo.toml --workspace --all-targets --locked -- -D warnings
+```
+
+Before submitting, run the complete stable checks:
+
+```sh
+nix develop .#stable --command bash tools/ci/check.sh
+```
+
+Run optional backend checks when your change affects them. Keep nightly and
+stable build outputs in separate target directories.
+
+## Write useful examples
+
+Explain the statistical model, units, parameter conventions, and what a result
+means. Prefer a complete small program to a fragment that depends on repository
+internals. Use `?` to preserve errors and show how to inspect diagnostic warnings.
+The [user guide](docs/README.md) is organized around tasks rather than implementation
+history.
+
+The Rust examples in the guide and package READMEs are executable documentation:
+
+```sh
+cargo test --manifest-path tools/documentation/Cargo.toml --doc --locked
+```
+
+Keep examples deterministic where practical.
+
+## Numerical and API changes
+
+Include a reproducer for a bug and, where possible, an independent formula,
+high-precision calculation, or established implementation for comparison.
+Preserve checked construction, complete gradient writes, coherent state after
+errors, and the boundary between warmup and retained sampling.
+
+A change to a public API needs a reviewed API diff. A change to a saved format
+needs a version decision and reader tests. Explain changes in numerical behavior,
+including new limits or failure cases. Historical experiment records retain their
+original inputs and thresholds; add new evidence rather than rewriting old results.
+
+## Report problems
+
+Include the Alea revision, Rust version, operating system, enabled features, seed,
+and a small runnable example. Keep original errors and diagnostic warnings in the
+report. Remove private data and credentials. Send security-sensitive reports to
+[contact@martonaronvarga.dev](mailto:contact@martonaronvarga.dev).
+
+## Licensing
+
+Contributions follow the receiving package's license: MIT OR Apache-2.0 for the
+Rust inference libraries, GPL-3.0-or-later for distributions, cubature, and CLI
+packages. Preserve notices and identify the source and license of copied or adapted
+material. See [LICENSING.md](LICENSING.md).

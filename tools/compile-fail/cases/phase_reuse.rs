@@ -1,6 +1,6 @@
-use alea_core::target::LogDensityGradient;
-use alea_math::metric::EuclideanMetric;
-use alea_mcmc::hamiltonian::{Phase, SignedStep};
+use alea::math::metric::EuclideanMetric;
+use alea::sampling::hamiltonian::{Phase, SignedStep};
+use alea::target::LogDensityGradient;
 
 fn advance<T, M>(phase: Phase<'_, '_, T, M>)
 where

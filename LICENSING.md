@@ -6,15 +6,15 @@ integration. Each Cargo manifest states the license for that distributed package
 | Packages | License |
 |---|---|
 | `alea-math`, `alea-core`, `alea-mcmc`, `alea-runtime`, `alea-autodiff`, `alea-smc` | `MIT OR Apache-2.0` |
-| `alea-ffi`, `alea-distributions`, `alea-cli` | `GPL-3.0-or-later` |
+| `alea`, `alea-ffi`, `alea-distributions`, `alea-cli` | `GPL-3.0-or-later` |
 
-Original Alea code outside the three GPL package trees is available under either
+Original Alea code outside the GPL package trees is available under either
 the [MIT license](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at the recipient's
 option. That grant covers only work Alea's contributors are authorized to license.
 Existing third-party notices and explicit file/directory licenses take precedence
-for those materials. The three GPL package trees use [GPLv3 or later](LICENSE-GPL).
-This choice does not change maturity levels, APIs, crate versions or publication
-status.
+for those materials. The GPL package trees use [GPLv3 or later](LICENSE-GPL).
+The public `alea` facade is distributed under GPL-3.0-or-later; its optional
+`distributions` feature includes the cubature dependency.
 
 ## Native dependency boundary
 
@@ -64,5 +64,4 @@ graph. The package verifier checks the **actual `.crate` archive contents** agai
 the canonical texts, so a missing notice or a permissively labelled cubature
 package fails preparation. Source archives include all root licensing documents.
 
-No crate is published or declared stable by these changes. Native platform CI,
-maintainer signing and an actual S3 candidate review remain release requirements.
+Source verification and maintainer signing apply to distributed artifacts.

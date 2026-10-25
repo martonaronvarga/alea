@@ -1,7 +1,7 @@
 //! Descriptive fused-gradient versus analytic-tape microbenchmark, not sampler ESS.
 #[path = "../models.rs"]
 mod models;
-use alea_core::{capability::PotentialHessianDerivative, target::LogDensityGradient};
+use alea::{capability::PotentialHessianDerivative, target::LogDensityGradient};
 use alea_enzyme_conformance as generated;
 use std::{hint::black_box, time::Instant};
 

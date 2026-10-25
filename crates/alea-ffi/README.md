@@ -1,14 +1,20 @@
 # alea-ffi
 
-Audited native cubature boundary for Alea.
+Checked Rust callbacks for synchronous native cubature.
 
-Pre-alpha, unpublished (`publish = false`). No S3/S4 or semver stability claim.
-This crate graduates independently from the reference inference crates.
+This crate owns the C build and callback boundary used by Wiener integration.
+It checks callback dimensions, reports backend failures, and keeps foreign
+allocation ownership within the calling operation. Applications normally use it
+through `alea-distributions`.
 
-See the [release policy](https://github.com/martonaronvarga/alea/blob/main/docs/releases.md)
-for platform, MSRV, feature and compatibility contracts, and the
-[maturity ledger](https://github.com/martonaronvarga/alea/blob/main/docs/maturity-and-promotion.md)
-for scope and outstanding evidence.
+A C compiler is required. Source checkouts must include the cubature submodule:
+
+```sh
+git submodule update --init --recursive
+cargo test --manifest-path crates/Cargo.toml -p alea-ffi --locked
+```
+
+See [installation](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/installation.md) for platform requirements.
 
 ## License
 

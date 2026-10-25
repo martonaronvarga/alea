@@ -8,6 +8,8 @@ import re
 import subprocess
 import tarfile
 
+from source import allowed_source_path
+
 
 def verify_archive(path: Path) -> int:
     """Reject duplicate/unsafe names, links, unexpected entries and hash changes."""
@@ -33,6 +35,8 @@ def verify_archive(path: Path) -> int:
             raise ValueError("unsupported source manifest schema")
         expected = {"alea/SOURCE-MANIFEST.json"}
         for entry in manifest["files"]:
+            if not allowed_source_path(PurePosixPath(entry["path"])):
+                raise ValueError("excluded source manifest path")
             name = "alea/" + entry["path"]
             if name in expected:
                 raise ValueError("duplicate source manifest entry")

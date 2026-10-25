@@ -1,6 +1,6 @@
 #[path = "../models.rs"]
 mod models;
-use alea_core::{
+use alea::{
     capability::{HessianVector, PotentialHessianDerivative},
     target::LogDensityGradient,
 };

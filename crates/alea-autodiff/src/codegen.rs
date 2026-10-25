@@ -5,7 +5,7 @@ use alea_core::model::assembly::{AssemblyError, CompiledModel};
 ///
 /// Call from `build.rs`, write to `OUT_DIR`, then `include!` it in a module of a
 /// crate with `#![feature(autodiff)]` on Alea's pinned `.#autodiff` toolchain.
-/// The consuming crate needs dependencies named `alea_core` and `alea_autodiff`.
+/// The consuming crate needs the `alea` dependency with its `std-autodiff` feature.
 /// `target()` supplies fused gradients, forward-over-reverse HVPs and
 /// forward-over-forward-over-reverse third derivatives. All derivatives include
 /// transforms and Jacobians; the dense outputs are derivatives of **potential**.
@@ -59,8 +59,8 @@ fn __hvp(q: &[f64; DIMENSION], v: &[f64; DIMENSION], h: &mut [f64; DIMENSION]) -
     __gradient_jvp(q, v, &mut g, h)
 }
 
-pub fn target() -> impl ::alea_core::capability::PotentialHessianDerivative<Error = ::alea_autodiff::autodiff::AutodiffError> {
-    ::alea_autodiff::autodiff::EnzymeManifoldModel::new(
+pub fn target() -> impl ::alea::capability::PotentialHessianDerivative<Error = ::alea::autodiff::autodiff::AutodiffError> {
+    ::alea::autodiff::autodiff::EnzymeManifoldModel::new(
         DIMENSION,
         |q: &[f64], g: &mut [f64], seed: f64| {
             let q = q.try_into().expect("validated position");

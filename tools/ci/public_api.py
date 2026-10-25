@@ -20,6 +20,7 @@ POLICY = {
     "parameter_names": True,
 }
 FEATURE_VARIANTS = {
+    "alea+simd": {"package": "alea", "features": ["alea/simd"], "same_as": "alea"},
     "alea-distributions+branch-hints": {
         "package": "alea-distributions",
         "features": ["alea-distributions/branch-hints"],
@@ -47,6 +48,10 @@ FEATURE_VARIANTS = {
     },
 }
 FEATURE_SNAPSHOTS = {
+    "alea+distributions": {"package": "alea", "features": ["alea/distributions"]},
+    "alea+autodiff": {"package": "alea", "features": ["alea/autodiff"]},
+    "alea+faer": {"package": "alea", "features": ["alea/faer"]},
+    "alea+distributions+autodiff+faer": {"package": "alea", "features": ["alea/distributions", "alea/autodiff", "alea/faer"]},
     "alea-math+faer": {"package": "alea-math", "features": ["alea-math/faer"]},
     "alea-mcmc+faer": {"package": "alea-mcmc", "features": ["alea-mcmc/faer"]},
 }

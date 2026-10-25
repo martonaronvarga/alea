@@ -1,13 +1,13 @@
 //! Independent consumer: native models, diagnostics, bounded output and restart.
-use alea_core::{
+use alea::{
     model::{
         ModelError,
         assembly::{AssemblyError, CompiledModel, ModelBuilder},
     },
     target::{EvaluationError, LogDensityGradient},
 };
-use alea_mcmc::{NutsOptions, adapt::MetricKind};
-use alea_runtime::{
+use alea::sampling::{NutsOptions, adapt::MetricKind};
+use alea::{
     ensemble::Execution,
     session::{
         Checkpoint, Diagnostics, Kernel, SessionBuilder, Status, Warmup,
@@ -208,7 +208,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .run(
             |_| factory(),
             Execution::Sequential,
-            &Observer(|draw: &alea_runtime::session::OwnedDraw| {
+            &Observer(|draw: &alea::session::OwnedDraw| {
                 if draw.index == 63 {
                     cancel.cancel();
                 }
@@ -247,8 +247,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // covariance warmup and 512 draws, four rank bins, chi-square limit 16.27.
     // One-chain diagnostics do not authorize a convergence claim.
     let mut data_rng =
-        alea_runtime::ensemble::chain_rng([91; 32], alea_runtime::output::ChainId(0));
-    let mut normal = alea_math::random::NormalGenerator::default();
+        alea::ensemble::chain_rng([91; 32], alea::output::ChainId(0));
+    let mut normal = alea::math::random::NormalGenerator::default();
     let mut ranks = Vec::new();
     let mut bins = [[0_usize; 4]; 2];
     for dataset in 0..32 {

@@ -329,10 +329,10 @@ impl FisherOptions {
     /// This does not change the search criterion or the divergence threshold.
     ///
     /// ```
-    /// use alea_mcmc::adapt::FisherOptions;
+    /// use alea::sampling::adapt::FisherOptions;
     /// let options = FisherOptions::new(1000).with_target(0.95.try_into()?);
     /// # let _ = options;
-    /// # Ok::<(), alea_mcmc::config::SamplerConfigError>(())
+    /// # Ok::<(), alea::sampling::config::SamplerConfigError>(())
     /// ```
     #[must_use]
     pub fn with_target(mut self, target: AcceptanceTarget) -> Self {

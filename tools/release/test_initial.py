@@ -17,7 +17,7 @@ class InitialReleaseTests(unittest.TestCase):
         self.root = Path(self.temporary.name) / "current"
         self.baseline = Path(self.temporary.name) / "baseline"
         (self.root / "crates").mkdir(parents=True)
-        shutil.copyfile(ROOT / "crates/Cargo.toml", self.root / "crates/Cargo.toml")
+        (self.root / "crates/Cargo.toml").write_text((ROOT / "crates/Cargo.toml").read_text().replace('version = "0.1.1"', 'version = "0.1.0"'))
         shutil.copytree(ROOT / "tools/ci/public-api", self.root / "tools/ci/public-api")
         shutil.copyfile(ROOT / "tools/ci/api-review.json", self.root / "tools/ci/api-review.json")
         snapshots = self.baseline / "tools/ci/public-api"

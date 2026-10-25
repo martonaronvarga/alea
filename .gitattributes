@@ -1,7 +1,4 @@
 # Keep source-bound measurement/fixture bytes identical on every platform.
-docs/benchmarks/** -text -whitespace
-docs/releases/**/evidence/** -text -whitespace
-tools/bench/corpus/** -text -whitespace
 **/tests/fixtures/** -text -whitespace
 *.gz -text -diff
 

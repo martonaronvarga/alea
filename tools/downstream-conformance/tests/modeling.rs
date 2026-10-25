@@ -1,22 +1,22 @@
 //! Independent downstream model formulas, retained inference and calibration.
-use alea_core::{
-    distribution::Sample,
-    model::prediction::{NamedOutput, posterior_predict},
-    target::LogDensityGradient,
-};
-use alea_distributions::{
+use alea::diagnostics::modern;
+use alea::distributions::{
     modeling::ddm_upper_probability,
     scalar::{Bernoulli, Normal},
     wiener::{Boundary, WienerObservation},
 };
-use alea_downstream_conformance::modeling::{self, Observation};
-use alea_math::buffer::OwnedBuffer;
-use alea_mcmc::{
+use alea::math::buffer::OwnedBuffer;
+use alea::sampling::{
     HmcOptions, Nuts,
     adapt::{HmcWarmup, WarmupOptions},
     config::TreeDepth,
 };
-use alea_runtime::diagnostics::modern;
+use alea::{
+    distribution::Sample,
+    model::prediction::{NamedOutput, posterior_predict},
+    target::LogDensityGradient,
+};
+use alea_downstream_conformance::modeling::{self, Observation};
 use rand::{Rng, RngExt, SeedableRng, rngs::SmallRng};
 const LOG_NORM: f64 = 0.9189385332046727;
 fn normal(x: f64, m: f64, s: f64) -> f64 {
@@ -177,7 +177,7 @@ fn retained(data: &[Observation], seed: u64) -> (Vec<Vec<[f64; 4]>>, usize) {
             let event = nuts.step(&mut rng).unwrap();
             divergences += usize::from(matches!(
                 event.termination,
-                alea_mcmc::nuts::NutsTermination::Divergence(_)
+                alea::sampling::nuts::NutsTermination::Divergence(_)
             ));
             draws.push(nuts.point().position().try_into().unwrap());
         }
@@ -249,7 +249,7 @@ fn hierarchical_inference_diagnostics_and_prediction() {
                 } else {
                     1.0 / (1.0 + (-drift).exp())
                 };
-                Ok::<_, alea_core::distribution::DistributionError>((
+                Ok::<_, alea::distribution::DistributionError>((
                     probability,
                     Bernoulli::new(probability)?.sample(rng)?,
                 ))

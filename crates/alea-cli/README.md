@@ -1,14 +1,19 @@
 # alea-cli
 
-Command-line experiment and benchmark utilities for Alea.
+Command-line tools for gradient checks and numerical experiments.
 
-Pre-alpha, unpublished (`publish = false`). No S3/S4 or semver stability claim.
-This crate graduates independently from the reference inference crates.
+Run the tools from a source checkout:
 
-See the [release policy](https://github.com/martonaronvarga/alea/blob/main/docs/releases.md)
-for platform, MSRV, feature and compatibility contracts, and the
-[maturity ledger](https://github.com/martonaronvarga/alea/blob/main/docs/maturity-and-promotion.md)
-for scope and outstanding evidence.
+```sh
+cargo run --release --manifest-path crates/Cargo.toml -p alea-cli --bin alea
+cargo run --release --manifest-path crates/Cargo.toml -p alea-cli \
+  --bin alea-gradient-check -- all
+```
+
+These commands exercise supplied targets and derivative checks. For fitting your
+own data, start with the [Rust user guide](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/getting-started.md).
+The `alea-bench` utility runs source-recorded comparison experiments; its commands
+and report formats are described with the corresponding experiment protocols.
 
 ## License
 

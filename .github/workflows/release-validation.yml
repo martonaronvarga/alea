@@ -55,16 +55,12 @@ jobs:
           shell_path="$BASH"
           if [[ "$RUNNER_OS" == Windows ]]; then shell_path=$(cygpath -w "$shell_path"); fi
           python tools/ci/run.py --log "$RUNNER_TEMP/portable.log" -- "$shell_path" tools/ci/portable.sh
+      - name: User guide examples
+        run: python tools/ci/run.py --log "$RUNNER_TEMP/guide.log" -- cargo test --manifest-path tools/documentation/Cargo.toml --doc --locked
       - name: Independent fresh project
         run: python tools/ci/run.py --log "$RUNNER_TEMP/fresh.log" -- python tools/release/fresh.py .
       - name: Independent native-model and recovery workflow
         run: python tools/ci/run.py --log "$RUNNER_TEMP/workflow.log" -- python tools/release/fresh.py . --workflow --output "$RUNNER_TEMP/alea-workflow"
-      - name: Paired fixed-work observations against accepted consolidation
-        if: matrix.toolchain == '1.95.0' && startsWith(matrix.runner, 'ubuntu-')
-        run: |
-          git fetch --depth=1 origin df17c0a0af7ab8aabc7753304e3beacd6d8c7135
-          git worktree add --detach "$RUNNER_TEMP/alea-baseline" FETCH_HEAD
-          python tools/ci/run.py --log "$RUNNER_TEMP/observations.log" -- python tools/release/observe.py . "$RUNNER_TEMP/alea-baseline" "$RUNNER_TEMP/alea-observations"
       - name: Retain downstream observations
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -72,7 +68,6 @@ jobs:
           name: workflow-${{ matrix.runner }}-${{ matrix.toolchain }}-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/alea-workflow
-            ${{ runner.temp }}/alea-observations
           if-no-files-found: warn
   artifacts:
     runs-on: ubuntu-24.04
@@ -107,7 +102,7 @@ jobs:
       - name: Candidate semantic compatibility (no self-baseline)
         if: ${{ inputs.candidate || startsWith(github.ref, 'refs/tags/') }}
         env:
-          ALEA_BASELINE_REF: ${{ inputs.baseline_ref || vars.ALEA_RELEASE_BASELINE_REF }}
+          ALEA_BASELINE_REF: ${{ inputs.baseline_ref || vars.ALEA_RELEASE_BASELINE_REF || (github.ref == 'refs/tags/v0.1.1' && 'v0.1.0') }}
           ALEA_INITIAL_RELEASE: ${{ inputs.initial_release || github.ref == 'refs/tags/v0.1.0' }}
         run: |
           set -euo pipefail

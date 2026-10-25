@@ -6,5 +6,5 @@ export CFLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
 export RUSTFLAGS='-C link-arg=-fsanitize=address -C link-arg=-fsanitize=undefined'
 export ASAN_OPTIONS='detect_leaks=1:halt_on_error=1'
 export UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1'
-export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target/m17-sanitizers}"
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target/sanitizers}"
 cargo test --manifest-path crates/Cargo.toml -p alea-ffi --locked --test native_cleanup

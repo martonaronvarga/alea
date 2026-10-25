@@ -657,8 +657,8 @@ impl DiagonalMetric {
     ///
     /// # Examples
     /// ```
-    /// use alea_math::buffer::OwnedBuffer;
-    /// use alea_math::metric::{DiagonalMetric, EuclideanMetric, MetricError};
+    /// use alea::math::buffer::OwnedBuffer;
+    /// use alea::math::metric::{DiagonalMetric, EuclideanMetric, MetricError};
     /// let masses = OwnedBuffer::from_fn(2, |i| [4.0, 9.0][i]);
     /// let metric = DiagonalMetric::new(masses)?;
     /// let mut momentum = [0.0; 2];

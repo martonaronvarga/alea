@@ -19,3 +19,47 @@ tools/stan-reference/stantest
 # Reports, manifests and the payload catalog remain in Git.
 /docs/benchmarks/**/*.tar.gz
 /docs/benchmarks/**/*.tar.gz.part[0-9]*
+
+# Local notes, datasets, and historical experiments.
+/AGENTS.md
+/design.md
+/roadmap.md
+/models.md
+/models
+/SECURITY.md
+/archive/
+/research/
+/data/
+/results/
+/docs/*
+!/docs/README.md
+!/docs/diagnostics.md
+!/docs/distributions.md
+!/docs/enzyme-native-models.md
+!/docs/getting-started.md
+!/docs/installation.md
+!/docs/metric-contract.md
+!/docs/modeling.md
+!/docs/releases.md
+!/docs/sampling.md
+!/docs/sessions.md
+!/docs/troubleshooting.md
+!/docs/wiener.md
+/tools/*-reference/
+/tools/bench/
+/tools/test_m*.py
+/tools/evidence.py
+/tools/test_evidence.py
+/tools/test_fisher_cost.py
+/.github/workflows/performance.yml
+/.github/workflows/native-posteriordb.yml
+
+/tools/*.py
+/tools/*.sh
+/tools/release/observe.py
+/tools/release/examples/probe.rs
+
+# Private editor and agent configuration.
+AGENTS.md
+/.codex/
+/.swival/

@@ -40,9 +40,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "alea-autodiff"
-version = "0.1.0"
+name = "alea"
+version = "0.1.1"
 dependencies = [
+ "alea-autodiff",
+ "alea-core",
+ "alea-distributions",
+ "alea-math",
+ "alea-mcmc",
+ "alea-runtime",
+]
+
+[[package]]
+name = "alea-autodiff"
+version = "0.1.1"
+dependencies = [
+ "alea",
  "alea-core",
  "alea-distributions",
  "alea-math",
@@ -52,7 +65,7 @@ dependencies = [
 
 [[package]]
 name = "alea-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "alea-autodiff",
  "alea-core",
@@ -65,8 +78,9 @@ dependencies = [
 
 [[package]]
 name = "alea-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
+ "alea",
  "alea-distributions",
  "alea-math",
  "allocation-counter",
@@ -78,7 +92,7 @@ dependencies = [
 
 [[package]]
 name = "alea-distributions"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "alea-core",
  "alea-ffi",
@@ -95,7 +109,7 @@ dependencies = [
 
 [[package]]
 name = "alea-ffi"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "allocation-counter",
  "cc",
@@ -104,8 +118,9 @@ dependencies = [
 
 [[package]]
 name = "alea-math"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
+ "alea",
  "aligned-vec",
  "allocation-counter",
  "cblas",
@@ -120,8 +135,9 @@ dependencies = [
 
 [[package]]
 name = "alea-mcmc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
+ "alea",
  "alea-core",
  "alea-distributions",
  "alea-math",
@@ -136,7 +152,7 @@ dependencies = [
 
 [[package]]
 name = "alea-runtime"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "alea-core",
  "alea-distributions",
@@ -156,7 +172,7 @@ dependencies = [
 
 [[package]]
 name = "alea-smc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rand 0.10.1",
 ]

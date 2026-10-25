@@ -25,6 +25,7 @@ rand.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+alea = { workspace = true, features = ["distributions"] }
 alea-distributions.workspace = true
 allocation-counter.workspace = true
 criterion.workspace = true

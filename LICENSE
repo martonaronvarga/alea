@@ -4,9 +4,9 @@ Original Alea code is licensed under either the MIT License (LICENSE-MIT) or
 the Apache License, Version 2.0 (LICENSE-APACHE), at your option, except for
 the GPL-covered package trees listed below.
 
-crates/alea-ffi, crates/alea-distributions and crates/alea-cli are licensed
-under GPL-3.0-or-later (LICENSE-GPL) as distributed packages. Their dependency
-on GPL-covered cubature is intentional; the other six production libraries
+crates/alea, crates/alea-ffi, crates/alea-distributions and crates/alea-cli are licensed
+under GPL-3.0-or-later (LICENSE-GPL) as distributed packages. The public alea crate optionally enables GPL-covered cubature through
+its distributions feature; the other six production libraries
 do not depend on cubature.
 
 Third-party code, adapted fixtures, vendored source and benchmark datasets keep

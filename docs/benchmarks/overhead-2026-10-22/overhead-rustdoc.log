@@ -1,7 +1,0 @@
-    Checking alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
- Documenting alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
-    Checking alea-runtime v0.1.0 (/home/usu/documents/dev/alea/crates/alea-runtime)
- Documenting alea-runtime v0.1.0 (/home/usu/documents/dev/alea/crates/alea-runtime)
- Documenting alea-cli v0.1.0 (/home/usu/documents/dev/alea/crates/alea-cli)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.22s
-   Generated /home/usu/documents/dev/alea/crates/target/doc/alea_autodiff/index.html and 11 other files

@@ -1,7 +1,0 @@
-{
-  "reference": "ATLAS paper arXiv:2410.21587v1 Appendix E.2; closed harmonic leapfrog matrix",
-  "generator_sha256": "487942f60fb0199325f63656ff001652569889e1623c955bbdcfde4006032196",
-  "fixture_sha256": "de31468487da675c0769b8f34ed85a57c648ed3c918bef3f0ab9d7efb5952059",
-  "cases": 576,
-  "independence": "Pure Python analytic 2x2 map, explicit auxiliary variates; imports no Alea code and reads no Alea outputs"
-}

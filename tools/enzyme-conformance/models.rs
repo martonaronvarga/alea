@@ -1,8 +1,8 @@
-use alea_core::{
+use alea::distributions::modeling::{bernoulli_logit, normal};
+use alea::{
     model::assembly::{AssemblyError, CompiledModel, ModelBuilder},
     transform::Transform,
 };
-use alea_distributions::modeling::{bernoulli_logit, normal};
 
 pub fn polynomial() -> Result<CompiledModel, AssemblyError> {
     let mut b = ModelBuilder::new();

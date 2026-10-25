@@ -3,7 +3,7 @@ from pathlib import Path
 
 PERMISSIVE = "MIT OR Apache-2.0"
 NATIVE = "GPL-3.0-or-later"
-NATIVE_PACKAGES = frozenset({"alea-ffi", "alea-distributions", "alea-cli"})
+NATIVE_PACKAGES = frozenset({"alea", "alea-ffi", "alea-distributions", "alea-cli"})
 
 
 def expected_license(name: str) -> str:

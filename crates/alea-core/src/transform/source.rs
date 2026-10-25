@@ -16,7 +16,7 @@ impl Transform {
             r#"
             let mut x = [0.0_f64; {output}];
             let mut scratch = [0.0_f64; {scratch}];
-            if ::alea_core::transform::Transform::{}({n}).expect("validated transform")
+            if ::alea::transform::Transform::{}({n}).expect("validated transform")
                 .constrain(q, &mut x, &mut scratch).is_err() {{ return false; }}
         "#,
             if correlation {

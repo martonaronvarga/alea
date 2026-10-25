@@ -1,4 +1,4 @@
-//! Opt-in M10 integration kernels with explicit capability and cost contracts.
+//! Specialized integration kernels with explicit capability and cost contracts.
 //!
 //! These kernels intentionally do not implement NUTS and are not selected by
 //! default warmup. Each transition is Metropolis corrected and publishes only a

@@ -7,18 +7,12 @@ publish = false
 [workspace]
 
 [dependencies]
-alea-core = { path = "../../crates/alea-core" }
-alea-autodiff = { path = "../../crates/alea-autodiff", features = ["std-autodiff"] }
+alea = { path = "../../crates/alea", features = ["std-autodiff", "distributions"] }
 
 [build-dependencies]
-alea-core = { path = "../../crates/alea-core" }
-alea-autodiff = { path = "../../crates/alea-autodiff" }
-alea-distributions = { path = "../../crates/alea-distributions" }
+alea = { path = "../../crates/alea", features = ["autodiff", "distributions"] }
 
 [dev-dependencies]
-alea-distributions = { path = "../../crates/alea-distributions" }
-alea-math = { path = "../../crates/alea-math" }
-alea-mcmc = { path = "../../crates/alea-mcmc" }
 rand = "=0.10.1"
 allocation-counter = "=0.8.1"
 

@@ -1,5 +1,5 @@
-use alea_math::buffer::OwnedBuffer;
-use alea_mcmc::{
+use alea::math::buffer::OwnedBuffer;
+use alea::sampling::{
     HmcOptions,
     adapt::{HmcWarmup, WarmupOptions},
 };

@@ -1,27 +1,28 @@
 [workspace]
 resolver = "3"
-members = ["alea-math", "alea-core", "alea-distributions", "alea-autodiff", "alea-mcmc", "alea-runtime", "alea-smc", "alea-ffi", "alea-cli"]
+members = ["alea", "alea-math", "alea-core", "alea-distributions", "alea-autodiff", "alea-mcmc", "alea-runtime", "alea-smc", "alea-ffi", "alea-cli"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.95"
-authors = ["Marton Aron Varga <martonaronvarga@gmail.com>"]
+authors = ["Marton Aron Varga <contact@martonaronvarga.dev>"]
 repository = "https://github.com/martonaronvarga/alea"
 homepage = "https://github.com/martonaronvarga/alea"
 license = "MIT OR Apache-2.0"
 publish = false
 
 [workspace.dependencies]
-alea-math = { version = "0.1.0", path = "alea-math" }
-alea-core = { version = "0.1.0", path = "alea-core" }
-alea-distributions = { version = "0.1.0", path = "alea-distributions" }
-alea-autodiff = { version = "0.1.0", path = "alea-autodiff" }
-alea-mcmc = { version = "0.1.0", path = "alea-mcmc" }
-alea-runtime = { version = "0.1.0", path = "alea-runtime" }
-alea-smc = { version = "0.1.0", path = "alea-smc" }
-alea-ffi = { version = "0.1.0", path = "alea-ffi" }
-alea-cli = { version = "0.1.0", path = "alea-cli" }
+alea = { version = "0.1.1", path = "alea" }
+alea-math = { version = "0.1.1", path = "alea-math" }
+alea-core = { version = "0.1.1", path = "alea-core" }
+alea-distributions = { version = "0.1.1", path = "alea-distributions" }
+alea-autodiff = { version = "0.1.1", path = "alea-autodiff" }
+alea-mcmc = { version = "0.1.1", path = "alea-mcmc" }
+alea-runtime = { version = "0.1.1", path = "alea-runtime" }
+alea-smc = { version = "0.1.1", path = "alea-smc" }
+alea-ffi = { version = "0.1.1", path = "alea-ffi" }
+alea-cli = { version = "0.1.1", path = "alea-cli" }
 rand = "0.10.1"
 chacha20 = { version = "0.10", default-features = false, features = ["rng"] }
 rayon = "1.12"

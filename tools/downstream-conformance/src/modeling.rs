@@ -1,9 +1,9 @@
 //! Downstream-owned examples using only public Alea APIs.
-use alea_core::model::assembly::{CompiledModel, Expr, ModelBuilder};
-use alea_distributions::{
+use alea::distributions::{
     modeling,
     wiener::{WienerObservation, WienerOptions},
 };
+use alea::model::assembly::{CompiledModel, Expr, ModelBuilder};
 
 #[derive(Clone, Copy)]
 pub enum Observation {

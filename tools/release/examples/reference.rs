@@ -1,7 +1,7 @@
 //! A fresh project's complete analytic-target workflow, with no native backend.
-use alea_core::target::LogDensityGradient;
-use alea_mcmc::{adapt::MetricKind, NutsOptions};
-use alea_runtime::{
+use alea::target::LogDensityGradient;
+use alea::sampling::{adapt::MetricKind, NutsOptions};
+use alea::{
     ensemble::Execution,
     session::SessionBuilder,
     session::{Kernel, Status, Warmup, storage::Discard},
