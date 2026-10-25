@@ -13,6 +13,11 @@ fn replace(source: &mut String, before: &str, after: &str) {
 }
 
 pub fn checked_source(mut source: String) -> String {
+    // Git for Windows can check out the pinned submodule as CRLF. Normalize
+    // only this owned build copy; retain the checkout and exact-match guards.
+    if source.contains("\r\n") {
+        source = source.replace("\r\n", "\n");
+    }
     // Preserve the old heap on allocation failure, so cleanup still owns it.
     replace(
         &mut source,
