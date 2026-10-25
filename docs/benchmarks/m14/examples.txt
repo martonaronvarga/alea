@@ -1,0 +1,16 @@
+    Blocking waiting for file lock on artifact directory
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
+     Running `tools/downstream-conformance/target/debug/examples/modeling`
+normal regression unconstrained(intercept) mean=0.4167 Rhat=0.9995 bulk_ESS=1558
+normal regression unconstrained(slope) mean=0.6011 Rhat=1.0062 bulk_ESS=1672
+normal regression: 2048 posterior predictions, geometry blocks=[("regression", [0, 1])]
+hierarchical logistic unconstrained(mu) mean=0.0227 Rhat=0.9999 bulk_ESS=2110
+hierarchical logistic unconstrained(tau) mean=-0.6974 Rhat=1.0021 bulk_ESS=2403
+hierarchical logistic unconstrained(z[0]) mean=0.2372 Rhat=1.0012 bulk_ESS=2157
+hierarchical logistic unconstrained(z[1]) mean=-0.2411 Rhat=1.0006 bulk_ESS=2257
+hierarchical logistic: 2048 posterior predictions, geometry blocks=[("hyper", [0, 1]), ("effects", [2, 3])]
+hierarchical DDM unconstrained(mu) mean=0.0323 Rhat=1.0000 bulk_ESS=2038
+hierarchical DDM unconstrained(tau) mean=-0.7134 Rhat=0.9997 bulk_ESS=2291
+hierarchical DDM unconstrained(z[0]) mean=0.2736 Rhat=1.0013 bulk_ESS=2223
+hierarchical DDM unconstrained(z[1]) mean=-0.2783 Rhat=0.9998 bulk_ESS=1949
+hierarchical DDM: 2048 posterior predictions, geometry blocks=[("hyper", [0, 1]), ("effects", [2, 3])]

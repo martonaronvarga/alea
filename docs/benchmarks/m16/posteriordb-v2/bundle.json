@@ -1,0 +1,164 @@
+{
+  "manifest_sha256": "cf4260769640e884812f5f774b4654ec97bfcc34729cf9fe8f055101759e0f8b",
+  "parts": [
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part001",
+      "sha256": "0c637d1a489323a4652b9beecd9dee9c4e987a234aaf541515a92d5ead42c80b"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part002",
+      "sha256": "899f18305658fdbb3f3e6a86111f3df4e5bf7e26d006c625e72565f1b95e228e"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part003",
+      "sha256": "501d5029a4e3282cadd2ad119d1350dde918bd0a3fe6f2b540a16459da7e34fa"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part004",
+      "sha256": "4c91e09ab406ec03e47dfc40ec9dd8d06806b4b3d51df82023c64b69213e5675"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part005",
+      "sha256": "2c5f8622b28de5c334ae6b1d96054a388cf0f0a0300deadfc8e724588395b4e1"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part006",
+      "sha256": "a6d9daa90914da18049547745b6dc43ef7c410062a9cee30da99ad63a268f2c2"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part007",
+      "sha256": "deb537458d0dd721b036eac8d6bcb129bd3744ea2768aa620f124632aba234dc"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part008",
+      "sha256": "e5210c6993ac3a79cc40ef4139123176798546ed6d7f66559e8af426c7efae77"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part009",
+      "sha256": "c2cae475a5c267000abf086f9e5f87fbe6f55093a7ff56970a8c1ed473f81044"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part010",
+      "sha256": "bddfd3ebc7bbab4cb9daeb82d8a0c94ce924434b3bc60c3d31d3dea6f6431879"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part011",
+      "sha256": "39fd07827e4137bf64ca049b8c056fbe3f67ebf2a4045c8981b46166c6a270f6"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part012",
+      "sha256": "2e262f2163d30e3bd1d978db4b150280d243bb549cc9b7e03dad589c40d43634"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part013",
+      "sha256": "ac5407b71f1463b1205a8c451f7e7d4db779d2a5e8abbafc6d781d5a30ad2786"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part014",
+      "sha256": "5255cf1f6002bbeca017bbac32a36d4be95003d32dc6f17c0f77334c72495a73"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part015",
+      "sha256": "609a704d58f3b8e4ed7700fb007d66ffd8413d4ff493ecd4242cd6b4e96ab4fd"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part016",
+      "sha256": "f151b0581b3a4e65d476690794cfeafe07c6fdf6a63a046812fca5e69de709ca"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part017",
+      "sha256": "7e4ff9c996fcb3a233dcc43ef74140491d150720996012aeb2a6c7351514218a"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part018",
+      "sha256": "f841907ef00e874550284db90b21df4e32645f59f3c06de68b1b72a8ae6f78e7"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part019",
+      "sha256": "d817be20663eaabe2a1a4acb21088e031b4f40d11c540ed763c3f9c9af982af5"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part020",
+      "sha256": "30535a6f1e5b9dd2477356a87645a1f9849b7ecd94cfd37ce495bcd577339347"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part021",
+      "sha256": "f9f71a18fea487952b55d61ff7d2c68effe7415bc18ca6696b636de6244b938f"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part022",
+      "sha256": "eae77241e934b1e59f2031c8583e5694e7e541571030e69bf00c6d82c8d6688e"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part023",
+      "sha256": "6b9726085a72a792899f3368687bfe5cfd25303ec696b6b505f17fb1fe04e245"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part024",
+      "sha256": "197e600ecc3fbdbd84fe3f3130af83d0f77b3bbf7f7093fbd1056c1d61c5ae8c"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part025",
+      "sha256": "d2fe7e87f00bf56de320e877edc7b9ec597975ff8d7ad5f848eb5e30101c1422"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part026",
+      "sha256": "376492b9d6105494f1776f38492c5fc8eec71b5a92f508f2c3743a3119520251"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part027",
+      "sha256": "131c8501f3a30d604ea75848d99845b56269ef438de1a091ad2e19c899114c3a"
+    },
+    {
+      "bytes": 12526607,
+      "name": "evidence.tar.gz.part028",
+      "sha256": "a5144a22bcc6cff2ba99c3d5335bc7b9a0fe695cda2401160b8a2349dec8b2a1"
+    }
+  ],
+  "planned_jobs": 1560,
+  "review_files": {
+    "README.md": "37d2acad0e85b4ada6dea7783664ce37819059bf28ad2f7840a4d03acbc6e656",
+    "analysis.py": "290c8084a3bc87cc8c2813eafb64680363b036d4ceb8bfe9c9e5fe7f49aebe07",
+    "failures.csv": "43c4eb930ad88249f75932f3a8ff36c48633b580011ad6ed64b5cd24cf4372d4",
+    "findings.md": "12c89fc80a6e01a8e22c9687bdb3c7b5c241de458b2e7f1d83a50d92c3569305",
+    "manifest.json": "4f18b09c9fd93f858e79d3151633bb94e1217a0c659ec9d27ccc9c85eeb7a681",
+    "paired-baseline-costs.json": "babd602fa0090421948f2d72c6b756ad0f1efe61d3764173e7f5fb0c787b04bf",
+    "phase-costs.csv": "0d14ff4b8c2650b1d5f36940ba308b3ae9cc27783cba489ec5637c6a328369aa",
+    "reference-comparisons.csv": "c13b5d552e20ed30017716b205ee7a925429163544bac15194c567f3c57ee55d",
+    "report.html": "e61d1b0f091d679f247e19fd58057e7ca79c8928f184b50145fc0d96bc5e2bed",
+    "report.json": "e4c7723418492f582fc9b32607c6378eaec715861381ba8306290de456ffe87f",
+    "report.md": "746d02c5209a3bb362c31b4b68c19e743d07f416356abbbd19d982fa41b51474",
+    "summary.csv": "9672bac20ed05165c828d5584636e1125ff7f6c2e7d7b4e51eda5d316ebb0b65",
+    "timing-dispersion.csv": "4b9cceb8257d60ef1fc7b06ae304f880eabd7b2b33e4dc005ff3532fb1fd6445",
+    "verification.json": "f3ef58cc8ffa49b97a28302809e3f3657e77ed89ee3e5838df152a68bf14d59b"
+  },
+  "root": "posteriordb-v2",
+  "schema_version": 2
+}

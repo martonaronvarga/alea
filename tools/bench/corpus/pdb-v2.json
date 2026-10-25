@@ -1,0 +1,367 @@
+{
+  "cases": [
+    {
+      "data": "Rate_1_data",
+      "directory": "tools/bench/corpus/pdb-v2/Rate_1_data-Rate_1_model",
+      "family": "binomial",
+      "files": {
+        "data-info.json": "de6de248a9775dccf506c645165fe543dd30a05fbc84a2c22d4c6eb440794c04",
+        "data.json": "db6733824bf259ffabb002afd0f83aabef29194bb87c465163e6db36e6000a19",
+        "model-info.json": "53b8b42a9b7b5538fe194f2a026564c6ceabc9e56983f56715eae414f43db05f",
+        "model.stan": "ae95dcc6c2e2953e202fb257181ee24e1cb1f7780819e95d94663dde4fddc795",
+        "posterior.json": "c0c71f7f44255add60402bceeabc4477991058925f450ef401c291ee184c9375",
+        "reference-info.json": "fecfb45539f6fbf78d57707c9d49d5c1c1e80ec5b5132b027becfa5e97e4eec2",
+        "reference-summary.json": "08c458541d02cc62b37e8f45761c3b74bc39d517eb821a57208a179b937d8cf0",
+        "reference.json.zip": "b722aeb50eba0be83ecfe696c4af0dab5a4da85b3c84b4cacc6abcf851798edd"
+      },
+      "id": "Rate_1_data-Rate_1_model",
+      "model": "Rate_1_model",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "Rate_2_data",
+      "directory": "tools/bench/corpus/pdb-v2/Rate_2_data-Rate_2_model",
+      "family": "binomial_contrast",
+      "files": {
+        "data-info.json": "f6eaaca73f2bdc98379e31039b63c022913856a64cb69b2140440753f0bc1756",
+        "data.json": "22b534aa0ddd926802784b4659ead5a5eb080d2c5de9526ff49a34791900c637",
+        "model-info.json": "1e97d804e35bf701905a11d77b5ee2b5a09afc6b63ed6a50b893e78b0cafc778",
+        "model.stan": "2556299694d2e3420d6d100b5439376bed7f78454816d89cd189d09df0b5877d",
+        "posterior.json": "c33779fd828b82f5334490214bddff99672f8d901df22ab10916e4ef38a1049c",
+        "reference-info.json": "cd21cd8a305b13460ee24bab26b6a092368baaa3c255a5c8840b9ef0c82afded",
+        "reference-summary.json": "f9817d6e121cfaeac09575bcb96c36f86f450fbe4013f63e1b7829370e6b47a3",
+        "reference.json.zip": "4126b7e2f94a7a34fdf0b931b3a225694d90720dbe8919d822616531d2e33697"
+      },
+      "id": "Rate_2_data-Rate_2_model",
+      "model": "Rate_2_model",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "Rate_5_data",
+      "directory": "tools/bench/corpus/pdb-v2/Rate_5_data-Rate_5_model",
+      "family": "hierarchical_rates",
+      "files": {
+        "data-info.json": "7dc63c4cb35d1d3baa8947666f8ab8a9f9e5fe321fe5a22b7da1cfe45f51e4ce",
+        "data.json": "34ab09c4669a9d7fcecfd89809b4ec40163036b67b5ac04ad75e189dbb90fe7f",
+        "model-info.json": "54a015713e3f5980b4eece06ec252f6a4ec971a9b903337f27a11ecb19b3a9d2",
+        "model.stan": "b86503076ff82e0c5a4e183d6274aa1f3f08b867a5de854adfada0d368f5c544",
+        "posterior.json": "1cc23b5a3da916c7fe1b7c84465ded42e5a4029ce65259beb546d946a01c6f9b",
+        "reference-info.json": "6b6273fce1012427e557992dcfeff276902184b954bcc62ff74f91d95aa60845",
+        "reference-summary.json": "eedbe09d417807c574eb659ef341b29c921d6c8bdf64a19c44eba726040164a4",
+        "reference.json.zip": "6d2f339f05cbe45bb4b390ea6054529a3a4a2cfc77c8da6402dbc45d5c1a7e89"
+      },
+      "id": "Rate_5_data-Rate_5_model",
+      "model": "Rate_5_model",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "arK",
+      "directory": "tools/bench/corpus/pdb-v2/arK-arK",
+      "family": "autoregression",
+      "files": {
+        "data-info.json": "292adf486d5e163eadf927962fb981082a37b1d96336af0293719f1e0028948e",
+        "data.json": "8c561dcceb3e74654097f25f07277cd5448fc175f4a2589962bb817a54e4e742",
+        "model-info.json": "60979ac68f9c1ebd19bd98243bf5600abcb66eab6b1c546722dc4a479d5ec78b",
+        "model.stan": "fd5c71a891f648de3b9b65e2a65885c974fd9478b0a137b6b229f76ff4e01de6",
+        "posterior.json": "b1875b9c423623bab2193adde1dd855f760537a698823b23c7762169a4021b9f",
+        "reference-info.json": "4b5d48d7b01e901f033199cf22a36c5107428ecde74babeb5603b217319a2484",
+        "reference-summary.json": "c1128a7d5520a8e8bdff0ba5078b66f7564a671ed636b29a17f0b71fd9a24da5",
+        "reference.json.zip": "7ddb947e6c1ac5380f9c1e1fa101833a1236ef03de30f2cf5ece7b5b71841530"
+      },
+      "id": "arK-arK",
+      "model": "arK",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "arma",
+      "directory": "tools/bench/corpus/pdb-v2/arma-arma11",
+      "family": "arma",
+      "files": {
+        "data-info.json": "c8942973117455375633d04d4e29a54d3df169ecbdac5b4a461b2c69303e8392",
+        "data.json": "42dae9f7ccca02a5e62f6e89e6e0ffcc15dee5d42638d7540147b0c8b88b8cab",
+        "model-info.json": "dff043c3cf63cac43698bf1d32f490e3b891fbc9fd38e913ad1ca4406baba6db",
+        "model.stan": "aa713e50a5154ab9efda30f2b5fe320d6a77510434ff73cef6708cbf72d1fae8",
+        "posterior.json": "0d0cebcfc7310e4295f1541473a7c31e97591969f555bdda54d12270cb5389d8",
+        "reference-info.json": "dcf5600525125f47e996f2a7a7923c2b659830fd077bb4dc6e789c5ac06d8ded",
+        "reference-summary.json": "d995a91eb5219e77630bd7f035499021f50e0b349546fc4dc3691a425c09d3f0",
+        "reference.json.zip": "6de4bfe5263e09b0421b15368da42720b3ddc2559f81b35e178a18ce05e299b9"
+      },
+      "id": "arma-arma11",
+      "model": "arma11",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "garch",
+      "directory": "tools/bench/corpus/pdb-v2/garch-garch11",
+      "family": "volatility",
+      "files": {
+        "data-info.json": "48dfa713a271fda6f052de6c481c9e27e75cb334f81c9367f12abb160e7ac551",
+        "data.json": "6f5dd0d191c8f5f0dd655d1936a78dded65c41807d9c733e18d08a2fb0437ce0",
+        "model-info.json": "3d29b38447877d86a689d845435dcd14de44521700e1ed79d814796c031a7ee5",
+        "model.stan": "bbfe1929a9dbf6f5a4066f6099d90fc8c3e1bf1c65e1072b47af19534c60a679",
+        "posterior.json": "7043c8f387028b70ab69705a4abb9293c48dcfbea6273ed1c279502aaa1443fd",
+        "reference-info.json": "e7dfa2f9d4ac198e9058af2d09fd649ded68e3199f4fc068d09f3d8321514df6",
+        "reference-summary.json": "657fa3eb24834cb0817506877acedaeffe9c230cf2b1908dac559619fd19ab75",
+        "reference.json.zip": "5a56df72455394fec4bca2b8186432be76c8b8ecabfa43eff15bf19308edbf18"
+      },
+      "id": "garch-garch11",
+      "model": "garch11",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "dogs",
+      "directory": "tools/bench/corpus/pdb-v2/dogs-dogs_log",
+      "family": "count_regression",
+      "files": {
+        "data-info.json": "21c5ead94edb8ac99dba2180bb4fe38f3f7fb95825320badb3555622664c0c44",
+        "data.json": "a0a846b35922994afb60ed464eecf3e118efe06fa04b917eda5e642668986211",
+        "model-info.json": "351d4487c27872fde0e5c2422703f51e73cc007a2c74391937dfdbfa1386079d",
+        "model.stan": "f0257153c50d7ef91d9958607c159ae9097d622e3d5ed9778cd3be60fd91b56b",
+        "posterior.json": "b85e6700fc4d36421721ac52597cb6600becac507ab72e753ffb04f791db33bc"
+      },
+      "id": "dogs-dogs_log",
+      "model": "dogs_log",
+      "reference_available": false,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "earnings",
+      "directory": "tools/bench/corpus/pdb-v2/earnings-earn_height",
+      "family": "linear_regression",
+      "files": {
+        "data-info.json": "03a7dd7e06d1dc57fb6260e1cc295989ac34fc0abb6d5660533a2cf235a1aa82",
+        "data.json": "a3c1192078b1e08b68bed1c075ebb3072c84db7dc031b678ab66293d3691504c",
+        "model-info.json": "7daffa9f6a04b9e4e0a3e535f6491aeb94574f628c52c3140df0e88eab3cbe12",
+        "model.stan": "cabef66313b5b1568716951892387134a46d92865a84710445970cc69bda163a",
+        "posterior.json": "0186a78e616aadd82464e1ae6a7f9d7b563a17f01239e5680782f06bd9f49e1c",
+        "reference-info.json": "4f8fc440f3b6774cd97a50debc449f047926176559d8140fe39b9b1891150c5a",
+        "reference-summary.json": "73d02aa5135c8377c9710d1d0a325e6ec36e96e5bb16d0fc7525ae1449cd8984",
+        "reference.json.zip": "d70aad60517d530938f24d6841db87ce66ac1448e9f8d9a5bb5621edf53a4ced"
+      },
+      "id": "earnings-earn_height",
+      "model": "earn_height",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "earnings",
+      "directory": "tools/bench/corpus/pdb-v2/earnings-logearn_interaction_z",
+      "family": "interaction_regression",
+      "files": {
+        "data-info.json": "03a7dd7e06d1dc57fb6260e1cc295989ac34fc0abb6d5660533a2cf235a1aa82",
+        "data.json": "a3c1192078b1e08b68bed1c075ebb3072c84db7dc031b678ab66293d3691504c",
+        "model-info.json": "513f59cd404b6175f65dea6720061132a245d99f731e729409ccfd9c1e749ec0",
+        "model.stan": "37e04ae7ae7e92d3d4fffc6720298a56d0a13d87f376ae34b19d3ba731551749",
+        "posterior.json": "3d5f8e751f2c6e6cd98da2b2427b6608427bd30682e1eabe0c00f51b72e71cfd",
+        "reference-info.json": "f446c944b191f9e771d39fc17e61c864b5ebf198f1fbb310a4020df9dc598ec1",
+        "reference-summary.json": "4a77b614621997c435797db5b564b0e963de20f4c0a0ede6c15ce1197e14dab8",
+        "reference.json.zip": "a98da5225e5cef14b00431aebfe7382a0ad8a22c88fad905a72e87a986ea710a"
+      },
+      "id": "earnings-logearn_interaction_z",
+      "model": "logearn_interaction_z",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "eight_schools",
+      "directory": "tools/bench/corpus/pdb-v2/eight_schools-eight_schools_centered",
+      "family": "hierarchical_centered",
+      "files": {
+        "data-info.json": "57fdc54af949cea0c4ccb73fb33210187c272d8918630ccabbb51961a9f56a3f",
+        "data.json": "f06889e8cae3755c00a4a44f002d5fc3acf3263ff9ae8ffe5655b1907bcadd80",
+        "model-info.json": "1cbb18ada0b5278003cc4e6344cf97676bcf873de396ba3a1d9dc39c50468071",
+        "model.stan": "ccaf2d7beed22602f62f276cd4096194ab5de5b5c1d6bb2bae9a3655a3845c05",
+        "posterior.json": "d7f70a3138629d74a20890142ac6737e5bcf8d70c0221cf1cfe2a4470b3ef7cc"
+      },
+      "id": "eight_schools-eight_schools_centered",
+      "model": "eight_schools_centered",
+      "reference_available": false,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "eight_schools",
+      "directory": "tools/bench/corpus/pdb-v2/eight_schools-eight_schools_noncentered",
+      "family": "hierarchical_noncentered",
+      "files": {
+        "data-info.json": "57fdc54af949cea0c4ccb73fb33210187c272d8918630ccabbb51961a9f56a3f",
+        "data.json": "f06889e8cae3755c00a4a44f002d5fc3acf3263ff9ae8ffe5655b1907bcadd80",
+        "model-info.json": "d5e32c2e17c2299683e3d2efce448259651641bd4ea169be7a320d832abd4d71",
+        "model.stan": "b28d5326b1936cce0014c98c2591d1ba5c1d21987ea5a5d0d9c074c6d6ce9253",
+        "posterior.json": "d80278a50b8423fe605ed4afb40c5d638d72e559385b7b4578b67dc3f4f17f79",
+        "reference-info.json": "2644206c0126c99a59d611be8a43a3ddde7a4d1b6b5d2d18a4e44feba3e46743",
+        "reference-summary.json": "293bc7c93964d05086c0e21106b30d124fa390b6096769614a08d36180261d63",
+        "reference.json.zip": "0858641e630c877103dba2b78beaf6bc1f39435fc43d2894c4dff5d609c7a264"
+      },
+      "id": "eight_schools-eight_schools_noncentered",
+      "model": "eight_schools_noncentered",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "low_dim_gauss_mix_collapse",
+      "directory": "tools/bench/corpus/pdb-v2/low_dim_gauss_mix_collapse-low_dim_gauss_mix_collapse",
+      "family": "mixture",
+      "files": {
+        "data-info.json": "b8e42cd13ad4510ad31b28d2fdf91d7595f52c9a08a5c2c738b165b7ef88da2e",
+        "data.json": "f4768c88e6b0a4f7bc0cf9ca65bc38d89cc7c4288a33a0f00153761c90b27263",
+        "model-info.json": "1b269f14050454320eaac66e2874ef08e70a1b67bc85052b17abc495a7912cfb",
+        "model.stan": "5aef8bff324b2c25497ef2920153ca6359d1cb846468552b1c9a40e9970b0d52",
+        "posterior.json": "3b2efb3f28940c3078ae66ed62b80b28c5316b27c02449c6c6e63ba1eed4af65"
+      },
+      "id": "low_dim_gauss_mix_collapse-low_dim_gauss_mix_collapse",
+      "model": "low_dim_gauss_mix_collapse",
+      "reference_available": false,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "normal_2",
+      "directory": "tools/bench/corpus/pdb-v2/normal_2-normal_mixture",
+      "family": "mixture",
+      "files": {
+        "data-info.json": "b29260ed873699f2510ecf09d07a73741a817ab03f961b853f69850f11580ba5",
+        "data.json": "936eba745a34b361d60a34728fb5a9ab18c84815da704644497b715ac029bd3b",
+        "model-info.json": "276c8cf49aa070a310579525742ba47f5310936c40579186578559ea22569c8b",
+        "model.stan": "347644c84000e76f74c10314dda7774fd2d3b13cd53f37f049b6bfdc2054c87e",
+        "posterior.json": "5b754b726fae2cdbb67ebdd050cb1dde1c352c9d6fb7a14da918deb3a8164080"
+      },
+      "id": "normal_2-normal_mixture",
+      "model": "normal_mixture",
+      "reference_available": false,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "sblri",
+      "directory": "tools/bench/corpus/pdb-v2/sblri-blr",
+      "family": "logistic",
+      "files": {
+        "data-info.json": "b66527225467087d6594999d6c0dd19ab1461586e9693c1ff4e01fbdbbdd267e",
+        "data.json": "5a0a7eec0d478e0aa194a2e7b1597f6589d3c5862abebf440f4c32c2dd4b814c",
+        "model-info.json": "cf4f28566d321b48fc5f14ca99bc7c40edc9d40cb09914951224781c11cc44e5",
+        "model.stan": "e6407c4391ab11c0b59f17f3a04132df87aa69b7dae459e173036f16f9e8b161",
+        "posterior.json": "feb1153d2e7dbe52a557bcfd23451bdeb340b3a82144d24604090ca52743d30d",
+        "reference-info.json": "945df7bce8195d98013d91c518a80da0651f78eb8ec09ea0f779597e26049c8e",
+        "reference-summary.json": "efe9138cbeb5fc02e8ed70e4b4c4c69de2cb49b1f7f01d393fe5c119024d4f13",
+        "reference.json.zip": "4e1f20dc9ccc45e1b05d0b67ee83b9a2ffdd21c90ca576549571940b5c4369e8"
+      },
+      "id": "sblri-blr",
+      "model": "blr",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "wells_data",
+      "directory": "tools/bench/corpus/pdb-v2/wells_data-wells_dist100_model",
+      "family": "logistic",
+      "files": {
+        "data-info.json": "7730093d8a3252646e5ac7c001d3165d4ff0c30da585e689b4da8ae6b8532738",
+        "data.json": "dfa61ec04d9785a0b811553d1366221fd75f509b0c308275cd314df2cc2b879c",
+        "model-info.json": "9066955d29eb178f3d90fae70aa0c220666455193e4cb1b16fbf1a4f93af5877",
+        "model.stan": "e32bd4a05563e46dd0d678659eb167be2abcc377b080183ae7087a0c7cb518c5",
+        "posterior.json": "eeb1cf5179444478278a791a51642740c5de89c9b31d54afd7ed836e5b68141f",
+        "reference-info.json": "65de5c826eae10c7920b7bbab4383537d4605c50940f733fa884041d3eb610a5",
+        "reference-summary.json": "a9554758a95ada86ee96826e9aba1e511881ef58b324d5fac275002363b62234",
+        "reference.json.zip": "cf50da1fea711dbc5210cce8277d7989f9584ceadd776ad6be6414a1ce328342"
+      },
+      "id": "wells_data-wells_dist100_model",
+      "model": "wells_dist100_model",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "kidiq",
+      "directory": "tools/bench/corpus/pdb-v2/kidiq-kidscore_momhs",
+      "family": "linear_regression",
+      "files": {
+        "data-info.json": "15bdb8c4494d71dd6f65ab5d9229842c96af466bd24a13207240ee0ac97b0843",
+        "data.json": "8f6026d1d51013be5956cdeec880e4fd522c1a98a8d1c3600f12dd438924f21b",
+        "model-info.json": "0241b9747600e9235151338fc5fbab19e74c5f9d9469bf3e4c2e85ed8a00042d",
+        "model.stan": "555e35e50b5628fb981b5f0dafcf899feee4be0e4fcbbc5255f3d7df4128f15b",
+        "posterior.json": "d1a901b0b74b9477d0327dcfdc94968afad77ff0bedbc74ac798438acd6152c6",
+        "reference-info.json": "f6f8f088d45201d456433c7da6e939bd9c592086a66aeb04621dcb816e8e5330",
+        "reference-summary.json": "2dfa560d084dbb61dd7fe9a1513a2a81b3fba12401a9dc2b1f0031d36ca083cc",
+        "reference.json.zip": "4140f0e3e2e3026a4a1628f2a4516380ee6f4f2a789f3915052b37a15943edaf"
+      },
+      "id": "kidiq-kidscore_momhs",
+      "model": "kidscore_momhs",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "seeds_data",
+      "directory": "tools/bench/corpus/pdb-v2/seeds_data-seeds_stanified_model",
+      "family": "hierarchical_binomial",
+      "files": {
+        "data-info.json": "48ae88d0c77f958cc932307ce64258d2dcc817effb83795317f4a074ed563d65",
+        "data.json": "d68b8b94a93c03f121ce428000bb59e265b4817fefc0681bdc748524422fe865",
+        "model-info.json": "bc5c047260606f4c4d19c8aabcdbd60f89c3c76a51d76477bd0d6df1d27f4f07",
+        "model.stan": "a57822f654e024467fb7522ae013de10f0a4ba14797255b8c172c4418e57ecc4",
+        "posterior.json": "31a85413813048d9b7e9b5d603adbc89bc3d505ea3a133bfa2e0b85f8ec7bb00"
+      },
+      "id": "seeds_data-seeds_stanified_model",
+      "model": "seeds_stanified_model",
+      "reference_available": false,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "surgical_data",
+      "directory": "tools/bench/corpus/pdb-v2/surgical_data-surgical_model",
+      "family": "hierarchical_binomial",
+      "files": {
+        "data-info.json": "e8d6e1417c3e5df042403dc0b94a26e1a7df4e8de0b06c9c682b2de031a4fc0a",
+        "data.json": "1cb463b630377b30ab27ec89a49269f58f5a0c1841fcb9a5ebe7cc638f9d422a",
+        "model-info.json": "d9601a21fe8f12913b8533c086b9b2f9395f2f53e3c18fb3813ed79aea6ce919",
+        "model.stan": "10fdd6ddf107af6c0ef7ead174b5ad6f341ae3b3b80c54650d88e22d5c459696",
+        "posterior.json": "8c64794c89e591d71f4476b060363d1c48e5c87e7103ce1968c7e9d8789877fe"
+      },
+      "id": "surgical_data-surgical_model",
+      "model": "surgical_model",
+      "reference_available": false,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "radon_mn",
+      "directory": "tools/bench/corpus/pdb-v2/radon_mn-radon_variable_intercept_noncentered",
+      "family": "multilevel_regression",
+      "files": {
+        "data-info.json": "a4015e3bd878e6f9b1929618ea5c3b3647d561dc178b68e385a3426febcd74ee",
+        "data.json": "99c607bdd4e11d2693b27f8fd71d7e79adb6426caf013993b267983fdf598d4f",
+        "model-info.json": "4025f12d913f74a9ce5e6d116b8c9459e49dfca4cc631dd6882f490892ca2e1d",
+        "model.stan": "db097f50d6f6158ceff725f520179ae74f2debe1ced50d899cac92787fd62861",
+        "posterior.json": "16c568b2fec82952d2ae757ddce3a7c961f7ee6fe0aa4e2bc46b33bceacb4415"
+      },
+      "id": "radon_mn-radon_variable_intercept_noncentered",
+      "model": "radon_variable_intercept_noncentered",
+      "reference_available": false,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    },
+    {
+      "data": "hmm_example",
+      "directory": "tools/bench/corpus/pdb-v2/hmm_example-hmm_example",
+      "family": "hidden_markov",
+      "files": {
+        "data-info.json": "f5642862c99ef3583996773e9c4d2a1b199005dc87d143b6abe39e0f1c811447",
+        "data.json": "8fe2ad2a4ceb9f006694dced959f4fb8190277cfaadde2a281ebef92b6a36019",
+        "model-info.json": "63ee68d822f0fd11986d0b97ee3f2bcb2eb3dc3ceb15bec685989937803bbc9a",
+        "model.stan": "8ebe19f3469e97153177d69c9dea248207278cc6f3d1d16885f83a791b11c476",
+        "posterior.json": "62da05f86d6a0f25a562e8866256abaaaa273bdcac1df2cf896ddc624e794b50",
+        "reference-info.json": "2cfe42fee284e178aef7b1c4960da39af1840106ae5a4de522e3eec2f163f6dd",
+        "reference-summary.json": "88ce3f71661b9c3188161fb4b90e172f53a669708cca9d196551c9e803d390d7",
+        "reference.json.zip": "cd67e28247da25233d79d09df235075c6603735e45c28fdfa76125e515ece3cf"
+      },
+      "id": "hmm_example-hmm_example",
+      "model": "hmm_example",
+      "reference_available": true,
+      "upstream_url": "https://github.com/stan-dev/posteriordb/tree/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database"
+    }
+  ],
+  "id": "posteriordb-diverse-v2",
+  "schema_version": 2,
+  "selection": "20 named model/data pairs declared by family before measurement; unchanged upstream data and Stan programs; no claim to cover all PosteriorDB",
+  "upstream_revision": "91027f9cdd13b7e76283fec3f2898f59d4b83ec4"
+}

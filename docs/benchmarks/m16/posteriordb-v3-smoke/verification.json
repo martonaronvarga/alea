@@ -1,0 +1,16 @@
+{
+  "all_raw_and_source_hashes_checked": true,
+  "bundle_sha256": "46b35818106ebd45c2aabad4fde7a3b199ec2037c1300b32c9a5a929360a8a07",
+  "current_and_archived_reports_identical": true,
+  "manifest_sha256": "3da0df67e3ff077501163f4fffea2fc0f0c04a076f2eb512e91b789f7e79f134",
+  "summary": {
+    "methods": 28,
+    "physical_hosts": 1,
+    "planned_jobs": 56,
+    "posterior_cases": 2,
+    "status_counts": {
+      "completed": 51,
+      "failed": 5
+    }
+  }
+}

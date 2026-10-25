@@ -12,8 +12,11 @@ use alea_core::{
 };
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
-    AdvancedHmcOptions, BatchedLeapfrog, ForceGradientHmc, ForceGradientMode, GaussianSplitHmc,
-    SplitForceHmc, hamiltonian::SignedStep,
+    advanced::{
+        AdvancedHmcOptions, ForceGradientHmc, ForceGradientMode, GaussianSplitHmc, SplitForceHmc,
+    },
+    batch::BatchedLeapfrog,
+    hamiltonian::SignedStep,
 };
 use rand::{SeedableRng, rngs::SmallRng};
 

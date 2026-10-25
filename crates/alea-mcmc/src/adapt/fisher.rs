@@ -3,6 +3,7 @@ use super::{
     DiminishingSchedule, HmcWarmupReport, SearchOptions, StepAdaptation, StepObservation,
     StepSizeController, WarmupError, find_reasonable_step_size,
 };
+mod nuts;
 mod weighted;
 use crate::config::AcceptanceTarget;
 use crate::integrator::{Integrator, Leapfrog};
@@ -12,6 +13,7 @@ use alea_math::{
     buffer::OwnedBuffer,
     metric::{LowRankDiagonalMetric, MetricError},
 };
+pub use nuts::{FisherNutsWarmup, FisherNutsWarmupError, FisherNutsWarmupResult};
 use rand::Rng;
 use std::error::Error;
 pub use weighted::WeightedFisherMoments;

@@ -17,12 +17,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     use alea_core::{target::LogDensityGradient, transport::FrozenTransportTarget};
     use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
     use alea_mcmc::{
-        Hmc, HmcOptions, Nuts, Walnuts, WalnutsOptions,
+        Hmc, HmcOptions, Nuts,
         adapt::{
             AffineTransportLearner, FisherHmcWarmup, FisherOptions, HmcWarmup,
             MultiPathfinderOptions, ScoreInitializationOptions, TransportLearningOptions,
             WarmupOptions, learn_affine_transport, multi_pathfinder, score_initialize,
         },
+        walnuts::{Walnuts, WalnutsOptions},
     };
     use alea_runtime::diagnostics::modern;
     use rand::{SeedableRng, rngs::SmallRng};

@@ -1,5 +1,6 @@
 //! Fixed-scale derivative-free random-walk Metropolis.
 //! Warmup is an explicit controller; transitions never adapt implicitly.
+#![deny(missing_docs)]
 use crate::{
     MarkovChain,
     config::{SamplerConfigError, StepSize},
@@ -15,44 +16,71 @@ use alea_math::{
 };
 use rand::{Rng, RngExt};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[must_use]
+/// Validated fixed-scale random-walk proposal settings.
 pub struct RwmhOptions {
     step_size: StepSize,
 }
 impl RwmhOptions {
+    /// Validates a finite, strictly positive proposal scale.
+    ///
+    /// # Errors
+    /// Returns [`SamplerConfigError`] when `step_size` is non-finite or not positive.
     pub fn new(step_size: f64) -> Result<Self, SamplerConfigError> {
         Ok(Self {
             step_size: StepSize::try_from(step_size)?,
         })
     }
+    /// Validated proposal scale.
     pub fn step_size(self) -> StepSize {
         self.step_size
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+/// Numerical proposal failures recorded as rejections rather than model errors.
 pub enum NumericalRejection {
+    /// The proposed position was nonfinite.
     Position,
+    /// The proposed log density was nonfinite.
     LogDensity,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[must_use]
+#[non_exhaustive]
+/// Owned summary of one completed random-walk proposal.
 pub struct RwmhTransition {
+    /// Number of accepted proposals.
     pub accepted: bool,
+    /// Metropolis acceptance probability for this proposal.
     pub acceptance_probability: f64,
+    /// Numerical failure that rejected the proposal, if any.
     pub numerical_rejection: Option<NumericalRejection>,
 }
 
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+/// Construction or target-evaluation failure with the original model error retained.
 pub enum RwmhError<E: std::error::Error + 'static> {
     #[error("random-walk Metropolis requires a nonempty target")]
+    /// Random-walk Metropolis requires a nonempty target.
     EmptyTarget,
     #[error("proposal metric dimension {metric} differs from target dimension {target}")]
-    MetricDimension { target: usize, metric: usize },
+    /// Proposal metric dimension `metric` differs from target dimension `target`.
+    MetricDimension {
+        /// Target dimension.
+        target: usize,
+        /// Metric dimension.
+        metric: usize,
+    },
     #[error(transparent)]
+    /// Underlying metric construction or operation failed.
     Metric(#[from] MetricError),
     #[error(transparent)]
+    /// Checked target evaluation failed; its concrete source error is retained.
     Evaluation(#[from] EvaluationError<E>),
 }
 
@@ -69,6 +97,10 @@ pub struct Rwmh<'a, T: LogDensity + ?Sized, M> {
 }
 impl<'a, T: LogDensity + ?Sized, M: EuclideanMetric> Rwmh<'a, T, M> {
     /// Validates dimensions and evaluates the initial cache before constructing a chain.
+    ///
+    /// # Errors
+    /// Returns [`RwmhError`] for an empty target, metric/target dimension mismatch,
+    /// invalid initial point, or target evaluation failure.
     pub fn new(
         target: &'a T,
         position: OwnedBuffer,
@@ -96,22 +128,42 @@ impl<'a, T: LogDensity + ?Sized, M: EuclideanMetric> Rwmh<'a, T, M> {
             position: OwnedBuffer::new(dim),
         })
     }
+    /// Coherent retained point after the last completed transition.
     pub fn point(&self) -> &DensityPoint<'a, T> {
         &self.point
     }
+    /// Current validated fixed proposal options.
     pub fn options(&self) -> RwmhOptions {
         self.options
+    }
+    /// Chain-local normal state required in addition to the uniform RNG for replay.
+    pub fn normal_generator(&self) -> &NormalGenerator {
+        &self.normal
+    }
+    /// Restores the normal cache when rebuilding a frozen checkpoint.
+    pub fn with_normal_generator(mut self, normal: NormalGenerator) -> Self {
+        self.normal = normal;
+        self
     }
     /// Installs an already validated scale; cache and RNG are untouched.
     pub fn set_step_size(&mut self, step_size: StepSize) {
         self.options.step_size = step_size;
     }
+    /// Re-evaluates and transactionally installs a new retained position.
+    ///
+    /// # Errors
+    /// Returns [`RwmhError::Evaluation`] without changing the live point if the
+    /// position or target evaluation is invalid.
     pub fn set_position(&mut self, position: &[f64]) -> Result<(), RwmhError<T::Error>> {
         self.point.try_update(position)?;
         Ok(())
     }
     /// Returns typed rejection for numerical failure; model errors propagate.
     /// Errors and panics leave the live point unchanged. RNG consumption is not rolled back.
+    ///
+    /// # Errors
+    /// Returns [`RwmhError`] for a changed target/metric dimension, metric failure,
+    /// or non-numerical target evaluation failure.
     pub fn step<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,

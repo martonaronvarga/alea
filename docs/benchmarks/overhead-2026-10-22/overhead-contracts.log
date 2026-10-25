@@ -1,0 +1,71 @@
+   Compiling alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.08s
+     Running tests/integrator_failures.rs (crates/target/debug/deps/integrator_failures-85eebabfc6b50faf)
+
+running 4 tests
+test failed_internal_stages_do_not_allocate ... ok
+test each_internal_stage_failure_consumes_phase_and_restart_discards_partial_work ... ok
+test hmc_classifies_failures_at_every_stage_without_committing_or_extra_evaluations ... ok
+test properties::two_stage_signed_roundtrip ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/nuts_allocations.rs (crates/target/debug/deps/nuts_allocations-babbf2c0d6fefdd8)
+
+running 2 tests
+test construction_storage_grows_linearly_with_depth_not_tree_size ... ok
+test transitions_allocate_nothing_even_when_every_tree_edge_is_visited ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+     Running tests/nuts_contracts.rs (crates/target/debug/deps/nuts_contracts-28f0138db211a45b)
+
+running 4 tests
+test late_numerical_failure_discards_only_the_new_subtree ... ok
+test depth_budget_counts_complete_macrosteps_not_internal_stages ... ok
+test frozen_covariance_and_fisher_warmups_convert_without_evaluation ... ok
+test every_internal_stage_failure_and_panic_preserves_cache_and_recovers ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/nuts_sampling.rs (crates/target/debug/deps/nuts_sampling-c8bf4b944ac02c94)
+
+running 2 tests
+test stationary_gaussian_moments_for_every_geometry_and_integrator ... ok
+test four_targets_match_executed_stan_blackjax_and_nuts_rs ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 29.63s
+
+     Running tests/nuts_warmup.rs (crates/target/debug/deps/nuts_warmup-1134e13828e4cef3)
+
+running 8 tests
+test bounded_exhaustion_is_explicit ... ok
+test downhill_search_preserves_live_cache_and_reaches_the_ordinary_stability_scale ... ok
+test native_warmup_preserves_concrete_backend_errors ... ok
+test zero_warmup_and_presearch_cancellation_consume_no_rng_or_extra_calls ... ok
+test short_native_warmup_allocates_no_transition_or_observation_storage ... ok
+test frozen_conversion_preserves_cache_and_costs_no_evaluation_or_rng ... ok
+test native_warmup_escapes_a_distant_sharply_scaled_start_and_freezes ... ok
+test fisher_native_nuts_uses_paired_live_states_and_freezes_all_optimizer_modes ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/phase_allocations.rs (crates/target/debug/deps/phase_allocations-ce896955b4b931a8)
+
+running 2 tests
+test phase_restart_snapshot_clone_and_update_allocate_nothing ... ok
+test non_gaussian_steps_allocate_nothing_for_all_metrics ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/phase_state.rs (crates/target/debug/deps/phase_state-d9653f8450cae9cb)
+
+running 5 tests
+test failed_phase_can_only_restart_and_never_changes_snapshot ... ok
+test shapes_and_changed_target_dimension_fail_without_mutating_destination ... ok
+test saved_phases_copy_whole_target_binding_without_reevaluation ... ok
+test snapshot_updates_are_atomic_for_errors_nonfinite_and_panics ... ok
+test seeded_random_shapes_and_updates_preserve_coherent_caches ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

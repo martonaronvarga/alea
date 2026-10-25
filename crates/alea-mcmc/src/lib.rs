@@ -3,7 +3,8 @@
 #![forbid(unsafe_code)]
 pub mod adapt;
 pub mod advanced;
-pub mod atlas;
+mod atlas;
+pub mod atlas_sampler;
 pub mod batch;
 mod canonical;
 pub mod chees;
@@ -18,38 +19,10 @@ pub mod riemannian;
 pub mod rwmh;
 mod trajectory_weight;
 pub mod walnuts;
-pub use advanced::{
-    AdvancedEvaluationCounters, AdvancedHmcError, AdvancedHmcOptions, AdvancedHmcTransition,
-    ForceGradientHmc, ForceGradientMode, GaussianSplitHmc, SplitForceHmc,
-};
 pub use alea_core::target::LogDensityGradient;
-pub use atlas::{
-    AtlasConfigError, AtlasProbe, AtlasProbeError, AtlasProbeOptions, probe_local_curvature,
-    probe_metric_curvature,
-};
-pub use batch::{BatchExecutionReport, BatchMachineError, BatchedLeapfrog};
-pub use chees::{CheesHmc, CheesHmcOptions, CheesHmcTransition};
-pub use ghmc::{
-    DrGhmc, DrGhmcOptions, DrGhmcStage, DrGhmcTransition, Ghmc, GhmcConfigError, GhmcError,
-    GhmcOptions, GhmcTransition, delayed_rejection_probability,
-};
 pub use hmc::{Hmc, HmcOptions, HmcTransition};
-pub use mams::{
-    ApproximateMclmc, ApproximateMclmcOptions, ApproximateMclmcTransition, ApproximateTarget, Mams,
-    MamsDivergence, MamsError, MamsOptions, MamsTransition,
-};
 pub use nuts::{Nuts, NutsOptions, NutsTransition};
-pub use riemannian::{
-    FisherMetricConfigError, HierarchicalNormalFisherMetric, ImplicitSolveEvent, ImplicitStage,
-    LogisticFisherMetric, Rmhmc, RmhmcConfigError, RmhmcCosts, RmhmcError, RmhmcOptions,
-    RmhmcTermination, RmhmcTransition, SoftAbsConfigError, SoftAbsError, SoftAbsMetric,
-    SoftAbsOptions,
-};
 pub use rwmh::{Rwmh, RwmhOptions, RwmhTransition};
-pub use walnuts::{
-    Walnuts, WalnutsConfigError, WalnutsError, WalnutsMicrostepDistribution, WalnutsOptions,
-    WalnutsTermination, WalnutsTransition,
-};
 
 /// An externally implementable, target-bound Markov chain.
 ///
@@ -73,6 +46,17 @@ pub trait MarkovChain {
     -> Result<Self::Transition, Self::Error>;
 }
 
+/// Explicitly approximate-target kernels.
+///
+/// These methods deliberately omit an exact-target correction. Keeping them under
+/// a named boundary prevents approximate inference from looking interchangeable
+/// with the exact-target reference surface.
+pub mod approximate {
+    pub use crate::mams::{
+        ApproximateMclmc, ApproximateMclmcOptions, ApproximateMclmcTransition, ApproximateTarget,
+    };
+}
+
 /// Validated exact-target kernels and finite warmup used by the reference path.
 ///
 /// This namespace is intentionally narrower than the crate root. In particular it
@@ -82,10 +66,14 @@ pub trait MarkovChain {
 pub mod reference {
     pub use crate::MarkovChain;
     pub use crate::adapt::{
-        AdaptationError, CovarianceError, DualAveraging, HmcWarmup, HmcWarmupReport,
-        HmcWarmupResult, MetricKind, OnlineCovariance, SearchOptions, SearchResult,
-        WarmupConfigError, WarmupError, WarmupMetric, WarmupOptions, WarmupStage, WarmupSummary,
-        WindowSchedule, find_reasonable_step_size, warmup_rwmh,
+        AdaptationError, ControlledHmcWarmupResult, CovarianceError, DualAveraging, HmcWarmup,
+        HmcWarmupReport, HmcWarmupResult, MetricKind, OnlineCovariance, SearchOptions,
+        SearchResult, WarmupConfigError, WarmupError, WarmupMetric, WarmupOptions, WarmupStage,
+        WarmupSummary, WindowSchedule, find_reasonable_step_size, warmup_rwmh,
+    };
+    pub use crate::adapt::{
+        ControlledNutsWarmupResult, NutsWarmup, NutsWarmupError, NutsWarmupObservation,
+        NutsWarmupReport, NutsWarmupResult, find_reasonable_nuts_step_size,
     };
     pub use crate::config::{AcceptanceTarget, SamplerConfigError, TreeDepth};
     pub use crate::hamiltonian::Divergence;

@@ -18,7 +18,7 @@ fn weighted_moments_do_not_reset_at_window_switch_and_stop_at_freeze() {
     let mut expected = WeightedFisherMoments::new(2, schedule).unwrap();
     let mut frozen_metric = Vec::new();
     let mut rng = SmallRng::seed_from_u64(618);
-    FisherHmcWarmup::new(
+    let _ = FisherHmcWarmup::new(
         &target,
         OwnedBuffer::new(2),
         HmcOptions::new(0.1, 2).unwrap(),

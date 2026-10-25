@@ -15,7 +15,7 @@ the old workspace. There are no `kernels`, `runtime`, `memory`, `ffi`, `app` or
 | alea-distributions | alea-core, alea-math, alea-ffi | dimension-bound Gaussian, Wiener kernels/models/derivatives, latent DDM models |
 | alea-mcmc | alea-core, alea-math | consuming Hamiltonian phases, HMC, derivative-free RWMH, explicit step-size warmup, typed transitions |
 | alea-smc | none | particle weight/mutation/resampling interfaces; no algorithms yet |
-| alea-runtime | alea-mcmc, alea-math | streaming, reproducible Rayon ensembles, bounded monitoring/Tokio subscriptions, modern and classical diagnostics |
+| alea-runtime | alea-core, alea-mcmc, alea-math | validated target/model sessions, durable output/restart, caller-owned Rayon ensembles, bounded monitoring and diagnostics |
 | alea-cli | model, distribution, sampler and runtime crates | `alea`, `alea-rwmh`, `alea-gradient-check` |
 
 The table lists internal **production** dependencies. Cargo dev dependencies cross

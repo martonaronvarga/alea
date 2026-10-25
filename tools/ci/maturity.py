@@ -32,6 +32,12 @@ PUBLIC_DECLARATION = re.compile(
     r"(?:fn|struct|enum|union|trait|type|mod|use|static|const|macro)[ \t]"
 )
 PUBLIC_MACRO = re.compile(r"(?m)^[ \t]*#\[macro_export\]")
+MATURITY_NAMESPACES = {"approximate", "reference"}
+ROOT_ITEM = re.compile(
+    r"^(?:#\[[^\]]+\] )?pub "
+    r"(?:fn|struct|enum|union|trait|type|use|static|const|macro) "
+    r"([a-z_]+(?:::[A-Za-z_][A-Za-z0-9_]*)+)"
+)
 
 
 def load_toml(path: Path) -> dict:
@@ -58,15 +64,44 @@ def discover_features(root: Path) -> set[tuple[str, str]]:
 
 
 def discover_api_namespaces(root: Path) -> set[tuple[str, str]]:
-    """Discover top-level ``reference`` facades from accepted API snapshots."""
+    """Discover named maturity facades from accepted API snapshots."""
     namespaces = set()
     snapshot_root = root / "tools/ci/public-api"
     for snapshot in snapshot_root.glob("alea-*.txt"):
-        crate = snapshot.stem
-        expected = f"pub mod {crate.replace('-', '_')}::reference"
-        if expected in snapshot.read_text().splitlines():
-            namespaces.add((crate, expected.removeprefix("pub mod ")))
+        crate = snapshot.stem.split("+", 1)[0]
+        crate_path = crate.replace("-", "_")
+        lines = set(snapshot.read_text().splitlines())
+        for namespace in MATURITY_NAMESPACES:
+            expected = f"pub mod {crate_path}::{namespace}"
+            if expected in lines:
+                namespaces.add((crate, expected.removeprefix("pub mod ")))
     return namespaces
+
+
+def discover_root_items(root: Path) -> set[tuple[str, str]]:
+    """Discover non-module items exported directly from each crate root."""
+    items = set()
+    snapshot_root = root / "tools/ci/public-api"
+    for snapshot in snapshot_root.glob("alea-*.txt"):
+        crate = snapshot.stem.split("+", 1)[0]
+        crate_path = crate.replace("-", "_")
+        for line in snapshot.read_text().splitlines():
+            match = ROOT_ITEM.match(line)
+            if match is None:
+                continue
+            segments = match.group(1).split("::")
+            if len(segments) == 2 and segments[0] == crate_path:
+                items.add((crate, segments[1]))
+    return items
+
+
+def discover_api_items(root: Path) -> set[tuple[str, str]]:
+    """Every rendered declaration/impl is individually classified, including aliases."""
+    return {
+        (snapshot.stem.split("+", 1)[0], line)
+        for snapshot in (root / "tools/ci/public-api").glob("alea-*.txt")
+        for line in snapshot.read_text().splitlines()
+    }
 
 
 def discover_cli_commands(root: Path) -> set[tuple[str, str, str]]:
@@ -159,12 +194,14 @@ def validate(root: Path, ledger: dict) -> dict[str, Counter]:
         "profiles",
         "source_modules",
         "api_namespaces",
+        "root_items",
+        "api_items",
         "cargo_features",
         "cli_commands",
     }
     if set(ledger) != expected_sections:
         raise ValueError(f"maturity ledger must contain exactly {sorted(expected_sections)}")
-    if ledger.get("schema_version") != 1:
+    if ledger.get("schema_version") != 3:
         raise ValueError("unsupported maturity-ledger schema")
     policy = ledger.get("policy")
     if not isinstance(policy, dict) or set(policy) != {"allow_release_candidates"}:
@@ -181,14 +218,26 @@ def validate(root: Path, ledger: dict) -> dict[str, Counter]:
 
     modules = ledger.get("source_modules")
     namespaces = ledger.get("api_namespaces")
+    root_items = ledger.get("root_items")
+    api_items = ledger.get("api_items")
     features = ledger.get("cargo_features")
     commands = ledger.get("cli_commands")
     if not all(
-        isinstance(entries, list) for entries in (modules, namespaces, features, commands)
+        isinstance(entries, list)
+        for entries in (modules, namespaces, root_items, api_items, features, commands)
     ):
         raise ValueError("maturity ledger inventories must be lists")
     validate_entries(modules, profiles, ("path",), "source module")
     validate_entries(namespaces, profiles, ("crate", "path"), "API namespace")
+    validate_entries(root_items, profiles, ("crate", "item"), "root API item")
+    # Compact item records still require an explicit profile and research gate.
+    expanded = [dict(entry, summary="item-level public API classification") for entry in api_items]
+    validate_entries(expanded, profiles, ("crate", "item"), "public API item")
+    recorded_items = {(entry["crate"], entry["item"]) for entry in api_items}
+    if recorded_items != discover_api_items(root):
+        missing = sorted(discover_api_items(root) - recorded_items)
+        stale = sorted(recorded_items - discover_api_items(root))
+        raise ValueError(f"item-level API inventory mismatch; missing={missing[:5]}, stale={stale[:5]}")
     validate_entries(features, profiles, ("crate", "feature"), "Cargo feature")
     validate_entries(commands, profiles, ("crate", "name", "path"), "CLI command")
 
@@ -205,10 +254,36 @@ def validate(root: Path, ledger: dict) -> dict[str, Counter]:
         missing = sorted(discovered_namespaces - recorded_namespaces)
         stale = sorted(recorded_namespaces - discovered_namespaces)
         raise ValueError(f"API namespace inventory mismatch; missing={missing}, stale={stale}")
+    namespace_entries = {
+        (entry["crate"], entry["path"]): entry for entry in namespaces
+    }
     for crate, path in recorded_namespaces:
-        expected = f"{crate.replace('-', '_')}::reference"
-        if path != expected:
+        crate_path, separator, namespace = path.partition("::")
+        if (
+            not separator
+            or crate_path != crate.replace("-", "_")
+            or namespace not in MATURITY_NAMESPACES
+        ):
             raise ValueError(f"API namespace {path!r} does not match crate {crate!r}")
+        profile = profiles[namespace_entries[(crate, path)]["profile"]]
+        if namespace == "reference" and profile["adoption"] != "reference":
+            raise ValueError(f"reference namespace {path!r} must use reference adoption")
+        if namespace == "approximate" and (
+            profile["adoption"] != "approximate"
+            or profile["guarantee"] != "approximate_target"
+        ):
+            raise ValueError(
+                f"approximate namespace {path!r} must expose an approximate target"
+            )
+
+    recorded_root_items = {
+        (entry["crate"], entry["item"]) for entry in root_items
+    }
+    discovered_root_items = discover_root_items(root)
+    if recorded_root_items != discovered_root_items:
+        missing = sorted(discovered_root_items - recorded_root_items)
+        stale = sorted(recorded_root_items - discovered_root_items)
+        raise ValueError(f"root API item inventory mismatch; missing={missing}, stale={stale}")
 
     recorded_features = {(entry["crate"], entry["feature"]) for entry in features}
     discovered_features = discover_features(root)
@@ -229,9 +304,13 @@ def validate(root: Path, ledger: dict) -> dict[str, Counter]:
             raise ValueError(f"CLI command {name!r} has missing source {command_path}")
 
     return {
+        "items": Counter(profiles[entry["profile"]]["maturity"] for entry in api_items),
         "modules": Counter(profiles[entry["profile"]]["maturity"] for entry in modules),
         "namespaces": Counter(
             profiles[entry["profile"]]["maturity"] for entry in namespaces
+        ),
+        "root_items": Counter(
+            profiles[entry["profile"]]["maturity"] for entry in root_items
         ),
         "features": Counter(profiles[entry["profile"]]["maturity"] for entry in features),
         "commands": Counter(profiles[entry["profile"]]["maturity"] for entry in commands),
@@ -243,8 +322,10 @@ def check(root: Path) -> None:
     counts = validate(root, ledger)
     print(
         "maturity inventory: "
+        f"items={dict(sorted(counts['items'].items()))}; "
         f"modules={dict(sorted(counts['modules'].items()))}; "
         f"namespaces={dict(sorted(counts['namespaces'].items()))}; "
+        f"root_items={dict(sorted(counts['root_items'].items()))}; "
         f"features={dict(sorted(counts['features'].items()))}; "
         f"commands={dict(sorted(counts['commands'].items()))}"
     )

@@ -1,0 +1,47 @@
+[
+  {
+    "comparison": "CmdStan diagonal NUTS",
+    "posteriors": 20,
+    "ratios": [
+      0.2679450845956477,
+      1.1936566057761335,
+      2.5869799297748046
+    ]
+  },
+  {
+    "comparison": "CmdStan dense NUTS",
+    "posteriors": 20,
+    "ratios": [
+      0.26953941919305424,
+      1.1371344367816092,
+      2.1086347856271446
+    ]
+  },
+  {
+    "comparison": "nuts-rs diagonal NUTS",
+    "posteriors": 20,
+    "ratios": [
+      1.3949710950295127,
+      1.8177669842826476,
+      0.684888992579346
+    ]
+  },
+  {
+    "comparison": "BlackJAX native JAX targets",
+    "posteriors": 6,
+    "ratios": [
+      0.01665270954956269,
+      0.5087268345814722,
+      66.34200775987787
+    ]
+  },
+  {
+    "comparison": "BlackJAX BridgeStan callbacks",
+    "posteriors": 13,
+    "ratios": [
+      0.054193221299654926,
+      0.09318429824326645,
+      12.850111445324213
+    ]
+  }
+]

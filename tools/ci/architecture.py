@@ -16,7 +16,7 @@ ALLOWED = {
     "alea-mcmc": {"alea-core", "alea-math"},
     "alea-smc": {"alea-core", "alea-math"},
     "alea-ffi": set(),
-    "alea-runtime": {"alea-mcmc", "alea-math"},
+    "alea-runtime": {"alea-core", "alea-mcmc", "alea-math"},
     "alea-cli": {"alea-core", "alea-math", "alea-autodiff", "alea-distributions", "alea-mcmc", "alea-runtime", "alea-smc"},
 }
 

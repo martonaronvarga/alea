@@ -1,0 +1,12 @@
+==1060163== Callgrind, a call-graph generating cache profiler
+==1060163== Copyright (C) 2002-2017, and GNU GPL'd, by Josef Weidendorfer et al.
+==1060163== Using Valgrind-3.26.0 and LibVEX; rerun with -h for copyright info
+==1060163== Command: .agent/walltime-parity/baseline alea 64 1024
+==1060163== 
+==1060163== For interactive control, run 'callgrind_control -h'.
+{"dimension":64,"draws":1024,"engine":"alea","gradient_calls":15360,"mean":0.010584156596458429,"second_moment":1.0075023658598201,"seconds":0.56213453,"steps":15360}
+==1060163== 
+==1060163== Events    : Ir
+==1060163== Collected : 137618680
+==1060163== 
+==1060163== I   refs:      137,618,680

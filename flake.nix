@@ -186,6 +186,9 @@
           };
           nightly = self.devShells.${system}.default;
           stable = mkRustShell stableToolchain {};
+          release = mkRustShell stableToolchain {
+            nativeBuildInputs = [pkgs.cargo-semver-checks pkgs.openssh pkgs.actionlint];
+          };
           # Focused profiling tools without the full research/Python/R environment.
           profiling = mkRustShell stableToolchain {
             nativeBuildInputs =

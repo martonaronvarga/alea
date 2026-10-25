@@ -1,0 +1,20 @@
+WARNING: Ignoring `RUSTC` environment variable; set `MIRI` if you want to control the binary used as the driver.
+   Compiling libm v0.2.16
+   Compiling pulp v0.22.3
+   Compiling num-complex v0.4.6
+   Compiling pulp-wasm-simd-flag v0.1.1
+   Compiling alea-ffi v0.1.0 (/home/usu/documents/dev/alea/crates/alea-ffi)
+   Compiling plotters v0.3.7
+   Compiling proptest v1.11.0
+   Compiling criterion v0.5.1
+   Compiling alea-math v0.1.0 (/home/usu/documents/dev/alea/crates/alea-math)
+   Compiling alea-core v0.1.0 (/home/usu/documents/dev/alea/crates/alea-core)
+   Compiling alea-distributions v0.1.0 (/home/usu/documents/dev/alea/crates/alea-distributions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.95s
+     Running tests/target.rs (crates/target/miri/x86_64-unknown-linux-gnu/debug/deps/target-d61979e0e9f11e1c)
+
+running 1 test
+test owned_update_exchanges_storage_only_after_a_complete_success ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.61s
+

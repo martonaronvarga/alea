@@ -1,0 +1,11 @@
+{
+  "purpose": "descriptive",
+  "runs": {
+    "broad": "c1b0eabf8d08afda5a89454861cf33f7ea3d0d4b2f178b3c777e39590e5afe47",
+    "parallel": "9ac52f38150ff4238010f11bdb84b9b380d98bbe44e9f86505ae9ef6ba46fc33",
+    "pilot": "95193b05c6ee7d63fd683b76cf2bbf64746c601529738e190338a4f3f990f1bd",
+    "research": "f17860fc4df143f443aced3bb0062a52687215870efa3a378fe49468dfa8c71f",
+    "shared-stan": "107b86688a05d068aeb137d734be3e0b0b27b02771e0c6906681c6e94a4fdcab"
+  },
+  "schema_version": 1
+}

@@ -28,6 +28,11 @@ claim universal sampler superiority. Those limits do not exclude a substantial
 Rust modeling API. Discrete observations are in scope; direct HMC updates of discrete
 latent variables are not. No unvalidated diagnostic automatically declares convergence.
 
+Native model assembly and three runnable downstream examples are documented in
+[the modeling guide](docs/m14-modeling.md). The examples include covariance warmup,
+frozen NUTS, diagnostics and separate prediction. Their bounded calibration and
+allocation evidence is recorded in [the M14 report](docs/benchmarks/m14-validation.md).
+
 ## Architecture
 
 The [target architecture](docs/architecture.md) is implemented as nine crates.
@@ -39,18 +44,29 @@ protocols or compatibility constructors are retained.
 | `alea-core` | Density-only/fused target capabilities, transactional state, transforms, model composition |
 | `alea-math` | Initialized 64-byte-aligned storage, Euclidean metrics, numerical primitives |
 | `alea-autodiff` | Enzyme adapters and finite-difference validation |
-| `alea-distributions` | Gaussian and Wiener/DDM models, analytic derivatives |
+| `alea-distributions` | Normalized scalar/vector/discrete/LKJ/mixture laws, typed factors and Wiener/DDM |
 | `alea-mcmc` | Composable fixed HMC/RWMH, multinomial NUTS and opt-in WALNUTS; reference covariance and experimental Fisher warmup |
 | `alea-smc` | Particle-kernel contracts; filtering/PMCMC are not implemented |
 | `alea-ffi` | Audited synchronous foreign boundaries |
-| `alea-runtime` | Streaming, reproducible Rayon chains, bounded Tokio diagnostic subscriptions, modern ESS/R-hat |
-| `alea-cli` | `alea`, `alea-rwmh` profiling loop and `alea-gradient-check` |
+| `alea-runtime` | Validated inference sessions, durable streams/restart, caller-owned Rayon chains, bounded monitoring and modern ESS/R-hat |
+| `alea-cli` | `alea`, `alea-rwmh` profiling loop, `alea-gradient-check` and manifest-driven `alea-bench` |
 
 Core/math/MCMC production dependencies do not include `alea-ffi`; Wiener owns
 its cubature dependency. Dependencies used only by tests may cross layers.
 The CI architecture check enforces production boundaries, including optional edges.
 
 ## Status
+
+Original reusable Rust libraries use **MIT OR Apache-2.0**. The native cubature
+packages (`alea-ffi`, `alea-distributions`, `alea-cli`) use **GPL-3.0-or-later**.
+Upstream code and benchmark data keep their original terms. See
+[licensing and attribution](LICENSING.md) before redistributing a combined build.
+
+Release preparation and the remaining per-crate S3/S4 requirements are documented
+in the [release policy](docs/releases.md), with [migration notes](docs/migration.md)
+and a [fresh-project reference example](tools/release/examples/reference.rs).
+All crates remain unpublished; configured release CI does not imply a completed
+candidate cycle or a stable API claim.
 
 M0–M3 gates have been completed: safe core, constrained transforms, executed
 `std::autodiff`/Enzyme and fixed-length Euclidean HMC. The architecture migration
@@ -63,16 +79,21 @@ composition are implemented. [Fisher warmup](docs/fisher-and-trajectories.md) is
 experimental; its completed promotion review retained the covariance default
 after one modern-diagnostic failure and unfavorable broad efficiency evidence.
 
-[M5 multinomial NUTS](docs/nuts.md) and [M6 runtime/diagnostics](docs/m6-runtime.md)
+[M5 multinomial NUTS](docs/nuts.md), [M6 runtime/diagnostics](docs/m6-runtime.md)
+and [M15 inference sessions](docs/m15-sessions.md)
 are implemented with independent reference gates. M6 adds reproducible Rayon
 chains, rank/folded R-hat, bulk/tail ESS, mean MCSE and latest-only subscriptions.
 Bounded diagnostic windows are explicitly window-local; stopping is opt-in,
 not a guarantee of convergence. Classical helpers remain separately named.
+[M16 experiments](docs/m16-experiments.md) add sealed source/data manifests,
+isolated pinned-engine comparisons, SBC/predictive gates and reproducible reports.
+The [checked evidence](docs/benchmarks/m16/README.md) retains a negative promotion
+decision; milestone completion changes no sampler default.
 [M7 WALNUTS](docs/walnuts.md) implements bounded deterministic and randomized
 two-point dyadic refinement with exact reverse-selection weights, but remains
 opt-in after both declared performance suites failed promotion.
 [M8 alternatives](docs/m8-alternatives.md) add deterministic shared ChEES-HMC
-warmup, persistent and delayed-rejection GHMC, bounded ATLAS curvature probes,
+warmup, persistent and delayed-rejection GHMC, bounded curvature probes,
 and separate exact MAMS/explicitly approximate MCLMC paths. They remain opt-in;
 particle algorithms remain planned. RWMH transitions are fixed-scale;
 explicit dual-averaging warmup retains the previous functionality.
@@ -120,3 +141,5 @@ lives at `crates/alea-ffi/vendor/cubature`; initialize it with
 `git submodule update --init --recursive` after checking out the migrated tree.
 See [architecture and API examples](docs/architecture.md) for the current interface.
 Earlier milestone reports are historical evidence, not compatibility guarantees.
+See [workspace maintenance and the next development sequence](docs/workspace.md)
+for evidence restoration, cache retention and reference release-candidate work.

@@ -1,0 +1,41 @@
+{
+  "manifest_sha256": "6e4af9aa217568811cbce0982a065bba440dc7e97e2d5f28df29e11554a6b6a8",
+  "parts": [
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part001",
+      "sha256": "de441301ade3864117c6ea729d4d141c6ae6ea2d00c3fbd2eb6da3939f0fdeb7"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part002",
+      "sha256": "391fd38bfcff015695c2e0e029294dbd3c947a1c6527cb27a057a4fe75ec5c95"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part003",
+      "sha256": "c32e5e0f0df5b62ed6d29dcb4c757cf7955f4adf171c29307a35f3eeefcd7980"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part004",
+      "sha256": "d575161a13e7dce5b05f58d08dc0beea8a83f4b7cdff9e9a66ddacdef39c8a97"
+    },
+    {
+      "bytes": 23705582,
+      "name": "evidence.tar.gz.part005",
+      "sha256": "fea702cb5a3452de2c653ffdca057513795b1ca673ff28c63ea7ace56830621e"
+    }
+  ],
+  "planned_jobs": 72,
+  "review_files": {
+    "manifest.json": "0de4e1839bb7b70207fb7ac1ae316544e4b0b920bb83d534bd7229f4e046881d",
+    "reference-comparisons.csv": "8551a15653dd6d1de5454471e1ccd98b91bfa3479f5daecabf5912a240bac182",
+    "report.html": "c6b468b5ccd51dc75648afa7f6637185d4de9104044c173352b82c4814a7a64d",
+    "report.json": "b748b584230b134f5a31a6cc57ada5904946b983ee39cc81297f12fc00dfeef3",
+    "report.md": "0c622e212ff515b0bef51ab7480bd0e094f8ce029427349328bcc481425d3133",
+    "summary.csv": "ae982d2949c1348a2a54c13d71c0edfc0fce2dcd96c3cf0af337151d19d922ae"
+  },
+  "root": "posteriordb-v3",
+  "schema_version": 3
+}

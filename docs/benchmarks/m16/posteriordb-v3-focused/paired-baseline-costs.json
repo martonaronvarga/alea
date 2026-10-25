@@ -1,0 +1,42 @@
+[
+  {
+    "comparator": "stan_nuts_diag",
+    "backend_group": "CmdStan diagonal NUTS",
+    "paired_posteriors": 6,
+    "process_ratio": 0.6777236315893866,
+    "retained_ratio": 1.1215893896071738,
+    "ess_per_process_second_ratio": 1.1208665260746535
+  },
+  {
+    "comparator": "stan_nuts_dense",
+    "backend_group": "CmdStan dense NUTS",
+    "paired_posteriors": 6,
+    "process_ratio": 0.6618860895149582,
+    "retained_ratio": 1.1272027202775994,
+    "ess_per_process_second_ratio": 1.645795820225966
+  },
+  {
+    "comparator": "nuts_rs",
+    "backend_group": "nuts-rs diagonal NUTS",
+    "paired_posteriors": 6,
+    "process_ratio": 2.238290887763286,
+    "retained_ratio": 2.1468616208109417,
+    "ess_per_process_second_ratio": 0.7104841257741212
+  },
+  {
+    "comparator": "blackjax_nuts",
+    "backend_group": "BlackJAX native JAX targets",
+    "paired_posteriors": 1,
+    "process_ratio": 0.05121691374876895,
+    "retained_ratio": 0.24298645441270453,
+    "ess_per_process_second_ratio": 7.749957441585915
+  },
+  {
+    "comparator": "blackjax_nuts",
+    "backend_group": "BlackJAX BridgeStan callbacks",
+    "paired_posteriors": 5,
+    "process_ratio": 0.07706949346927455,
+    "retained_ratio": 0.08283910695368686,
+    "ess_per_process_second_ratio": 11.258516136573187
+  }
+]

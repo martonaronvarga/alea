@@ -113,7 +113,7 @@ fn all_controllers_preserve_state_on_invalid_or_backend_observations() {
         let mut controller =
             StepSizeController::new(0.1.try_into().unwrap(), 0.8.try_into().unwrap(), settings);
         for a in [0.9, 0.4, 1.0] {
-            controller.update(StepObservation::Acceptance(a)).unwrap();
+            let _ = controller.update(StepObservation::Acceptance(a)).unwrap();
         }
         for observation in [
             StepObservation::Acceptance(f64::NAN),
@@ -269,7 +269,7 @@ fn weighted_observations_and_controllers_allocate_nothing() {
         for _ in 0..100 {
             moments.observe(&[1.0, 2.0], &[-1.0, -2.0]).unwrap();
             moments.scales_into(&[1.0; 2], 1e-5, &mut out).unwrap();
-            c.update(StepObservation::Acceptance(0.7)).unwrap();
+            let _ = c.update(StepObservation::Acceptance(0.7)).unwrap();
         }
     });
     assert_eq!(counts.count_total, 0);

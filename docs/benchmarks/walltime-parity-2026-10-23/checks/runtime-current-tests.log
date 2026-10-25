@@ -1,0 +1,47 @@
+   Compiling alea-runtime v0.1.0 (/home/usu/documents/dev/alea/crates/alea-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.16s
+     Running unittests src/lib.rs (crates/target/debug/deps/alea_runtime-a333ccbba29fb2a7)
+
+running 9 tests
+test monitor::tests::ring_is_bounded_contiguous_and_does_not_bridge_missing_energy ... ok
+test session::storage::tests::backend_write_failure_poisoning_prevents_continuing_a_partial_stream ... ok
+test session::storage::tests::older_draw_streams_remain_readable_without_allowing_checkpoint_replay ... ok
+test session::storage::tests::geometry_tags_preserve_mass_and_inverse_mass_factors_without_conversion ... ok
+test session::storage::tests::warmup_phase_unknown_schema_invalid_geometry_and_rng_are_rejected ... ok
+test diagnostics::modern::tests::fft_scratch_reuse_clears_previous_observations ... ok
+test monitor::tests::updating_window_has_no_per_draw_allocations ... ok
+test diagnostics::modern::tests::selected_quantiles_match_sorted_interpolation_bit_for_bit ... ok
+test monitor::tests::final_snapshot_is_never_lost_during_worker_shutdown ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/release_boundaries.rs (crates/target/debug/deps/release_boundaries-6ec712e32bef9168)
+
+running 2 tests
+test repeated_frozen_restart_matches_one_uninterrupted_stream_with_bounded_collection ... ignored, operational release soak: 409,600 retained steps across 200 frozen restarts
+test bounded_readers_survive_truncations_and_seeded_mutations_of_valid_streams ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/session.rs (crates/target/debug/deps/session-b60847bed7372327)
+
+running 16 tests
+test all_resource_products_and_pool_limits_are_admitted_before_work ... ok
+test cancellation_during_warmup_has_no_partial_geometry_or_checkpoint ... ok
+test nonfinite_initial_evaluations_are_numerical_while_factory_errors_remain_backend_failures ... ok
+test numerical_exhaustion_retains_rejected_states_without_invented_hamiltonian_stats ... ok
+test pre_cancel_and_zero_deadline_do_not_create_targets ... ok
+test bounded_channel_backpressure_subscriber_loss_and_observer_panics_return_pending_draw ... ok
+test restart_refuses_changed_target_cache_ids_kernel_shape_or_seed ... ok
+test sink_finalization_panic_is_an_outcome_after_every_worker_has_joined ... ok
+test failures_preserve_completed_draws_original_errors_and_join_all_workers ... ok
+test native_model_factory_needs_neither_send_nor_sync_target ... ok
+test durable_prefix_roundtrip_storage_budget_and_incompatible_provenance ... ok
+test concurrent_cancellation_restarts_each_logical_stream_at_its_own_completed_index ... ok
+test cancelled_durable_checkpoints_replay_odd_dimensional_normal_cache_and_dense_mass ... ok
+test nuts_session_native_warmup_reaches_a_narrow_posterior_from_distant_starts ... ok
+test serial_rayon_and_streamed_collected_outputs_match_for_all_reference_kernels ... ok
+test streaming_peak_memory_does_not_grow_with_draw_budget_and_finish_runs_after_join ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+

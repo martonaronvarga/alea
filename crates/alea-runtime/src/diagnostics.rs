@@ -1,18 +1,25 @@
 //! Classical diagnostics retained from the pre-migration runtime.
 //! Neither estimator is rank-normalized; these are not M6's bulk/tail ESS or modern R-hat.
+#![deny(missing_docs)]
 
 /// Modern cross-chain diagnostics, distinct from the classical helpers below.
 pub mod modern;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
+/// Invalid inputs to the classical diagnostic estimators.
 pub enum DiagnosticError {
     #[error("diagnostic needs finite, nonconstant draws and enough observations")]
+    /// Diagnostic needs finite, nonconstant draws and enough observations.
     InvalidDraws,
     #[error("split R-hat needs at least two equal-length chains of length four or more")]
+    /// Split R-hat needs at least two equal-length chains of length four or more.
     Shape,
 }
 
 #[inline]
+#[must_use]
+/// Fraction of accepted proposals, or zero when `total` is zero.
 pub fn acceptance_rate(accepted: usize, total: usize) -> f64 {
     if total == 0 {
         0.0
@@ -21,6 +28,11 @@ pub fn acceptance_rate(accepted: usize, total: usize) -> f64 {
     }
 }
 
+/// Estimates classical autocorrelation ESS using positive consecutive lags.
+///
+/// # Errors
+/// Returns [`DiagnosticError::InvalidDraws`] for fewer than four observations,
+/// non-finite values, zero variance, or unrepresentable arithmetic.
 pub fn autocorrelation_ess(values: &[f64]) -> Result<f64, DiagnosticError> {
     let n = values.len();
     if n < 4 || values.iter().any(|x| !x.is_finite()) {
@@ -56,6 +68,12 @@ pub fn autocorrelation_ess(values: &[f64]) -> Result<f64, DiagnosticError> {
     Ok((n as f64 / tau).max(1.0))
 }
 
+/// Computes the classical split-chain potential scale reduction statistic.
+///
+/// # Errors
+/// Returns [`DiagnosticError::Shape`] unless at least two equal-length chains
+/// contain four or more draws, or [`DiagnosticError::InvalidDraws`] for
+/// non-finite, constant, or unrepresentable input.
 pub fn classical_split_rhat(chains: &[&[f64]]) -> Result<f64, DiagnosticError> {
     let m = chains.len();
     if m < 2 {

@@ -1,0 +1,24 @@
+   Compiling alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
+   Compiling alea-runtime v0.1.0 (/home/usu/documents/dev/alea/crates/alea-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.06s
+     Running unittests src/lib.rs (crates/target/debug/deps/alea_runtime-d7af3bdbd7d3ce62)
+
+running 7 tests
+test monitor::tests::ring_is_bounded_contiguous_and_does_not_bridge_missing_energy ... ok
+test session::storage::tests::backend_write_failure_poisoning_prevents_continuing_a_partial_stream ... ok
+test session::storage::tests::warmup_phase_unknown_schema_invalid_geometry_and_rng_are_rejected ... ok
+test diagnostics::modern::tests::fft_scratch_reuse_clears_previous_observations ... ok
+test monitor::tests::updating_window_has_no_per_draw_allocations ... ok
+test diagnostics::modern::tests::selected_quantiles_match_sorted_interpolation_bit_for_bit ... ok
+test monitor::tests::final_snapshot_is_never_lost_during_worker_shutdown ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/modern.rs (crates/target/debug/deps/modern-519e7d61dfeab170)
+
+running 2 tests
+test diagnostics_are_scale_invariant_and_reject_missing_or_constant_energies ... ok
+test executed_arviz_rank_folded_bulk_tail_mcse_and_energy_fixtures ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+

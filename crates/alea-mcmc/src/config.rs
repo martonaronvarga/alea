@@ -1,5 +1,6 @@
 //! Validated sampler inputs shared by present and future trajectory policies.
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 pub use crate::hmc::{HmcConfigError, StepSize};
 
@@ -8,23 +9,36 @@ pub use crate::hmc::{HmcConfigError, StepSize};
 #[non_exhaustive]
 pub enum SamplerConfigError {
     #[error(transparent)]
+    /// Invalid integration or proposal step size.
     StepSize(#[from] HmcConfigError),
     #[error("acceptance target must be finite and strictly between zero and one")]
+    /// Acceptance target must be finite and strictly between zero and one.
     AcceptanceTarget,
     #[error("tree depth must be nonzero and smaller than usize::BITS")]
+    /// Tree depth must be nonzero and smaller than usize::BITS.
     TreeDepth,
     #[error("sampler dimension must be nonzero")]
+    /// Sampler dimension must be nonzero.
     EmptyDimension,
     #[error("sampler dimension exceeds addressable aligned storage")]
+    /// Sampler dimension exceeds addressable aligned storage.
     DimensionOverflow,
     #[error("draw buffer size exceeds addressable storage")]
+    /// Draw buffer size exceeds addressable storage.
     DrawCountOverflow,
     #[error("sampler dimension is {expected}, but state dimension is {actual}")]
-    StateDimension { expected: usize, actual: usize },
+    /// Sampler dimension is `expected`, but state dimension is `actual`.
+    StateDimension {
+        /// Required dimension or storage length.
+        expected: usize,
+        /// Observed dimension or storage length.
+        actual: usize,
+    },
 }
 
 /// A finite target acceptance probability strictly inside `(0, 1)`.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[must_use]
 pub struct AcceptanceTarget(f64);
 
 impl TryFrom<f64> for AcceptanceTarget {
@@ -39,6 +53,7 @@ impl TryFrom<f64> for AcceptanceTarget {
 
 impl AcceptanceTarget {
     /// The validated probability.
+    #[must_use]
     pub fn value(self) -> f64 {
         self.0
     }
@@ -47,6 +62,7 @@ impl AcceptanceTarget {
 /// A nonzero binary trajectory depth with representable node/step counts.
 /// This validates arithmetic, not a practical memory or execution-time budget.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[must_use]
 pub struct TreeDepth(usize);
 
 impl TryFrom<usize> for TreeDepth {
@@ -61,10 +77,12 @@ impl TryFrom<usize> for TreeDepth {
 
 impl TreeDepth {
     /// The validated depth.
+    #[must_use]
     pub fn value(self) -> usize {
         self.0
     }
     /// Maximum leapfrog count for doubling depths `0..depth` (not including origin).
+    #[must_use]
     pub fn max_integration_steps(self) -> usize {
         (1_usize << self.0) - 1
     }

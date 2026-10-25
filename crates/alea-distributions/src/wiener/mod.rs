@@ -1,4 +1,4 @@
-use crate::error::{ProbError, Result};
+pub use crate::error::{ProbError, Result};
 use alea_ffi::{Bounds, ErrorNorm, Options, hcubature_into};
 use core::option::Option;
 use std::f64::consts::PI;

@@ -18,11 +18,15 @@ use std::error::Error;
 
 /// A transition's adaptation stage. Only slow stages contribute covariance data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum WarmupStage {
     /// Only adapt step size while approaching the typical set.
     InitialFast,
     /// Adapt step size and accumulate covariance; replace metric at the boundary.
-    Slow { window_end: bool },
+    Slow {
+        /// Whether this transition ends the covariance window.
+        window_end: bool,
+    },
     /// Retune step size with the last, frozen metric.
     FinalFast,
 }
@@ -31,6 +35,7 @@ pub enum WarmupStage {
 /// Below 20 transitions only step size is adapted. Below 150, buffers become
 /// floor(15% n), floor(10% n), with one remaining slow window.
 #[derive(Debug, Clone)]
+#[must_use = "window schedules are lazy iterators"]
 pub struct WindowSchedule {
     total: usize,
     next: usize,
@@ -104,12 +109,13 @@ impl ExactSizeIterator for WindowSchedule {}
 impl std::iter::FusedIterator for WindowSchedule {}
 
 /// Validated limits for doubling/halving one-step acceptance probes.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[must_use]
 pub struct SearchOptions {
-    min: StepSize,
-    max: StepSize,
-    max_probes: usize,
-    target: AcceptanceTarget,
+    pub(super) min: StepSize,
+    pub(super) max: StepSize,
+    pub(super) max_probes: usize,
+    pub(super) target: AcceptanceTarget,
 }
 impl SearchOptions {
     /// Rejects invalid bounds and fewer than two probes before evaluating a target.
@@ -141,13 +147,16 @@ impl Default for SearchOptions {
 
 /// Invalid user-provided warmup configuration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum WarmupConfigError {
     #[error("invalid step-size search bounds, probe count, or acceptance target")]
+    /// Invalid step-size search bounds, probe count, or acceptance target.
     Search,
 }
 
 /// Warmup policy; no settings can become invalid after construction.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[must_use]
 pub struct WarmupOptions {
     pub(super) iterations: usize,
     pub(super) kind: MetricKind,
@@ -164,19 +173,18 @@ impl WarmupOptions {
             search: Some(SearchOptions::default()),
         }
     }
-    #[must_use]
+    /// Selects diagonal or dense covariance estimation during warmup.
     pub fn with_metric(mut self, kind: MetricKind) -> Self {
         self.kind = kind;
         self
     }
-    #[must_use]
+    /// Selects the target acceptance probability for step-size warmup.
     pub fn with_target(mut self, target: AcceptanceTarget) -> Self {
         self.target = target;
         self
     }
     /// `None` uses the supplied initial step and resets dual averaging to the
     /// smoothed step after each metric update (BlackJAX 1.5 behavior).
-    #[must_use]
     pub fn with_search(mut self, search: Option<SearchOptions>) -> Self {
         self.search = search;
         self
@@ -185,23 +193,33 @@ impl WarmupOptions {
 
 /// Explicit errors; failure never returns a partially adapted sampling chain.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum WarmupError<E: Error + 'static> {
     #[error(transparent)]
+    /// HMC construction or transition failed.
     Hmc(#[from] HmcError<E>),
     #[error(transparent)]
+    /// Covariance estimation or factorization failed.
     Covariance(#[from] CovarianceError),
     #[error(transparent)]
+    /// Step-size adaptation failed.
     Adaptation(#[from] AdaptationError),
     #[error("step-size search did not bracket acceptance within its limits")]
+    /// Step-size search did not bracket acceptance within its limits.
     SearchExhausted,
     #[error("warmup evaluation counter overflow")]
+    /// Warmup evaluation counter overflow.
     CounterOverflow,
 }
 
 /// An acceptable bracket endpoint and the number of momentum/trajectory probes.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[must_use]
+#[non_exhaustive]
 pub struct SearchResult {
+    /// Validated proposal or integration step size.
     pub step_size: StepSize,
+    /// Number of step-size search proposals.
     pub probes: usize,
 }
 
@@ -249,22 +267,36 @@ where
 }
 
 /// Counters include warmup only. No draws are retained by the controller.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[must_use]
+#[non_exhaustive]
 pub struct HmcWarmupReport {
+    /// Number of completed warmup transitions.
     pub iterations: usize,
+    /// Number of accepted proposals.
     pub accepted: usize,
+    /// Number of warmup trajectory divergences.
     pub divergences: usize,
+    /// Number of completed covariance replacements.
     pub metric_updates: usize,
+    /// Number of step-size search proposals.
     pub search_probes: usize,
     /// Attempted macrosteps, including search; excludes the initial evaluation.
     /// This is not an actual gradient-call count, especially after partial failures.
     pub integration_attempts: usize,
+    /// Validated proposal or integration step size.
     pub step_size: StepSize,
 }
 
 /// Successful warmup returns a fixed kernel and its warmup-only counters.
 pub type HmcWarmupResult<'a, T, I = Leapfrog> = Result<
     (Hmc<'a, T, WarmupMetric, I>, HmcWarmupReport),
+    WarmupError<<T as LogDensityGradient>::Error>,
+>;
+
+/// A controlled warmup either freezes a complete chain or cancels without one.
+pub type ControlledHmcWarmupResult<'a, T, I = Leapfrog> = Result<
+    Option<(Hmc<'a, T, WarmupMetric, I>, HmcWarmupReport)>,
     WarmupError<<T as LogDensityGradient>::Error>,
 >;
 
@@ -361,7 +393,25 @@ impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> HmcWarmup<'a, T, I> {
     /// Propagates backend errors, failed bounded search, unrepresentable covariance
     /// or metric estimates, and counter overflow. Numerical trajectory divergences
     /// are ordinary rejected states and contribute zero acceptance to adaptation.
-    pub fn run<R: Rng + ?Sized>(mut self, rng: &mut R) -> HmcWarmupResult<'a, T, I> {
+    pub fn run<R: Rng + ?Sized>(self, rng: &mut R) -> HmcWarmupResult<'a, T, I> {
+        self.run_controlled(rng, |_| true)
+            .map(|result| result.expect("unconditional warmup never cancels"))
+    }
+
+    /// Runs reference warmup with a cancellation boundary before initial search
+    /// and each transition. `proceed` receives completed warmup transitions.
+    /// A bounded step-size search or trajectory already in progress finishes
+    /// before cancellation is observed. Cancellation discards adaptation state;
+    /// it never publishes partially adapted geometry or a restartable chain.
+    ///
+    /// # Errors
+    /// Returns the same numerical/backend errors as [`Self::run`]. Successful
+    /// cancellation returns `None`, with no partially adapted chain.
+    pub fn run_controlled<R: Rng + ?Sized>(
+        mut self,
+        rng: &mut R,
+        mut proceed: impl FnMut(usize) -> bool,
+    ) -> ControlledHmcWarmupResult<'a, T, I> {
         let mut report = HmcWarmupReport {
             iterations: self.options.iterations,
             accepted: 0,
@@ -372,11 +422,17 @@ impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> HmcWarmup<'a, T, I> {
             step_size: self.chain.options().step_size(),
         };
         if self.options.iterations == 0 {
-            return Ok((self.chain, report));
+            return Ok(Some((self.chain, report)));
+        }
+        if !proceed(0) {
+            return Ok(None);
         }
         self.search(rng, &mut report)?;
         let mut adapter = DualAveraging::new(self.chain.options().step_size(), self.options.target);
-        for stage in WindowSchedule::new(self.options.iterations) {
+        for (completed, stage) in WindowSchedule::new(self.options.iterations).enumerate() {
+            if !proceed(completed) {
+                return Ok(None);
+            }
             let transition = self.chain.step(rng)?;
             report.accepted += usize::from(transition.accepted);
             report.divergences += usize::from(transition.divergence.is_some());
@@ -384,6 +440,9 @@ impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> HmcWarmup<'a, T, I> {
                 .integration_attempts
                 .checked_add(transition.integration_steps)
                 .ok_or(WarmupError::CounterOverflow)?;
+            if !proceed(completed + 1) {
+                return Ok(None);
+            }
             let step = adapter.update(transition.acceptance_probability)?;
             if let WarmupStage::Slow { window_end } = stage {
                 let covariance = self
@@ -408,7 +467,7 @@ impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> HmcWarmup<'a, T, I> {
         }
         self.chain.set_step_size(adapter.finish());
         report.step_size = self.chain.options().step_size();
-        Ok((self.chain, report))
+        Ok(Some((self.chain, report)))
     }
 
     fn search<R: Rng + ?Sized>(

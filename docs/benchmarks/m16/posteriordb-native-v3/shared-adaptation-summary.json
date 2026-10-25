@@ -1,0 +1,86 @@
+{
+  "input_manifest_sha256": "c560214a06f2da79d6d1e67ffaf678c6a435e3856844a15fc52fc917db6ebf17",
+  "no_diagnostic_filter": true,
+  "purpose": "descriptive",
+  "rows": {
+    "nuts_cov_diag": {
+      "minimum_bulk_ess_per_process_second": {
+        "defined_cases": 20,
+        "defined_pairs": 60,
+        "median": 0.6729438020886475,
+        "planned_pairs": 60
+      },
+      "process_seconds": {
+        "defined_cases": 20,
+        "defined_pairs": 60,
+        "median": 1.8452835594109356,
+        "planned_pairs": 60
+      },
+      "retained_seconds": {
+        "defined_cases": 20,
+        "defined_pairs": 60,
+        "median": 1.667503691939781,
+        "planned_pairs": 60
+      },
+      "total_gradient_api_calls": {
+        "defined_cases": 20,
+        "defined_pairs": 60,
+        "median": 1.5703778570993672,
+        "planned_pairs": 60
+      }
+    },
+    "nuts_fisher_diag": {
+      "minimum_bulk_ess_per_process_second": {
+        "defined_cases": 20,
+        "defined_pairs": 60,
+        "median": 0.7468783811670038,
+        "planned_pairs": 60
+      },
+      "process_seconds": {
+        "defined_cases": 20,
+        "defined_pairs": 60,
+        "median": 1.4053194858878162,
+        "planned_pairs": 60
+      },
+      "retained_seconds": {
+        "defined_cases": 20,
+        "defined_pairs": 60,
+        "median": 1.3857165081469036,
+        "planned_pairs": 60
+      },
+      "total_gradient_api_calls": {
+        "defined_cases": 20,
+        "defined_pairs": 60,
+        "median": 1.3644182270333989,
+        "planned_pairs": 60
+      }
+    },
+    "nuts_fisher_rank4": {
+      "minimum_bulk_ess_per_process_second": {
+        "defined_cases": 20,
+        "defined_pairs": 60,
+        "median": 0.9593380217383698,
+        "planned_pairs": 60
+      },
+      "process_seconds": {
+        "defined_cases": 20,
+        "defined_pairs": 60,
+        "median": 1.278981844746263,
+        "planned_pairs": 60
+      },
+      "retained_seconds": {
+        "defined_cases": 20,
+        "defined_pairs": 60,
+        "median": 1.016671361805907,
+        "planned_pairs": 60
+      },
+      "total_gradient_api_calls": {
+        "defined_cases": 20,
+        "defined_pairs": 60,
+        "median": 1.0618649873621315,
+        "planned_pairs": 60
+      }
+    }
+  },
+  "statistic": "median across posterior-specific medians of defined repetition ratios"
+}

@@ -1,0 +1,13 @@
+[package]
+name = "alea-reference-review-probe"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+alea-core = { path = "../../../crates/alea-core" }
+alea-math = { path = "../../../crates/alea-math" }
+alea-mcmc = { path = "../../../crates/alea-mcmc" }
+rand = "0.10.1"

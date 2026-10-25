@@ -2,6 +2,7 @@
 //!
 //! One protocol for all analytic, compiled and foreign derivative providers.
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 use alea_math::buffer::OwnedBuffer;
 
@@ -71,13 +72,26 @@ pub enum EvaluationError<E: Error + 'static> {
     Dimension(#[from] DimensionError),
     /// Position-only shape failure for a derivative-free target.
     #[error("target dimension {expected} differs from position length {actual}")]
-    DensityDimension { expected: usize, actual: usize },
+    DensityDimension {
+        /// Required dimension or storage length.
+        expected: usize,
+        /// Observed dimension or storage length.
+        actual: usize,
+    },
     /// A cached point's target violated the fixed-dimension contract.
     #[error("target dimension changed from {expected} to {actual}")]
-    TargetDimensionChanged { expected: usize, actual: usize },
+    TargetDimensionChanged {
+        /// Required dimension or storage length.
+        expected: usize,
+        /// Observed dimension or storage length.
+        actual: usize,
+    },
     /// Non-finite input detected before invoking the model.
     #[error("position entry {index} is not finite")]
-    NonFinitePosition { index: usize },
+    NonFinitePosition {
+        /// Zero-based index of the invalid entry.
+        index: usize,
+    },
     /// The backend/model's original error, without allocation for wrapping it.
     #[error("target evaluation failed: {0}")]
     Model(#[source] E),
@@ -86,7 +100,10 @@ pub enum EvaluationError<E: Error + 'static> {
     NonFiniteLogDensity,
     /// Includes coordinates that the model did not overwrite.
     #[error("gradient entry {index} is missing or not finite")]
-    NonFiniteGradient { index: usize },
+    NonFiniteGradient {
+        /// Zero-based index of the invalid entry.
+        index: usize,
+    },
 }
 
 /// Performs one checked fused evaluation into caller-owned gradient storage.
@@ -108,7 +125,7 @@ pub fn evaluate<T: LogDensityGradient + ?Sized>(
     gradient: &mut [f64],
 ) -> Result<f64, EvaluationError<T::Error>> {
     DimensionError::check(target.dimension(), position.len(), gradient.len())?;
-    if let Some(index) = position.iter().position(|x| !x.is_finite()) {
+    if let Some(index) = alea_math::numeric::first_nonfinite(position) {
         return Err(EvaluationError::NonFinitePosition { index });
     }
     gradient.fill(f64::NAN);
@@ -118,7 +135,7 @@ pub fn evaluate<T: LogDensityGradient + ?Sized>(
     if !log_density.is_finite() {
         return Err(EvaluationError::NonFiniteLogDensity);
     }
-    if let Some(index) = gradient.iter().position(|x| !x.is_finite()) {
+    if let Some(index) = alea_math::numeric::first_nonfinite(gradient) {
         return Err(EvaluationError::NonFiniteGradient { index });
     }
     Ok(log_density)
@@ -129,6 +146,7 @@ pub fn evaluate<T: LogDensityGradient + ?Sized>(
 /// Failed evaluations may dirty this workspace but never the cached point.
 /// Scratch has no public cache or mutable-gradient interface.
 #[derive(Debug)]
+#[must_use = "evaluation scratch should be retained and reused"]
 pub struct EvaluationWorkspace {
     gradient: OwnedBuffer,
 }
@@ -142,6 +160,7 @@ impl EvaluationWorkspace {
     }
 
     /// Fixed number of gradient entries available to an evaluation.
+    #[must_use]
     pub fn dimension(&self) -> usize {
         self.gradient.len()
     }
@@ -181,6 +200,7 @@ impl EvaluationWorkspace {
 /// point.position()[0] = 7.0;
 /// ```
 #[derive(Debug)]
+#[must_use = "a coherent cached point has no effect unless it is retained"]
 pub struct PointState<'a, T: LogDensityGradient + ?Sized> {
     target: &'a T,
     position: OwnedBuffer,
@@ -246,14 +266,7 @@ impl<'a, T: LogDensityGradient + ?Sized> PointState<'a, T> {
         position: &[f64],
         workspace: &mut EvaluationWorkspace,
     ) -> Result<(), EvaluationError<T::Error>> {
-        let actual = self.target.dimension();
-        if actual != self.dimension() {
-            return Err(EvaluationError::TargetDimensionChanged {
-                expected: self.dimension(),
-                actual,
-            });
-        }
-        let log_density = evaluate(self.target, position, &mut workspace.gradient)?;
+        let log_density = self.evaluate_update(position, workspace)?;
         // All lengths and values are validated. No user code or allocation occurs
         // during commit, so an evaluation cannot expose half-updated cache fields.
         self.position.copy_from_slice(position);
@@ -262,32 +275,72 @@ impl<'a, T: LogDensityGradient + ?Sized> PointState<'a, T> {
         Ok(())
     }
 
+    /// Evaluates an owned candidate, then exchanges coordinate buffers on success.
+    /// The candidate receives the old coordinates, ready for reuse. No coordinate
+    /// copy, allocation or resize occurs. Both coordinate buffers and this entire
+    /// cache remain unchanged on an evaluation error or target panic.
+    ///
+    /// # Errors
+    /// Returns the same checked shape, input, output and model errors as
+    /// [`Self::try_update`]. Evaluation scratch may be dirtied on failure.
+    pub fn try_update_owned(
+        &mut self,
+        position: &mut OwnedBuffer,
+        workspace: &mut EvaluationWorkspace,
+    ) -> Result<(), EvaluationError<T::Error>> {
+        let log_density = self.evaluate_update(position, workspace)?;
+        std::mem::swap(&mut self.position, position);
+        std::mem::swap(&mut self.gradient, &mut workspace.gradient);
+        self.log_density = log_density;
+        Ok(())
+    }
+
+    fn evaluate_update(
+        &self,
+        position: &[f64],
+        workspace: &mut EvaluationWorkspace,
+    ) -> Result<f64, EvaluationError<T::Error>> {
+        let actual = self.target.dimension();
+        if actual != self.dimension() {
+            return Err(EvaluationError::TargetDimensionChanged {
+                expected: self.dimension(),
+                actual,
+            });
+        }
+        evaluate(self.target, position, &mut workspace.gradient)
+    }
+
     /// Fixed point dimension.
     #[inline]
+    #[must_use]
     pub fn dimension(&self) -> usize {
         self.position.len()
     }
 
     /// The shared target borrow associated with this complete cache.
     #[inline]
+    #[must_use]
     pub fn target(&self) -> &'a T {
         self.target
     }
 
     /// Coordinates corresponding to the cached density and gradient.
     #[inline]
+    #[must_use]
     pub fn position(&self) -> &[f64] {
         &self.position
     }
 
     /// Gradient at exactly [`Self::position`].
     #[inline]
+    #[must_use]
     pub fn gradient(&self) -> &[f64] {
         &self.gradient
     }
 
     /// Finite log density at exactly [`Self::position`].
     #[inline]
+    #[must_use]
     pub fn log_density(&self) -> f64 {
         self.log_density
     }

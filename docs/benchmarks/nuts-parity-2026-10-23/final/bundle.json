@@ -1,0 +1,51 @@
+{
+  "manifest_sha256": "383b28bf264a854d39df2874df216e6c1229ab0af87085d764ba0d4a933f29d4",
+  "parts": [
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part001",
+      "sha256": "751ece20bb3db29d7b3279cb7af76776343c3b1b9a1fc72c3652f4d92170c136"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part002",
+      "sha256": "7c2cb4d81786c3bc929ff0dbd780eb919a745c68f64b49ab6fbf4eb71c294e4a"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part003",
+      "sha256": "64d8242f5dbb81fd0689aae979804de699dfa9434e06cc0e1d34aea8ff2e9ffc"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part004",
+      "sha256": "52bd5b42385c19ce9a8260952aee20750384b4b9fa2332239bb8ad2cdefc0895"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part005",
+      "sha256": "cb9cd691370a3f4dbb77a0c729019f7a2b33ffc5e96829b7332e614589263d00"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part006",
+      "sha256": "635a3bb8a32fb82a42a802f554847e49a26397c24c984dfa39a895776925c3b7"
+    },
+    {
+      "bytes": 18562350,
+      "name": "evidence.tar.gz.part007",
+      "sha256": "0ff3d7363eef0438afaf434f2bbe9a92fc83c28e6bc4728483baa20482a66de7"
+    }
+  ],
+  "planned_jobs": 180,
+  "review_files": {
+    "manifest.json": "df185a25f8ac20e545fc3dbb496abba00b29b178d4bc4f20d0673a2c99e2a07d",
+    "reference-comparisons.csv": "b28a7f3e9b8ed2b8439833c9ed167d7827abcb4572969eab980c254fce8d878d",
+    "report.html": "527ca3d3a695d13002501178c2818f106a7934cd3cbf04b56d34e7a77ed6a6d2",
+    "report.json": "8121d552d34de1ab6f63b7969b757074f00cdfe308d4bd196d2ebc7396a82d18",
+    "report.md": "5636e9e8627c699d860956e3358a65678c8f61ba0398ff656411e71524b4baf2",
+    "summary.csv": "351b04f1ce8570d2b9f61b0213bfc90b0d94765e80590ce04d6aaf4db03b7553"
+  },
+  "root": "posteriordb-v3",
+  "schema_version": 3
+}

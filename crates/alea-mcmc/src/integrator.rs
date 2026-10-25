@@ -1,4 +1,5 @@
 //! Validated, statically dispatched symmetric kick/drift macrosteps.
+#![deny(missing_docs)]
 mod private {
     pub trait Sealed {}
 }
@@ -8,10 +9,13 @@ mod private {
 pub trait Integrator: private::Sealed {
     /// Number of drifts/new fused evaluations on a successful macrostep.
     fn stages(&self) -> usize;
+    /// Kick coefficient at a palindromic stage index.
     fn kick(&self, index: usize) -> f64;
+    /// Drift coefficient at a palindromic stage index.
     fn drift(&self, index: usize) -> f64;
 }
 #[derive(Debug, Clone, Copy, Default)]
+/// One-stage symmetric velocity-Verlet integrator.
 pub struct Leapfrog;
 impl private::Sealed for Leapfrog {}
 impl Integrator for Leapfrog {
@@ -32,8 +36,10 @@ pub struct TwoStage {
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("two-stage coefficient must be finite and between zero and one half")]
+/// A two-stage coefficient was nonfinite or outside the supported interval.
 pub struct InvalidCoefficient;
 impl TwoStage {
+    /// Minimum-norm two-stage coefficient from Omelyan, Mryglod and Folk.
     pub const OMF: Self = Self {
         lambda: 0.193_183_327_503_783_6,
     };
@@ -47,6 +53,7 @@ impl TwoStage {
         }
         Ok(Self { lambda })
     }
+    /// Validated outer kick coefficient.
     pub fn lambda(self) -> f64 {
         self.lambda
     }
@@ -81,10 +88,13 @@ pub struct CurvatureBound {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum AdvancedIntegratorError {
     #[error("curvature estimate must be finite and positive, with inflation greater than one")]
+    /// Curvature estimate must be finite and positive, with inflation greater than one.
     Curvature,
     #[error("dimensionless two-stage interval must be finite and strictly between zero and four")]
+    /// Dimensionless two-stage interval must be finite and strictly between zero and four.
     StabilityInterval,
     #[error("force budget must be nonzero and divisible by the integrator stage count")]
+    /// Force budget must be nonzero and divisible by the integrator stage count.
     ForceBudget,
 }
 
@@ -104,10 +114,12 @@ impl CurvatureBound {
         Ok(Self { upper, inflation })
     }
 
+    /// Inflated upper curvature estimate used by the policy.
     pub fn upper(self) -> f64 {
         self.upper
     }
 
+    /// User-selected inflation factor applied to the observed curvature estimate.
     pub fn inflation(self) -> f64 {
         self.inflation
     }
@@ -126,8 +138,11 @@ impl CurvatureBound {
 /// Cold-path result of the two-stage s-AIA experiment.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SaiaTwoStageSelection {
+    /// Selected two-stage integrator.
     pub integrator: TwoStage,
+    /// Upper endpoint of the oscillator interval used for selection.
     pub dimensionless_limit: f64,
+    /// Largest energy-error bound on the deterministic selection grid.
     pub worst_bound: f64,
 }
 
@@ -206,12 +221,19 @@ pub fn select_saia_two_stage(
 /// nominal integration time relative to leapfrog.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ForceBudgetPlan {
+    /// Number of new fused target evaluations in a successful trajectory.
     pub force_budget: usize,
+    /// Number of complete integrator macrosteps.
     pub macrosteps: usize,
+    /// Step size of one complete macrostep.
     pub macrostep_size: f64,
 }
 
 impl ForceBudgetPlan {
+    /// Builds an equal-force trajectory plan.
+    ///
+    /// # Errors
+    /// Rejects zero or indivisible budgets and nonfinite or nonpositive step sizes.
     pub fn new<I: Integrator>(
         force_budget: usize,
         reference_step: f64,

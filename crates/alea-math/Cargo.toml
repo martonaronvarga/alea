@@ -5,6 +5,13 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 publish.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+description = "Aligned storage and Euclidean geometry for Alea inference"
+keywords = ["bayesian", "statistics", "inference"]
+categories = ["science", "mathematics"]
 
 [lints]
 workspace = true
@@ -13,6 +20,7 @@ workspace = true
 aligned-vec.workspace = true
 rand.workspace = true
 thiserror.workspace = true
+pulp.workspace = true
 
 faer = { workspace = true, optional = true }
 cblas = { workspace = true, optional = true }

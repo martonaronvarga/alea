@@ -63,6 +63,8 @@ impl<F: Fn(&[f64], &mut [f64], f64) -> f64> ConstrainedModel for EnzymeModel<F> 
 /// callbacks at the scalar model boundary, then bind them here. `H` writes the
 /// potential Hessian-vector product and `D` writes the row-major potential
 /// Hessian plus its row-major coordinate-derivative blocks.
+/// [`crate::codegen::enzyme_source`] generates all three callbacks from a typed
+/// native model, including unconstrained transforms and their Jacobians.
 pub struct EnzymeManifoldModel<F, H, D> {
     dimension: usize,
     gradient: F,

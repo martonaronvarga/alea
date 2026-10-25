@@ -1,0 +1,12 @@
+{
+  "current_and_archived_reports_identical": true,
+  "defaults_changed": false,
+  "manifest_sha256": "cf4260769640e884812f5f774b4654ec97bfcc34729cf9fe8f055101759e0f8b",
+  "planned_jobs": 1560,
+  "schema_version": 2,
+  "status_counts": {
+    "completed": 1267,
+    "failed": 260,
+    "unsupported": 33
+  }
+}

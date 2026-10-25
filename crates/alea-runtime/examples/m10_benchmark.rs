@@ -19,9 +19,9 @@ use alea_math::buffer::OwnedBuffer;
 use alea_mcmc::{
     HmcOptions,
     adapt::{
-        HmcWarmup, JointHmcWarmup, JointWarmupOptions, MetricKind, OnlineCovariance, WarmupOptions,
+        CurvatureProbeOptions, HmcWarmup, JointHmcWarmup, JointWarmupOptions, MetricKind,
+        OnlineCovariance, WarmupOptions,
     },
-    atlas::AtlasProbeOptions,
     hamiltonian::SignedStep,
     integrator::{ForceBudgetPlan, Integrator, Leapfrog, TwoStage},
 };
@@ -195,7 +195,7 @@ fn run_adaptive(plan: ForceBudgetPlan) -> Result<MethodResult, Box<dyn std::erro
         let mut rng = SmallRng::seed_from_u64(20_000 + chain_index as u64);
         let options = JointWarmupOptions::new(
             WarmupOptions::new(WARMUP).with_target(0.9.try_into()?),
-            AtlasProbeOptions::new(2, 4, 0.8, 1e-5, 2.0)?,
+            CurvatureProbeOptions::new(2, 4)?,
             1.25,
         )?;
         let launch = Instant::now();
@@ -276,7 +276,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let batch_target = Target::new();
     let started = Instant::now();
-    let mut batch = alea_mcmc::BatchedLeapfrog::new(
+    let mut batch = alea_mcmc::batch::BatchedLeapfrog::new(
         &batch_target,
         CHAINS,
         BatchLayout::CoordinateMajor,

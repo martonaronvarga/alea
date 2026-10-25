@@ -5,7 +5,7 @@ use std::{
 
 use alea_core::{capability::PositionMetric, target::LogDensityGradient};
 use alea_math::buffer::OwnedBuffer;
-use alea_mcmc::{Rmhmc, RmhmcError, RmhmcOptions};
+use alea_mcmc::riemannian::{ExactnessPendingRmhmc, RmhmcError, RmhmcOptions};
 use rand::{SeedableRng, rngs::SmallRng};
 
 #[derive(Debug, thiserror::Error)]
@@ -91,7 +91,7 @@ fn backend_errors_nonfinite_outputs_and_panics_never_publish() {
     let target = Target { fault: &fault };
     let metric = Metric { fault: &fault };
     let options = RmhmcOptions::new(0.1, 2, 4, 1.0e-12).unwrap();
-    let mut chain = Rmhmc::new(
+    let mut chain = ExactnessPendingRmhmc::new(
         &target,
         &metric,
         OwnedBuffer::from_fn(2, |index| [0.3, -0.2][index]),

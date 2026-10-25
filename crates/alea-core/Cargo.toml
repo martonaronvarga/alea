@@ -5,6 +5,13 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 publish.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+description = "Checked target, transform and model contracts for Alea inference"
+keywords = ["bayesian", "statistics", "inference"]
+categories = ["science", "mathematics"]
 
 [lints]
 workspace = true

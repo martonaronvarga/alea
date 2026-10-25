@@ -12,8 +12,9 @@ use std::{
 use alea_core::target::LogDensityGradient;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
-    CheesHmc, CheesHmcOptions, HmcOptions, MarkovChain, Nuts,
+    HmcOptions, MarkovChain, Nuts,
     adapt::{CheesCriterion, CheesEnsembleAdapter, HmcWarmup, WarmupOptions},
+    chees::{CheesHmc, CheesHmcOptions},
 };
 use alea_runtime::{
     chees,

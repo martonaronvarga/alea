@@ -3,11 +3,13 @@
 //! Equal-length chains only; odd chains omit the middle draw when splitting.
 //! Definitions follow Vehtari et al. (2021); executable ArviZ fixtures pin details.
 //! Constant/undefined diagnostics are errors, never evidence for stopping.
-use rustfft::{FftPlanner, num_complex::Complex};
+use rustfft::{Fft, FftPlanner, num_complex::Complex};
 use statrs::distribution::{ContinuousCDF, Normal};
+use std::sync::Arc;
 
 /// A diagnostic could not be defined for the supplied observations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// Chains must be rectangular, with at least two chains and four draws.
     #[error("diagnostics require two equal-length chains with at least four draws")]
@@ -22,6 +24,8 @@ pub enum Error {
 
 /// Diagnostics for one explicitly selected scalar observable.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[must_use]
+#[non_exhaustive]
 pub struct Summary {
     /// Maximum of rank-normalized split and folded R-hat.
     pub rhat: f64,
@@ -65,8 +69,7 @@ pub fn summarize(chains: &[&[f64]]) -> Result<Summary, Error> {
     let z = ranks(&raw_split);
     let rank_rhat = rhat(&z)?;
     let mut pooled: Vec<f64> = raw_split.iter().flatten().copied().collect();
-    pooled.sort_by(f64::total_cmp);
-    let median = quantile(&pooled, 0.5);
+    let median = quantile(&mut pooled, 0.5);
     let mut folded: Vec<Vec<f64>> = raw_split
         .iter()
         .map(|c| c.iter().map(|x| (x - median).abs()).collect())
@@ -84,18 +87,18 @@ pub fn summarize(chains: &[&[f64]]) -> Result<Summary, Error> {
             .collect();
     }
     let folded_rhat = rhat(&ranks(&folded))?;
-    let bulk_ess = ess(&z)?;
-    let mean_ess = ess(&split)?;
+    let mut fft = Autocovariance::new(n / 2);
+    let bulk_ess = ess(&z, &mut fft)?;
+    let mean_ess = ess(&split, &mut fft)?;
     let mut sorted = original;
-    sorted.sort_by(f64::total_cmp);
     let mut tail_ess = f64::INFINITY;
     for p in [0.05, 0.95] {
-        let q = quantile(&sorted, p);
+        let q = quantile(&mut sorted, p);
         let indicator: Vec<Vec<f64>> = chains
             .iter()
             .map(|c| c.iter().map(|&x| f64::from(x <= q)).collect())
             .collect();
-        tail_ess = tail_ess.min(ess(&split_chains(&indicator))?);
+        tail_ess = tail_ess.min(ess(&split_chains(&indicator), &mut fft)?);
     }
     let all: Vec<f64> = scaled.into_iter().flatten().collect();
     let mean = average(&all);
@@ -142,20 +145,29 @@ fn average(x: &[f64]) -> f64 {
 fn variance(x: &[f64], mean: f64) -> f64 {
     x.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (x.len() - 1) as f64
 }
-fn quantile(sorted: &[f64], p: f64) -> f64 {
-    let at = (sorted.len() - 1) as f64 * p;
+fn quantile(values: &mut [f64], p: f64) -> f64 {
+    let at = (values.len() - 1) as f64 * p;
     let i = at.floor() as usize;
-    let j = (i + 1).min(sorted.len() - 1);
-    if sorted[i] == sorted[j] {
-        return sorted[i];
+    // Only adjacent order statistics are needed. Total ordering retains the
+    // sorted implementation's signed-zero and equal-value conventions.
+    let (_, lower, above) = values.select_nth_unstable_by(i, f64::total_cmp);
+    let lower = *lower;
+    let upper = above
+        .iter()
+        .copied()
+        .min_by(f64::total_cmp)
+        .unwrap_or(lower);
+    if lower == upper {
+        return lower;
     }
     // Convex form avoids overflowing the difference of extreme endpoints.
-    (1.0 - at.fract()) * sorted[i] + at.fract() * sorted[j]
+    (1.0 - at.fract()) * lower + at.fract() * upper
 }
 fn ranks(chains: &[Vec<f64>]) -> Vec<Vec<f64>> {
     let n = chains[0].len();
     let mut sorted: Vec<(usize, f64)> = chains.iter().flatten().copied().enumerate().collect();
-    sorted.sort_by(|a, b| a.1.total_cmp(&b.1));
+    // Equal-value groups receive one rank, so their internal order is irrelevant.
+    sorted.sort_unstable_by(|a, b| a.1.total_cmp(&b.1));
     let mut out = vec![vec![0.0; n]; chains.len()];
     let normal = Normal::new(0.0, 1.0).expect("standard normal parameters are valid");
     let mut start = 0;
@@ -197,40 +209,64 @@ fn finite_positive(x: f64) -> Result<f64, Error> {
     }
 }
 
-// Biased autocovariance (denominator n) with zero padding avoids circular wrap.
-fn autocovariances(chains: &[Vec<f64>]) -> Vec<f64> {
-    let n = chains[0].len();
-    let size = (2 * n).next_power_of_two();
-    let mut planner = FftPlanner::<f64>::new();
-    let forward = planner.plan_fft_forward(size);
-    let inverse = planner.plan_fft_inverse(size);
-    let mut scratch = vec![
-        Complex::default();
-        forward
-            .get_inplace_scratch_len()
-            .max(inverse.get_inplace_scratch_len())
-    ];
-    let mut buffer = vec![Complex::default(); size];
-    let mut acov = vec![0.0; n];
-    for c in chains {
-        buffer.fill(Complex::default());
-        let mean = average(c);
-        for (v, &x) in buffer.iter_mut().zip(c) {
-            v.re = x - mean;
-        }
-        forward.process_with_scratch(&mut buffer, &mut scratch);
-        for v in &mut buffer {
-            *v = Complex::new(v.norm_sqr(), 0.0);
-        }
-        inverse.process_with_scratch(&mut buffer, &mut scratch);
-        for (a, v) in acov.iter_mut().zip(&buffer) {
-            *a += v.re / size as f64 / n as f64 / chains.len() as f64;
-        }
-    }
-    acov
+// One caller-owned FFT plan and scratch set serves all four equal-sized ESS
+// calculations in a summary. No process-global cache or thread state is needed.
+struct Autocovariance {
+    forward: Arc<dyn Fft<f64>>,
+    inverse: Arc<dyn Fft<f64>>,
+    scratch: Vec<Complex<f64>>,
+    buffer: Vec<Complex<f64>>,
+    acov: Vec<f64>,
 }
 
-fn ess(chains: &[Vec<f64>]) -> Result<f64, Error> {
+impl Autocovariance {
+    fn new(n: usize) -> Self {
+        let size = (2 * n).next_power_of_two();
+        let mut planner = FftPlanner::<f64>::new();
+        let forward = planner.plan_fft_forward(size);
+        let inverse = planner.plan_fft_inverse(size);
+        let scratch = vec![
+            Complex::default();
+            forward
+                .get_inplace_scratch_len()
+                .max(inverse.get_inplace_scratch_len())
+        ];
+        Self {
+            forward,
+            inverse,
+            scratch,
+            buffer: vec![Complex::default(); size],
+            acov: vec![0.0; n],
+        }
+    }
+
+    // Biased autocovariance (denominator n); zero padding avoids circular wrap.
+    fn compute(&mut self, chains: &[Vec<f64>]) -> &[f64] {
+        let n = self.acov.len();
+        let size = self.buffer.len();
+        self.acov.fill(0.0);
+        for c in chains {
+            self.buffer.fill(Complex::default());
+            let mean = average(c);
+            for (v, &x) in self.buffer.iter_mut().zip(c) {
+                v.re = x - mean;
+            }
+            self.forward
+                .process_with_scratch(&mut self.buffer, &mut self.scratch);
+            for v in &mut self.buffer {
+                *v = Complex::new(v.norm_sqr(), 0.0);
+            }
+            self.inverse
+                .process_with_scratch(&mut self.buffer, &mut self.scratch);
+            for (a, v) in self.acov.iter_mut().zip(&self.buffer) {
+                *a += v.re / size as f64 / n as f64 / chains.len() as f64;
+            }
+        }
+        &self.acov
+    }
+}
+
+fn ess(chains: &[Vec<f64>], fft: &mut Autocovariance) -> Result<f64, Error> {
     let n = chains[0].len();
     let total = (chains.len() * n) as f64;
     // ArviZ's constant-indicator convention matters for discrete quantiles.
@@ -238,7 +274,7 @@ fn ess(chains: &[Vec<f64>]) -> Result<f64, Error> {
     if chains.iter().flatten().all(|x| *x == chains[0][0]) {
         return Ok(total);
     }
-    let acov = autocovariances(chains);
+    let acov = fft.compute(chains);
     let means: Vec<_> = chains.iter().map(|c| average(c)).collect();
     let within = acov[0] * n as f64 / (n - 1) as f64;
     let var_plus = acov[0] + variance(&means, average(&means));
@@ -295,4 +331,53 @@ pub fn ebfmi(energy: &[f64]) -> Result<f64, Error> {
     let differences =
         e.windows(2).map(|w| (w[1] - w[0]).powi(2)).sum::<f64>() / (e.len() - 1) as f64;
     finite_positive(differences / variance)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Autocovariance, quantile};
+
+    #[test]
+    fn selected_quantiles_match_sorted_interpolation_bit_for_bit() {
+        for n in 1..=128 {
+            for magnitude in [f64::from_bits(1), 1e-200, 1.0, 1e200, f64::MAX / 16.0] {
+                let values: Vec<_> = (0..n)
+                    .map(|i| match i % 9 {
+                        0 => -0.0,
+                        1 => 0.0,
+                        _ => (((i * 37) % 15) as f64 - 7.0) * magnitude,
+                    })
+                    .collect();
+                let mut sorted = values.clone();
+                sorted.sort_by(f64::total_cmp);
+                for p in [0.0, 0.05, 0.5, 0.95, 1.0] {
+                    let at = (n - 1) as f64 * p;
+                    let i = at.floor() as usize;
+                    let j = (i + 1).min(n - 1);
+                    let expected = if sorted[i] == sorted[j] {
+                        sorted[i]
+                    } else {
+                        (1.0 - at.fract()) * sorted[i] + at.fract() * sorted[j]
+                    };
+                    assert_eq!(
+                        quantile(&mut values.clone(), p).to_bits(),
+                        expected.to_bits(),
+                        "length={n}, magnitude={magnitude}, p={p}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn fft_scratch_reuse_clears_previous_observations() {
+        for n in [4, 7, 16, 33, 128] {
+            let a = vec![(0..n).map(|i| (i as f64 * 0.17).sin()).collect()];
+            let b = vec![(0..n).map(|i| i as f64).collect()];
+            let mut fft = Autocovariance::new(n);
+            let expected = fft.compute(&a).to_vec();
+            let _ = fft.compute(&b);
+            assert_eq!(fft.compute(&a), expected);
+        }
+    }
 }

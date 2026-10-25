@@ -1,0 +1,15 @@
+    Checking alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
+    Checking alea-runtime v0.1.0 (/home/usu/documents/dev/alea/crates/alea-runtime)
+    Checking alea-cli v0.1.0 (/home/usu/documents/dev/alea/crates/alea-cli)
+error: manual `!RangeInclusive::contains` implementation
+  --> alea-runtime/examples/overhead_profile.rs:45:45
+   |
+45 |     if dimension == 0 || dimension > 128 || draws < 4 || draws > 100_000 || repeats > 64 {
+   |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `!(4..=100_000).contains(&draws)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#manual_range_contains
+   = note: `-D clippy::manual-range-contains` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::manual_range_contains)]`
+
+error: could not compile `alea-runtime` (example "overhead_profile") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

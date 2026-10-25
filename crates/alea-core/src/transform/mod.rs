@@ -7,13 +7,15 @@
 //! Floating-point boundary collapse is an error, never silently clamped.
 //! Output contents after a numerical error are unspecified; shape errors precede writes.
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 mod layout;
 mod matrix;
+mod source;
 pub use crate::error::TransformError;
 pub use layout::{ParameterBlock, ParameterLayout};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Kind {
     Identity,
     Lower(f64),
@@ -36,7 +38,8 @@ enum Kind {
 }
 
 /// A validated transform shape. Construction is cheap and performs no allocation.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[must_use = "a validated transform has no effect unless it is retained or applied"]
 pub struct Transform {
     kind: Kind,
     input: usize,
@@ -178,13 +181,18 @@ impl Transform {
         })
     }
 
+    #[must_use]
+    /// Number of input unconstrained coordinates.
     pub fn unconstrained_dimension(&self) -> usize {
         self.input
     }
+    #[must_use]
+    /// Number of output constrained coordinates.
     pub fn constrained_dimension(&self) -> usize {
         self.output
     }
     /// Minimum caller-owned scratch length, reused across calls.
+    #[must_use]
     pub fn scratch_dimension(&self) -> usize {
         self.scratch
     }
@@ -208,6 +216,10 @@ impl Transform {
     }
 
     /// Constrain and return log absolute Jacobian. No allocations.
+    ///
+    /// # Errors
+    /// Returns [`TransformError`] for invalid dimensions, non-finite input,
+    /// representability loss, or non-finite output/Jacobian arithmetic.
     pub fn constrain(
         &self,
         q: &[f64],
@@ -297,6 +309,10 @@ impl Transform {
     }
 
     /// Inverse with explicit support validation. No allocations.
+    ///
+    /// # Errors
+    /// Returns [`TransformError`] for invalid dimensions, non-finite input,
+    /// an out-of-support constrained value, or non-finite output arithmetic.
     pub fn unconstrain(
         &self,
         x: &[f64],
@@ -373,6 +389,10 @@ impl Transform {
     /// Write Jᵀ times the constrained gradient **plus** the log-Jacobian gradient.
     /// Checks shape and finiteness. Call `constrain` first to check representable
     /// support. No constrained-value cache is accepted or trusted by this method.
+    ///
+    /// # Errors
+    /// Returns [`TransformError`] for invalid dimensions, non-finite inputs, or
+    /// non-finite pullback arithmetic.
     pub fn pullback(
         &self,
         q: &[f64],

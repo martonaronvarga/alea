@@ -1,0 +1,10 @@
+{
+  "independence": "Python Decimal 80-digit equations; no Alea code or output",
+  "files": {
+    "tools/riemannian-reference/newton_fixture.py": "164b7c4e18ef9667434c398618562b4bd64c3d23bb4ee7e186a0775aa01feebd",
+    "tools/riemannian-reference/solver_ladder.py": "0437f002a5221272c05005b39e244e8e60525cb67ed3394f9f26e943ccea1012",
+    "crates/alea-mcmc/tests/fixtures/rmhmc/exponential-decimal.csv": "6d82570339becf8eb498d5b90324094d833aa567baf16dd608ac5c83f7cbbb28",
+    "crates/alea-mcmc/tests/fixtures/rmhmc/solver-ladder.csv": "a72736c09178f1d0e512dbb584fd795afc2a15c3b85c58857210ca5b5eb3d772",
+    "crates/alea-mcmc/tests/fixtures/rmhmc/multiple-roots.csv": "47c54ef29e45b8b58e1c5095b517d3728d5dc938868986ab91602d17b22c3e4d"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "data": "/home/usu/alea-bench-runs/m16-posteriordb-complete-20261022/source/tools/bench/corpus/pdb-v2/sblri-blr/data.json",
+  "depth": 8,
+  "derivative_validation": {
+    "gradient_relative_error": 1.4042530136619546e-10,
+    "hvp_error": null,
+    "hvp_relative_error": 8.881170358135288e-10,
+    "scope": "central finite differences at first shared initial point; signed alternating HVP direction; HVP limitations do not reject gradient-only methods"
+  },
+  "dimension": 6,
+  "directory": "/home/usu/alea-bench-runs/m16-posteriordb-complete-20261022/search-probes/sblri-blr",
+  "draws": 512,
+  "include_tp": true,
+  "initial_constrained": [
+    [
+      0.09729261982202697,
+      1.6132077727605374,
+      0.9764635158163957,
+      -0.49640365744347026,
+      -0.569749115090664,
+      0.6680474123207842
+    ],
+    [
+      1.4251575795189488,
+      0.999193697087895,
+      -0.9970777594716784,
+      -1.0931688251405864,
+      -1.6415307531805734,
+      0.22440304596923827
+    ],
+    [
+      1.4485358855192434,
+      -0.7700325789070694,
+      -0.38416601227058944,
+      -0.14664310452019613,
+      1.2931022426741876,
+      0.5540593105942768
+    ],
+    [
+      -1.0381119839903725,
+      0.9184738080660395,
+      0.30272490339569735,
+      1.7228771367803724,
+      0.9653366786033342,
+      1.860260936524577
+    ]
+  ],
+  "initial_parameter_names": "beta.1,beta.2,beta.3,beta.4,beta.5,sigma",
+  "initials": [
+    [
+      0.09729261982202697,
+      1.6132077727605374,
+      0.9764635158163957,
+      -0.49640365744347026,
+      -0.569749115090664,
+      -0.4033961314360859
+    ],
+    [
+      1.4251575795189488,
+      0.999193697087895,
+      -0.9970777594716784,
+      -1.0931688251405864,
+      -1.6415307531805734,
+      -1.4943115315877593
+    ],
+    [
+      1.4485358855192434,
+      -0.7700325789070694,
+      -0.38416601227058944,
+      -0.14664310452019613,
+      1.2931022426741876,
+      -0.5904835391308065
+    ],
+    [
+      -1.0381119839903725,
+      0.9184738080660395,
+      0.30272490339569735,
+      1.7228771367803724,
+      0.9653366786033342,
+      0.6207167663396786
+    ]
+  ],
+  "library": "/home/usu/alea-bench-runs/m16-posteriordb-complete-20261022/source/target/m16b-models-01/sblri-blr/bridge/model_model.so",
+  "method": "nuts_cov_diag",
+  "model_info": "BridgeStan version: 2.7.0\nStan version: 2.38.0\nStan C++ Defines:\n\tSTAN_THREADS=true\n\tSTAN_MPI=false\n\tSTAN_OPENCL=false\n\tSTAN_NO_RANGE_CHECKS=false\n\tBRIDGESTAN_AD_HESSIAN=true\nStan Compiler Details:\n\tstanc_version = %%NAME%%3 %%VERSION%%\n\tstancflags = \n",
+  "parameter_names": "beta.1,beta.2,beta.3,beta.4,beta.5,sigma",
+  "seeds": [
+    18001,
+    18002,
+    18003,
+    18004
+  ],
+  "unconstrained_names": "beta.1,beta.2,beta.3,beta.4,beta.5,sigma",
+  "warmup": 512,
+  "workflow_version": 3
+}

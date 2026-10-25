@@ -1,0 +1,116 @@
+{
+  "case": "arK-arK",
+  "classification": {
+    "component": "historical eight-step HMC covariance warmup + unchanged NUTS retention; controlled ablation only",
+    "engine": "alea",
+    "guarantee": "research_exact_target_intent"
+  },
+  "data": "/home/usu/alea-bench-runs/m16-posteriordb-complete-20261022/source/tools/bench/corpus/pdb-v2/arK-arK/data.json",
+  "depth": 8,
+  "derivative_validation": {
+    "gradient_relative_error": 4.058235167733626e-10,
+    "hvp_error": null,
+    "hvp_relative_error": 1.930358347505961e-09,
+    "scope": "central finite differences at first shared initial point; signed alternating HVP direction; HVP limitations do not reject gradient-only methods"
+  },
+  "dimension": 7,
+  "directory": "/home/usu/alea-bench-runs/m16-posteriordb-complete-20261022/cutoff-ablation/arK-arK--nuts_legacy_downhill--r2",
+  "draws": 512,
+  "family": "autoregression",
+  "id": "arK-arK--nuts_legacy_warmup--r2",
+  "include_tp": true,
+  "initial_constrained": [
+    [
+      0.09729261982202697,
+      1.6132077727605374,
+      0.9764635158163957,
+      -0.49640365744347026,
+      -0.569749115090664,
+      -0.4033961314360859,
+      0.6330935381701227
+    ],
+    [
+      1.4251575795189488,
+      0.999193697087895,
+      -0.9970777594716784,
+      -1.0931688251405864,
+      -1.6415307531805734,
+      -1.4943115315877593,
+      0.188730242812054
+    ],
+    [
+      1.4485358855192434,
+      -0.7700325789070694,
+      -0.38416601227058944,
+      -0.14664310452019613,
+      1.2931022426741876,
+      -0.5904835391308065,
+      5.350736426030633
+    ],
+    [
+      -1.0381119839903725,
+      0.9184738080660395,
+      0.30272490339569735,
+      1.7228771367803724,
+      0.9653366786033342,
+      0.6207167663396786,
+      7.159642194993219
+    ]
+  ],
+  "initial_parameter_names": "alpha,beta.1,beta.2,beta.3,beta.4,beta.5,sigma",
+  "initials": [
+    [
+      0.09729261982202697,
+      1.6132077727605374,
+      0.9764635158163957,
+      -0.49640365744347026,
+      -0.569749115090664,
+      -0.4033961314360859,
+      -0.457137098133769
+    ],
+    [
+      1.4251575795189488,
+      0.999193697087895,
+      -0.9970777594716784,
+      -1.0931688251405864,
+      -1.6415307531805734,
+      -1.4943115315877593,
+      -1.6674365701751146
+    ],
+    [
+      1.4485358855192434,
+      -0.7700325789070694,
+      -0.38416601227058944,
+      -0.14664310452019613,
+      1.2931022426741876,
+      -0.5904835391308065,
+      1.677234201160413
+    ],
+    [
+      -1.0381119839903725,
+      0.9184738080660395,
+      0.30272490339569735,
+      1.7228771367803724,
+      0.9653366786033342,
+      0.6207167663396786,
+      1.9684600069575637
+    ]
+  ],
+  "library": "/home/usu/alea-bench-runs/m16-posteriordb-complete-20261022/source/target/m16b-models-01/arK-arK/bridge/model_model.so",
+  "method": "nuts_legacy_downhill",
+  "model_info": "BridgeStan version: 2.7.0\nStan version: 2.38.0\nStan C++ Defines:\n\tSTAN_THREADS=true\n\tSTAN_MPI=false\n\tSTAN_OPENCL=false\n\tSTAN_NO_RANGE_CHECKS=false\n\tBRIDGESTAN_AD_HESSIAN=true\nStan Compiler Details:\n\tstanc_version = %%NAME%%3 %%VERSION%%\n\tstancflags = \n",
+  "parameter_names": "alpha,beta.1,beta.2,beta.3,beta.4,beta.5,sigma",
+  "repetition": 2,
+  "seeds": [
+    38001,
+    38002,
+    38003,
+    38004
+  ],
+  "stan_binary": "/home/usu/alea-bench-runs/m16-posteriordb-complete-20261022/source/target/m16b-models-01/arK-arK/stan/model",
+  "timeout_seconds": 180,
+  "unconstrained_names": "alpha,beta.1,beta.2,beta.3,beta.4,beta.5,sigma",
+  "unsupported_reason": null,
+  "warmup": 512,
+  "workflow_version": 3
+}

@@ -1,0 +1,20 @@
+    Blocking waiting for file lock on artifact directory
+    Checking pulp v0.22.3
+    Checking gemm-common v0.19.0
+    Checking qd v0.8.0
+    Checking faer-traits v0.24.0
+    Checking gemm-f64 v0.19.0
+    Checking gemm-c64 v0.19.0
+    Checking gemm-f32 v0.19.0
+    Checking gemm-c32 v0.19.0
+    Checking gemm v0.19.0
+    Checking faer v0.24.0
+    Checking alea-math v0.1.0 (/home/usu/documents/dev/alea/crates/alea-math)
+ Documenting alea-math v0.1.0 (/home/usu/documents/dev/alea/crates/alea-math)
+    Checking alea-core v0.1.0 (/home/usu/documents/dev/alea/crates/alea-core)
+ Documenting alea-core v0.1.0 (/home/usu/documents/dev/alea/crates/alea-core)
+    Checking alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
+ Documenting alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
+ Documenting alea-runtime v0.1.0 (/home/usu/documents/dev/alea/crates/alea-runtime)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 42.41s
+   Generated /home/usu/documents/dev/alea/crates/target/doc/alea_core/index.html and 3 other files

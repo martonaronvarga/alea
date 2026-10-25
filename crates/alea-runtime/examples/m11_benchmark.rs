@@ -11,12 +11,13 @@ use alea_core::target::LogDensityGradient;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::nuts::NutsTermination;
 use alea_mcmc::{
-    CheesHmc, CheesHmcOptions, HmcOptions, LogisticFisherMetric, MarkovChain, Nuts, Rmhmc,
-    RmhmcCosts, RmhmcOptions,
+    HmcOptions, MarkovChain, Nuts,
     adapt::{
         CheesCriterion, CheesEnsembleAdapter, HmcWarmup, ManifoldBayesTuner, ManifoldTunerOptions,
         RmhmcManifoldWarmup, WarmupOptions,
     },
+    chees::{CheesHmc, CheesHmcOptions},
+    riemannian::{ExactnessPendingRmhmc, LogisticFisherMetric, RmhmcCosts, RmhmcOptions},
 };
 use alea_runtime::{
     chees,
@@ -175,7 +176,9 @@ fn run_rmhmc(adaptive: bool) -> Result<ResultRow, Box<dyn std::error::Error>> {
             .collect()
     } else {
         let mut chains: Vec<_> = (0..CHAINS)
-            .map(|chain_index| Rmhmc::new(&target, &metric, initial(chain_index), baseline))
+            .map(|chain_index| {
+                ExactnessPendingRmhmc::new(&target, &metric, initial(chain_index), baseline)
+            })
             .collect::<Result<_, _>>()?;
         for _ in 0..WARMUP {
             for chain_index in 0..CHAINS {

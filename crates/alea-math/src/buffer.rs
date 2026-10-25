@@ -1,5 +1,6 @@
 //! Initialized, SIMD-aligned storage, isolated from FFI for Miri validation.
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 use aligned_vec::{AVec, ConstAlign};
 use std::ops::{Deref, DerefMut};
@@ -12,7 +13,8 @@ use std::ops::{Deref, DerefMut};
 ///
 /// This safe wrapper exposes only initialized storage from `aligned-vec`.
 /// It deliberately does not expose raw-parts or unchecked length APIs.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
+#[must_use = "allocated aligned storage has no effect unless it is retained"]
 pub struct OwnedBuffer<T = f64> {
     data: AVec<T, ConstAlign<64>>,
 }
@@ -47,6 +49,7 @@ impl<T> OwnedBuffer<T> {
 
     /// Guaranteed base alignment; subslices may have a weaker alignment.
     #[inline]
+    #[must_use]
     pub fn alignment(&self) -> usize {
         self.data.alignment()
     }
@@ -81,16 +84,21 @@ impl<T> OwnedBuffer<T> {
     }
 
     #[inline]
+    #[must_use]
+    /// Number of elements available without growing the allocation.
     pub fn capacity(&self) -> usize {
         self.data.capacity()
     }
 
     #[inline]
+    #[must_use]
+    /// Borrows the initialized elements in storage order.
     pub fn as_slice(&self) -> &[T] {
         &self.data
     }
 
     #[inline]
+    /// Mutably borrows the initialized elements in storage order.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         &mut self.data
     }
@@ -127,26 +135,31 @@ impl<T> AsMut<[T]> for OwnedBuffer<T> {
 }
 
 #[derive(Clone, Copy)]
+/// Immutable borrowed vector view; subslices need not retain base alignment.
 pub struct VecView<'a, T> {
     data: &'a [T],
 }
 
+/// Exclusively borrowed vector view; subslices need not retain base alignment.
 pub struct VecViewMut<'a, T> {
     data: &'a mut [T],
 }
 
 impl<'a, T> VecView<'a, T> {
     #[inline]
+    /// Borrows the initialized elements in storage order.
     pub fn as_slice(&self) -> &[T] {
         self.data
     }
 
     #[inline]
+    /// Number of stored elements or retained rows.
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
     #[inline]
+    /// Whether no elements or retained rows are stored.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -154,11 +167,13 @@ impl<'a, T> VecView<'a, T> {
 
 impl<'a, T> VecViewMut<'a, T> {
     #[inline]
+    /// Borrows the initialized elements in storage order.
     pub fn as_slice(&self) -> &[T] {
         self.data
     }
 
     #[inline]
+    /// Mutably borrows the initialized elements in storage order.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         self.data
     }

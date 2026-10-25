@@ -48,6 +48,18 @@ class PublicApiSnapshotTests(unittest.TestCase):
             lambda manifest: manifest["policy"].__setitem__("default_features", True)
         )
 
+    def test_removed_feature_variant_fails(self):
+        self.check_rejected(
+            lambda manifest: manifest["variants"].pop("alea-mcmc+simd")
+        )
+
+    def test_changed_feature_variant_fails(self):
+        self.check_rejected(
+            lambda manifest: manifest["variants"]["alea-mcmc+simd"].__setitem__(
+                "features", ["alea-mcmc/faer"]
+            )
+        )
+
     def test_changed_snapshot_fails_digest(self):
         def change_file(snapshot_dir, manifest):
             path = snapshot_dir / manifest["packages"]["alea-core"]["file"]

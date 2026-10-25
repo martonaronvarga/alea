@@ -24,16 +24,30 @@ fn compile_cubature_static() {
     );
     let compiler = cc::Build::new().get_compiler();
     let mut command = compiler.to_command();
-    command
-        .arg("tests/cubature_cleanup.c")
-        .arg("-Ivendor/cubature")
-        .arg("-I")
-        .arg(source.parent().expect("OUT_DIR parent"))
-        .arg("-std=c11")
-        .arg("-O1")
-        .arg("-UNDEBUG")
-        .arg("-o")
-        .arg(&audit);
+    command.arg("tests/cubature_cleanup.c");
+    if compiler.is_like_msvc() {
+        command
+            .arg("/Ivendor/cubature")
+            .arg(format!(
+                "/I{}",
+                source.parent().expect("OUT_DIR parent").display()
+            ))
+            .arg("/std:c11")
+            .arg("/O1")
+            .arg("/UNDEBUG")
+            .arg(format!("/Fe:{}", audit.display()))
+            .arg(format!("/Fo:{}", source.with_extension("obj").display()));
+    } else {
+        command
+            .arg("-Ivendor/cubature")
+            .arg("-I")
+            .arg(source.parent().expect("OUT_DIR parent"))
+            .arg("-std=c11")
+            .arg("-O1")
+            .arg("-UNDEBUG")
+            .arg("-o")
+            .arg(&audit);
+    }
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         command.arg("-lm");
     }
@@ -54,13 +68,17 @@ fn compile_cubature_static() {
         // minimally optimized C build for the toolchain's fortify checks.
         .opt_level(1);
 
-    build.flag_if_supported("-std=c11");
+    if compiler.is_like_msvc() {
+        build.flag_if_supported("/std:c11");
+    } else {
+        build.flag_if_supported("-std=c11");
+    }
     build.warnings(true);
 
     build.compile("cubature");
 
     // cc emits the link-search and -l: we just ensure libm on Unix for math functions
-    if cfg!(not(target_os = "windows")) {
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         println!("cargo:rustc-link-lib=m");
     }
 }

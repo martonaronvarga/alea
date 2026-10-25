@@ -126,6 +126,7 @@ pub struct CheesUpdate {
 pub struct FrozenCheesParameters {
     step_size: StepSize,
     max_trajectory_time: f64,
+    max_integration_steps: Option<std::num::NonZeroUsize>,
 }
 
 impl FrozenCheesParameters {
@@ -142,8 +143,12 @@ impl FrozenCheesParameters {
     /// Uniformly randomizes retained integration length from one through
     /// `ceil(max_trajectory_time / step_size)`, following ChEES-HMC.
     pub fn sample_plan<R: Rng + ?Sized>(self, rng: &mut R) -> CheesPlan {
-        let maximum = integration_count(self.max_trajectory_time, self.step_size)
-            .expect("validated frozen ChEES parameters have a representable count");
+        let maximum = bounded_integration_count(
+            self.max_trajectory_time,
+            self.step_size,
+            self.max_integration_steps,
+        )
+        .expect("validated frozen ChEES parameters have a representable count");
         let integration_steps = rng.random_range(1..=maximum);
         CheesPlan {
             step_size: self.step_size,
@@ -174,6 +179,7 @@ pub struct CheesEnsembleAdapter {
     initial_center: OwnedBuffer,
     proposal_center: OwnedBuffer,
     criterion: CheesCriterion,
+    max_integration_steps: Option<std::num::NonZeroUsize>,
 }
 
 impl CheesEnsembleAdapter {
@@ -224,7 +230,19 @@ impl CheesEnsembleAdapter {
             initial_center: OwnedBuffer::new(dimension),
             proposal_center: OwnedBuffer::new(dimension),
             criterion,
+            max_integration_steps: None,
         })
+    }
+
+    /// Explicitly cap complete macrosteps in both warmup and frozen sampling.
+    /// The cap takes precedence over the physical trajectory-time lower bound
+    /// when a small adapted step would otherwise exceed the declared work budget.
+    /// # Errors
+    /// Rejects a zero integration budget.
+    pub fn with_max_integration_steps(mut self, maximum: usize) -> Result<Self, CheesConfigError> {
+        self.max_integration_steps =
+            Some(std::num::NonZeroUsize::new(maximum).ok_or(CheesConfigError::IntegrationCount)?);
+        Ok(self)
     }
 
     /// Produces the next deterministic shared warmup plan using a base-two
@@ -234,7 +252,11 @@ impl CheesEnsembleAdapter {
             .halton_index
             .checked_add(1)
             .ok_or(CheesConfigError::IntegrationCount)?;
-        let maximum = integration_count(self.log_trajectory.exp(), self.step)?;
+        let maximum = bounded_integration_count(
+            self.log_trajectory.exp(),
+            self.step,
+            self.max_integration_steps,
+        )?;
         let integration_steps = 1
             + (halton_base_two(self.halton_index) * maximum as f64)
                 .floor()
@@ -325,12 +347,15 @@ impl CheesEnsembleAdapter {
             .hypot((1.0 - TRAJECTORY_BETA2).sqrt() * gradient);
         let correction = -(iterations as f64 * TRAJECTORY_BETA2.ln()).exp_m1();
         let normalized = gradient / (rms / correction.sqrt() + TRAJECTORY_EPSILON);
-        let log_trajectory = (self.log_trajectory + TRAJECTORY_RATE * normalized)
+        let mut log_trajectory = (self.log_trajectory + TRAJECTORY_RATE * normalized)
             .clamp(self.min_log_trajectory, self.max_log_trajectory);
         if !rms.is_finite() || !log_trajectory.is_finite() {
             return Err(CheesConfigError::Observation);
         }
-        integration_count(log_trajectory.exp(), step)?;
+        if let Some(cap) = self.max_integration_steps {
+            log_trajectory = log_trajectory.min(step.value().ln() + (cap.get() as f64).ln());
+        }
+        bounded_integration_count(log_trajectory.exp(), step, self.max_integration_steps)?;
         self.step_controller = step_controller;
         self.step = step;
         self.trajectory_rms = rms;
@@ -358,10 +383,11 @@ impl CheesEnsembleAdapter {
         } else {
             self.log_trajectory_average.exp()
         };
-        integration_count(max_trajectory_time, step_size)?;
+        bounded_integration_count(max_trajectory_time, step_size, self.max_integration_steps)?;
         Ok(FrozenCheesParameters {
             step_size,
             max_trajectory_time,
+            max_integration_steps: self.max_integration_steps,
         })
     }
 }
@@ -440,6 +466,21 @@ fn criterion_terms(
             }
             (initial * initial, proposal * proposal, proposal * velocity)
         }
+    }
+}
+
+fn bounded_integration_count(
+    time: f64,
+    step: StepSize,
+    maximum: Option<std::num::NonZeroUsize>,
+) -> Result<usize, CheesConfigError> {
+    if let Some(cap) = maximum {
+        if !time.is_finite() || time <= 0. {
+            return Err(CheesConfigError::TrajectoryTime);
+        }
+        Ok((time / step.value()).ceil().min(cap.get() as f64).max(1.) as usize)
+    } else {
+        integration_count(time, step)
     }
 }
 
@@ -550,5 +591,33 @@ mod tests {
         };
         assert!((axis.iter().map(|x| x * x).sum::<f64>() - 1.0).abs() < 1e-15);
         assert!(CheesCriterion::difficult_direction(&[0.0, 0.0]).is_err());
+    }
+}
+
+#[cfg(test)]
+mod work_budget_tests {
+    use super::*;
+    use rand::{SeedableRng, rngs::SmallRng};
+    #[test]
+    fn a_small_step_cannot_escape_the_declared_warmup_or_frozen_budget() {
+        let mut adapter = CheesEnsembleAdapter::new(
+            2,
+            1e-8.try_into().unwrap(),
+            1.,
+            1e-4,
+            10.,
+            CheesCriterion::Global,
+        )
+        .unwrap()
+        .with_max_integration_steps(17)
+        .unwrap();
+        for _ in 0..20 {
+            assert!(adapter.next_plan().unwrap().integration_steps <= 17);
+        }
+        let frozen = adapter.finish().unwrap();
+        let mut rng = SmallRng::seed_from_u64(27);
+        for _ in 0..1000 {
+            assert!(frozen.sample_plan(&mut rng).integration_steps <= 17);
+        }
     }
 }

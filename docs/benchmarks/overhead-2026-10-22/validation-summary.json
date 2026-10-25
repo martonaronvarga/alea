@@ -1,0 +1,146 @@
+{
+  "overhead-baseline-build.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  },
+  "overhead-turning-tests.log": {
+    "passed": 15,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 1
+  },
+  "overhead-turning-build.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  },
+  "overhead-kernel-tests.log": {
+    "passed": 78,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 1
+  },
+  "overhead-diagnostics-tests.log": {
+    "passed": 7,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 2
+  },
+  "overhead-diagnostics-final-tests.log": {
+    "passed": 9,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 2
+  },
+  "overhead-contracts.log": {
+    "passed": 27,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 7
+  },
+  "overhead-runtime-contracts.log": {
+    "passed": 19,
+    "failed": 0,
+    "ignored": 1,
+    "suites": 3
+  },
+  "overhead-clippy.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  },
+  "overhead-clippy02.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  },
+  "overhead-worker-build.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  },
+  "overhead-worker-build02.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  },
+  "overhead-final-native-build.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  },
+  "overhead-final-native-build02.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  },
+  "overhead-final-native-build03.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  },
+  "overhead-fair-baseline-build.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  },
+  "overhead-workspace-check.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  },
+  "overhead-workspace-tests.log": {
+    "passed": 443,
+    "failed": 0,
+    "ignored": 1,
+    "suites": 99
+  },
+  "overhead-rustdoc.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  },
+  "overhead-feature-tests.log": {
+    "passed": 18,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 1
+  },
+  "overhead-feature-contracts.log": {
+    "passed": 15,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 3
+  },
+  "overhead-feature-runtime.log": {
+    "passed": 18,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 2
+  },
+  "overhead-miri.log": {
+    "passed": 2,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 2
+  },
+  "overhead-api-check.log": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 0
+  }
+}

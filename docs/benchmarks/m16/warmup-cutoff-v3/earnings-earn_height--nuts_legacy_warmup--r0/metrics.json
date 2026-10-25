@@ -1,0 +1,91 @@
+{
+  "constrained": {
+    "coordinates": [
+      {
+        "name": "beta.1",
+        "summary": {
+          "bulk_ess": 4.309961003878474,
+          "error": null,
+          "mcse": 0.5134206875323887,
+          "mean": 0.48321979211615873,
+          "rhat": 4.239234546958409,
+          "sd": 1.0349588245078347,
+          "tail_ess": 10.974319022763467
+        }
+      },
+      {
+        "name": "beta.2",
+        "summary": {
+          "bulk_ess": 4.27260864374893,
+          "error": null,
+          "mcse": 0.43908035156414305,
+          "mean": 0.6903330922933957,
+          "rhat": 4.566991015455479,
+          "sd": 0.8851027931628607,
+          "tail_ess": 11.377365755661684
+        }
+      },
+      {
+        "name": "sigma",
+        "summary": {
+          "bulk_ess": 4.272314234109077,
+          "error": null,
+          "mcse": 0.6741850486973751,
+          "mean": 1.6438150138509315,
+          "rhat": 4.566991015455479,
+          "sd": 1.366093532251413,
+          "tail_ess": 11.432177065427735
+        }
+      }
+    ],
+    "depth_saturations": null,
+    "divergences": null,
+    "draws": 2048,
+    "integration_steps": null
+  },
+  "schema_version": 2,
+  "unconstrained": {
+    "coordinates": [
+      {
+        "name": "q0",
+        "summary": {
+          "bulk_ess": 4.309961003878474,
+          "error": null,
+          "mcse": 0.5134206875323887,
+          "mean": 0.48321979211615873,
+          "rhat": 4.239234546958409,
+          "sd": 1.0349588245078347,
+          "tail_ess": 10.974319022763467
+        }
+      },
+      {
+        "name": "q1",
+        "summary": {
+          "bulk_ess": 4.27260864374893,
+          "error": null,
+          "mcse": 0.43908035156414305,
+          "mean": 0.6903330922933957,
+          "rhat": 4.566991015455479,
+          "sd": 0.8851027931628607,
+          "tail_ess": 11.377365755661684
+        }
+      },
+      {
+        "name": "q2",
+        "summary": {
+          "bulk_ess": 4.272314234109077,
+          "error": null,
+          "mcse": 0.43133105905110525,
+          "mean": 0.13321139515400227,
+          "rhat": 4.566991015455479,
+          "sd": 0.8702612954621525,
+          "tail_ess": 11.432177065427735
+        }
+      }
+    ],
+    "depth_saturations": 9,
+    "divergences": 0,
+    "draws": 2048,
+    "integration_steps": 16750
+  }
+}

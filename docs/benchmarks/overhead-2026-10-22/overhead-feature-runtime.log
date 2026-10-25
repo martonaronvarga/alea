@@ -1,0 +1,33 @@
+   Compiling alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
+   Compiling alea-runtime v0.1.0 (/home/usu/documents/dev/alea/crates/alea-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.42s
+     Running tests/modern.rs (target/remaining-feature-nightly/debug/deps/modern-414598c8113d7e8d)
+
+running 2 tests
+test diagnostics_are_scale_invariant_and_reject_missing_or_constant_energies ... ok
+test executed_arviz_rank_folded_bulk_tail_mcse_and_energy_fixtures ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/session.rs (target/remaining-feature-nightly/debug/deps/session-dc64843b1830a53e)
+
+running 16 tests
+test all_resource_products_and_pool_limits_are_admitted_before_work ... ok
+test cancellation_during_warmup_has_no_partial_geometry_or_checkpoint ... ok
+test numerical_exhaustion_retains_rejected_states_without_invented_hamiltonian_stats ... ok
+test bounded_channel_backpressure_subscriber_loss_and_observer_panics_return_pending_draw ... ok
+test pre_cancel_and_zero_deadline_do_not_create_targets ... ok
+test nonfinite_initial_evaluations_are_numerical_while_factory_errors_remain_backend_failures ... ok
+test restart_refuses_changed_target_cache_ids_kernel_shape_or_seed ... ok
+test failures_preserve_completed_draws_original_errors_and_join_all_workers ... ok
+test sink_finalization_panic_is_an_outcome_after_every_worker_has_joined ... ok
+test native_model_factory_needs_neither_send_nor_sync_target ... ok
+test concurrent_cancellation_restarts_each_logical_stream_at_its_own_completed_index ... ok
+test durable_prefix_roundtrip_storage_budget_and_incompatible_provenance ... ok
+test nuts_session_native_warmup_reaches_a_narrow_posterior_from_distant_starts ... ok
+test serial_rayon_and_streamed_collected_outputs_match_for_all_reference_kernels ... ok
+test cancelled_durable_checkpoints_replay_odd_dimensional_normal_cache_and_dense_mass ... ok
+test streaming_peak_memory_does_not_grow_with_draw_budget_and_finish_runs_after_join ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+

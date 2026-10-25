@@ -1,0 +1,173 @@
+{
+  "phases": [
+    {
+      "chain": 0,
+      "frozen": {
+        "step": 0.13530488177072625,
+        "warmup_integration_steps": 4100
+      },
+      "retained_seconds": 0.035092177,
+      "warmup_seconds": 0.997624819,
+      "work_after": {
+        "domain_rejections": 3,
+        "gradient_api_calls": 9132,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": "log_density_gradient() failed with exception: Exception: normal_lpdf: Scale parameter is 0, but must be positive! (in '/home/usu/documents/dev/alea/target/m16b-models-01/sblri-blr/bridge/model.stan', line 16, column 2 to column 45)\n",
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 0,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before_retained": {
+        "domain_rejections": 3,
+        "gradient_api_calls": 4101,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": "log_density_gradient() failed with exception: Exception: normal_lpdf: Scale parameter is 0, but must be positive! (in '/home/usu/documents/dev/alea/target/m16b-models-01/sblri-blr/bridge/model.stan', line 16, column 2 to column 45)\n",
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 0,
+      "serialization_seconds": 0.004255795
+    },
+    {
+      "chain": 1,
+      "frozen": {
+        "step": 0.011521308023770578,
+        "warmup_integration_steps": 4088
+      },
+      "retained_seconds": 0.046372289,
+      "warmup_seconds": 0.019467037,
+      "work_after": {
+        "domain_rejections": 13,
+        "gradient_api_calls": 21566,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": "log_density_gradient() failed with exception: Exception: normal_lpdf: Scale parameter is 0, but must be positive! (in '/home/usu/documents/dev/alea/target/m16b-models-01/sblri-blr/bridge/model.stan', line 16, column 2 to column 45)\n",
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 3,
+        "gradient_api_calls": 9132,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": "log_density_gradient() failed with exception: Exception: normal_lpdf: Scale parameter is 0, but must be positive! (in '/home/usu/documents/dev/alea/target/m16b-models-01/sblri-blr/bridge/model.stan', line 16, column 2 to column 45)\n",
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before_retained": {
+        "domain_rejections": 13,
+        "gradient_api_calls": 13221,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": "log_density_gradient() failed with exception: Exception: normal_lpdf: Scale parameter is 0, but must be positive! (in '/home/usu/documents/dev/alea/target/m16b-models-01/sblri-blr/bridge/model.stan', line 16, column 2 to column 45)\n",
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 1,
+      "serialization_seconds": 0.004159294
+    },
+    {
+      "chain": 2,
+      "frozen": {
+        "step": 0.13387295750666225,
+        "warmup_integration_steps": 4099
+      },
+      "retained_seconds": 0.02769232,
+      "warmup_seconds": 0.020393145,
+      "work_after": {
+        "domain_rejections": 17,
+        "gradient_api_calls": 30907,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": "log_density_gradient() failed with exception: Exception: normal_lpdf: Scale parameter is 0, but must be positive! (in '/home/usu/documents/dev/alea/target/m16b-models-01/sblri-blr/bridge/model.stan', line 16, column 2 to column 45)\n",
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 13,
+        "gradient_api_calls": 21566,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": "log_density_gradient() failed with exception: Exception: normal_lpdf: Scale parameter is 0, but must be positive! (in '/home/usu/documents/dev/alea/target/m16b-models-01/sblri-blr/bridge/model.stan', line 16, column 2 to column 45)\n",
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before_retained": {
+        "domain_rejections": 17,
+        "gradient_api_calls": 25666,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": "log_density_gradient() failed with exception: Exception: normal_lpdf: Scale parameter is 0, but must be positive! (in '/home/usu/documents/dev/alea/target/m16b-models-01/sblri-blr/bridge/model.stan', line 16, column 2 to column 45)\n",
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 2,
+      "serialization_seconds": 0.003877818
+    },
+    {
+      "chain": 3,
+      "frozen": {
+        "step": 0.14019858555748274,
+        "warmup_integration_steps": 4083
+      },
+      "retained_seconds": 0.027819549,
+      "warmup_seconds": 0.02298454,
+      "work_after": {
+        "domain_rejections": 23,
+        "gradient_api_calls": 39988,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": "log_density_gradient() failed with exception: Exception: normal_lpdf: Scale parameter is 0, but must be positive! (in '/home/usu/documents/dev/alea/target/m16b-models-01/sblri-blr/bridge/model.stan', line 16, column 2 to column 45)\n",
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 17,
+        "gradient_api_calls": 30907,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": "log_density_gradient() failed with exception: Exception: normal_lpdf: Scale parameter is 0, but must be positive! (in '/home/usu/documents/dev/alea/target/m16b-models-01/sblri-blr/bridge/model.stan', line 16, column 2 to column 45)\n",
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before_retained": {
+        "domain_rejections": 23,
+        "gradient_api_calls": 34991,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": "log_density_gradient() failed with exception: Exception: normal_lpdf: Scale parameter is 0, but must be positive! (in '/home/usu/documents/dev/alea/target/m16b-models-01/sblri-blr/bridge/model.stan', line 16, column 2 to column 45)\n",
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 3,
+      "serialization_seconds": 0.003711902
+    }
+  ],
+  "work": {
+    "domain_rejections": 23,
+    "gradient_api_calls": 39988,
+    "hessian_api_calls": 0,
+    "hvp_api_calls": 0,
+    "last_domain_error": "log_density_gradient() failed with exception: Exception: normal_lpdf: Scale parameter is 0, but must be positive! (in '/home/usu/documents/dev/alea/target/m16b-models-01/sblri-blr/bridge/model.stan', line 16, column 2 to column 45)\n",
+    "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+    "third_ad_api_calls": 0
+  }
+}

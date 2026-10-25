@@ -74,6 +74,58 @@ fn buffer(values: &[f64]) -> OwnedBuffer {
 }
 
 #[test]
+fn owned_update_exchanges_storage_only_after_a_complete_success() {
+    use std::panic::{AssertUnwindSafe, catch_unwind};
+    let target = Target::new(17);
+    let mut point = PointState::new(&target, OwnedBuffer::from_fn(17, |_| 1.0)).unwrap();
+    let mut candidate = OwnedBuffer::from_fn(17, |_| 2.0);
+    let mut scratch = EvaluationWorkspace::new(17);
+    let old_pointer = point.position().as_ptr();
+    let new_pointer = candidate.as_ptr();
+    for mode in [
+        Mode::Error,
+        Mode::Panic,
+        Mode::Partial,
+        Mode::Log(f64::NAN),
+        Mode::Gradient(f64::INFINITY),
+    ] {
+        target.mode.set(mode);
+        let result = catch_unwind(AssertUnwindSafe(|| {
+            point.try_update_owned(&mut candidate, &mut scratch)
+        }));
+        assert!(!matches!(result, Ok(Ok(()))));
+        assert_eq!(point.position().as_ptr(), old_pointer);
+        assert_eq!(candidate.as_ptr(), new_pointer);
+        assert!(point.position().iter().all(|q| *q == 1.0));
+        assert!(point.gradient().iter().all(|g| *g == -1.0));
+        assert_eq!(point.log_density(), -8.5);
+        assert!(candidate.iter().all(|q| *q == 2.0));
+    }
+    target.mode.set(Mode::Good);
+    point
+        .try_update_owned(&mut candidate, &mut scratch)
+        .unwrap();
+    assert_eq!(point.position().as_ptr(), new_pointer);
+    assert_eq!(candidate.as_ptr(), old_pointer);
+    assert!(point.position().iter().all(|q| *q == 2.0));
+    assert!(point.gradient().iter().all(|g| *g == -2.0));
+    assert_eq!(point.log_density(), -34.0);
+    assert!(candidate.iter().all(|q| *q == 1.0));
+    let mut wrong = OwnedBuffer::new(16);
+    assert!(matches!(
+        point.try_update_owned(&mut wrong, &mut scratch),
+        Err(EvaluationError::Dimension(_))
+    ));
+    target.dimension.set(16);
+    assert!(matches!(
+        point.try_update_owned(&mut candidate, &mut scratch),
+        Err(EvaluationError::TargetDimensionChanged { .. })
+    ));
+    assert_eq!(point.position().as_ptr(), new_pointer);
+    assert_eq!(candidate.as_ptr(), old_pointer);
+}
+
+#[test]
 fn wrong_shapes_do_not_invoke_target_or_modify_output() {
     for n in [0, 1, 2, 7, 33] {
         let target = Target::new(n);

@@ -1,0 +1,40 @@
+{
+  "workspace": {
+    "suites": 102,
+    "passed": 455,
+    "failed": 0,
+    "ignored": 1,
+    "log": "workspace-final.log"
+  },
+  "final_targeted": [
+    "final-contracts.log",
+    "checkpoint-final.log",
+    "diagonal-replay.log"
+  ],
+  "clippy_warnings_denied": [
+    "clippy-complete.log",
+    "profile-clippy.log"
+  ],
+  "rustdoc_warnings_denied": "rustdoc.log",
+  "backends_simd_faer_openblas": "backends.log",
+  "strict_miri": [
+    "miri-final.log",
+    "miri-inverse.log"
+  ],
+  "executed_enzyme": [
+    "enzyme.log",
+    "enzyme-final.log"
+  ],
+  "api": {
+    "rendered_entries": 7079,
+    "new_unique_entries": 55,
+    "removed_unique_entries": 0,
+    "neutral_variants": 5,
+    "compiler": "rustc1.97.0-nightly7af3402cd",
+    "logs": [
+      "api-render-final.log"
+    ]
+  },
+  "metadata_mutation_tests": 55,
+  "limits": "Full workspace run followed by final targeted pool-capacity/checkpoint refinements. Other final checks include these refinements. Validation archive retains initial corrected preparation failures as well as passing final outcomes."
+}

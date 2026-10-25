@@ -1,0 +1,71 @@
+{
+  "cases": [
+    "Rate_1_data-Rate_1_model",
+    "Rate_2_data-Rate_2_model",
+    "Rate_5_data-Rate_5_model",
+    "arK-arK",
+    "arma-arma11",
+    "garch-garch11",
+    "dogs-dogs_log",
+    "earnings-earn_height",
+    "earnings-logearn_interaction_z",
+    "eight_schools-eight_schools_centered",
+    "eight_schools-eight_schools_noncentered",
+    "low_dim_gauss_mix_collapse-low_dim_gauss_mix_collapse",
+    "normal_2-normal_mixture",
+    "sblri-blr",
+    "wells_data-wells_dist100_model",
+    "kidiq-kidscore_momhs",
+    "seeds_data-seeds_stanified_model",
+    "surgical_data-surgical_model",
+    "radon_mn-radon_variable_intercept_noncentered",
+    "hmm_example-hmm_example"
+  ],
+  "chains": 4,
+  "corpus": "tools/bench/corpus/pdb-v3.json",
+  "depth": 8,
+  "draws": 1024,
+  "id": "m16-posteriordb-native-nuts-parity-v3",
+  "maximum_output_bytes": 268435456,
+  "methods": [
+    "nuts_cov_diag",
+    "nuts_grad_diag",
+    "nuts_rs"
+  ],
+  "notes": [
+    "Descriptive native-backend observations; no promotion score, automatic selection or required ESS/s speedup.",
+    "Twenty pinned PosteriorDB model/data pairs, not the entire PosteriorDB catalogue. All density ports must pass independent Stan density-difference, gradient and potential-HVP checks before native jobs; unavailable translations never fall back to callbacks.",
+    "Alea and nuts-rs use the same ahead-of-time Enzyme Rust target in the native lane. This is both a native Rust workflow comparison and a shared-backend comparison of sampling plus adaptation. nuts-rs has no separate modeling compiler in this protocol. Shared-Stan companion runs hold BridgeStan constant instead.",
+    "BlackJAX uses float64 CPU native JAX densities on every admitted case. CmdStan uses its compiled C++ model and Stan AD. Versions, compiler, source/data bytes, binaries, starts and seed identities are sealed. Seed labels do not imply equal random-number streams across engines.",
+    "Cold process wall time uses perf_counter_ns and Linux pidfd completion. Rust Instant and synchronized JAX phase clocks separate warmup, retention and serialization; JIT time is recorded separately but already included in process wall time. Compilation outside jobs is recorded as batch preparation cost, with cache status explicit; it is not a comparable per-model cold compilation experiment.",
+    "Native derivatives use no Stan calls. BridgeStan remains loaded for coordinate names and post-timing constrained output only; those costs appear in cold process/output time. Rust retained scopes include position collection; CmdStan includes native CSV/generated quantities. No pure-kernel claim is inferred from unequal output scopes.",
+    "Serial mode pins all chains to one CPU and runs them sequentially. Parallel mode launches one worker per chain on distinct allowed CPUs, merges draws by logical chain identity, and computes pooled diagnostics afterward. Parallel end-to-end time includes worker setup and merging. The sum of individual chain RSS peaks is an upper bound, not simultaneous aggregate RSS.",
+    "Every failed, timed-out, unsupported, divergent and repeated draw remains accounted for. Rank R-hat, bulk/tail ESS, MCSE and reference discrepancies accompany walltime, ESS/s and capability-specific API counts. Missing counters remain null; gradients, HVPs and third derivatives have no invented equal-cost conversion.",
+    "Library-specific adaptation policies remain declared and may differ. Frozen-geometry kernel microbenchmarks are separate evidence; these workflows compare adaptation plus retained sampling.",
+    "Research samplers remain opt-in. MCLMC is approximate; RMHMC is exactness-pending even with real Enzyme third derivatives. Dense manifold methods use separate dimension and iteration budgets; no default or maturity changes follow from this experiment.",
+    "Stan 2.38 HMM simplex coordinates use the ILR transform (sqrt(2)*q for K=2), not the older stick-breaking coordinate. Dogs uses a stable native Bernoulli-logit expression; an independent Decimal80 oracle validates density/score because the original inv_logit-then-bernoulli Stan density loses about2e-6 at a shared start. The actual Stan value is preserved in conformance artifacts.",
+    "Conformance includes shared starts, deterministic perturbations/tails and reference-mean-derived coordinates where all base parameters have reference summaries. Potential HVP signs are checked against independent score differences, and dense third derivatives against Hessian differences at the first finite point. Reference-free models retain that explicit coverage limitation.",
+    "NUTS performance repair follow-up. Covariance NUTS remains the existing reference; nuts_grad_diag explicitly selects conventional paired position/score diagonal adaptation, growing background windows, and late symmetric acceptance. Its retained kernel uses the same enhanced generalized turning as covariance NUTS. This is an opt-in workflow, not an automatic default replacement.",
+    "Detailed Alea warmup tracing is disabled by this sealed protocol. Prior v3 workflows traced Alea during timed warmup but did not trace nuts-rs. Final warmup summaries, failures, work counters and retained diagnostics remain recorded. The historical traced results remain immutable and are not a single-factor kernel comparison.",
+    "Gradient-informed initialization clips abs(score) below at1 rather than nuts-rs1e-20. All live repeated states enter paired moments, unlike the nuts-rs accepted-state filter. nuts-rs retains its own turning, jitter and warmup policy. Equal seed labels do not force equal random streams or trajectories."
+  ],
+  "purpose": "descriptive",
+  "repetitions": 3,
+  "report_work_metrics": true,
+  "rmhmc": {
+    "draws": 64,
+    "maximum_dimension": 10,
+    "timeout_seconds": 120,
+    "warmup": 32
+  },
+  "schema_version": 3,
+  "seeds": [
+    18001,
+    18002,
+    18003,
+    18004
+  ],
+  "timeout_seconds": 600,
+  "warmup": 512,
+  "record_warmup_trace": false
+}

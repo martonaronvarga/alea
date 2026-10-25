@@ -5,6 +5,13 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 publish.workspace = true
+license = "GPL-3.0-or-later"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+description = "Normalized probability distributions and native Alea models"
+keywords = ["bayesian", "statistics", "inference"]
+categories = ["science", "mathematics"]
 
 [lints]
 workspace = true
@@ -16,11 +23,13 @@ alea-ffi.workspace = true
 rand.workspace = true
 thiserror.workspace = true
 once_cell.workspace = true
+statrs.workspace = true
 
 [dev-dependencies]
 approx.workspace = true
 criterion.workspace = true
 pprof.workspace = true
+allocation-counter.workspace = true
 
 [features]
 default = []

@@ -12,7 +12,7 @@ use super::{
 };
 use crate::{
     Hmc, HmcOptions,
-    atlas::{AtlasProbeError, AtlasProbeOptions, probe_metric_curvature},
+    atlas::{CurvatureProbeError, CurvatureProbeOptions, probe_metric_curvature},
     config::StepSize,
     hmc::HmcError,
     integrator::{AdvancedIntegratorError, CurvatureBound, TwoStage, select_saia_two_stage},
@@ -22,15 +22,15 @@ use crate::{
 /// adaptation state is consumed before the returned chain can sample.
 #[derive(Debug, Clone, Copy)]
 pub struct JointWarmupOptions {
-    base: WarmupOptions,
-    curvature_probe: AtlasProbeOptions,
-    curvature_inflation: f64,
+    pub(super) base: WarmupOptions,
+    pub(super) curvature_probe: CurvatureProbeOptions,
+    pub(super) curvature_inflation: f64,
 }
 
 impl JointWarmupOptions {
     pub fn new(
         base: WarmupOptions,
-        curvature_probe: AtlasProbeOptions,
+        curvature_probe: CurvatureProbeOptions,
         curvature_inflation: f64,
     ) -> Result<Self, AdvancedIntegratorError> {
         // Validate independently of an observed estimate.
@@ -72,7 +72,7 @@ pub enum JointWarmupError<E: Error + 'static> {
     #[error(transparent)]
     Adaptation(#[from] AdaptationError),
     #[error(transparent)]
-    Curvature(#[from] AtlasProbeError<E>),
+    Curvature(#[from] CurvatureProbeError<E>),
     #[error(transparent)]
     Integrator(#[from] AdvancedIntegratorError),
     #[error("step-size search did not bracket acceptance within its limits")]

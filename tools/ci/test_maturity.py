@@ -24,6 +24,15 @@ class MaturityGuardTests(unittest.TestCase):
     def test_current_inventory_passes(self):
         maturity.validate(self.root, self.ledger)
 
+    def test_unlisted_item_fails(self):
+        self.check_rejected(lambda ledger: ledger["api_items"].pop())
+
+    def test_research_item_cannot_cross_open_gate(self):
+        def promote(ledger):
+            entry = next(item for item in ledger["api_items"] if "promotion_gate" in item)
+            entry["profile"] = "validated_component_reference"
+        self.check_rejected(promote)
+
     def test_unlisted_public_module_fails(self):
         self.check_rejected(lambda ledger: ledger["source_modules"].pop())
 
@@ -44,12 +53,40 @@ class MaturityGuardTests(unittest.TestCase):
             )
         )
 
+    def test_unlisted_root_item_fails(self):
+        self.check_rejected(lambda ledger: ledger["root_items"].pop())
+
+    def test_duplicate_root_item_fails(self):
+        self.check_rejected(
+            lambda ledger: ledger["root_items"].__setitem__(
+                1, copy.deepcopy(ledger["root_items"][0])
+            )
+        )
+
     def test_api_namespace_must_match_crate(self):
         self.check_rejected(
             lambda ledger: ledger["api_namespaces"][0].__setitem__(
                 "path", "wrong::reference"
             )
         )
+
+    def test_reference_namespace_requires_reference_adoption(self):
+        self.check_rejected(
+            lambda ledger: ledger["api_namespaces"][0].__setitem__(
+                "profile", "validated_component_opt_in"
+            )
+        )
+
+    def test_approximate_namespace_requires_approximate_target(self):
+        def relabel(ledger):
+            entry = next(
+                item
+                for item in ledger["api_namespaces"]
+                if item["path"] == "alea_mcmc::approximate"
+            )
+            entry["profile"] = "research_exact"
+
+        self.check_rejected(relabel)
 
     def test_unknown_profile_fails(self):
         self.check_rejected(

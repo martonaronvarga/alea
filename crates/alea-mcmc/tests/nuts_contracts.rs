@@ -58,14 +58,16 @@ impl LogDensityGradient for Target {
     }
 }
 fn failures<I: Integrator + Copy>(integrator: I) {
-    for mode in [1, 2] {
+    for (mode, position) in [(1, false), (2, false), (1, true), (2, true)] {
         for call in 1..=8 {
             let target = Target::new(false);
             let mut chain = Nuts::new_with_integrator(
                 &target,
                 OwnedBuffer::new(2),
                 IdentityMetric::new(2),
-                NutsOptions::new(1e-5, 4).unwrap(),
+                NutsOptions::new(1e-5, 4)
+                    .unwrap()
+                    .with_position_turning(position),
                 integrator,
             )
             .unwrap();
@@ -174,4 +176,83 @@ fn frozen_covariance_and_fisher_warmups_convert_without_evaluation() {
     assert_eq!(target.calls.get(), calls);
     assert_eq!(nuts.options().step_size(), step);
     let _ = nuts.step(&mut rng).unwrap();
+}
+
+#[test]
+fn cached_velocities_are_rebuilt_and_metric_failures_recover_without_committing() {
+    use alea_math::metric::{EuclideanMetric, MetricError};
+    use alea_mcmc::hamiltonian::PhaseError;
+    struct Metric {
+        calls: Cell<usize>,
+        fail: Cell<usize>,
+        panic: bool,
+    }
+    impl EuclideanMetric for Metric {
+        fn dimension(&self) -> usize {
+            2
+        }
+        fn velocity(&self, p: &[f64], v: &mut [f64]) -> Result<(), MetricError> {
+            self.calls.set(self.calls.get() + 1);
+            v[0] = f64::NAN;
+            if self.calls.get() == self.fail.get() {
+                assert!(!self.panic, "injected metric panic");
+                return Err(MetricError::IllConditionedCorrection);
+            }
+            v.copy_from_slice(p);
+            Ok(())
+        }
+        fn sample_momentum(&self, z: &[f64], p: &mut [f64]) -> Result<(), MetricError> {
+            p.copy_from_slice(z);
+            Ok(())
+        }
+        fn log_det(&self) -> f64 {
+            0.
+        }
+    }
+    // A full depth-four tree needs one initial and two per-edge applications.
+    let failures: Vec<_> = if cfg!(miri) {
+        vec![1, 2, 3, 16, 31]
+    } else {
+        (1..=31).collect()
+    };
+    for panic in [false, true] {
+        for &fail in &failures {
+            let target = Target::new(true);
+            let metric = Metric {
+                calls: Cell::new(0),
+                fail: Cell::new(fail),
+                panic,
+            };
+            let mut chain = Nuts::new(
+                &target,
+                OwnedBuffer::new(2),
+                metric,
+                NutsOptions::new(0.01, 4).unwrap(),
+            )
+            .unwrap();
+            let mut rng = SmallRng::seed_from_u64(13);
+            let result = catch_unwind(AssertUnwindSafe(|| chain.step(&mut rng)));
+            if panic {
+                assert!(result.is_err());
+            } else {
+                assert!(matches!(
+                    result.unwrap(),
+                    Err(NutsError::Phase {
+                        source: PhaseError::Metric(MetricError::IllConditionedCorrection),
+                        ..
+                    })
+                ));
+            }
+            assert_eq!(chain.point().position(), [0., 0.]);
+            chain.metric().fail.set(0);
+            // Repeated transitions exercise momentum refresh and pool reuse.
+            for _ in 0..3 {
+                chain.metric().calls.set(0);
+                let info = chain.step(&mut rng).unwrap();
+                assert_eq!(info.integration_steps, 15);
+                assert_eq!(chain.metric().calls.get(), 31);
+                assert_eq!(info.acceptance_probability, 1.);
+            }
+        }
+    }
 }

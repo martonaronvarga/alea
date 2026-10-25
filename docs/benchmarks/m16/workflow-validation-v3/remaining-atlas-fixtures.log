@@ -1,0 +1,9 @@
+   Compiling alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.75s
+     Running unittests src/lib.rs (crates/target/debug/deps/alea_mcmc-d221f25799802e07)
+
+running 1 test
+test atlas_sampler::tests::independent_harmonic_proposal_fixtures_cover_every_branch_and_support_boundary ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 0.12s
+

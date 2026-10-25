@@ -7,18 +7,21 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.95"
 authors = ["Marton Aron Varga <martonaronvarga@gmail.com>"]
+repository = "https://github.com/martonaronvarga/alea"
+homepage = "https://github.com/martonaronvarga/alea"
+license = "MIT OR Apache-2.0"
 publish = false
 
 [workspace.dependencies]
-alea-math = { path = "alea-math" }
-alea-core = { path = "alea-core" }
-alea-distributions = { path = "alea-distributions" }
-alea-autodiff = { path = "alea-autodiff" }
-alea-mcmc = { path = "alea-mcmc" }
-alea-runtime = { path = "alea-runtime" }
-alea-smc = { path = "alea-smc" }
-alea-ffi = { path = "alea-ffi" }
-alea-cli = { path = "alea-cli" }
+alea-math = { version = "0.1.0", path = "alea-math" }
+alea-core = { version = "0.1.0", path = "alea-core" }
+alea-distributions = { version = "0.1.0", path = "alea-distributions" }
+alea-autodiff = { version = "0.1.0", path = "alea-autodiff" }
+alea-mcmc = { version = "0.1.0", path = "alea-mcmc" }
+alea-runtime = { version = "0.1.0", path = "alea-runtime" }
+alea-smc = { version = "0.1.0", path = "alea-smc" }
+alea-ffi = { version = "0.1.0", path = "alea-ffi" }
+alea-cli = { version = "0.1.0", path = "alea-cli" }
 rand = "0.10.1"
 chacha20 = { version = "0.10", default-features = false, features = ["rng"] }
 rayon = "1.12"
@@ -36,6 +39,8 @@ cblas = "0.4"
 cc = "1.2"
 pkg-config = "0.3"
 aligned-vec = "=0.6.4"
+pulp = { version = "=0.22.3", default-features = false, features = ["std", "x86-v3"] }
+rand_distr = "=0.6.0"
 allocation-counter = "=0.8.1"
 proptest = { version = "1", default-features = false, features = ["std"] }
 criterion = "0.5"

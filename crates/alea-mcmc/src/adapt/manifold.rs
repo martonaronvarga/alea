@@ -12,7 +12,7 @@ use alea_core::{capability::PositionMetric, target::LogDensityGradient};
 use alea_math::buffer::OwnedBuffer;
 use rand::Rng;
 
-use crate::{Rmhmc, RmhmcError, RmhmcOptions, RmhmcTransition};
+use crate::riemannian::{ExactnessPendingRmhmc, RmhmcError, RmhmcOptions, RmhmcTransition};
 
 const MAX_CANDIDATES: usize = 64;
 
@@ -110,7 +110,7 @@ pub struct FrozenManifoldParameters {
 #[derive(Debug)]
 #[must_use = "consume manifold warmup with finish before retaining samples"]
 pub struct RmhmcManifoldWarmup<'a, T: LogDensityGradient + ?Sized, M: PositionMetric + ?Sized> {
-    chain: Rmhmc<'a, T, M>,
+    chain: ExactnessPendingRmhmc<'a, T, M>,
 }
 
 impl<'a, T, M> RmhmcManifoldWarmup<'a, T, M>
@@ -124,7 +124,7 @@ where
     ///
     /// # Errors
     /// Returns the same initial target, metric, shape, and factorization errors as
-    /// [`Rmhmc::new`].
+    /// [`ExactnessPendingRmhmc::new`].
     pub fn new(
         target: &'a T,
         metric: &'a M,
@@ -132,7 +132,7 @@ where
         initial: RmhmcOptions,
     ) -> Result<Self, RmhmcError<T::Error, M::Error>> {
         Ok(Self {
-            chain: Rmhmc::new(target, metric, position, initial)?,
+            chain: ExactnessPendingRmhmc::new(target, metric, position, initial)?,
         })
     }
 
@@ -154,7 +154,7 @@ where
     }
 
     /// Consumes the warmup boundary and returns a fixed retained kernel.
-    pub fn finish(mut self, frozen: FrozenManifoldParameters) -> Rmhmc<'a, T, M> {
+    pub fn finish(mut self, frozen: FrozenManifoldParameters) -> ExactnessPendingRmhmc<'a, T, M> {
         self.chain.install_options(frozen.options());
         self.chain
     }

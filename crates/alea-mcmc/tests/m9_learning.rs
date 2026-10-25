@@ -4,7 +4,7 @@ use alea_core::{target::LogDensityGradient, transport::FrozenTransportTarget};
 use alea_distributions::Gaussian;
 use alea_math::{affine::LowRankAffineMap, buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
-    Hmc, HmcOptions,
+    Hmc, HmcOptions, MarkovChain,
     adapt::{
         AffineTransportLearner, MultiPathfinderOptions, PathfinderError,
         ScoreInitializationOptions, TransportLearningOptions, learn_affine_transport,
@@ -217,4 +217,66 @@ fn exact_frozen_transport_preserves_target_measure() {
         assert!((mean - expected_mean[coordinate]).abs() < 0.08);
         assert!((variance - expected_variance[coordinate]).abs() < 0.3);
     }
+}
+
+struct HalfNormal;
+impl LogDensityGradient for HalfNormal {
+    type Error = Infallible;
+    fn dimension(&self) -> usize {
+        2
+    }
+    fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
+        if q[0] <= 0. {
+            return Ok(f64::NEG_INFINITY);
+        }
+        g[0] = -q[0];
+        g[1] = -q[1];
+        Ok(-0.5 * (q[0] * q[0] + q[1] * q[1]))
+    }
+}
+#[test]
+fn whitened_chees_rejects_support_zero_as_a_numerical_divergence() {
+    use alea_mcmc::{
+        adapt::{CheesCriterion, CheesEnsembleAdapter},
+        chees::{CheesHmc, CheesHmcOptions},
+        hamiltonian::Divergence,
+    };
+    let map = LowRankAffineMap::new(
+        OwnedBuffer::new(2),
+        OwnedBuffer::from_fn(2, |_| 1.),
+        OwnedBuffer::new(0),
+        OwnedBuffer::new(0),
+    )
+    .unwrap();
+    let target = FrozenTransportTarget::new(&HalfNormal, map).unwrap();
+    let frozen = CheesEnsembleAdapter::new(
+        2,
+        10.0.try_into().unwrap(),
+        10.,
+        1.,
+        10.,
+        CheesCriterion::Global,
+    )
+    .unwrap()
+    .finish()
+    .unwrap();
+    let mut s = CheesHmc::new(
+        &target,
+        OwnedBuffer::from_fn(2, |i| if i == 0 { 1e-3 } else { 0. }),
+        IdentityMetric::new(2),
+        CheesHmcOptions::new(frozen),
+    )
+    .unwrap();
+    let mut rng = StdRng::seed_from_u64(4401);
+    let mut zeros = 0;
+    for _ in 0..100 {
+        let o = s.step(&mut rng).unwrap();
+        if o.divergence == Some(Divergence::LogDensity) {
+            zeros += 1;
+            assert!(!o.accepted);
+            assert_eq!(o.acceptance_probability, 0.);
+        }
+        assert!(s.point().position()[0] > 0.);
+    }
+    assert!(zeros > 0);
 }

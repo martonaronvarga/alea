@@ -1,0 +1,119 @@
+name: Release preparation
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+    inputs:
+      candidate:
+        description: 'Run candidate compatibility checks (requires accepted baseline)'
+        type: boolean
+        default: false
+      baseline_ref:
+        description: 'Accepted previous source revision; required for candidate mode'
+        type: string
+        default: ''
+  schedule:
+    - cron: '19 3 * * 0'
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+jobs:
+  portable:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm, macos-15-intel, macos-15, windows-2025]
+        toolchain: ['1.95.0', stable]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Install declared compiler
+        env:
+          ALEA_TOOLCHAIN: ${{ matrix.toolchain }}
+        run: |
+          rustup toolchain install "$ALEA_TOOLCHAIN" --profile minimal
+          rustup default "$ALEA_TOOLCHAIN"
+          rustc -vV
+      - name: Reference contracts and docs
+        run: bash tools/ci/portable.sh
+      - name: Independent fresh project
+        run: python tools/release/fresh.py .
+  artifacts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
+      - name: Artifact contracts, API inventory and fresh archived-source workflow
+        run: |
+          nix develop .#release --command actionlint .github/workflows/release-validation.yml
+          nix develop .#stable --command bash -euo pipefail -c '
+            python3 -m unittest discover -s tools/release -p "test_*.py"
+            python3 tools/release/metadata.py
+            python3 tools/ci/public_api.py --validate
+            python3 tools/ci/api_compatibility.py
+            mkdir -p target/release-preparation
+            python3 tools/release/source.py target/release-preparation/alea-source.tar.gz
+            python3 tools/release/source.py target/release-preparation/alea-source-again.tar.gz
+            cmp target/release-preparation/alea-source.tar.gz target/release-preparation/alea-source-again.tar.gz
+            python3 tools/release/verify.py target/release-preparation/alea-source.tar.gz
+            tar -xzf target/release-preparation/alea-source.tar.gz -C target/release-preparation
+            python3 target/release-preparation/alea/tools/release/source.py target/release-preparation/reproduced.tar.gz
+            cmp target/release-preparation/alea-source.tar.gz target/release-preparation/reproduced.tar.gz
+            cargo fetch --manifest-path crates/Cargo.toml --locked
+            python3 tools/release/fresh.py target/release-preparation/alea
+            python3 tools/release/packages.py target/release-preparation/packages
+          '
+      - name: Candidate semantic compatibility (no self-baseline)
+        if: ${{ inputs.candidate || startsWith(github.ref, 'refs/tags/') }}
+        env:
+          ALEA_BASELINE_REF: ${{ inputs.baseline_ref || vars.ALEA_RELEASE_BASELINE_REF }}
+        run: |
+          set -euo pipefail
+          test -n "$ALEA_BASELINE_REF"
+          baseline=$(git rev-parse --verify --end-of-options "$ALEA_BASELINE_REF^{commit}")
+          test "$baseline" != "$(git rev-parse HEAD)"
+          git worktree add --detach "$RUNNER_TEMP/alea-baseline" "$baseline"
+          nix develop .#release --command python3 tools/release/metadata.py --candidate
+          nix develop .#release --command bash tools/release/semver.sh "$RUNNER_TEMP/alea-baseline"
+      - name: Preserve unsigned preparation artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: source-preparation-${{ github.run_id }}
+          path: |
+            target/release-preparation/alea-source.tar.gz
+            target/release-preparation/alea-source.tar.gz.sha256
+            target/release-preparation/packages/*.crate
+            target/release-preparation/packages/packages.json
+          if-no-files-found: error
+  operations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
+      - name: Native C allocation/callback failures under ASan and UBSan
+        run: nix develop .#stable --command bash tools/ci/native-sanitizers.sh
+      - name: Parser mutations, configuration/layout properties and bounded operational soak
+        run: |
+          nix develop .#stable --command bash -euo pipefail -c '
+            PROPTEST_CASES=1024 cargo test --manifest-path crates/Cargo.toml --locked -p alea-core --test transforms
+            cargo test --manifest-path crates/Cargo.toml --locked -p alea-runtime --test release_boundaries
+            cargo test --manifest-path crates/Cargo.toml --locked -p alea-runtime --test release_boundaries -- --ignored
+          '

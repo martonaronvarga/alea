@@ -2,7 +2,9 @@
 
 use alea_core::target::LogDensityGradient;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
-use alea_mcmc::{Walnuts, WalnutsMicrostepDistribution, WalnutsOptions, WalnutsTermination};
+use alea_mcmc::walnuts::{
+    Walnuts, WalnutsMicrostepDistribution, WalnutsOptions, WalnutsTermination,
+};
 use rand::{SeedableRng, rngs::SmallRng};
 use std::{convert::Infallible, hint::black_box};
 

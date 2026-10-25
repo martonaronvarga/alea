@@ -1,6 +1,8 @@
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
-    ApproximateMclmc, ApproximateMclmcOptions, ApproximateTarget, Nuts, config::TreeDepth,
+    Nuts,
+    approximate::{ApproximateMclmc, ApproximateMclmcOptions, ApproximateTarget},
+    config::TreeDepth,
 };
 use rand::{SeedableRng, rngs::SmallRng};
 

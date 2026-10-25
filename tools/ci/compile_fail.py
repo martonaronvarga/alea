@@ -26,6 +26,7 @@ class Case:
 
 
 CASES = (
+    Case("parameter_support_mismatch", "E0308", ("Positive", "Real")),
     Case("phase_reuse", "E0382", ("phase", "moved")),
     Case("adaptation_after_freeze", "E0382", ("warmup", "moved")),
     Case(
@@ -37,6 +38,16 @@ CASES = (
         "approximate_into_exact_nuts",
         "E0308",
         ("ApproximateMclmc", "Hmc"),
+    ),
+    Case(
+        "exhaustive_transition_match",
+        "E0004",
+        ("non-exhaustive", "_"),
+    ),
+    Case(
+        "construct_transition_record",
+        "E0639",
+        ("non-exhaustive", "HmcTransition"),
     ),
 )
 

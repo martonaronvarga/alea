@@ -1,8 +1,9 @@
 use alea_core::target::LogDensityGradient;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
-    HmcOptions, Walnuts, WalnutsError, WalnutsOptions, WalnutsTermination,
+    HmcOptions,
     adapt::{FisherHmcWarmup, FisherOptions, HmcWarmup, WarmupOptions},
+    walnuts::{Walnuts, WalnutsError, WalnutsOptions, WalnutsTermination},
 };
 use rand::{SeedableRng, rngs::SmallRng};
 use std::{

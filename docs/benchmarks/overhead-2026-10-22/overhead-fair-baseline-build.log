@@ -1,0 +1,6 @@
+   Compiling alea-math v0.1.0 (/home/usu/documents/dev/alea/.agent/perf-overhead-20261022/baseline-workspace/crates/alea-math)
+   Compiling alea-core v0.1.0 (/home/usu/documents/dev/alea/.agent/perf-overhead-20261022/baseline-workspace/crates/alea-core)
+   Compiling alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/.agent/perf-overhead-20261022/baseline-workspace/crates/alea-mcmc)
+   Compiling alea-distributions v0.1.0 (/home/usu/documents/dev/alea/.agent/perf-overhead-20261022/baseline-workspace/crates/alea-distributions)
+   Compiling alea-runtime v0.1.0 (/home/usu/documents/dev/alea/.agent/perf-overhead-20261022/baseline-workspace/crates/alea-runtime)
+    Finished `release` profile [optimized] target(s) in 54.33s

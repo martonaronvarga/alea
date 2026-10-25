@@ -1,0 +1,9 @@
+# Keep source-bound measurement/fixture bytes identical on every platform.
+docs/benchmarks/** -text -whitespace
+tools/bench/corpus/** -text -whitespace
+**/tests/fixtures/** -text -whitespace
+*.gz -text -diff
+
+# These entry points must also run from Windows Bash checkouts.
+*.sh text eol=lf
+*.py text eol=lf

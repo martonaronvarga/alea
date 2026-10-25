@@ -1,0 +1,23 @@
+   Compiling alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.29s
+     Running unittests src/lib.rs (crates/target/debug/deps/alea_mcmc-d221f25799802e07)
+
+running 15 tests
+test nuts::tests::configuration_rejects_invalid_boundaries ... ok
+test nuts::tests::shifted_weights_keep_multiplicity_and_extreme_ratios ... ok
+test nuts::tests::merged_weight_selection_matches_log_oracle_across_fast_path_boundary ... ok
+test nuts::tests::turning_uses_velocity_and_scaled_dots_not_raw_momentum ... ok
+test walnuts::tests::configuration_rejects_invalid_and_overflowing_budgets ... ok
+test nuts::tests::failed_initial_momentum_never_commits_a_previous_tree ... ok
+test walnuts::tests::deterministic_reverse_probability_excludes_mismatched_refinement ... ok
+test walnuts::tests::microtrajectory_matches_independent_scalar_leapfrog_and_range ... ok
+test walnuts::tests::local_refinement_uses_a_finer_dyadic_grid_when_required ... ok
+test walnuts::tests::randomized_two_point_distribution_has_the_published_support_and_ratio ... ok
+test walnuts::tests::randomized_two_point_weights_an_asymmetric_reverse_critical_level ... ok
+test walnuts::tests::selected_reverse_level_is_replayed_at_floating_point_thresholds ... ok
+test walnuts::tests::fixed_macro_grid_has_bounded_work_on_flat_target ... ok
+test nuts::tests::iterative_carries_match_independent_recursive_scalar_oracle ... ok
+test nuts::turning::scalar_tests::shared_scaling_preserves_the_original_ordered_stopping_decision ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 63 filtered out; finished in 0.35s
+

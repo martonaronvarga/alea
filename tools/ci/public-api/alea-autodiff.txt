@@ -29,6 +29,8 @@ impl<F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64> alea_core::mode
 pub type alea_autodiff::autodiff::EnzymeModel<F>::Error = alea_autodiff::autodiff::AutodiffError
 pub fn alea_autodiff::autodiff::EnzymeModel<F>::dimension(&self) -> usize
 pub fn alea_autodiff::autodiff::EnzymeModel<F>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+pub mod alea_autodiff::codegen
+pub fn alea_autodiff::codegen::enzyme_source(model: &alea_core::model::assembly::CompiledModel) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
 pub mod alea_autodiff::gradient_check
 pub enum alea_autodiff::gradient_check::GradientCheckError<E: core::error::Error + 'static>
 pub alea_autodiff::gradient_check::GradientCheckError::Displacement

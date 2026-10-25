@@ -14,8 +14,12 @@ if [[ "$scope" == all ]]; then
   python3 tools/ci/test_maturity.py
   python3 tools/ci/public_api.py --validate
   python3 tools/ci/test_public_api.py
+  python3 tools/ci/api_compatibility.py
+  python3 tools/ci/test_api_compatibility.py
   python3 tools/ci/exactness.py
   python3 tools/ci/test_exactness.py
+  python3 tools/release/metadata.py
+  python3 -m unittest discover -s tools/release -p 'test_*.py'
   cargo fmt --manifest-path tools/downstream-conformance/Cargo.toml --all --check
   cargo fmt --manifest-path tools/compile-fail/Cargo.toml --all --check
   cargo fetch --manifest-path tools/downstream-conformance/Cargo.toml --locked
@@ -26,6 +30,10 @@ if [[ "$scope" == all ]]; then
   cargo clippy --manifest-path tools/compile-fail/Cargo.toml --lib --locked --offline -- -D warnings
   RUSTDOCFLAGS='-D warnings' cargo doc --manifest-path tools/downstream-conformance/Cargo.toml --locked --offline --no-deps
   RUSTDOCFLAGS='-D warnings' cargo doc --manifest-path tools/compile-fail/Cargo.toml --lib --locked --offline --no-deps
+  python3 tools/atlas-reference/generate.py --check
+  python3 tools/riemannian-reference/newton_fixture.py --check
+  python3 tools/riemannian-reference/solver_ladder.py --check
+  python3 tools/stan-adaptation-reference/check.py
   python3 tools/fisher-reference/generate.py --check
   python3 tools/fisher-reference/upstream/adjudicate.py --check
   python3 tools/fisher-reference/upstream/test_adjudicate.py
@@ -34,6 +42,18 @@ if [[ "$scope" == all ]]; then
   python3 tools/test_m4f_budgets.py
   python3 tools/walnuts-reference/test_reference.py
   python3 tools/test_m7_benchmark.py
+  python3 tools/test_m14.py
+  cargo build --manifest-path crates/Cargo.toml -p alea-cli --bin alea-bench --locked --offline
+  bench_target=$(cargo metadata --manifest-path crates/Cargo.toml --locked --no-deps --format-version 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')
+  ALEA_BENCH_TEST_BINARY="$bench_target/debug/alea-bench" ALEA_BENCH_REQUIRE_WORKER=1 python3 -W error::ResourceWarning -m unittest discover -s tools/bench/tests
+  python3 tools/test_evidence.py
+  python3 tools/evidence.py catalog
+  # Full historical replay requires restored payloads, separately from routine
+  # synthetic worker/parser contracts above. Never report a catalog as raw replay.
+  if [[ "${ALEA_VERIFY_ARCHIVED_EVIDENCE:-0}" == 1 ]]; then
+    python3 tools/test_m16.py
+    python3 tools/test_m16_pdb.py
+  fi
   cargo fmt --manifest-path crates/Cargo.toml --all --check
 fi
 if [[ -n "$features" ]]; then args+=(--features "$features"); fi

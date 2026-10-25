@@ -1,0 +1,62 @@
+   Compiling libm v0.2.16
+   Compiling num-traits v0.2.19
+   Compiling version_check v0.9.5
+   Compiling bytemuck v1.25.2
+   Compiling paste v1.0.15
+   Compiling bitflags v2.13.2
+   Compiling pulp-wasm-simd-flag v0.1.1
+   Compiling reborrow v0.5.5
+   Compiling raw-cpuid v11.6.0
+   Compiling pulp v0.22.3
+   Compiling num-complex v0.4.6
+   Compiling num-integer v0.1.46
+   Compiling approx v0.5.1
+   Compiling rand_distr v0.6.0
+   Compiling statrs v0.18.0
+   Compiling transpose v0.2.3
+   Compiling primal-check v0.3.4
+   Compiling rustfft v6.4.1
+   Compiling alea-math v0.1.0 (/home/usu/documents/dev/alea/crates/alea-math)
+   Compiling alea-core v0.1.0 (/home/usu/documents/dev/alea/crates/alea-core)
+   Compiling alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
+   Compiling alea-distributions v0.1.0 (/home/usu/documents/dev/alea/crates/alea-distributions)
+   Compiling alea-runtime v0.1.0 (/home/usu/documents/dev/alea/crates/alea-runtime)
+   Compiling alea-downstream-conformance v0.0.0 (/home/usu/documents/dev/alea/tools/downstream-conformance)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 21.51s
+     Running unittests src/lib.rs (tools/downstream-conformance/target/debug/deps/alea_downstream_conformance-208b8afe6262e9e4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/distribution.rs (tools/downstream-conformance/target/debug/deps/distribution-c03b0c03472b5481)
+
+running 1 test
+test external_normalized_law_and_optional_scores_compose ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/downstream.rs (tools/downstream-conformance/target/debug/deps/downstream-6118cf5c882a1404)
+
+running 2 tests
+test external_target_and_metric_pass_reusable_laws ... ok
+test external_chain_diagnostic_and_borrowed_sink_compose ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/modeling.rs (tools/downstream-conformance/target/debug/deps/modeling-e0cd70906f403068)
+
+running 4 tests
+test three_downstream_models_match_independent_formulas_and_derivatives ... ok
+test conjugate_normal_sbc_and_predictive_check ... ok
+test hierarchical_inference_diagnostics_and_prediction ... ok
+test posterior_sbc_for_both_hierarchical_verticals ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.75s
+
+   Doc-tests alea_downstream_conformance
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -3,6 +3,7 @@
 //! Constructors validate structure once. Operations reuse caller-owned output
 //! storage and check lengths before writing. Finite inputs can still overflow for
 //! ill-conditioned metrics; samplers must check numerical results.
+#![deny(missing_docs)]
 
 use crate::buffer::OwnedBuffer;
 use thiserror::Error;
@@ -24,26 +25,50 @@ pub enum MetricError {
     IllConditionedCorrection,
     /// The square matrix cannot fit in a Rust slice.
     #[error("matrix dimension {dim} exceeds the supported storage size")]
-    DimensionOverflow { dim: usize },
+    DimensionOverflow {
+        /// Requested matrix dimension.
+        dim: usize,
+    },
     /// Storage does not contain exactly `dim * dim` entries.
     #[error("matrix storage length mismatch: expected {expected}, got {actual}")]
-    StorageLength { expected: usize, actual: usize },
+    StorageLength {
+        /// Required dimension or storage length.
+        expected: usize,
+        /// Observed dimension or storage length.
+        actual: usize,
+    },
     /// A diagonal mass or factor pivot is not finite and strictly positive.
     #[error("diagonal entry {index} must be finite and positive")]
-    InvalidDiagonal { index: usize },
+    InvalidDiagonal {
+        /// Zero-based index of the invalid entry.
+        index: usize,
+    },
     /// A factor entry is NaN or infinite.
     #[error("factor entry at row {row}, column {column} must be finite")]
-    NonFiniteFactor { row: usize, column: usize },
+    NonFiniteFactor {
+        /// Zero-based matrix row.
+        row: usize,
+        /// Zero-based matrix column.
+        column: usize,
+    },
     /// Full column-major storage must have zero entries above its diagonal.
     #[error("factor entry at row {row}, column {column} must be zero")]
-    NonZeroUpperTriangle { row: usize, column: usize },
+    NonZeroUpperTriangle {
+        /// Zero-based matrix row.
+        row: usize,
+        /// Zero-based matrix column.
+        column: usize,
+    },
     /// Neither short nor oversized vector buffers are accepted.
     #[error(
         "metric dimension {expected} requires matching vectors, got source {source_len} and destination {destination_len}"
     )]
     VectorLength {
+        /// Required dimension or storage length.
         expected: usize,
+        /// Actual source vector length.
         source_len: usize,
+        /// Actual destination vector length.
         destination_len: usize,
     },
     /// Compressed sparse-column offsets or row indices are malformed.
@@ -524,18 +549,34 @@ pub trait EuclideanMetric {
     /// Returns the error from [`Self::velocity`]. Shape errors leave `scratch`
     /// untouched.
     fn kinetic_energy(&self, momentum: &[f64], scratch: &mut [f64]) -> Result<f64, MetricError> {
-        self.velocity(momentum, scratch)?;
+        self.kinetic_energy_with_velocity(momentum, scratch)
+    }
+
+    /// Computes kinetic energy and writes the matching `M^-1 p` into `velocity`.
+    /// Factor representations may share intermediate products to evaluate energy
+    /// as a sum of squares. Neither geometry nor momentum may change between this
+    /// call and use of the returned velocity.
+    ///
+    /// # Errors
+    /// Returns the error from [`Self::velocity`]. Shape errors leave output unchanged.
+    fn kinetic_energy_with_velocity(
+        &self,
+        momentum: &[f64],
+        velocity: &mut [f64],
+    ) -> Result<f64, MetricError> {
+        self.velocity(momentum, velocity)?;
         Ok(0.5
             * momentum
                 .iter()
-                .zip(scratch)
+                .zip(velocity)
                 .map(|(p, v)| p * *v)
                 .sum::<f64>())
     }
 }
 
 /// Unit mass matrix, including the empty zero-dimensional matrix.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[must_use]
 pub struct IdentityMetric {
     dim: usize,
 }
@@ -567,6 +608,28 @@ impl EuclideanMetric for IdentityMetric {
         Ok(())
     }
 
+    fn kinetic_energy_with_velocity(
+        &self,
+        momentum: &[f64],
+        velocity: &mut [f64],
+    ) -> Result<f64, MetricError> {
+        check_vector_lengths(self.dim, momentum, velocity)?;
+        if momentum.len() < 16 {
+            velocity.copy_from_slice(momentum);
+            return Ok(0.5
+                * momentum
+                    .iter()
+                    .map(|momentum| momentum * momentum)
+                    .sum::<f64>());
+        }
+        Ok(pulp::Arch::new().dispatch(DiagonalEnergy::<true> {
+            p: momentum,
+            out: velocity,
+            inverse: &[],
+            sqrt: &[],
+        }))
+    }
+
     #[inline]
     fn log_det(&self) -> f64 {
         0.0
@@ -574,12 +637,17 @@ impl EuclideanMetric for IdentityMetric {
 }
 
 /// Positive finite diagonal entries of the momentum mass matrix `M`.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
+#[must_use]
 pub struct DiagonalMetric {
     diag: OwnedBuffer,
 }
 
 impl DiagonalMetric {
+    /// Frozen diagonal masses, in coordinate order. Useful for lossless restart.
+    pub fn as_slice(&self) -> &[f64] {
+        &self.diag
+    }
     /// Takes ownership of diagonal masses without copying or changing them.
     /// Empty storage represents the zero-dimensional matrix.
     ///
@@ -639,10 +707,13 @@ impl EuclideanMetric for DiagonalMetric {
     }
 }
 
-/// Validated lower-triangular `L` in full column-major storage, where `M = L L^T`.
+/// Validated lower-triangular `L` in full column-major storage.
+/// [`DenseMetric`] interprets it as a mass factor; [`InverseDenseMetric`] as an
+/// inverse-mass factor. The owning metric determines the convention.
 /// This validates a supplied factor; it does not factorize a mass matrix or
 /// certify its condition number or the representability of every operation.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
+#[must_use]
 pub struct CholeskyFactor {
     dim: usize,
     lower_col_major: OwnedBuffer,
@@ -686,19 +757,22 @@ impl CholeskyFactor {
 
     #[inline]
     /// Dimension of the square factor.
+    #[must_use]
     pub fn dimension(&self) -> usize {
         self.dim
     }
 
     #[inline]
     /// Immutable full column-major factor storage.
+    #[must_use]
     pub fn as_slice(&self) -> &[f64] {
         self.lower_col_major.as_slice()
     }
 }
 
 /// Dense momentum mass matrix represented by its validated Cholesky factor.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
+#[must_use]
 pub struct DenseMetric {
     factor: CholeskyFactor,
 }
@@ -790,6 +864,255 @@ impl EuclideanMetric for DenseMetric {
             sum += l[i + i * n].ln();
         }
         2.0 * sum
+    }
+}
+
+/// Diagonal inverse momentum mass `G = M^-1`, with cached square-root scales.
+/// This is distinct from [`DiagonalMetric`], whose input entries are masses.
+#[derive(Debug, Clone, PartialEq)]
+#[must_use]
+pub struct InverseDiagonalMetric {
+    inverse: OwnedBuffer,
+    sqrt_inverse: OwnedBuffer,
+    momentum_scale: OwnedBuffer,
+}
+
+impl InverseDiagonalMetric {
+    /// Takes positive finite inverse masses. Construction caches both scales;
+    /// every hot operation reuses caller-owned storage.
+    /// # Errors
+    /// Rejects the first nonpositive or nonfinite entry without clamping it.
+    pub fn new(inverse: OwnedBuffer) -> Result<Self, MetricError> {
+        for (index, value) in inverse.iter().enumerate() {
+            if !value.is_finite() || *value <= 0.0 {
+                return Err(MetricError::InvalidDiagonal { index });
+            }
+        }
+        let sqrt_inverse = OwnedBuffer::from_fn(inverse.len(), |i| inverse[i].sqrt());
+        let momentum_scale = OwnedBuffer::from_fn(inverse.len(), |i| 1.0 / sqrt_inverse[i]);
+        Ok(Self {
+            inverse,
+            sqrt_inverse,
+            momentum_scale,
+        })
+    }
+    /// Frozen inverse masses, in coordinate order; sufficient for lossless restart.
+    pub fn as_slice(&self) -> &[f64] {
+        &self.inverse
+    }
+    /// Replace inverse masses and their cached factors without allocating.
+    /// Validation precedes every write, so an error preserves all previous values.
+    /// The owning sampler must keep geometry fixed within a trajectory.
+    /// # Errors
+    /// Rejects a wrong length or any nonpositive/nonfinite inverse mass.
+    pub fn set_inverse_masses(&mut self, inverse: &[f64]) -> Result<(), MetricError> {
+        check_vector_lengths(self.inverse.len(), inverse, &self.inverse)?;
+        for (index, value) in inverse.iter().enumerate() {
+            if !value.is_finite() || *value <= 0.0 {
+                return Err(MetricError::InvalidDiagonal { index });
+            }
+        }
+        for (((out, sqrt), scale), value) in self
+            .inverse
+            .iter_mut()
+            .zip(self.sqrt_inverse.iter_mut())
+            .zip(self.momentum_scale.iter_mut())
+            .zip(inverse)
+        {
+            *out = *value;
+            *sqrt = value.sqrt();
+            *scale = 1.0 / *sqrt;
+        }
+        Ok(())
+    }
+}
+
+impl EuclideanMetric for InverseDiagonalMetric {
+    #[inline]
+    fn dimension(&self) -> usize {
+        self.inverse.len()
+    }
+    #[inline]
+    fn velocity(&self, p: &[f64], out: &mut [f64]) -> Result<(), MetricError> {
+        check_vector_lengths(self.dimension(), p, out)?;
+        for ((out, p), g) in out.iter_mut().zip(p).zip(self.inverse.iter()) {
+            *out = p * g;
+        }
+        Ok(())
+    }
+    #[inline]
+    fn sample_momentum(&self, z: &[f64], out: &mut [f64]) -> Result<(), MetricError> {
+        check_vector_lengths(self.dimension(), z, out)?;
+        for ((out, z), scale) in out.iter_mut().zip(z).zip(self.momentum_scale.iter()) {
+            *out = z * scale;
+        }
+        Ok(())
+    }
+    fn kinetic_energy_with_velocity(&self, p: &[f64], out: &mut [f64]) -> Result<f64, MetricError> {
+        check_vector_lengths(self.dimension(), p, out)?;
+        if p.len() >= 16 {
+            return Ok(pulp::Arch::new().dispatch(DiagonalEnergy::<false> {
+                p,
+                out,
+                inverse: &self.inverse,
+                sqrt: &self.sqrt_inverse,
+            }));
+        }
+        let mut energy = 0.0;
+        for (((out, p), g), sqrt) in out
+            .iter_mut()
+            .zip(p)
+            .zip(self.inverse.iter())
+            .zip(self.sqrt_inverse.iter())
+        {
+            let u = p * sqrt;
+            energy += (0.5 * u) * u;
+            *out = p * g;
+        }
+        Ok(energy)
+    }
+    fn log_det(&self) -> f64 {
+        -self.inverse.iter().map(|g| g.ln()).sum::<f64>()
+    }
+}
+
+// Nonnegative factored kinetic terms use independent SIMD accumulators. Scaling
+// each term by 1/2 before summing avoids overflow of an otherwise representable
+// kinetic energy and reduces the summation error bound versus one long chain.
+struct DiagonalEnergy<'a, const IDENTITY: bool> {
+    p: &'a [f64],
+    out: &'a mut [f64],
+    inverse: &'a [f64],
+    sqrt: &'a [f64],
+}
+impl<const IDENTITY: bool> pulp::WithSimd for DiagonalEnergy<'_, IDENTITY> {
+    type Output = f64;
+    #[inline(always)]
+    fn with_simd<S: pulp::Simd>(self, simd: S) -> f64 {
+        let (p, pt) = S::as_simd_f64s(self.p);
+        let (out, ot) = S::as_mut_simd_f64s(self.out);
+        let (g, gt) = S::as_simd_f64s(if IDENTITY { self.p } else { self.inverse });
+        let (sqrt, st) = S::as_simd_f64s(if IDENTITY { self.p } else { self.sqrt });
+        let half = simd.splat_f64s(0.5);
+        let mut sums = [simd.splat_f64s(0.0); 4];
+        let (pc, pr) = p.as_chunks::<4>();
+        let (oc, or) = out.as_chunks_mut::<4>();
+        let (gc, gr) = g.as_chunks::<4>();
+        let (sc, sr) = sqrt.as_chunks::<4>();
+        for (((p, out), g), sqrt) in pc.iter().zip(oc).zip(gc).zip(sc) {
+            for i in 0..4 {
+                let u = if IDENTITY {
+                    p[i]
+                } else {
+                    simd.mul_f64s(p[i], sqrt[i])
+                };
+                out[i] = if IDENTITY {
+                    p[i]
+                } else {
+                    simd.mul_f64s(p[i], g[i])
+                };
+                let e = simd.mul_f64s(simd.mul_f64s(half, u), u);
+                sums[i] = simd.add_f64s(sums[i], e);
+            }
+        }
+        for (((p, out), g), sqrt) in pr.iter().zip(or).zip(gr).zip(sr) {
+            let u = if IDENTITY {
+                *p
+            } else {
+                simd.mul_f64s(*p, *sqrt)
+            };
+            *out = if IDENTITY { *p } else { simd.mul_f64s(*p, *g) };
+            sums[0] = simd.add_f64s(sums[0], simd.mul_f64s(simd.mul_f64s(half, u), u));
+        }
+        let mut energy = simd.reduce_sum_f64s(simd.add_f64s(
+            simd.add_f64s(sums[0], sums[1]),
+            simd.add_f64s(sums[2], sums[3]),
+        ));
+        for (i, (p, out)) in pt.iter().zip(ot).enumerate() {
+            let u = if IDENTITY { *p } else { p * st[i] };
+            *out = if IDENTITY { *p } else { p * gt[i] };
+            energy += (0.5 * u) * u;
+        }
+        energy
+    }
+}
+
+/// Dense inverse momentum mass `G = M^-1 = L L^T`.
+/// Stores the factor of G directly, without constructing or factorizing M.
+#[derive(Debug, Clone, PartialEq)]
+#[must_use]
+pub struct InverseDenseMetric {
+    factor: CholeskyFactor,
+}
+impl InverseDenseMetric {
+    /// Owns an already validated lower factor of inverse mass G.
+    pub fn new(factor: CholeskyFactor) -> Self {
+        Self { factor }
+    }
+    /// Borrows the exact frozen inverse-mass factor, including for checkpointing.
+    pub fn factor(&self) -> &CholeskyFactor {
+        &self.factor
+    }
+
+    fn transpose_product(&self, p: &[f64], out: &mut [f64]) {
+        let n = self.dimension();
+        let l = self.factor.as_slice();
+        for (col, out) in out.iter_mut().enumerate() {
+            *out = l[col + col * n..(col + 1) * n]
+                .iter()
+                .zip(&p[col..])
+                .map(|(l, p)| l * p)
+                .sum();
+        }
+    }
+    fn lower_product_in_place(&self, out: &mut [f64]) {
+        let n = self.dimension();
+        let l = self.factor.as_slice();
+        // Descending rows leave every required source entry untouched.
+        for row in (0..n).rev() {
+            let mut value = 0.0;
+            for col in 0..=row {
+                value += l[row + col * n] * out[col];
+            }
+            out[row] = value;
+        }
+    }
+}
+impl EuclideanMetric for InverseDenseMetric {
+    #[inline]
+    fn dimension(&self) -> usize {
+        self.factor.dimension()
+    }
+    fn velocity(&self, p: &[f64], out: &mut [f64]) -> Result<(), MetricError> {
+        check_vector_lengths(self.dimension(), p, out)?;
+        self.transpose_product(p, out);
+        self.lower_product_in_place(out);
+        Ok(())
+    }
+    fn kinetic_energy_with_velocity(&self, p: &[f64], out: &mut [f64]) -> Result<f64, MetricError> {
+        check_vector_lengths(self.dimension(), p, out)?;
+        self.transpose_product(p, out);
+        let energy = out.iter().map(|u| (0.5 * u) * u).sum();
+        self.lower_product_in_place(out);
+        Ok(energy)
+    }
+    fn sample_momentum(&self, z: &[f64], out: &mut [f64]) -> Result<(), MetricError> {
+        let n = self.dimension();
+        check_vector_lengths(n, z, out)?;
+        let l = self.factor.as_slice();
+        for row in (0..n).rev() {
+            let mut value = z[row];
+            for col in row + 1..n {
+                value -= l[col + row * n] * out[col];
+            }
+            out[row] = value / l[row + row * n];
+        }
+        Ok(())
+    }
+    fn log_det(&self) -> f64 {
+        -2.0 * (0..self.dimension())
+            .map(|i| self.factor.as_slice()[i + i * self.dimension()].ln())
+            .sum::<f64>()
     }
 }
 

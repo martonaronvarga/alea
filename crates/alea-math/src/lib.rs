@@ -22,6 +22,7 @@ pub mod random;
 pub mod reference {
     pub use crate::buffer::OwnedBuffer;
     pub use crate::metric::{
-        CholeskyFactor, DenseMetric, DiagonalMetric, EuclideanMetric, IdentityMetric, MetricError,
+        CholeskyFactor, DenseMetric, DiagonalMetric, EuclideanMetric, IdentityMetric,
+        InverseDenseMetric, InverseDiagonalMetric, MetricError,
     };
 }

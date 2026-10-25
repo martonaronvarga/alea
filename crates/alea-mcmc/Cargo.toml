@@ -5,11 +5,20 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 publish.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+description = "Reference HMC, NUTS and explicitly selected research MCMC methods"
+keywords = ["bayesian", "statistics", "inference"]
+categories = ["science", "mathematics"]
 
 [lints]
 workspace = true
 
 [dependencies]
+pulp.workspace = true
+rand_distr.workspace = true
 alea-core.workspace = true
 alea-math.workspace = true
 rand.workspace = true

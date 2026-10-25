@@ -2,8 +2,9 @@
 
 use alea_math::metric::IdentityMetric;
 use alea_mcmc::{
-    CheesHmc, LogDensityGradient,
+    LogDensityGradient,
     adapt::{CheesConfigError, CheesEnsembleAdapter, CheesUpdate, FrozenCheesParameters},
+    chees::CheesHmc,
     hmc::HmcError,
     integrator::Integrator,
 };

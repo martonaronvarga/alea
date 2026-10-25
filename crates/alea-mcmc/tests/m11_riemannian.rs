@@ -7,9 +7,9 @@ use alea_core::{
     target::LogDensityGradient,
 };
 use alea_math::buffer::OwnedBuffer;
-use alea_mcmc::{
-    HierarchicalNormalFisherMetric, LogisticFisherMetric, Rmhmc, RmhmcOptions, RmhmcTermination,
-    SoftAbsMetric, SoftAbsOptions,
+use alea_mcmc::riemannian::{
+    ExactnessPendingRmhmc, HierarchicalNormalFisherMetric, LogisticFisherMetric, RmhmcOptions,
+    RmhmcTermination, SoftAbsMetric, SoftAbsOptions,
 };
 use rand::{SeedableRng, rngs::SmallRng};
 
@@ -154,7 +154,8 @@ fn rmhmc_constant_metric_has_stationary_gaussian_moments_and_exact_costs() {
     let options = RmhmcOptions::new(0.18, 5, 2, 1.0e-14).unwrap();
     let mut draws = Vec::with_capacity(24_000);
     for chain_id in 0..4 {
-        let mut chain = Rmhmc::new(&target, &metric, OwnedBuffer::new(2), options).unwrap();
+        let mut chain =
+            ExactnessPendingRmhmc::new(&target, &metric, OwnedBuffer::new(2), options).unwrap();
         let mut rng = SmallRng::seed_from_u64(11_000 + chain_id);
         for iteration in 0..6_500 {
             let transition = chain.step(&mut rng).unwrap();
@@ -220,7 +221,8 @@ fn logistic_fisher_derivative_and_posterior_moments_match_independent_grid() {
     let options = RmhmcOptions::new(0.13, 5, 12, 1.0e-9).unwrap();
     let mut draws = Vec::with_capacity(24_000);
     for chain_id in 0..4 {
-        let mut chain = Rmhmc::new(&target, &metric, OwnedBuffer::new(1), options).unwrap();
+        let mut chain =
+            ExactnessPendingRmhmc::new(&target, &metric, OwnedBuffer::new(1), options).unwrap();
         let mut rng = SmallRng::seed_from_u64(11_100 + chain_id);
         for iteration in 0..7_000 {
             let transition = chain.step(&mut rng).unwrap();
@@ -327,7 +329,8 @@ fn softabs_rmhmc_has_stationary_funnel_moments() {
     let mut accepted = 0;
     let mut attempted = 0;
     for chain_id in 0..4 {
-        let mut chain = Rmhmc::new(&target, &softabs, OwnedBuffer::new(2), options).unwrap();
+        let mut chain =
+            ExactnessPendingRmhmc::new(&target, &softabs, OwnedBuffer::new(2), options).unwrap();
         let mut rng = SmallRng::seed_from_u64(11_150 + chain_id);
         for iteration in 0..8_000 {
             let transition = chain.step(&mut rng).unwrap();
@@ -390,7 +393,8 @@ fn bounded_solve_failure_is_a_rejected_event() {
     let target = Gaussian { dimension: 2 };
     let metric = ExponentialMetric;
     let options = RmhmcOptions::new(0.8, 2, 1, 1.0e-16).unwrap();
-    let mut chain = Rmhmc::new(&target, &metric, OwnedBuffer::new(2), options).unwrap();
+    let mut chain =
+        ExactnessPendingRmhmc::new(&target, &metric, OwnedBuffer::new(2), options).unwrap();
     let before = chain.point().position().to_vec();
     let mut rng = SmallRng::seed_from_u64(11_200);
     let transition = chain.step(&mut rng).unwrap();

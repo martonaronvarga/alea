@@ -2,7 +2,7 @@
 
 Status: active, pre-alpha<br>
 Last reviewed: 2026-10-16<br>
-Last milestone update: 2026-10-18 — external target/metric/chain/diagnostic/sink conformance enforced<br>
+Last milestone update: 2026-10-25 — M17 preparation and measured native NUTS parity completed; candidate cycle open<br>
 Last architecture update: 2026-10-16 — maturity/adoption states and per-crate graduation gates<br>
 Scope: architecture, correctness, numerical validation, performance, and implementation order
 
@@ -25,8 +25,8 @@ the final universal interface. WALNUTS belongs to step control/trajectory/correc
 isokinetic dynamics do not masquerade as a different leapfrog coefficient.
 
 M4–M11 have now produced reference or research implementations. The next executable
-sequence is M13 exactness/public maturity boundaries, M14 B1/B2 modeling verticals,
-M15 turnkey sessions, M16 unified validation, and M17 per-crate release graduation.
+sequence is M17 per-crate release graduation. M13 boundary enforcement, M14 modeling
+verticals, M15 reference sessions and M16 unified experiments are complete.
 M12 particle inference begins after shared B1 support/event/batch semantics settle.
 Advanced sampler retuning is not the default work queue; each negative promotion
 decision has an explicit re-entry gate.
@@ -71,13 +71,25 @@ claims additionally require the implemented floating-point proposal—not only t
 ideal equations—to satisfy its reversibility, volume/Jacobian and support
 assumptions. Approximate methods remain typed and reported separately.
 
-## Current priority: M13 exactness and public maturity boundaries
+## Current priority: M17 reference release-candidate consolidation
 
-Do not add another sampler family before the public surface is classified and
-exact/approximate claims match the implemented maps. Preserve the S2 covariance-
-NUTS reference, label research exports, add downstream conformance/API snapshots,
-and close or explicitly contain RMHMC's finite-tolerance reverse-support gap.
-Then deliver B1/B2 modeling verticals through the same validated reference path.
+M13 classifies the complete public surface and explicitly contains RMHMC as
+`ExactnessPendingRmhmc`; its numerical-map promotion obligation remains open.
+M14 delivers normalized scalar/vector/discrete distributions, typed model assembly,
+three downstream inference/prediction workflows and bounded calibration gates.
+M15 composes these components into validated sessions with partial typed outcomes,
+bounded/durable output and frozen-phase replay. M16 adds sealed source-bound
+experiments, calibration and reproducible reports with a negative promotion review.
+Preserve covariance/NUTS as the S2 reference; completed milestones
+do not promote research samplers or establish S3/S4 release readiness.
+
+The 2026-10-23 [native parity report](docs/benchmarks/walltime-parity-2026-10-23/README.md)
+records approximately comparable walltime for the explicit fast NUTS profile.
+Next consolidate source and evidence, execute native platform CI, and exercise a
+fresh downstream candidate before an S3 review. The
+[development sequence and workspace policy](docs/workspace.md) describe the order,
+indicative working-day budgets and archive restoration. No default or maturity
+change follows automatically from benchmark performance.
 
 ## Completed baseline hardening and remaining performance assertions
 
@@ -1252,137 +1264,196 @@ semantics are settled so particle and ordinary modeling APIs do not diverge.
 
 ### M13 — exactness audit and public maturity boundaries
 
-Goal: make supported reality visible in code and documentation before enlarging
-the stable surface.
+Completed 2026-10-20. This is a pre-release boundary milestone, not sampler or
+semver-stability promotion. Evidence: [API audit](docs/m13-api-boundary.md),
+[map laws](docs/m13-exactness-audit.md), and the executable `tools/ci` inventories.
 
-- [~] Inventory every public item, Cargo feature and CLI command in a machine-readable
-  maturity ledger; CI rejects unlabeled or accidentally promoted research exports.
-  The first enforced slice inventories every source module containing an unrestricted
-  public declaration, every explicit Cargo feature and every Cargo binary. Research
-  entries carry machine-checked promotion blockers. Item-level API snapshots and
-  mixed-module refinement remain before this task is complete. Named reference
-  namespaces are now also inventoried from the accepted API snapshots. The
-  default-feature reachable API is extracted reproducibly for all eight library
-  crates; mapping the remaining paths in mixed facades to finer maturity states
-  remains.
-- [~] Define the initial stable/reference surface around fused targets, transforms,
-  Euclidean metrics, fixed HMC/RWMH, covariance warmup, NUTS and diagnostics.
-  Research remains accessible through explicit modules/features without duplicating
-  implementations or implying semver stability. Additive `reference` facades and a
-  downstream-style end-to-end test now cover this path; root research re-exports
-  and supported feature combinations still require adjudication.
-- [~] Audit exact/approximate claims for every transition and correction. Record
-  refresh, support, reversal/involution, volume/Jacobian, selection and failure laws.
-  The enforced implemented-map ledger now covers all 13 public default-feature
-  `MarkovChain` implementations and their selection/correction laws. Standalone
-  public proposal/integrator components and feature-specific surfaces remain.
-- [ ] Close the RMHMC reverse-support gate or relabel the current transition so it
-  cannot be mistaken for an exact validated kernel.
-- [x] Add reusable conformance suites for externally implementable target, metric,
-  chain, sink and diagnostic-observable boundaries before unsealing more traits.
-  A separately locked downstream package supplies independent implementations,
-  reusable laws, borrowed-sink composition, warning-denied lint and rustdoc gates;
-  sealed integrators and design-only SMC traits remain deliberately excluded.
-- [x] Add compile-fail tests for invalid ownership, adaptation-after-freeze,
-  incompatible correction/proposal and exact/approximate composition. A separately
-  locked downstream package checks structured compiler codes and primary spans for
-  consumed phase/warmup tokens, non-leapfrog WALNUTS conversion and rejection of an
-  approximate MCLMC chain by exact NUTS construction.
-- [~] Baseline public API snapshots and semver checks; audit validated constructors,
-  `#[must_use]`, `#[non_exhaustive]`, standard traits, error sources and rustdoc laws.
-  The initial 5,057-entry default-feature baseline was pinned and checked in CI; the
-  reviewed additive reference facades bring the current baseline to 6,089 entries.
-  Feature-specific baselines, compatibility adjudication and the listed API audits
-  remain before completion.
-- [ ] Decide which current public modules remain internal before the first release;
-  do not preserve pre-alpha exposure solely for compatibility.
+- [x] Individually classify every reachable declaration/implementation, all explicit
+  features, root exports, facades and CLI binaries. The schema-v3 ledger covers
+  4,729 distinct API lines, including conditional Faer exports; mixed adaptation
+  and integration owners have explicit reference/research classifications.
+- [x] Define the S2 reference boundary around targets, transforms, constant metrics,
+  fixed HMC/RWMH, covariance warmup, NUTS and diagnostics. Research remains named
+  and gated, approximate MCLMC has its own namespace, and defaults are unchanged.
+- [x] Audit refresh, support, reversal, volume/density, selection and failure laws
+  for all 13 chains, five standalone proposal/integrator entries and every MCMC
+  feature. Source discovery rejects feature-only unaudited chains. Proposal-only
+  components explicitly require their caller's compatible correction.
+- [x] Contain RMHMC by renaming the executable type to `ExactnessPendingRmhmc`,
+  with no old alias or reference export. Its S1 reversal/volume obligations remain
+  open; M13 closes the relabeling option, not the M11 numerical exactness gate.
+- [x] Enforce external target/metric/chain/diagnostic/sink conformance from the
+  separately locked downstream package; integrators stay sealed and SMC stays S0.
+- [x] Enforce compiler-negative ownership, freeze, incompatible integrator,
+  exact/approximate, result evolution and typed-parameter-support contracts.
+- [x] Pin eight default APIs (5,990 rendered entries), two Faer snapshots and five
+  API-neutral variants. Digest-bound added/removed signatures record explicit
+  pre-release compatibility adjudication. The selected reference owners completed
+  constructor, must-use, non-exhaustive, standard-trait, source and rustdoc review.
+- [x] Internalize ownerless error/probe modules. Remaining named modules have
+  reference, cross-crate, implemented research or unfrozen design roles. No S3/S4
+  or general Rust-language semver completeness claim is made.
 
-Exit: every public export has an enforced maturity/adoption state, exactness claims
-match implemented numerical maps, downstream conformance projects compile, and an
-API diff is reviewable. This is an API-boundary milestone, not a sampler promotion.
+Exit met: enforced maturity/adoption states, honest implemented-map claims,
+downstream composition and reviewable compatibility diffs. Release graduation
+remains M17.
 
 ### M14 — complete native modeling and distribution verticals
 
-Goal: turn the validated target boundary into a usable probabilistic modeling API.
+Completed 2026-10-20 within the explicit numerical and calibration scope in the
+[modeling guide](docs/m14-modeling.md), [predeclared protocol](docs/m14-validation-protocol.md)
+and [executed results](docs/benchmarks/m14-validation.md).
 
-- [ ] Complete B1 normalized-distribution, unnormalized-factor, support/event/batch
-  and optional sampling capability contracts.
-- [ ] Deliver Tier-1 distributions with checked parameters, tails/boundaries,
-  normalization, derivatives, RNG tests and allocation/performance records.
-- [ ] Complete B2 typed parameters, shared references, plates/reductions,
-  deterministic computations, priors/likelihoods and one-Jacobian lowering.
-- [ ] Add named dimensions/coordinates and block metadata that survive transforms,
-  output and structured-geometry selection without entering numerical hot loops.
-- [ ] Add prior/posterior prediction and generated quantities as separate workflows.
-- [ ] Deliver normal regression, hierarchical logistic and hierarchical DDM from
-  model construction through diagnostics and prediction, each checked against an
-  independently implemented analytic/external model.
-- [ ] Complete B3 multivariate/categorical/correlation-prior and stable finite-
-  mixture verticals only after the same per-distribution gates pass.
+- [x] Separate normalized density/PMF, unnormalized factors, event/support/batch
+  semantics, continuous parameter/event scores and optional bounded sampling.
+- [x] Deliver checked Normal, Student-t, LogNormal, Exponential, Gamma, Beta,
+  Bernoulli, Binomial and Poisson with values, boundaries/tails, normalization,
+  derivative, RNG mean/variance, zero-allocation and measured cost gates.
+- [x] Deliver support-typed handles, shared expression references, independent
+  plates/reductions, deterministic computations, normalized priors/likelihoods,
+  opaque VJPs and immutable lowering through one ParameterLayout/Jacobian boundary.
+- [x] Preserve named constrained dimensions/coordinates and transform/block
+  metadata in outputs; project geometry groups to unconstrained ranges, including
+  dimension-reducing simplex/correlation transforms, outside numerical hot loops.
+- [x] Add separate prior/posterior prediction and generated-quantity workflows.
+- [x] Run normal regression, hierarchical logistic and hierarchical Wiener4 drift
+  from downstream construction through covariance warmup/NUTS, diagnostics and
+  prediction. Compare independent formulas/finite differences; execute Enzyme for
+  supported elementary normal/logistic primals and analytic opaque DDM VJPs.
+- [x] Deliver multivariate Normal, Dirichlet, categorical/multinomial, normalized
+  LKJ-Cholesky and stable finite-mixture marginalization with per-law tests.
 
-Exit: fresh downstream code builds the three examples without repository-private
-helpers; analytic/finite-difference/Enzyme derivatives agree where supported;
-simulation-based calibration and predictive checks pass their predeclared suites.
+Exit met: fresh downstream code builds all three models, derivative/measure and
+prediction gates pass, and bounded SBC passes for 64 conjugate normal datasets and
+32 datasets per hierarchical model. All eight hierarchical coordinate histograms
+pass, with zero retained divergences in those suites. These are weak-data regression
+gates, not universal calibration or mixing claims. The failed five-step warmup
+trial is preserved; the completed policy uses single-step warmup. Production DDM
+prediction covers boundary events; an RT RNG is not advertised. Existing Gaussian,
+Wiener and sampler fixtures remain intact.
 
 ### M15 — turnkey inference sessions and durable runtime semantics
 
 Goal: one mature user workflow over the S2 reference components without hiding
 the underlying numerical policy.
 
-- [ ] Add a validated session builder for model/target, initialization, covariance
+- [x] Add a validated session builder for model/target, initialization, covariance
   warmup, NUTS or fixed HMC/RWMH, chains, seed, retained budget, observables, sinks,
   diagnostics and cancellation.
-- [ ] Return a typed run outcome that distinguishes success, diagnostic warning,
+- [x] Return a typed run outcome that distinguishes success, diagnostic warning,
   user cancellation, numerical exhaustion and backend failure while retaining all
   valid completed draws and provenance.
-- [ ] Define versioned owned output separate from borrowed hot-path records; support
+- [x] Define versioned owned output separate from borrowed hot-path records; support
   bounded streaming and non-overwriting durable sinks.
-- [ ] Specify checkpoint/restart for chain point, RNG, frozen geometry and run phase,
+- [x] Specify checkpoint/restart for chain point, RNG, frozen geometry and run phase,
   or explicitly reject unsupported mid-warmup checkpoints. Verify replay scope.
-- [ ] Exercise backpressure, subscriber loss, observer panic, worker failure,
+- [x] Exercise backpressure, subscriber loss, observer panic, worker failure,
   cancellation races, shutdown/join and long-run bounded memory.
-- [ ] Make resource budgets explicit: chains, threads, tree depth, warmup windows,
+- [x] Make resource budgets explicit: chains, threads, tree depth, warmup windows,
   diagnostic windows, output storage and wall-clock cancellation.
-- [ ] Keep Rayon pools caller-owned and Tokio outside numerical loops; libraries
+- [x] Keep Rayon pools caller-owned and Tokio outside numerical loops; libraries
   emit structured events but never install a subscriber.
 
 Exit: the same session API runs sequential/Rayon, streaming/collected and
 cancelled/resumed reference inference with documented deterministic boundaries,
 bounded resources and no hidden adaptation.
 
+Completed 2026-10-20 in bounded regression scope. `alea_runtime::session` provides
+chain-local target/model factories, explicit covariance/scale warmup, typed partial
+outcomes, version-one owned output, fail-fast bounded channels and create-new durable
+streams/checkpoints. Frozen replay saves exact metric factors, ChaCha12 word position
+and the RWMH normal spare; mid-warmup and mixed-phase ensemble restart are explicitly
+unsupported. Fifteen session tests plus storage/monitor tests cover parity, races,
+fault retention, join and 1,000-versus-100,000-draw peak memory. Full stable CI,
+pinned-nightly API reproduction and SIMD session tests pass. The external session
+example saves/loads a cancelled native-model NUTS run and writes 96 resumed records.
+Method, byte/resource policies and crash/replay limits: [docs/m15-sessions.md](docs/m15-sessions.md).
+No sampler default or maturity graduation follows from these operational gates.
+
 ### M16 — reproducible validation, calibration and performance service
 
-Goal: replace bespoke milestone CSVs with one falsifiable experiment system.
+Goal: provide reproducible, descriptive evidence about inference quality and cost.
+Current scope includes broad PosteriorDB coverage and implemented research
+methods; no promotion or mandatory 1.5x ESS/s requirement defines M16.
 
-- [ ] Complete V1/V2 machine-readable manifests/results with source/toolchain/data
+- [x] Complete V1/V2 machine-readable manifests/results with source/toolchain/data
   hashes, model measure, policy, seeds, hardware/threading, actual work counters,
   cold/warmup/retained time, peak RSS and failure records.
-- [ ] Build `alea-bench` on the manifest library; subprocess isolation separates
+- [x] Build `alea-bench` on the manifest library; subprocess isolation separates
   JIT/compiler/process startup from retained execution and prevents RSS contamination.
-- [ ] Version controlled, pathological and representative target corpora, including
+- [x] Version controlled, pathological and representative target corpora, including
   hierarchical, stochastic-volatility, latent Gaussian, Wiener/DDM and selected
   PosteriorDB models with tuning and held-out partitions.
-- [ ] Add simulation-based calibration and predictive validation for generative
+- [x] Add simulation-based calibration and predictive validation for generative
   model verticals; preserve rank/ESS/R-hat as necessary, not sufficient, evidence.
-- [ ] Run matched Stan, BlackJAX/JAX, nuts-rs/nutpie and relevant reference tools
+- [x] Run matched Stan, BlackJAX/JAX, nuts-rs/nutpie and relevant reference tools
   under explicit differences in adaptation, precision, JIT and process accounting.
-- [ ] Add multi-host performance tracking with uncertainty/regression bands and
+- [x] Add multi-host performance tracking with uncertainty/regression bands and
   separate correctness CI from noisy hardware alerts.
-- [ ] Generate a promotion report from the ledger and artifacts; thresholds and
-  excluded claims are part of the manifest and cannot be edited after results.
+- [x] Preserve the original v1 promotion report and its immutable declared policy.
+- [x] Complete the descriptive v2 PosteriorDB matrix, including research methods,
+  high-resolution timing, empirical fidelity, diagnostics and all failures.
+  Method: [docs/m16-posteriordb.md](docs/m16-posteriordb.md).
 
 Exit: a second user can regenerate a complete report from one manifest; deliberately
 wrong gradients, biased/stuck chains, schema drift and lost failures are detected;
 no promotion relies on an untracked `/tmp` artifact.
+
+Original v1 completed October 20. `alea-bench` accounts for 156 comparison jobs across 13 corpus
+cases, four pinned engines and three timing repetitions, and 96 calibration jobs
+across three verticals (252 total). All calibration jobs pass; 249 jobs complete and three retain nuts-rs
+centered-eight-schools initialization failures. The 36 quality failures yield a
+negative promotion decision. The checked compressed bundle includes raw draws,
+sources, preparation/process logs and a report regenerated by both current and
+archived readers. Evidence is from one physical host; multi-host tracking and
+synthetic separation/regression tests do not establish cross-host speed. nuts-rs's
+native diagonal adaptation is explicitly unmatched and excluded from matched
+promotion. Method: [docs/m16-experiments.md](docs/m16-experiments.md); complete
+evidence and commands: [docs/benchmarks/m16/README.md](docs/benchmarks/m16/README.md).
+
+The descriptive v2 extension completed October 21 on dusk: 20 posteriors × 26
+configurations × three repetitions × four chains, accounting for all 1,560 jobs
+(1,267 completed, 260 failed, 33 unsupported). Technical completion does not imply
+adequate inference; adverse diagnostics, reference discrepancies and all failures
+remain visible. The complete segmented bundle includes raw traces, source/build
+provenance and granular phase costs. Current and independently archived readers
+reproduce identical reports and supplementary analyses; 35 worker contracts and
+the original v1 reader pass. [Findings](docs/benchmarks/m16/posteriordb-v2/findings.md)
+and [interactive report](docs/benchmarks/m16/posteriordb-v2/report.html) are checked
+in with the immutable evidence. No promotion/1.5x gate or sampler default changes.
 
 ### M17 — release engineering and stable API graduation
 
 Goal: graduate each crate independently from S2 through S3 to S4 rather than
 declaring the whole workspace mature at once.
 
-- [ ] Complete Cargo metadata, licenses, feature documentation, MSRV policy,
+Release preparation implemented 2026-10-21; **graduation remains open**. The
+[release policy](docs/releases.md), [migration guide](docs/migration.md), package
+READMEs, metadata validation, independent source/package consumers, deterministic
+source archives with SSH signing/verification, semantic compatibility wrapper and
+portable CI workflow are in place. Local scalar stable/MSRV passes 398 workspace
+tests, Clippy and rustdoc; the reference API inventory remains unchanged. Four
+reference crates pass cargo-semver-checks against the independently sealed M16
+pre-M17 source, and a deliberate removed API is rejected. All nine `.crate`
+artifacts build a fresh reference consumer. Source archives reproduce byte for
+byte, including from unpacked source without Git. Native ASan/UBSan, bounded
+parser mutations and a 409,600-step/200-restart replay soak pass.
+Strict Miri passes all six aligned-buffer tests; actionlint validates the release
+workflow. These local results do not replace the pending native platform runs.
+
+Licensing is now declared per package: MIT OR Apache-2.0 for the six reusable Rust
+libraries; GPL-3.0-or-later for ffi/distributions/cli. Full texts and upstream notices
+ship in each package; dependency-graph and archive checks enforce the split.
+Prepared source archives now have a verified signature from the configured
+maintainer SSH key. Still required: successful native platform CI and an actual
+S3 candidate cycle, with a signed final candidate artifact.
+No publication, S3/S4 promotion or numerical-default change is claimed. The ABI
+stays design-only because it has no two real consumers. Configuration of a CI
+lane is not recorded as execution of that lane.
+
+- [x] Complete Cargo metadata, licenses, feature documentation, MSRV policy,
   platform/CPU support matrix and reproducible signed source artifacts.
-- [ ] Enforce `missing_docs` and runnable fresh-project examples for the intended
+- [x] Enforce `missing_docs` and runnable fresh-project examples for the intended
   stable surface; document errors, panics, safety, determinism and resource costs.
 - [ ] Run Linux/macOS/Windows and supported-architecture CI, MSRV, stable/nightly
   features, Miri, native FFI sanitizers, fuzz/property suites and operational soaks.
@@ -1390,7 +1461,7 @@ declaring the whole workspace mature at once.
   Enzyme, native FFI and research algorithms on their own evidence schedules.
 - [ ] Implement the versioned compiled-target ABI only with two real consumers,
   ownership/panic/version negotiation tests and an explicit compatibility policy.
-- [ ] Publish migration guides, deprecation and bug/security reporting policies;
+- [x] Publish migration guides, deprecation and bug/security reporting policies;
   run automated API/semver checks for every release candidate.
 - [ ] Complete at least one S3 release cycle without unresolved correctness,
   unsoundness, data-loss or schema-compatibility defects before any 1.0/S4 claim.
@@ -1401,35 +1472,24 @@ projects reproduce documented inference workflows and release artifacts.
 
 ## Validation suite
 
-### B1/B2 — native distributions and modeling (first-class parallel track)
+### B1/B2/B3 — native distributions and modeling
 
-- [ ] B1: distinguish normalized log-density/PMF, unnormalized target factors and
-  sampling capabilities; event/batch/support semantics are explicit.
-- [ ] Tier 1: Normal, Student-t, LogNormal, Exponential, Gamma, Beta, Bernoulli,
-  Binomial and Poisson; preserve Gaussian and all Wiener/DDM implementations.
-- [ ] B2: typed parameter handles, priors/likelihood factors, independent plates,
-  deterministic transforms and hierarchical composition lower to `ParameterLayout`
-  plus the fused target. One Jacobian per coordinate transform, never per factor.
-- [ ] Prior/posterior prediction and generated quantities outside transition hot paths.
-- [ ] Tier 2: multivariate Normal, Dirichlet, categorical/multinomial and Cholesky
-  correlation priors; mixtures/marginalization with stable log-sum-exp afterward.
-- [ ] End-to-end normal regression, hierarchical logistic and hierarchical DDM examples.
-
-Exit: analytic/finite-difference/Enzyme derivative agreement where supported,
-normalization/support/tail fixtures, sampling moment tests, transformed-measure
-checks, compile-fail parameter misuse tests and model-level allocation budgets.
-Discrete latent variables are marginalized or assigned a compatible future kernel;
-they are never differentiated as continuous parameters. Details: [settled plan](docs/settled-plan.md).
+Completed through M14's declared scalar/vector/discrete/correlation/mixture and
+three-model verticals. See [the guide](docs/m14-modeling.md) and
+[results](docs/benchmarks/m14-validation.md). Optional CDF/quantile and broader
+catalogue capabilities remain future, explicit additions. Discrete latent
+variables are marginalized or require a compatible future kernel; they are not
+continuous HMC parameters. Release stability remains a separate M17 gate.
 
 ### V1/V2 — comparable experiments and diagnostic validation
 
-- [~] Versioned machine-readable experiment manifest/results, fixed target corpus,
+- [x] Versioned machine-readable experiment manifest/results, fixed target corpus,
   exact evaluation counters, separate warmup/retained timings and memory/allocation scope.
 - [x] Independent modern-diagnostic fixtures and deliberate stuck/shifted/ragged/
-  nonfinite failure cases exist for M6; model-level SBC and the unified experiment
-  manifest remain open.
-- [ ] Predeclared workload, uncertainty, failure-rate and promotion thresholds.
-- [ ] `alea-bench` CLI after the manifest/library contracts exist; do not expose
+  nonfinite failure cases exist for M6; M16 adds model-level SBC, predictive gates,
+  source-bound manifests and explicit failed-job/schema/gradient fault tests.
+- [x] Predeclared workload, uncertainty, failure-rate and promotion thresholds.
+- [x] `alea-bench` CLI after the manifest/library contracts exist; do not expose
   sampler choices that have no implementation.
 
 Exit: a second user reproduces a report from its manifest; held-out comparisons
@@ -1581,18 +1641,16 @@ Use the breaking architecture and APIs in [docs/architecture.md](docs/architectu
 Do not reintroduce old crate paths, mutable-state compatibility APIs or duplicate
 samplers while implementing subsequent milestones.
 
-1. Execute M13 first: inventory the public surface, enforce maturity labels and
-   exact/approximate guarantees, and close or explicitly contain the RMHMC
-   reverse-support gap. Do not call M11 exact before that gate passes.
+1. Consolidate and validate the reference candidate, obtain native platform CI
+   and downstream results, then attempt M17/S3 graduation crate by crate over M13–M16
+   boundaries, models, sessions and source-bound experiments. Preserve explicit
+   outcomes, resource budgets and frozen retained adaptation.
 2. Preserve covariance warmup and multinomial NUTS as the S2 reference path.
-   M4F, M7 and M8–M11 remain opt-in under their recorded negative or incomplete
-   promotion reviews; new claims require new predeclared held-out protocols.
-3. Deliver M14 B1/B2 vertical slices so Alea becomes usable as a modeling framework,
-   not only a collection of target-bound kernels. Keep Enzyme optional and validate
-   every advertised derivative order in its pinned executable toolchain.
-4. Build M15's session/runtime surface only over validated reference components,
-   then consolidate existing benchmark scripts into M16 manifests and model-level SBC.
-5. Implement M12 particle inference after shared support/event/batch semantics settle.
-   Derive its public traits from working filters rather than freezing placeholders.
-6. Attempt M17/S3 release graduation crate by crate. Implement the compiled-target
-   ABI only when two real consumers and version-negotiation tests justify it.
+   M4F, M7 and M8–M11 retain their recorded promotion gates. RMHMC remains
+   `ExactnessPendingRmhmc`; do not call its M11 map exact.
+3. Extend M16 corpora and physical-host observations only with new predeclared
+   protocols. Preserve existing failures, thresholds and archived source identity.
+4. Implement M12 particle inference using settled B1 support/event/batch semantics;
+   derive traits from working filters rather than freezing placeholders.
+5. Implement the compiled-target ABI only when two real consumers and
+   version-negotiation tests justify it.

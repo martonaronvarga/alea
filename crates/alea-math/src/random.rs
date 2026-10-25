@@ -18,6 +18,15 @@ pub struct NormalGenerator {
     spare: Option<f64>,
 }
 impl NormalGenerator {
+    /// Cached second polar variate, which is part of a chain's replay state.
+    pub fn spare(&self) -> Option<f64> {
+        self.spare
+    }
+
+    /// Restores a finite cached variate; rejects malformed checkpoint state.
+    pub fn from_spare(spare: Option<f64>) -> Option<Self> {
+        spare.is_none_or(f64::is_finite).then_some(Self { spare })
+    }
     pub fn sample<R: Rng + ?Sized>(&mut self, rng: &mut R) -> f64 {
         if let Some(value) = self.spare.take() {
             return value;

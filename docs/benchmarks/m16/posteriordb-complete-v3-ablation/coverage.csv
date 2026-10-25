@@ -1,0 +1,3 @@
+method,planned,completed,failed,unsupported,worst_rhat,smallest_bulk_ess,largest_median_mean_error
+nuts_legacy_warmup,9,9,0,0,4.566991015455479,4.272314234109077,48.96955054955679
+nuts_cov_diag,9,9,0,0,1.0168552450936936,331.05783605510277,0.12151905689162686

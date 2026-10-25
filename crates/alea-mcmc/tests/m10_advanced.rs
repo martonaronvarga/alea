@@ -10,10 +10,11 @@ use alea_core::{
 use alea_distributions::Gaussian;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
-    AdvancedHmcOptions, BatchedLeapfrog, ForceGradientHmc, ForceGradientMode, GaussianSplitHmc,
-    SplitForceHmc,
-    adapt::{JointHmcWarmup, JointWarmupOptions, WarmupOptions},
-    atlas::AtlasProbeOptions,
+    adapt::{CurvatureProbeOptions, JointHmcWarmup, JointWarmupOptions, WarmupOptions},
+    advanced::{
+        AdvancedHmcOptions, ForceGradientHmc, ForceGradientMode, GaussianSplitHmc, SplitForceHmc,
+    },
+    batch::BatchedLeapfrog,
     hamiltonian::SignedStep,
     integrator::{
         CurvatureBound, ForceBudgetPlan, Leapfrog, TwoStage, select_saia_two_stage,
@@ -331,7 +332,7 @@ fn joint_warmup_changes_only_at_epochs_and_returns_frozen_chain() {
     let target = Gaussian::new(3);
     let options = JointWarmupOptions::new(
         WarmupOptions::new(80),
-        AtlasProbeOptions::new(2, 3, 0.8, 1e-4, 2.0).unwrap(),
+        CurvatureProbeOptions::new(2, 3).unwrap(),
         1.25,
     )
     .unwrap();

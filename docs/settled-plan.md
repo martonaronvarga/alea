@@ -7,9 +7,9 @@ not only an inference engine**. Implementation status remains explicit; this
 document does not claim that the future traits/algorithms already exist.
 
 Execution-priority update: M4–M11 research implementations now exist, but most
-advanced methods failed or have not cleared promotion. The next work is the M13
-exactness/public-surface audit, then B1/B2 modeling verticals and a stable session
-workflow—not another broad algorithm expansion. The
+advanced methods failed or have not cleared promotion. M13–M16 now complete the
+boundary audit, modeling verticals, bounded reference sessions and immutable
+experiment service. The next work is M17 per-crate release graduation. The
 [maturity and promotion policy](maturity-and-promotion.md) defines S0–S4 and the
 gates used below. The product scope is unchanged.
 
@@ -237,17 +237,17 @@ log-CDF/quantile/reparameterized sampling are optional explicit capabilities.
 |---|---|---|
 | A0–A3 reference mechanics/adaptation | S2 core/HMC/covariance; Fisher S1 | Preserve reference behavior; enforce public maturity and exact/approximate boundaries in M13. |
 | A4 reference NUTS (M5) | S2 with independent Stan/BlackJAX/nuts-rs evidence | Turnkey model/session, SBC, portability, downstream and API-release gates. |
-| A5 runtime/diagnostics (M6) | S2 bounded CPU runtime and modern diagnostics | Durable output/restart, operational soak, platform and compatibility gates. |
+| A5 runtime/diagnostics (M6) | S2 bounded CPU runtime and modern diagnostics | M15 adds durable output/restart and bounded fault/memory tests; platform-wide soak and release compatibility remain. |
 | A6 WALNUTS (M7) | Correct opt-in implementation; negative performance promotion | New predeclared held-out efficiency protocol only; preserve reverse construction. |
 | A7 alternatives/geometry/integration (M8–M10) | Research/validated components; no default promotions | Method-specific re-entry gates in the maturity policy; no suite result promotes unrelated methods. |
 | A8 Riemannian methods (M11) | S1 research | Numerical reverse-support/involution, volume/Jacobian, independent reference, derivative and total-cost gates. |
-| B1/B2/B3 modeling | Foundations only | M14 distribution/model verticals, predictions, independent models and SBC. |
-| V1/V2 validation | Diagnostics and many bespoke artifacts exist | M16 unified immutable manifests, held-out corpus, SBC and reproducible reports. |
-| R1 public surface | Not started | M13 maturity ledger, conformance/compile-fail/API snapshots and exactness audit. |
-| R2 session/runtime | Not started | M15 end-to-end builder, durable outcomes, checkpoint policy and bounded operations. |
+| B1/B2/B3 modeling | M14 completed in declared regression scope | Typed lowering, normalized tiers, predictions and three downstream/SBC verticals; see docs/m14-modeling.md. |
+| V1/V2 validation | M16 completed; S2 opt-in experiment utility | Source-bound 252-job report, held-out corpus, three SBC/predictive verticals and multi-host tracking; one physical host measured, negative promotion. See docs/m16-experiments.md. |
+| R1 public surface | M13 completed | Item/feature maturity, downstream/compile-fail laws, digest-bound API adjudication and exactness-pending RMHMC containment. |
+| R2 session/runtime | M15 completed in bounded regression scope | Validated reference sessions, partial typed outcomes, bounded/durable output, frozen replay and resource/fault gates; see docs/m15-sessions.md. |
 | R3 release | Pre-alpha, `publish = false` | M17 per-crate S3 cycle, semver/MSRV/platform/docs/artifact gates. |
 
-Ordering from the current state is M13 → M14 → M15 → M16 → M17, with M12 SMC
+Ordering from the current state is M17 (M13–M16 complete), with M12 SMC
 beginning after shared B1 support/event/batch semantics settle. Small vertical
 slices are preferred to a repository-wide framework rewrite. Do not implement the
 nine-component abstraction ahead of extracting it from concrete validated uses;
@@ -284,8 +284,25 @@ Wiener/DDM; (5) selected versioned PosteriorDB models. Use separate tuning/devel
 and held-out reporting subsets. Freeze parameters and diagnostics before the held-out
 comparison. Match model measures and count all initialization/adaptation costs.
 
-Promotion requires mathematical/reference/statistical gates first. Suggested project
-decision thresholds, to preregister with the first benchmark manifest:
+The current product goal is a reliable, useful baseline to build on. Baseline
+acceptance requires correct densities/gradients, useful posterior accuracy and
+mixing, standard warmup, clear failure reporting and competitive resource costs
+against mature implementations. Performance parity is an acceptable baseline;
+comparable inference quality reached sooner is an improvement. A mandatory 1.5x
+ESS/second advantage is not a baseline or milestone-completion requirement.
+Evaluate representative models with sensible adaptation/parameterization, and
+retain pathological cases as visible stress tests. Separate efficiency warnings
+(such as depth saturation alone) from insufficient statistical quality.
+
+M16's sealed `reference-v1` experiment retains its original strict superiority
+gate and all failures. Its fixed-step, mostly identity-geometry run is not an
+adapted production-baseline verdict. A new baseline protocol must fix controller
+timing resolution, compare matched inference quality and report cold-start and
+steady-state costs separately; do not reinterpret the old results by editing gates.
+
+Research/default-replacement claims require mathematical/reference/statistical
+gates first. Suggested thresholds for those stronger claims, to preregister in
+their own experiment manifests:
 
 - Performance: at least 1.5x median total-time efficiency on a declared held-out
   workload family versus the strongest selected baseline, with uncertainty intervals

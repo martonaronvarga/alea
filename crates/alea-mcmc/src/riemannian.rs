@@ -1,11 +1,13 @@
-//! Experimental Riemannian HMC with explicit position-metric capabilities.
+//! Exactness-pending Riemannian HMC. This kernel is not validated exact-target inference.
 //!
 //! The non-separable Hamiltonian is integrated by the generalized leapfrog.
 //! Implicit stages run a fixed, bounded number of iterations, so forward work is
 //! deterministic. This does not by itself guarantee that a finite-tolerance
 //! reverse solve selects the same implicit branch. Failed forward solves reject
 //! the proposal and publish an explicit event; this research sampler does not yet
-//! enforce a per-proposal involution check.
+//! enforce a per-proposal involution check by default. The opt-in Newton/reverse
+//! profile checks every reversed phase and half-momentum; finite solver volume
+//! preservation remains unresolved and the type remains exactness-pending.
 
 mod fisher;
 mod softabs;
@@ -46,6 +48,12 @@ pub struct ImplicitSolveEvent {
 pub enum RmhmcTermination {
     Divergence(Divergence),
     ImplicitSolve(ImplicitSolveEvent),
+    /// Reverse replay failed at a boundary or intermediate half-momentum.
+    ReverseCheck {
+        integration_step: usize,
+        scaled_error: f64,
+        tolerance: f64,
+    },
 }
 
 /// Exact operation counts for one attempted RMHMC transition.
@@ -59,6 +67,22 @@ pub struct RmhmcCosts {
     pub dynamics_steps: usize,
     pub momentum_iterations: usize,
     pub position_iterations: usize,
+    /// Dense Newton residual Jacobians formed, including reverse work.
+    pub newton_jacobians: usize,
+    /// Pivoted dense linear systems solved by Newton.
+    pub newton_linear_solves: usize,
+    /// Completed replayed macrosteps.
+    pub reverse_steps: usize,
+}
+
+/// Explicit bounded implicit solve policy.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ImplicitSolver {
+    /// Historical fixed-count Picard iteration.
+    #[default]
+    FixedPoint,
+    /// Newton solves with analytic residual Jacobians and actual equation checks.
+    Newton,
 }
 
 /// Validated generalized-leapfrog controls.
@@ -69,6 +93,8 @@ pub struct RmhmcOptions {
     implicit_iterations: NonZeroUsize,
     implicit_tolerance: f64,
     max_energy_error: f64,
+    solver: ImplicitSolver,
+    reverse_tolerance: Option<f64>,
 }
 
 impl RmhmcOptions {
@@ -96,7 +122,34 @@ impl RmhmcOptions {
             implicit_iterations,
             implicit_tolerance,
             max_energy_error: 1000.0,
+            solver: ImplicitSolver::FixedPoint,
+            reverse_tolerance: None,
         })
+    }
+
+    /// Select Newton with the supplied iteration budget/tolerance from `new`.
+    /// This alone does not imply reversibility or volume preservation.
+    pub fn with_newton_solver(mut self) -> Self {
+        self.solver = ImplicitSolver::Newton;
+        self
+    }
+    /// Require full-proposal reverse replay and intermediate half-momentum checks.
+    /// # Errors
+    /// Requires finite positive tolerance and at most1024 macrosteps of history.
+    pub fn with_reverse_check(mut self, tolerance: f64) -> Result<Self, RmhmcConfigError> {
+        if !tolerance.is_finite() || tolerance <= 0. || self.integration_steps.get() > 1024 {
+            return Err(RmhmcConfigError::ReverseCheck);
+        }
+        self.reverse_tolerance = Some(tolerance);
+        Ok(self)
+    }
+    /// Frozen implicit solve algorithm.
+    pub fn implicit_solver(self) -> ImplicitSolver {
+        self.solver
+    }
+    /// Explicit reverse-support tolerance, when enabled.
+    pub fn reverse_tolerance(self) -> Option<f64> {
+        self.reverse_tolerance
     }
 
     /// Sets the finite absolute Hamiltonian-error rejection threshold.
@@ -141,6 +194,8 @@ pub enum RmhmcConfigError {
     ImplicitTolerance,
     #[error("RMHMC energy-error limit must be finite and positive")]
     EnergyErrorLimit,
+    #[error("RMHMC reverse check requires positive finite tolerance and at most1024 macrosteps")]
+    ReverseCheck,
 }
 
 /// Construction or backend failure. Numerical integration failures are rejected
@@ -173,6 +228,10 @@ pub struct RmhmcTransition {
     pub energy_error: Option<f64>,
     pub termination: Option<RmhmcTermination>,
     pub costs: RmhmcCosts,
+    /// None when disabled; replay begins false and becomes true only after every check.
+    pub reverse_passed: Option<bool>,
+    /// Maximum scaled boundary/half-momentum replay discrepancy.
+    pub maximum_reverse_error: Option<f64>,
 }
 
 impl RmhmcTransition {
@@ -186,6 +245,8 @@ impl RmhmcTransition {
             energy_error: None,
             termination: None,
             costs: RmhmcCosts::default(),
+            reverse_passed: None,
+            maximum_reverse_error: None,
         }
     }
 }
@@ -332,6 +393,22 @@ fn factor_and_invert<TE: Error + 'static, ME: Error + 'static>(
 }
 
 #[derive(Debug)]
+struct ReversePhase {
+    position: OwnedBuffer,
+    momentum: OwnedBuffer,
+    half: OwnedBuffer,
+}
+impl ReversePhase {
+    fn new(d: usize) -> Self {
+        Self {
+            position: OwnedBuffer::new(d),
+            momentum: OwnedBuffer::new(d),
+            half: OwnedBuffer::new(d),
+        }
+    }
+}
+
+#[derive(Debug)]
 struct Workspace<'a, T: LogDensityGradient + ?Sized> {
     proposal: PointState<'a, T>,
     evaluation: EvaluationWorkspace,
@@ -348,6 +425,11 @@ struct Workspace<'a, T: LogDensityGradient + ?Sized> {
     velocity: OwnedBuffer,
     velocity_initial: OwnedBuffer,
     force: OwnedBuffer,
+    newton_matrix: OwnedBuffer,
+    reverse_point: PointState<'a, T>,
+    reverse_metric: MetricState,
+    reverse_momentum: OwnedBuffer,
+    reverse_history: Vec<ReversePhase>,
 }
 
 impl<'a, T: LogDensityGradient + ?Sized> Workspace<'a, T> {
@@ -379,13 +461,19 @@ impl<'a, T: LogDensityGradient + ?Sized> Workspace<'a, T> {
             velocity: OwnedBuffer::new(d),
             velocity_initial: OwnedBuffer::new(d),
             force: OwnedBuffer::new(d),
+            newton_matrix: OwnedBuffer::new(d * d),
+            reverse_point: point.clone(),
+            reverse_metric: MetricState::new(d).map_err(|_| RmhmcError::SizeOverflow)?,
+            reverse_momentum: OwnedBuffer::new(d),
+            reverse_history: Vec::new(),
         })
     }
 }
 
-/// Metropolis-corrected Riemannian HMC with a bounded generalized leapfrog.
+/// Research energy-only MH kernel with unresolved reverse-support and volume laws.
 #[derive(Debug)]
-pub struct Rmhmc<'a, T: LogDensityGradient + ?Sized, M: PositionMetric + ?Sized> {
+#[must_use = "this research kernel has unresolved reversal and volume obligations"]
+pub struct ExactnessPendingRmhmc<'a, T: LogDensityGradient + ?Sized, M: PositionMetric + ?Sized> {
     point: PointState<'a, T>,
     metric: MetricState,
     metric_provider: &'a M,
@@ -393,7 +481,7 @@ pub struct Rmhmc<'a, T: LogDensityGradient + ?Sized, M: PositionMetric + ?Sized>
     options: RmhmcOptions,
 }
 
-impl<'a, T, M> Rmhmc<'a, T, M>
+impl<'a, T, M> ExactnessPendingRmhmc<'a, T, M>
 where
     T: LogDensityGradient + ?Sized,
     M: PositionMetric + ?Sized,
@@ -435,7 +523,12 @@ where
             &mut solve_scratch,
             &mut construction_costs,
         )?;
-        let workspace = Workspace::new(&point, &metric, metric_provider)?;
+        let mut workspace = Workspace::new(&point, &metric, metric_provider)?;
+        if options.reverse_tolerance.is_some() {
+            workspace.reverse_history = (0..options.integration_steps.get())
+                .map(|_| ReversePhase::new(dimension))
+                .collect();
+        }
         Ok(Self {
             point,
             metric,
@@ -454,6 +547,15 @@ where
     }
 
     pub(crate) fn install_options(&mut self, options: RmhmcOptions) {
+        if options.reverse_tolerance.is_some()
+            && self.workspace.reverse_history.len() < options.integration_steps.get()
+        {
+            self.workspace
+                .reverse_history
+                .resize_with(options.integration_steps.get(), || {
+                    ReversePhase::new(self.point.dimension())
+                });
+        }
         self.options = options;
     }
 
@@ -489,13 +591,31 @@ where
         }
         let step_size = self.options.step_size.value();
         for step in 0..self.options.integration_steps.get() {
+            if self.options.reverse_tolerance.is_some() {
+                let saved = &mut self.workspace.reverse_history[step];
+                saved
+                    .position
+                    .copy_from_slice(self.workspace.proposal.position());
+                saved.momentum.copy_from_slice(&self.workspace.momentum);
+            }
             if let Some(termination) =
                 self.integrate_step(step, step_size, &mut transition.costs)?
             {
                 transition.termination = Some(termination);
                 return Ok(transition);
             }
+            if self.options.reverse_tolerance.is_some() {
+                self.workspace.reverse_history[step]
+                    .half
+                    .copy_from_slice(&self.workspace.momentum_guess);
+            }
             transition.integration_steps = step + 1;
+        }
+        if let Some(tolerance) = self.options.reverse_tolerance
+            && let Some(termination) = self.reverse_replay(tolerance, &mut transition)?
+        {
+            transition.termination = Some(termination);
+            return Ok(transition);
         }
         let proposed = hamiltonian(
             &self.workspace.proposal,
@@ -533,6 +653,9 @@ where
         step_size: f64,
         costs: &mut RmhmcCosts,
     ) -> Result<Option<RmhmcTermination>, RmhmcError<T::Error, M::Error>> {
+        if self.options.solver == ImplicitSolver::Newton {
+            return self.integrate_newton(integration_step, step_size, costs);
+        }
         let iterations = self.options.implicit_iterations.get();
         self.workspace
             .momentum_guess
@@ -628,6 +751,263 @@ where
             })));
         }
 
+        self.finish_step(step_size, costs)
+    }
+
+    fn integrate_newton(
+        &mut self,
+        integration_step: usize,
+        h: f64,
+        costs: &mut RmhmcCosts,
+    ) -> Result<Option<RmhmcTermination>, RmhmcError<T::Error, M::Error>> {
+        let d = self.point.dimension();
+        let tolerance = self.options.implicit_tolerance;
+        self.workspace
+            .momentum_guess
+            .copy_from_slice(&self.workspace.momentum);
+        let mut residual = f64::INFINITY;
+        let mut converged = false;
+        let mut used = 0;
+        for iteration in 0..self.options.implicit_iterations.get() {
+            used = iteration + 1;
+            costs.momentum_iterations += 1;
+            metric_force(
+                self.workspace.proposal.gradient(),
+                &self.workspace.metric_proposal,
+                &self.workspace.momentum_guess,
+                &mut self.workspace.velocity,
+                &mut self.workspace.force,
+                costs,
+            );
+            for i in 0..d {
+                self.workspace.momentum_next[i] =
+                    self.workspace.momentum[i] + 0.5 * h * self.workspace.force[i];
+            }
+            residual = scaled_residual(
+                &self.workspace.momentum_guess,
+                &self.workspace.momentum_next,
+            );
+            if !self.workspace.momentum_next.iter().all(|x| x.is_finite()) {
+                break;
+            }
+            if residual <= tolerance {
+                converged = true;
+                break;
+            }
+            // R=p_half-p0-h/2*force(q0,p_half); dforce_i/dp_j
+            // = (G^-1 * dG_i * velocity)_j, using symmetric dG_i and G^-1.
+            let metric = &self.workspace.metric_proposal;
+            for i in 0..d {
+                for j in 0..d {
+                    let mut derivative = 0.;
+                    for row in 0..d {
+                        for column in 0..d {
+                            derivative += metric.inverse[j * d + row]
+                                * metric.derivatives[i * d * d + row * d + column]
+                                * self.workspace.velocity[column];
+                        }
+                    }
+                    self.workspace.newton_matrix[i * d + j] =
+                        f64::from(i == j) - 0.5 * h * derivative;
+                }
+            }
+            for i in 0..d {
+                self.workspace.momentum_next[i] =
+                    self.workspace.momentum_guess[i] - self.workspace.momentum_next[i];
+            }
+            costs.newton_jacobians += 1;
+            if !solve_newton(
+                &mut self.workspace.newton_matrix,
+                &mut self.workspace.momentum_next,
+                d,
+            ) {
+                break;
+            }
+            costs.newton_linear_solves += 1;
+            for i in 0..d {
+                self.workspace.momentum_guess[i] -= self.workspace.momentum_next[i];
+            }
+            if self.workspace.momentum_guess.iter().any(|x| !x.is_finite()) {
+                break;
+            }
+        }
+        if !converged {
+            return Ok(Some(RmhmcTermination::ImplicitSolve(ImplicitSolveEvent {
+                integration_step,
+                stage: ImplicitStage::Momentum,
+                iterations: used,
+                scaled_residual: residual,
+                tolerance,
+            })));
+        }
+        self.workspace.metric_proposal.velocity(
+            &self.workspace.momentum_guess,
+            &mut self.workspace.velocity_initial,
+        );
+        costs.inverse_actions += 1;
+        self.workspace
+            .position_guess
+            .copy_from_slice(self.workspace.proposal.position());
+        converged = false;
+        residual = f64::INFINITY;
+        for iteration in 0..self.options.implicit_iterations.get() {
+            used = iteration + 1;
+            costs.position_iterations += 1;
+            evaluate_metric(
+                self.metric_provider,
+                &self.workspace.position_guess,
+                &mut self.workspace.metric_trial,
+                &mut self.workspace.metric_workspace,
+                &mut self.workspace.solve_scratch,
+                costs,
+            )?;
+            self.workspace
+                .metric_trial
+                .velocity(&self.workspace.momentum_guess, &mut self.workspace.velocity);
+            costs.inverse_actions += 1;
+            for i in 0..d {
+                self.workspace.position_next[i] = self.workspace.proposal.position()[i]
+                    + 0.5 * h * (self.workspace.velocity_initial[i] + self.workspace.velocity[i]);
+            }
+            residual = scaled_residual(
+                &self.workspace.position_guess,
+                &self.workspace.position_next,
+            );
+            if !self.workspace.position_next.iter().all(|x| x.is_finite()) {
+                break;
+            }
+            if residual <= tolerance {
+                converged = true;
+                break;
+            }
+            let metric = &self.workspace.metric_trial;
+            // R=q1-q0-h/2(v0+v1); dv_i/dq_j=-(G^-1*dG_j*v1)_i.
+            for i in 0..d {
+                for j in 0..d {
+                    let mut derivative = 0.;
+                    for row in 0..d {
+                        for column in 0..d {
+                            derivative += metric.inverse[i * d + row]
+                                * metric.derivatives[j * d * d + row * d + column]
+                                * self.workspace.velocity[column];
+                        }
+                    }
+                    self.workspace.newton_matrix[i * d + j] =
+                        f64::from(i == j) + 0.5 * h * derivative;
+                }
+            }
+            for i in 0..d {
+                self.workspace.position_next[i] =
+                    self.workspace.position_guess[i] - self.workspace.position_next[i];
+            }
+            costs.newton_jacobians += 1;
+            if !solve_newton(
+                &mut self.workspace.newton_matrix,
+                &mut self.workspace.position_next,
+                d,
+            ) {
+                break;
+            }
+            costs.newton_linear_solves += 1;
+            for i in 0..d {
+                self.workspace.position_guess[i] -= self.workspace.position_next[i];
+            }
+            if self.workspace.position_guess.iter().any(|x| !x.is_finite()) {
+                break;
+            }
+        }
+        if !converged {
+            return Ok(Some(RmhmcTermination::ImplicitSolve(ImplicitSolveEvent {
+                integration_step,
+                stage: ImplicitStage::Position,
+                iterations: used,
+                scaled_residual: residual,
+                tolerance,
+            })));
+        }
+        self.finish_step(h, costs)
+    }
+
+    fn reverse_replay(
+        &mut self,
+        tolerance: f64,
+        transition: &mut RmhmcTransition,
+    ) -> Result<Option<RmhmcTermination>, RmhmcError<T::Error, M::Error>> {
+        transition.reverse_passed = Some(false);
+        transition.maximum_reverse_error = Some(0.);
+        self.workspace
+            .reverse_point
+            .clone_from(&self.workspace.proposal);
+        self.workspace
+            .reverse_metric
+            .copy_from(&self.workspace.metric_proposal);
+        self.workspace
+            .reverse_momentum
+            .copy_from_slice(&self.workspace.momentum);
+        for p in self.workspace.momentum.iter_mut() {
+            *p = -*p;
+        }
+        for reverse_step in 0..self.options.integration_steps.get() {
+            let index = self.options.integration_steps.get() - 1 - reverse_step;
+            if self
+                .integrate_step(
+                    reverse_step,
+                    self.options.step_size.value(),
+                    &mut transition.costs,
+                )?
+                .is_some()
+            {
+                transition.maximum_reverse_error = Some(f64::INFINITY);
+                return Ok(Some(RmhmcTermination::ReverseCheck {
+                    integration_step: index,
+                    scaled_error: f64::INFINITY,
+                    tolerance,
+                }));
+            }
+            transition.costs.reverse_steps += 1;
+            let expected = &self.workspace.reverse_history[index];
+            let error = scaled_residual(self.workspace.proposal.position(), &expected.position)
+                .max(scaled_reversed_residual(
+                    &self.workspace.momentum,
+                    &expected.momentum,
+                ))
+                .max(scaled_reversed_residual(
+                    &self.workspace.momentum_guess,
+                    &expected.half,
+                ));
+            transition.maximum_reverse_error = Some(
+                transition
+                    .maximum_reverse_error
+                    .expect("replay started")
+                    .max(error),
+            );
+            if !error.is_finite() || error > tolerance {
+                return Ok(Some(RmhmcTermination::ReverseCheck {
+                    integration_step: index,
+                    scaled_error: error,
+                    tolerance,
+                }));
+            }
+        }
+        // Publish only the complete forward cache after the whole replay passed.
+        self.workspace
+            .proposal
+            .clone_from(&self.workspace.reverse_point);
+        self.workspace
+            .metric_proposal
+            .copy_from(&self.workspace.reverse_metric);
+        self.workspace
+            .momentum
+            .copy_from_slice(&self.workspace.reverse_momentum);
+        transition.reverse_passed = Some(true);
+        Ok(None)
+    }
+
+    fn finish_step(
+        &mut self,
+        step_size: f64,
+        costs: &mut RmhmcCosts,
+    ) -> Result<Option<RmhmcTermination>, RmhmcError<T::Error, M::Error>> {
         evaluate_metric(
             self.metric_provider,
             &self.workspace.position_guess,
@@ -694,7 +1074,7 @@ where
     }
 }
 
-impl<T, M> MarkovChain for Rmhmc<'_, T, M>
+impl<T, M> MarkovChain for ExactnessPendingRmhmc<'_, T, M>
 where
     T: LogDensityGradient + ?Sized,
     M: PositionMetric + ?Sized,
@@ -709,6 +1089,52 @@ where
     fn step<R: Rng + ?Sized>(&mut self, rng: &mut R) -> Result<Self::Transition, Self::Error> {
         Self::step(self, rng)
     }
+}
+
+// Pivoted dense Newton solves; no allocation or silent regularization.
+fn solve_newton(matrix: &mut [f64], rhs: &mut [f64], d: usize) -> bool {
+    if matrix.iter().chain(rhs.iter()).any(|x| !x.is_finite()) {
+        return false;
+    }
+    for column in 0..d {
+        let Some(pivot) = (column..d).max_by(|a, b| {
+            matrix[*a * d + column]
+                .abs()
+                .total_cmp(&matrix[*b * d + column].abs())
+        }) else {
+            return false;
+        };
+        if matrix[pivot * d + column] == 0. {
+            return false;
+        }
+        if pivot != column {
+            for j in column..d {
+                matrix.swap(pivot * d + j, column * d + j);
+            }
+            rhs.swap(pivot, column);
+        }
+        for row in column + 1..d {
+            let factor = matrix[row * d + column] / matrix[column * d + column];
+            for j in column + 1..d {
+                matrix[row * d + j] -= factor * matrix[column * d + j];
+            }
+            rhs[row] -= factor * rhs[column];
+        }
+    }
+    for row in (0..d).rev() {
+        for column in row + 1..d {
+            rhs[row] -= matrix[row * d + column] * rhs[column];
+        }
+        rhs[row] /= matrix[row * d + row];
+    }
+    rhs.iter().all(|x| x.is_finite())
+}
+fn scaled_reversed_residual(actual: &[f64], expected: &[f64]) -> f64 {
+    actual
+        .iter()
+        .zip(expected)
+        .map(|(a, b)| (a + b).abs() / (1. + a.abs().max(b.abs())))
+        .fold(0., f64::max)
 }
 
 fn scaled_residual(previous: &[f64], next: &[f64]) -> f64 {
@@ -804,7 +1230,8 @@ mod tests {
         let metric = ExponentialMetric;
         let options = RmhmcOptions::new(step.abs(), 1, 24, 1.0e-13).unwrap();
         let mut chain =
-            Rmhmc::new(&target, &metric, OwnedBuffer::from_fn(1, |_| q), options).unwrap();
+            ExactnessPendingRmhmc::new(&target, &metric, OwnedBuffer::from_fn(1, |_| q), options)
+                .unwrap();
         chain.workspace.proposal.clone_from(&chain.point);
         chain.workspace.metric_proposal.copy_from(&chain.metric);
         chain.workspace.momentum[0] = p;
@@ -838,6 +1265,282 @@ mod tests {
     }
 
     #[test]
+    fn singular_newton_system_rejects_without_publishing() {
+        let target = Normal;
+        let metric = ExponentialMetric;
+        let options = RmhmcOptions::new(1., 1, 100, 1e-12)
+            .unwrap()
+            .with_newton_solver();
+        let mut chain =
+            ExactnessPendingRmhmc::new(&target, &metric, OwnedBuffer::new(1), options).unwrap();
+        chain.workspace.proposal.clone_from(&chain.point);
+        chain.workspace.metric_proposal.copy_from(&chain.metric);
+        chain.workspace.momentum[0] = 2.;
+        let mut costs = RmhmcCosts::default();
+        assert!(matches!(
+            chain.integrate_step(0, 1., &mut costs).unwrap(),
+            Some(RmhmcTermination::ImplicitSolve(ImplicitSolveEvent {
+                stage: ImplicitStage::Momentum,
+                iterations: 1,
+                ..
+            }))
+        ));
+        assert_eq!(costs.newton_jacobians, 1);
+        assert_eq!(costs.newton_linear_solves, 0);
+        assert_eq!(chain.point().position(), &[0.]);
+        let mut singular = [1., 2., 2., 4.];
+        let mut rhs = [1., 2.];
+        assert!(!solve_newton(&mut singular, &mut rhs, 2));
+    }
+    #[test]
+    fn solver_tolerance_ladder_matches_independent_decimal_maps_and_failures() {
+        for (row, line) in include_str!("../tests/fixtures/rmhmc/solver-ladder.csv")
+            .lines()
+            .skip(1)
+            .enumerate()
+        {
+            let f: Vec<_> = line.split(',').collect();
+            let v = |i: usize| f[i].parse::<f64>().unwrap();
+            let target = Normal;
+            let metric = ExponentialMetric;
+            let options = RmhmcOptions::new(v(2), 1, v(5) as usize, v(4)).unwrap();
+            let options = if f[3] == "newton" {
+                options.with_newton_solver()
+            } else {
+                options
+            };
+            let mut chain = ExactnessPendingRmhmc::new(
+                &target,
+                &metric,
+                OwnedBuffer::from_fn(1, |_| v(0)),
+                options,
+            )
+            .unwrap();
+            chain.workspace.proposal.clone_from(&chain.point);
+            chain.workspace.metric_proposal.copy_from(&chain.metric);
+            chain.workspace.momentum[0] = v(1);
+            let mut costs = RmhmcCosts::default();
+            let result = chain.integrate_step(0, v(2), &mut costs).unwrap();
+            let stage = match result {
+                None => "Success",
+                Some(RmhmcTermination::ImplicitSolve(e)) => match e.stage {
+                    ImplicitStage::Momentum => "Momentum",
+                    ImplicitStage::Position => "Position",
+                },
+                _ => panic!("unexpected numerical failure"),
+            };
+            assert_eq!(stage, f[6], "row{row}");
+            assert_eq!(costs.momentum_iterations, v(10) as usize, "row{row}");
+            assert_eq!(costs.position_iterations, v(11) as usize, "row{row}");
+            if result.is_none() {
+                for (actual, want) in [
+                    chain.workspace.proposal.position()[0],
+                    chain.workspace.momentum[0],
+                    chain.workspace.momentum_guess[0],
+                ]
+                .into_iter()
+                .zip([v(7), v(8), v(9)])
+                {
+                    assert!(
+                        (actual - want).abs() < 2e-11 * (1. + want.abs()),
+                        "row{row}: actual={actual}, expected={want}"
+                    );
+                }
+            }
+            assert_eq!(chain.point().position(), &[v(0)]);
+        }
+    }
+    #[test]
+    fn multiple_implicit_roots_are_valid_but_do_not_define_one_selected_map() {
+        let mut branches = std::collections::BTreeSet::new();
+        for line in include_str!("../tests/fixtures/rmhmc/multiple-roots.csv")
+            .lines()
+            .skip(1)
+        {
+            let f: Vec<_> = line.split(',').collect();
+            let v = |i: usize| f[i].parse::<f64>().unwrap();
+            let (q, p, h, half, end, momentum) = (v(0), v(1), v(2), v(4), v(5), v(6));
+            let force = |q: f64, p: f64| -q - 0.5 + 0.5 * (-q).exp() * p * p;
+            let half_rhs = p + h / 2. * force(q, half);
+            let end_rhs = q + h / 2. * half * ((-q).exp() + (-end).exp());
+            assert!((half - half_rhs).abs() < 1e-10 * (1. + half.abs()));
+            assert!((end - end_rhs).abs() < 1e-10 * (1. + end.abs()));
+            assert!(
+                (momentum - half - h / 2. * force(end, half)).abs() < 1e-10 * (1. + momentum.abs())
+            );
+            branches.insert(f[3]);
+        }
+        assert!(branches.contains("near-left"));
+        assert!(branches.contains("near-right"));
+        assert!(branches.contains("far-unique"));
+    }
+
+    #[test]
+    fn newton_matches_independent_decimal_implicit_roots() {
+        for row in include_str!("../tests/fixtures/rmhmc/exponential-decimal.csv").lines() {
+            let v: Vec<f64> = row.split(',').map(|x| x.parse().unwrap()).collect();
+            let target = Normal;
+            let metric = ExponentialMetric;
+            let options = RmhmcOptions::new(v[2], 1, 100, 1e-12)
+                .unwrap()
+                .with_newton_solver();
+            let mut chain = ExactnessPendingRmhmc::new(
+                &target,
+                &metric,
+                OwnedBuffer::from_fn(1, |_| v[0]),
+                options,
+            )
+            .unwrap();
+            chain.workspace.proposal.clone_from(&chain.point);
+            chain.workspace.metric_proposal.copy_from(&chain.metric);
+            chain.workspace.momentum[0] = v[1];
+            let mut costs = RmhmcCosts::default();
+            assert!(chain.integrate_step(0, v[2], &mut costs).unwrap().is_none());
+            for (actual, expected) in [
+                chain.workspace.proposal.position()[0],
+                chain.workspace.momentum[0],
+                chain.workspace.momentum_guess[0],
+            ]
+            .into_iter()
+            .zip(&v[3..])
+            {
+                assert!(
+                    (actual - expected).abs() < 3e-12,
+                    "actual={actual}, expected={expected}"
+                );
+            }
+            assert!(costs.newton_linear_solves > 0);
+            assert!(costs.momentum_iterations < 100);
+        }
+    }
+
+    #[test]
+    fn full_reverse_replay_detects_corrupted_intermediate_half_momentum() {
+        let target = Normal;
+        let metric = ExponentialMetric;
+        let options = RmhmcOptions::new(0.04, 1, 100, 1e-12)
+            .unwrap()
+            .with_newton_solver()
+            .with_reverse_check(1e-8)
+            .unwrap();
+        let mut chain =
+            ExactnessPendingRmhmc::new(&target, &metric, OwnedBuffer::from_fn(1, |_| 0.2), options)
+                .unwrap();
+        chain.workspace.proposal.clone_from(&chain.point);
+        chain.workspace.metric_proposal.copy_from(&chain.metric);
+        chain.workspace.momentum[0] = -0.35;
+        chain.workspace.reverse_history[0].position[0] = 0.2;
+        chain.workspace.reverse_history[0].momentum[0] = -0.35;
+        let mut t = RmhmcTransition::new();
+        assert!(
+            chain
+                .integrate_step(0, 0.04, &mut t.costs)
+                .unwrap()
+                .is_none()
+        );
+        chain.workspace.reverse_history[0].half[0] = chain.workspace.momentum_guess[0] + 1e-4;
+        assert!(matches!(
+            chain.reverse_replay(1e-8, &mut t).unwrap(),
+            Some(RmhmcTermination::ReverseCheck { .. })
+        ));
+        assert_eq!(chain.point().position(), &[0.2]);
+        assert_eq!(t.reverse_passed, Some(false));
+        assert!(t.maximum_reverse_error.unwrap() > 1e-8);
+        assert_eq!(t.costs.reverse_steps, 1);
+    }
+
+    #[test]
+    fn finite_map_can_pass_full_tolerant_replay_and_still_change_volume() {
+        let map = |q: f64, p: f64| {
+            let target = Normal;
+            let metric = ExponentialMetric;
+            let options = RmhmcOptions::new(0.4, 1, 100, 0.2)
+                .unwrap()
+                .with_newton_solver()
+                .with_reverse_check(0.2)
+                .unwrap();
+            let mut chain = ExactnessPendingRmhmc::new(
+                &target,
+                &metric,
+                OwnedBuffer::from_fn(1, |_| q),
+                options,
+            )
+            .unwrap();
+            chain.workspace.proposal.clone_from(&chain.point);
+            chain.workspace.metric_proposal.copy_from(&chain.metric);
+            chain.workspace.momentum[0] = p;
+            chain.workspace.reverse_history[0].position[0] = q;
+            chain.workspace.reverse_history[0].momentum[0] = p;
+            let mut t = RmhmcTransition::new();
+            assert!(
+                chain
+                    .integrate_step(0, 0.4, &mut t.costs)
+                    .unwrap()
+                    .is_none()
+            );
+            chain.workspace.reverse_history[0].half[0] = chain.workspace.momentum_guess[0];
+            assert!(chain.reverse_replay(0.2, &mut t).unwrap().is_none());
+            assert_eq!(t.reverse_passed, Some(true));
+            (
+                chain.workspace.proposal.position()[0],
+                chain.workspace.momentum[0],
+            )
+        };
+        let (q, p, delta) = (0.2, -0.35, 1e-6);
+        let a = map(q + delta, p);
+        let b = map(q - delta, p);
+        let c = map(q, p + delta);
+        let d = map(q, p - delta);
+        let det = ((a.0 - b.0) * (c.1 - d.1) - (c.0 - d.0) * (a.1 - b.1)) / (4. * delta * delta);
+        let analytic = 1. + 0.2 * (-q).exp() * p;
+        assert!((det - analytic).abs() < 1e-8);
+        assert!((det - 1.).abs() > 0.04);
+    }
+
+    #[test]
+    fn finite_newton_termination_does_not_supply_a_unit_volume_contract() {
+        let map = |q: f64, p: f64| {
+            let target = Normal;
+            let metric = ExponentialMetric;
+            let options = RmhmcOptions::new(0.4, 1, 100, 0.1)
+                .unwrap()
+                .with_newton_solver();
+            let mut chain = ExactnessPendingRmhmc::new(
+                &target,
+                &metric,
+                OwnedBuffer::from_fn(1, |_| q),
+                options,
+            )
+            .unwrap();
+            chain.workspace.proposal.clone_from(&chain.point);
+            chain.workspace.metric_proposal.copy_from(&chain.metric);
+            chain.workspace.momentum[0] = p;
+            assert!(
+                chain
+                    .integrate_step(0, 0.4, &mut RmhmcCosts::default())
+                    .unwrap()
+                    .is_none()
+            );
+            (
+                chain.workspace.proposal.position()[0],
+                chain.workspace.momentum[0],
+            )
+        };
+        let q = 0.2;
+        let p = -0.35;
+        let delta = 1e-6;
+        let a = map(q + delta, p);
+        let b = map(q - delta, p);
+        let c = map(q, p + delta);
+        let d = map(q, p - delta);
+        let determinant =
+            ((a.0 - b.0) * (c.1 - d.1) - (c.0 - d.0) * (a.1 - b.1)) / (4. * delta * delta);
+        let oracle = 1. + 0.2 * (-q).exp() * p;
+        assert!((determinant - oracle).abs() < 1e-8);
+        assert!((determinant - 1.).abs() > 0.04);
+    }
+
+    #[test]
     fn dense_log_determinant_inverse_and_action_match_two_by_two_oracle() {
         let mut metric = MetricState::new(2).unwrap();
         metric.matrix.copy_from_slice(&[4.0, 1.0, 1.0, 3.0]);
@@ -863,7 +1566,8 @@ mod tests {
         let metric = ExponentialMetric;
         let options = RmhmcOptions::new(0.5, 1, 1, 1.0e-16).unwrap();
         let mut chain =
-            Rmhmc::new(&target, &metric, OwnedBuffer::from_fn(1, |_| 0.4), options).unwrap();
+            ExactnessPendingRmhmc::new(&target, &metric, OwnedBuffer::from_fn(1, |_| 0.4), options)
+                .unwrap();
         let before = chain.point().position().to_vec();
         chain.workspace.proposal.clone_from(&chain.point);
         chain.workspace.metric_proposal.copy_from(&chain.metric);

@@ -1,0 +1,116 @@
+{
+  "manifest_sha256": "fb22e68aafc8a783effa59173c1e1e35007ab7132bd210282f7923f078e4c0b6",
+  "parts": [
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part001",
+      "sha256": "ec73ac934f0ff90ab5f1548fa11abf44701b479ed680374a0609f71295a183b4"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part002",
+      "sha256": "9e14c5c1b675f9584e2ec4df43814292be86c8d2d24ab16a54784af6ed46c27a"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part003",
+      "sha256": "886de9cd073961b0f27340eda05556577fc4db894ff3042a0b0e1a92450205e3"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part004",
+      "sha256": "85a47226c332e1767ee5cce9bbfbc11c1b1a7dd99d10396d0dfb54fa4800b734"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part005",
+      "sha256": "71309f8df196dae607c4295576bf8af692026844e41b0d711b0032ce2da900d5"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part006",
+      "sha256": "e23068d44d955e16196155bcfae5fb5d6e25a28bda9ce0bd12b020d9c03e4fa8"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part007",
+      "sha256": "0dd93b25d8fd0b209da0d59bfcef64db68ce1573dab3ce08623387da75bfc9a2"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part008",
+      "sha256": "7587727fd3822c7c2425119ff084fa3bbf41de940ba124e134bebba3c8fe6b28"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part009",
+      "sha256": "474a4dc78d3e4a98b33c1cfc2b19459772c3d38bf22f7d5a32631c475b602dec"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part010",
+      "sha256": "aada1b474bfc5cf3a42a8ffbf895265633eec94a3fb05e1ae464d364d9ed681a"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part011",
+      "sha256": "c36d5f7496351ad9c41fb763986ef7395890e802fc52caffe0ed6c753de021d0"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part012",
+      "sha256": "21528e332ae9216428a203dc4f8246d7ccff80367f0c147565cd90f7d15386ea"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part013",
+      "sha256": "f3ad752450e2dd425c887201cf991edaf151b2c99a5fd39a0c925413fe013396"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part014",
+      "sha256": "f1869348aed7e1f8a930040c40d5f04a340e5d8f1622cfcda13d5d2bb2f8d842"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part015",
+      "sha256": "8d98811af46e5285c6b7f553d2ff66e230e7d98421c10db038aa701e8e1ec407"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part016",
+      "sha256": "26e9ce3b0f7d97ed53492a9d7d4879038ab013291826eae89233c26281e7c3d3"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part017",
+      "sha256": "b3614ea389bf8e38ef5d64437072450649e450d5316ab218cd0a97bd26a75e42"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part018",
+      "sha256": "df46cb523911841e0b14dc0f7aa3b90b669fc48637fd310d8e7efe29755db7b8"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part019",
+      "sha256": "ee365bc7851204b6eac7e84fe2228ee61784a940839bc1be13b3117c07f91eb4"
+    },
+    {
+      "bytes": 10197309,
+      "name": "evidence.tar.gz.part020",
+      "sha256": "cba7cb4e68c78073c1c031d9bfa38e7e47a1a31ed1531b5a9b05135847a73a7b"
+    }
+  ],
+  "planned_jobs": 360,
+  "review_files": {
+    "manifest.json": "9b209a31d01458027f6b7510a2fd38315e76ad049610a04296d184255dbd0132",
+    "reference-comparisons.csv": "9f3e932f8367d2b199364d11e9b5cfcaa8ff04f9a7c804b08547f88393249e44",
+    "report.html": "e64120a4e6989cbaf5674e721468c0d5fff1e22ae2612164ed3088d1c54abc34",
+    "report.json": "6c0f276495cee30e070ea604c277419b170f11866f5f9b188f5f0d513ddb7db1",
+    "report.md": "0c49aaf9cf99e7c27bb5ae8e95160c4eae0c288e8f9aeaea8b5954551a3b2a45",
+    "summary.csv": "7e25b11728bad063e232cda2503cc1990fcee308403761f2a94abbc19d6ce973"
+  },
+  "root": "posteriordb-v3",
+  "schema_version": 3
+}

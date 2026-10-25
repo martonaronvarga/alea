@@ -1,0 +1,66 @@
+{
+  "manifest_sha256": "c0f59280be42166d617e7c23b65981f184574a90fb3c3ba7dee99e2ff7da5f56",
+  "parts": [
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part001",
+      "sha256": "0f55d3419102b3381b9299cfbdb18e62965b9d55f089d89dd12925e88793c5bd"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part002",
+      "sha256": "aaaa55dc8e4fc3d73f71e06f74a8a66ab62b90d6600bda89c77de83dace3bd7c"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part003",
+      "sha256": "ea732186f1323bc73b834f7a5f227b3ed5d664ddcb03489190a8acf9b6816607"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part004",
+      "sha256": "6ca8637286703a0dd1b2cf40e2ca206008049bc8368b591bcd7f9f3a51ab8f0d"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part005",
+      "sha256": "f880d643c545b564c777259922416d5b10acfb0a74f9d22a78204214db595632"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part006",
+      "sha256": "9b7cafe58e1c47455a2973703d2234e3649a51da99419db66a2cf2efc4f6d763"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part007",
+      "sha256": "d62a2d5322c0ceeb65aa2ad2a538602c402b3d24198867719a8a845010862504"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part008",
+      "sha256": "a0ba93a3110986398b21cb5845dadd9f019c4ef7d07158535c685b30009c40da"
+    },
+    {
+      "bytes": 33554432,
+      "name": "evidence.tar.gz.part009",
+      "sha256": "33a9a663f62f399ee70521179b32c125101d4d540c75fe7de6453d5ff807b5ba"
+    },
+    {
+      "bytes": 27892819,
+      "name": "evidence.tar.gz.part010",
+      "sha256": "57ea4c8db0f493efe6d5782e8cbfca9c21f9a3a73a3e03e79383a5b81f1b967a"
+    }
+  ],
+  "planned_jobs": 162,
+  "review_files": {
+    "manifest.json": "6d738c37d5db56afb05530584ec5a8aafc1087991c2a63e25db9a0db91c78c43",
+    "reference-comparisons.csv": "63332e4ee1dcd85b1d4b4e17e9e4e364e008a1ac39910a68249897266dc1bf54",
+    "report.html": "cd5ae9a37b33c71240637ad62b71c061846c1b416dd2bea960423cd191095402",
+    "report.json": "a62fca1ea8ca994d1f9afebca25fa6e6d2fc87effe8eea70df44a0885cdd1b4d",
+    "report.md": "d0468b6f986ef1eca473587b3ff2d58ff7ba4a8e1512fd9111c94bae71337692",
+    "summary.csv": "967c3287b65c1479ad731e805cbe4ab1d7cedee849082b8ced56d32fb1a122d5"
+  },
+  "root": "posteriordb-v3",
+  "schema_version": 3
+}

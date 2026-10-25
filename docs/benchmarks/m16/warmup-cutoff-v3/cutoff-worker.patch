@@ -1,0 +1,32 @@
+--- sealed/main.rs
++++ counterfactual/main.rs
+@@ -469,7 +469,7 @@
+         } else {
+             MetricKind::Diagonal
+         });
+-    let hmc = HmcOptions::new(0.1, 8)?;
++    let hmc = HmcOptions::new(0.1, 8)?.with_max_energy_error(if method == "nuts_legacy_downhill" { f64::MAX } else { 1000. })?;
+     if method == "nuts_transport" {
+         let iterations = job.warmup / 2;
+         let mut s = Hmc::new(
+@@ -624,6 +624,12 @@
+             })?;
+         } else if method.starts_with("walnuts") {
+             rows = retain_walnuts(h, method, &mut rng, job.draws, job.depth)?;
++        } else if method.starts_with("nuts_legacy") {
++            let mut sampler = Nuts::new(t, owned(h.point().position()), h.metric().clone(), alea_mcmc::NutsOptions::new(step, job.depth)?)?;
++            rows = collect(job.draws, || {
++                let i=sampler.step(&mut rng)?;
++                Ok((sampler.point().position().to_vec(), Info { steps:i.integration_steps, divergent:matches!(i.termination,alea_mcmc::nuts::NutsTermination::Divergence(_)), saturated:i.termination==alea_mcmc::nuts::NutsTermination::MaxDepth, acceptance:Some(i.acceptance_probability), energy:i.initial_energy, error:i.max_energy_error }))
++            })?;
+         } else {
+             rows = retain(h, method, &mut rng, job.draws, job.depth)?;
+         }
+@@ -750,6 +756,7 @@
+             job.method.as_str(),
+             "nuts_cov_diag"
+                 | "nuts_legacy_warmup"
++                | "nuts_legacy_downhill"
+                 | "nuts_cov_dense"
+                 | "nuts_fisher_diag"
+                 | "nuts_fisher_rank4"

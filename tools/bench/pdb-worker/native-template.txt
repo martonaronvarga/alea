@@ -1,0 +1,55 @@
+pub const DIMENSION: usize = __DIMENSION__;
+
+#[::std::autodiff::autodiff_reverse(gradient, Duplicated, Active)]
+// Keep the explicitly indexed scalar loops and immutable data-table form used
+// in the executed Enzyme conformance tests; these are generated model sources.
+#[allow(clippy::approx_constant, clippy::needless_range_loop, clippy::large_const_arrays)]
+fn primal(q: &[f64; DIMENSION]) -> f64 { __PRIMAL__ }
+
+// Higher derivatives use reverse-over-forward with reverse as the outer pass.
+// The scalar boundary borrows the original coordinate array directly.
+#[::std::autodiff::autodiff_forward(directional, Dual, Dual)]
+fn forward_primal(q: &[f64; DIMENSION]) -> f64 { primal(q) }
+
+#[::std::autodiff::autodiff_reverse(hvp_reverse, Duplicated, Const, Active)]
+#[::std::autodiff::autodiff_forward(directional_second, Dual, Const, Dual)]
+fn first(q: &[f64; DIMENSION], v: &[f64; DIMENSION]) -> f64 { directional(q, v).1 }
+
+#[::std::autodiff::autodiff_reverse(third_reverse, Duplicated, Const, Const, Active)]
+fn second(q: &[f64; DIMENSION], v: &[f64; DIMENSION], w: &[f64; DIMENSION]) -> f64 {
+    directional_second(q, w, v).1
+}
+
+pub fn target() -> impl ::alea_core::capability::PotentialHessianDerivative<Error=::alea_autodiff::autodiff::AutodiffError> {
+    ::alea_autodiff::autodiff::EnzymeManifoldModel::new(
+        DIMENSION,
+        |q: &[f64], g: &mut [f64], seed| gradient(q.try_into().expect("checked q"), g.try_into().expect("checked g"), seed),
+        |q: &[f64], v: &[f64], out: &mut [f64]| {
+            let q = q.try_into().expect("checked q");
+            if !primal(q).is_finite() { out.fill(f64::NAN); return; }
+            out.fill(0.);
+            let value = hvp_reverse(q, out.try_into().expect("checked product"), v.try_into().expect("checked v"), 1.);
+            if value.is_finite() { for x in out { *x = -*x; } } else { out.fill(f64::NAN); }
+        },
+        |q: &[f64], hessian: &mut [f64], third: &mut [f64]| {
+            let q = q.try_into().expect("checked q");
+            if !primal(q).is_finite() { hessian.fill(f64::NAN); third.fill(f64::NAN); return; }
+            let mut v = [0.; DIMENSION]; let mut w = [0.; DIMENSION];
+            let mut h = [0.; DIMENSION]; let mut t = [0.; DIMENSION];
+            for j in 0..DIMENSION {
+                v[j] = 1.; h.fill(0.);
+                let value = hvp_reverse(q, &mut h, &v, 1.);
+                if !value.is_finite() { hessian.fill(f64::NAN); third.fill(f64::NAN); return; }
+                for i in 0..DIMENSION { hessian[i*DIMENSION+j] = -h[i]; }
+                for k in 0..DIMENSION {
+                    w[k] = 1.; t.fill(0.);
+                    let value = third_reverse(q, &mut t, &v, &w, 1.);
+                    if !value.is_finite() { hessian.fill(f64::NAN); third.fill(f64::NAN); return; }
+                    for i in 0..DIMENSION { third[k*DIMENSION*DIMENSION+i*DIMENSION+j] = -t[i]; }
+                    w[k] = 0.;
+                }
+                v[j] = 0.;
+            }
+        }
+    )
+}

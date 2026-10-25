@@ -1,0 +1,909 @@
+{
+  "cutoff": 1000.0,
+  "rows": [
+    {
+      "chain": 0,
+      "failure": null,
+      "initial": [
+        0.09729261982202696,
+        1.6132077727605374,
+        0.9764635158163956
+      ],
+      "outcome": {
+        "delta_energy": 0.0000457763671875,
+        "one_sided_probability": 0.9999542246805344,
+        "symmetric_probability": 0.9999542246805344
+      },
+      "seed": 18001,
+      "step": 1e-12,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 2,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 1,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 0,
+      "failure": null,
+      "initial": [
+        0.09729261982202696,
+        1.6132077727605374,
+        0.9764635158163956
+      ],
+      "outcome": {
+        "delta_energy": 0.0000152587890625,
+        "one_sided_probability": 0.9999847413273523,
+        "symmetric_probability": 0.9999847413273523
+      },
+      "seed": 18001,
+      "step": 1e-10,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 3,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 2,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 0,
+      "failure": null,
+      "initial": [
+        0.09729261982202696,
+        1.6132077727605374,
+        0.9764635158163956
+      ],
+      "outcome": {
+        "delta_energy": -9.087081909179688,
+        "one_sided_probability": 1.0,
+        "symmetric_probability": 1.0
+      },
+      "seed": 18001,
+      "step": 1e-8,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 4,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 3,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 0,
+      "failure": null,
+      "initial": [
+        0.09729261982202696,
+        1.6132077727605374,
+        0.9764635158163956
+      ],
+      "outcome": {
+        "delta_energy": -762260236.6155548,
+        "one_sided_probability": 1.0,
+        "symmetric_probability": 0.0
+      },
+      "seed": 18001,
+      "step": 1e-6,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 5,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 4,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 0,
+      "failure": "numerical trajectory divergence: LogDensity",
+      "initial": [
+        0.09729261982202696,
+        1.6132077727605374,
+        0.9764635158163956
+      ],
+      "outcome": null,
+      "seed": 18001,
+      "step": 0.0001,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 6,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 5,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 0,
+      "failure": "numerical trajectory divergence: LogDensity",
+      "initial": [
+        0.09729261982202696,
+        1.6132077727605374,
+        0.9764635158163956
+      ],
+      "outcome": null,
+      "seed": 18001,
+      "step": 0.01,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 7,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 6,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 0,
+      "failure": "numerical trajectory divergence: LogDensity",
+      "initial": [
+        0.09729261982202696,
+        1.6132077727605374,
+        0.9764635158163956
+      ],
+      "outcome": null,
+      "seed": 18001,
+      "step": 0.1,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 8,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 7,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 1,
+      "failure": null,
+      "initial": [
+        1.4251575795189488,
+        0.999193697087895,
+        -0.9970777594716784
+      ],
+      "outcome": {
+        "delta_energy": -0.0048828125,
+        "one_sided_probability": 1.0,
+        "symmetric_probability": 1.0
+      },
+      "seed": 18002,
+      "step": 1e-12,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 10,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 9,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 1,
+      "failure": null,
+      "initial": [
+        1.4251575795189488,
+        0.999193697087895,
+        -0.9970777594716784
+      ],
+      "outcome": {
+        "delta_energy": -0.01953125,
+        "one_sided_probability": 1.0,
+        "symmetric_probability": 1.0
+      },
+      "seed": 18002,
+      "step": 1e-10,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 11,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 10,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 1,
+      "failure": null,
+      "initial": [
+        1.4251575795189488,
+        0.999193697087895,
+        -0.9970777594716784
+      ],
+      "outcome": {
+        "delta_energy": -1271191.2250976562,
+        "one_sided_probability": 1.0,
+        "symmetric_probability": 0.0
+      },
+      "seed": 18002,
+      "step": 1e-8,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 12,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 11,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 1,
+      "failure": null,
+      "initial": [
+        1.4251575795189488,
+        0.999193697087895,
+        -0.9970777594716784
+      ],
+      "outcome": {
+        "delta_energy": 3983022253441.179,
+        "one_sided_probability": 0.0,
+        "symmetric_probability": 0.0
+      },
+      "seed": 18002,
+      "step": 1e-6,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 13,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 12,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 1,
+      "failure": "numerical trajectory divergence: LogDensity",
+      "initial": [
+        1.4251575795189488,
+        0.999193697087895,
+        -0.9970777594716784
+      ],
+      "outcome": null,
+      "seed": 18002,
+      "step": 0.0001,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 14,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 13,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 1,
+      "failure": "numerical trajectory divergence: LogDensity",
+      "initial": [
+        1.4251575795189488,
+        0.999193697087895,
+        -0.9970777594716784
+      ],
+      "outcome": null,
+      "seed": 18002,
+      "step": 0.01,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 15,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 14,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 1,
+      "failure": "numerical trajectory divergence: LogDensity",
+      "initial": [
+        1.4251575795189488,
+        0.999193697087895,
+        -0.9970777594716784
+      ],
+      "outcome": null,
+      "seed": 18002,
+      "step": 0.1,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 16,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 15,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 2,
+      "failure": null,
+      "initial": [
+        1.4485358855192434,
+        -0.7700325789070694,
+        -0.38416601227058944
+      ],
+      "outcome": {
+        "delta_energy": -0.00048828125,
+        "one_sided_probability": 1.0,
+        "symmetric_probability": 1.0
+      },
+      "seed": 18003,
+      "step": 1e-12,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 18,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 17,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 2,
+      "failure": null,
+      "initial": [
+        1.4485358855192434,
+        -0.7700325789070694,
+        -0.38416601227058944
+      ],
+      "outcome": {
+        "delta_energy": -0.000244140625,
+        "one_sided_probability": 1.0,
+        "symmetric_probability": 1.0
+      },
+      "seed": 18003,
+      "step": 1e-10,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 19,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 18,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 2,
+      "failure": null,
+      "initial": [
+        1.4485358855192434,
+        -0.7700325789070694,
+        -0.38416601227058944
+      ],
+      "outcome": {
+        "delta_energy": -32759.53759765625,
+        "one_sided_probability": 1.0,
+        "symmetric_probability": 0.0
+      },
+      "seed": 18003,
+      "step": 1e-8,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 20,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 19,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 2,
+      "failure": null,
+      "initial": [
+        1.4485358855192434,
+        -0.7700325789070694,
+        -0.38416601227058944
+      ],
+      "outcome": {
+        "delta_energy": -234701346990.01294,
+        "one_sided_probability": 1.0,
+        "symmetric_probability": 0.0
+      },
+      "seed": 18003,
+      "step": 1e-6,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 21,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 20,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 2,
+      "failure": "numerical trajectory divergence: LogDensity",
+      "initial": [
+        1.4485358855192434,
+        -0.7700325789070694,
+        -0.38416601227058944
+      ],
+      "outcome": null,
+      "seed": 18003,
+      "step": 0.0001,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 22,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 21,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 2,
+      "failure": "numerical trajectory divergence: LogDensity",
+      "initial": [
+        1.4485358855192434,
+        -0.7700325789070694,
+        -0.38416601227058944
+      ],
+      "outcome": null,
+      "seed": 18003,
+      "step": 0.01,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 23,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 22,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 2,
+      "failure": "numerical trajectory divergence: LogDensity",
+      "initial": [
+        1.4485358855192434,
+        -0.7700325789070694,
+        -0.38416601227058944
+      ],
+      "outcome": null,
+      "seed": 18003,
+      "step": 0.1,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 24,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 23,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 3,
+      "failure": null,
+      "initial": [
+        -1.0381119839903723,
+        0.9184738080660396,
+        0.30272490339569735
+      ],
+      "outcome": {
+        "delta_energy": 0.00018310546875,
+        "one_sided_probability": 0.9998169112940332,
+        "symmetric_probability": 0.9998169112940332
+      },
+      "seed": 18004,
+      "step": 1e-12,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 26,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 25,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 3,
+      "failure": null,
+      "initial": [
+        -1.0381119839903723,
+        0.9184738080660396,
+        0.30272490339569735
+      ],
+      "outcome": {
+        "delta_energy": 0.00018310546875,
+        "one_sided_probability": 0.9998169112940332,
+        "symmetric_probability": 0.9998169112940332
+      },
+      "seed": 18004,
+      "step": 1e-10,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 27,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 26,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 3,
+      "failure": null,
+      "initial": [
+        -1.0381119839903723,
+        0.9184738080660396,
+        0.30272490339569735
+      ],
+      "outcome": {
+        "delta_energy": -522.7777709960938,
+        "one_sided_probability": 1.0,
+        "symmetric_probability": 1.0
+      },
+      "seed": 18004,
+      "step": 1e-8,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 28,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 27,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 3,
+      "failure": null,
+      "initial": [
+        -1.0381119839903723,
+        0.9184738080660396,
+        0.30272490339569735
+      ],
+      "outcome": {
+        "delta_energy": -26716975918.21237,
+        "one_sided_probability": 1.0,
+        "symmetric_probability": 0.0
+      },
+      "seed": 18004,
+      "step": 1e-6,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 29,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 28,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 3,
+      "failure": "numerical trajectory divergence: LogDensity",
+      "initial": [
+        -1.0381119839903723,
+        0.9184738080660396,
+        0.30272490339569735
+      ],
+      "outcome": null,
+      "seed": 18004,
+      "step": 0.0001,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 30,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 29,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 3,
+      "failure": "numerical trajectory divergence: LogDensity",
+      "initial": [
+        -1.0381119839903723,
+        0.9184738080660396,
+        0.30272490339569735
+      ],
+      "outcome": null,
+      "seed": 18004,
+      "step": 0.01,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 31,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 30,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    },
+    {
+      "chain": 3,
+      "failure": "numerical trajectory divergence: LogDensity",
+      "initial": [
+        -1.0381119839903723,
+        0.9184738080660396,
+        0.30272490339569735
+      ],
+      "outcome": null,
+      "seed": 18004,
+      "step": 0.1,
+      "work_after": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 32,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      },
+      "work_before": {
+        "domain_rejections": 0,
+        "gradient_api_calls": 31,
+        "hessian_api_calls": 0,
+        "hvp_api_calls": 0,
+        "last_domain_error": null,
+        "scope": "Actual BridgeStan API calls; internal autodiff operations are not inferred",
+        "third_ad_api_calls": 0
+      }
+    }
+  ]
+}

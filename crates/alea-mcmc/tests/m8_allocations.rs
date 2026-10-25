@@ -5,9 +5,12 @@ use std::hint::black_box;
 use alea_distributions::Gaussian;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
-    ApproximateMclmc, ApproximateMclmcOptions, ApproximateTarget, CheesHmc, CheesHmcOptions,
-    DrGhmc, DrGhmcOptions, Ghmc, GhmcOptions, Mams, MamsOptions, MarkovChain,
+    MarkovChain,
     adapt::{CheesCriterion, CheesEnsembleAdapter, CheesObservation},
+    approximate::{ApproximateMclmc, ApproximateMclmcOptions, ApproximateTarget},
+    chees::{CheesHmc, CheesHmcOptions},
+    ghmc::{DrGhmc, DrGhmcOptions, Ghmc, GhmcOptions},
+    mams::{Mams, MamsOptions},
 };
 use rand::{SeedableRng, rngs::SmallRng};
 

@@ -83,11 +83,13 @@ dependencies = [
  "alea-core",
  "alea-ffi",
  "alea-math",
+ "allocation-counter",
  "approx",
  "criterion",
  "once_cell",
  "pprof",
  "rand 0.10.1",
+ "statrs",
  "thiserror 2.0.18",
 ]
 
@@ -111,6 +113,7 @@ dependencies = [
  "criterion",
  "faer",
  "pkg-config",
+ "pulp",
  "rand 0.10.1",
  "thiserror 2.0.18",
 ]
@@ -125,7 +128,9 @@ dependencies = [
  "allocation-counter",
  "criterion",
  "proptest",
+ "pulp",
  "rand 0.10.1",
+ "rand_distr 0.6.0",
  "thiserror 2.0.18",
 ]
 
@@ -693,7 +698,7 @@ dependencies = [
  "private-gemm-x86",
  "pulp",
  "rand 0.9.4",
- "rand_distr",
+ "rand_distr 0.5.1",
  "rayon",
  "reborrow",
  "spindle",
@@ -1548,9 +1553,9 @@ dependencies = [
 
 [[package]]
 name = "pulp"
-version = "0.22.2"
+version = "0.22.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e205bb30d5b916c55e584c22201771bcf2bad9aabd5d4127f38387140c38632"
+checksum = "046aa45b989642ec2e4717c8e72d677b13edd831a4d3b6cf37d9a3e54912496a"
 dependencies = [
  "bytemuck",
  "cfg-if",
@@ -1565,9 +1570,9 @@ dependencies = [
 
 [[package]]
 name = "pulp-wasm-simd-flag"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40e24eee682d89fb193496edf918a7f407d30175b2e785fe057e4392dfd182e0"
+checksum = "1d8f70e07b9c3962945a74e59ca1c511bba65b6419468acc217c457d93f3c740"
 
 [[package]]
 name = "py_literal"
@@ -1693,6 +1698,16 @@ checksum = "6a8615d50dcf34fa31f7ab52692afec947c4dd0ab803cc87cb3b0b4570ff7463"
 dependencies = [
  "num-traits",
  "rand 0.9.4",
+]
+
+[[package]]
+name = "rand_distr"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d431c2703ccf129de4d45253c03f49ebb22b97d6ad79ee3ecfc7e3f4862c1d8"
+dependencies = [
+ "num-traits",
+ "rand 0.10.1",
 ]
 
 [[package]]

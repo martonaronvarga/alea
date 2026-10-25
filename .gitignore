@@ -11,3 +11,11 @@ archive/bin/
 # Generated Stan reference executables are host-specific build products.
 tools/stan-reference/bench_wiener7
 tools/stan-reference/stantest
+
+# Local agent handoffs and scratch; never part of a source release.
+/.agent/
+
+# Immutable benchmark payloads live in a separate verified evidence store.
+# Reports, manifests and the payload catalog remain in Git.
+/docs/benchmarks/**/*.tar.gz
+/docs/benchmarks/**/*.tar.gz.part[0-9]*

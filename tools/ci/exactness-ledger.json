@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "transitions": [
     {
       "path": "alea_mcmc::advanced::ForceGradientHmc",
@@ -117,6 +117,49 @@
         }
       ],
       "promotion_gate": "Validate representative split models and total cost beyond analytic fixtures."
+    },
+    {
+      "path": "alea_mcmc::atlas_sampler::Atlas",
+      "source": "crates/alea-mcmc/src/atlas_sampler.rs",
+      "guarantee": "exact_target",
+      "maturity": "S1",
+      "laws": {
+        "refresh": {
+          "status": "closed",
+          "claim": "Each transition samples Gaussian momentum from its frozen constant metric; offset is independent and held across all legs."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "Explicit reverse selection and branch checks; delayed count is a fixed function of held baseline n and local step; excessive work is a symmetric zero-support rejection."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "Each held-step/count proposal is leapfrog with momentum flip; ghost trajectories explicitly reconstruct preliminary support and rejection mass."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "Held leapfrog compositions preserve volume. Deterministic curvature defines reproducible local step densities; raw preliminary q(n|phase), rejection mass and both step densities enter the delayed correction."
+        },
+        "selection": {
+          "status": "closed",
+          "claim": "Appendix E.2 branch ratios balance preliminary, delayed and failure subkernels; empirical failure lengths are frozen and their state-independent mass cancels."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Incomplete phase construction never publishes a live point; concrete target/capability/metric errors retain their source; numerical support failures leave a repeated state."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/src/atlas_sampler.rs",
+          "symbol": "delayed_density_ratio_balances_unequal_selection_and_rejection_masses"
+        },
+        {
+          "path": "crates/alea-mcmc/tests/atlas_sampling.rs",
+          "symbol": "full_atlas_exercises_all_branches_with_frozen_geometry_and_bounded_work"
+        }
+      ],
+      "promotion_gate": "Broaden independent nonlinear prefix and descriptive posterior evidence; remain opt-in research."
     },
     {
       "path": "alea_mcmc::chees::CheesHmc",
@@ -358,7 +401,7 @@
       "laws": {
         "refresh": {
           "status": "closed",
-          "claim": "Each transition independently samples Gaussian momentum from the frozen constant metric."
+          "claim": "Each transition independently samples Gaussian momentum from the frozen constant metric. Optional step jitter is sampled independently once per trajectory from frozen settings; conditioning on that step gives the existing kernel, so the retained mixture preserves its target."
         },
         "support": {
           "status": "closed",
@@ -366,7 +409,7 @@
         },
         "reversibility": {
           "status": "closed",
-          "claim": "Every tree edge uses the symmetric signed Euclidean integrator and velocity-based turning rule."
+          "claim": "Every edge uses the symmetric signed Euclidean integrator. Frozen settings select either generalized momentum-sum/endpoint-velocity turning or mass-whitened endpoint-position/canonical-momentum turning; both enforce the full and two cross-subtree intervals."
         },
         "volume_or_density": {
           "status": "closed",
@@ -374,7 +417,7 @@
         },
         "selection": {
           "status": "closed",
-          "claim": "Max-shifted multinomial weights preserve candidate multiplicity during progressive tree merges."
+          "claim": "Progressive multinomial selection preserves candidate multiplicity using positive relative-energy masses in the representable ordinary range and max-shifted logarithmic tails for extreme energies."
         },
         "failure": {
           "status": "closed",
@@ -383,13 +426,29 @@
       },
       "evidence": [
         {
+          "path": "crates/alea-mcmc/src/nuts/tests.rs",
+          "symbol": "iterative_carries_match_independent_recursive_scalar_oracle"
+        },
+        {
+          "path": "crates/alea-mcmc/src/nuts/tests.rs",
+          "symbol": "trajectory_jitter_is_a_fixed_step_mixture_with_identical_conditional_rng"
+        },
+        {
+          "path": "crates/alea-mcmc/src/nuts/turning.rs",
+          "symbol": "position_turning_uses_canonical_momentum_under_dense_whitening"
+        },
+        {
+          "path": "crates/alea-mcmc/src/nuts/weight.rs",
+          "symbol": "linear_and_logarithmic_weights_preserve_extreme_multiplicities"
+        },
+        {
           "path": "crates/alea-mcmc/tests/nuts_sampling.rs",
           "symbol": "four_targets_match_executed_stan_blackjax_and_nuts_rs"
         }
       ]
     },
     {
-      "path": "alea_mcmc::riemannian::Rmhmc",
+      "path": "alea_mcmc::riemannian::ExactnessPendingRmhmc",
       "source": "crates/alea-mcmc/src/riemannian.rs",
       "guarantee": "exactness_pending",
       "maturity": "S1",
@@ -404,11 +463,11 @@
         },
         "reversibility": {
           "status": "open",
-          "claim": "Sampled signed-reversal regressions exist, but the production transition performs no per-proposal involution check."
+          "claim": "Legacy fixed-point and opt-in Newton are finite solvers. The optional full boundary/half-momentum replay verifies a numerical tolerance, not an exact involution; no universal implemented-map proof is claimed."
         },
         "volume_or_density": {
           "status": "open",
-          "claim": "Low-dimensional numerical Jacobian evidence does not close the finite-tolerance map assumption on adversarial metrics."
+          "claim": "The exact-root implicit symplectic argument does not establish unit volume for finite Newton/Picard iteration. An explicit finite-tolerance non-unit determinant counterexample exists; no implemented Jacobian correction closes the law."
         },
         "selection": {
           "status": "open",
@@ -422,7 +481,31 @@
       "evidence": [
         {
           "path": "crates/alea-mcmc/src/riemannian.rs",
+          "symbol": "finite_newton_termination_does_not_supply_a_unit_volume_contract"
+        },
+        {
+          "path": "crates/alea-mcmc/src/riemannian.rs",
+          "symbol": "full_reverse_replay_detects_corrupted_intermediate_half_momentum"
+        },
+        {
+          "path": "crates/alea-mcmc/src/riemannian.rs",
           "symbol": "generalized_leapfrog_signed_reversal_and_volume"
+        },
+        {
+          "path": "crates/alea-mcmc/src/riemannian.rs",
+          "symbol": "multiple_implicit_roots_are_valid_but_do_not_define_one_selected_map"
+        },
+        {
+          "path": "crates/alea-mcmc/src/riemannian.rs",
+          "symbol": "singular_newton_system_rejects_without_publishing"
+        },
+        {
+          "path": "crates/alea-mcmc/src/riemannian.rs",
+          "symbol": "solver_tolerance_ladder_matches_independent_decimal_maps_and_failures"
+        },
+        {
+          "path": "crates/alea-mcmc/tests/rmhmc_newton.rs",
+          "symbol": "tight_newton_and_full_replay_charge_work_and_keep_live_cache_coherent"
         }
       ],
       "promotion_gate": "Enforce reverse support per proposal or derive another correction, then validate the implemented map adversarially."
@@ -504,5 +587,225 @@
       ],
       "promotion_gate": "Close the recorded target-call and held-out efficiency gates before policy promotion."
     }
-  ]
+  ],
+  "proposals": [
+    {
+      "path": "alea_mcmc::batch::BatchedLeapfrog::advance",
+      "guarantee": "proposal_only",
+      "laws": {
+        "refresh": {
+          "status": "not_applicable",
+          "claim": "Caller supplies a coherent phase and the declared fixed metric; no momentum refresh is performed."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "Only complete fixed-budget macrosteps become visible; incomplete backend or numerical work is an error."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "A fixed palindromic kick/drift composition reverses under a signed step; geometry and coefficients stay fixed."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "The separable constant-metric kick/drift shears have unit Jacobian in the implemented map model; finite arithmetic is tolerance-tested."
+        },
+        "selection": {
+          "status": "not_applicable",
+          "claim": "This is a proposal component only, never an invariant Markov transition; caller must supply a compatible selection/correction law."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Consuming phase tokens and whole-batch publication prevent partial endpoints becoming live; raw workspace is reusable scratch."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/m10_advanced.rs",
+          "symbol": "explicit_layout_adapter_and_batched_fsm_match_and_reverse"
+        }
+      ]
+    },
+    {
+      "path": "alea_mcmc::hamiltonian::Phase::step",
+      "guarantee": "proposal_only",
+      "laws": {
+        "refresh": {
+          "status": "not_applicable",
+          "claim": "Caller supplies a coherent phase and the declared fixed metric; no momentum refresh is performed."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "Only complete fixed-budget macrosteps become visible; incomplete backend or numerical work is an error."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "A fixed palindromic kick/drift composition reverses under a signed step; geometry and coefficients stay fixed."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "The separable constant-metric kick/drift shears have unit Jacobian in the implemented map model; finite arithmetic is tolerance-tested."
+        },
+        "selection": {
+          "status": "not_applicable",
+          "claim": "This is a proposal component only, never an invariant Markov transition; caller must supply a compatible selection/correction law."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Consuming phase tokens and whole-batch publication prevent partial endpoints becoming live; raw workspace is reusable scratch."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/integrators.rs",
+          "symbol": "complete_macrosteps_match_scalar_oracle_reverse_and_count_gradients"
+        }
+      ]
+    },
+    {
+      "path": "alea_mcmc::hamiltonian::Phase::step_with",
+      "guarantee": "proposal_only",
+      "laws": {
+        "refresh": {
+          "status": "not_applicable",
+          "claim": "Caller supplies a coherent phase and the declared fixed metric; no momentum refresh is performed."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "Only complete fixed-budget macrosteps become visible; incomplete backend or numerical work is an error."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "A fixed palindromic kick/drift composition reverses under a signed step; geometry and coefficients stay fixed."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "The separable constant-metric kick/drift shears have unit Jacobian in the implemented map model; finite arithmetic is tolerance-tested."
+        },
+        "selection": {
+          "status": "not_applicable",
+          "claim": "This is a proposal component only, never an invariant Markov transition; caller must supply a compatible selection/correction law."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Consuming phase tokens and whole-batch publication prevent partial endpoints becoming live; raw workspace is reusable scratch."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/integrators.rs",
+          "symbol": "complete_macrosteps_match_scalar_oracle_reverse_and_count_gradients"
+        }
+      ]
+    },
+    {
+      "path": "alea_mcmc::integrator::Leapfrog",
+      "guarantee": "proposal_only",
+      "laws": {
+        "refresh": {
+          "status": "not_applicable",
+          "claim": "Caller supplies a coherent phase and the declared fixed metric; no momentum refresh is performed."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "Only complete fixed-budget macrosteps become visible; incomplete backend or numerical work is an error."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "A fixed palindromic kick/drift composition reverses under a signed step; geometry and coefficients stay fixed."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "The separable constant-metric kick/drift shears have unit Jacobian in the implemented map model; finite arithmetic is tolerance-tested."
+        },
+        "selection": {
+          "status": "not_applicable",
+          "claim": "This is a proposal component only, never an invariant Markov transition; caller must supply a compatible selection/correction law."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Consuming phase tokens and whole-batch publication prevent partial endpoints becoming live; raw workspace is reusable scratch."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/integrators.rs",
+          "symbol": "complete_macrosteps_match_scalar_oracle_reverse_and_count_gradients"
+        }
+      ]
+    },
+    {
+      "path": "alea_mcmc::integrator::TwoStage",
+      "guarantee": "proposal_only",
+      "laws": {
+        "refresh": {
+          "status": "not_applicable",
+          "claim": "Caller supplies a coherent phase and the declared fixed metric; no momentum refresh is performed."
+        },
+        "support": {
+          "status": "closed",
+          "claim": "Only complete fixed-budget macrosteps become visible; incomplete backend or numerical work is an error."
+        },
+        "reversibility": {
+          "status": "closed",
+          "claim": "A fixed palindromic kick/drift composition reverses under a signed step; geometry and coefficients stay fixed."
+        },
+        "volume_or_density": {
+          "status": "closed",
+          "claim": "The separable constant-metric kick/drift shears have unit Jacobian in the implemented map model; finite arithmetic is tolerance-tested."
+        },
+        "selection": {
+          "status": "not_applicable",
+          "claim": "This is a proposal component only, never an invariant Markov transition; caller must supply a compatible selection/correction law."
+        },
+        "failure": {
+          "status": "closed",
+          "claim": "Consuming phase tokens and whole-batch publication prevent partial endpoints becoming live; raw workspace is reusable scratch."
+        }
+      },
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/integrators.rs",
+          "symbol": "complete_macrosteps_match_scalar_oracle_reverse_and_count_gradients"
+        }
+      ]
+    }
+  ],
+  "feature_effects": {
+    "default": {
+      "law": "This feature changes cold geometry fitting or constant-metric arithmetic, not refresh, support, complete-macrostep selection or correction; every source MarkovChain must appear in the default inventory.",
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/integrators.rs",
+          "symbol": "complete_macrosteps_match_scalar_oracle_reverse_and_count_gradients"
+        }
+      ]
+    },
+    "faer": {
+      "law": "This feature changes cold geometry fitting or constant-metric arithmetic, not refresh, support, complete-macrostep selection or correction; every source MarkovChain must appear in the default inventory.",
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/integrators.rs",
+          "symbol": "complete_macrosteps_match_scalar_oracle_reverse_and_count_gradients"
+        }
+      ]
+    },
+    "openblas": {
+      "law": "This feature changes cold geometry fitting or constant-metric arithmetic, not refresh, support, complete-macrostep selection or correction; every source MarkovChain must appear in the default inventory.",
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/integrators.rs",
+          "symbol": "complete_macrosteps_match_scalar_oracle_reverse_and_count_gradients"
+        }
+      ]
+    },
+    "simd": {
+      "law": "Ordered scalar-equivalent turning and metric arithmetic preserve the same complete transition and correction; no feature-only MarkovChain is permitted.",
+      "evidence": [
+        {
+          "path": "crates/alea-mcmc/tests/integrators.rs",
+          "symbol": "complete_macrosteps_match_scalar_oracle_reverse_and_count_gradients"
+        }
+      ]
+    }
+  }
 }

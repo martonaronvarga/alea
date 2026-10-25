@@ -1,0 +1,48 @@
+{
+  "schema_version": 2,
+  "id": "m16-posteriordb-functional-smoke-v2",
+  "purpose": "descriptive",
+  "corpus": "tools/bench/corpus/pdb-v2.json",
+  "methods": [
+    "nuts_cov_diag",
+    "stan_pathfinder_nuts"
+  ],
+  "chains": 4,
+  "seeds": [
+    18001,
+    18002,
+    18003,
+    18004
+  ],
+  "warmup": 32,
+  "draws": 16,
+  "repetitions": 1,
+  "depth": 5,
+  "timeout_seconds": 120,
+  "maximum_output_bytes": 268435456,
+  "rmhmc": {
+    "maximum_dimension": 10,
+    "warmup": 32,
+    "draws": 64,
+    "timeout_seconds": 60
+  },
+  "notes": [
+    "Entirely descriptive: no promotion, pass/fail, speedup eligibility, default selection or maturity graduation is computed.",
+    "Twenty declared PosteriorDB model/data pairs at 91027f9cdd13b7e76283fec3f2898f59d4b83ec4; original models/data/licenses and available reference draws are vendored and hashed. This is a diverse subset, not all PosteriorDB.",
+    "All numerical jobs are serial on one allowed CPU; float64, three independent four-chain seed sets. Cold process wall time uses perf_counter_ns and kernel pidfd completion without 50-ms timeout polling.",
+    "Build/compiler costs are recorded outside measurements. Cold process time includes loading, adaptation/initialization, sampling, generated outputs and serialization. Native worker retained timing excludes serialization and constraining outputs; Stan retained timing includes its native CSV and generated quantities.",
+    "Rust Alea and nuts-rs use a shared compiled BridgeStan 2.7.0 / Stan 2.38.0 target backend with unconstrained Lebesgue measure, propto=true and jacobian=true. These runs compare implemented sampling workflows using Stan AD targets, rather than native Alea likelihood speed.",
+    "BlackJAX 1.5 / JAX 0.9.2 uses independently checked native-JAX densities for Rate 1/2, centered/noncentered eight schools, wells dist100 and kidiq momhs. Other models use explicit BridgeStan custom-VJP host callbacks; callback and host-transfer overhead must not be presented as native-JAX kernel speed.",
+    "Alea covariance/Fisher warmup uses eight-step HMC, then freezes the metric/step and converts to NUTS or the named retained kernel. CmdStan, BlackJAX and nuts-rs adapt their native NUTS policies. These adaptation policies are recorded rather than asserted equivalent.",
+    "Fisher variants cover diagonal, rank-four, Robbins-Monro and Adam step adaptation. Low-rank fitting may reject unsupported conditioning; no fallback or hidden tuning is used.",
+    "ATLAS is the implemented curvature-probe/joint s-AIA two-stage warmup composed with NUTS, not a full ATLAS sampler. Pathfinder is the existing four-path, forty-iteration raw-importance initializer followed by covariance/NUTS; no Alea PSIS claim. Stan Pathfinder uses native PSIS initialization followed by NUTS.",
+    "MAMS is corrected isokinetic integration; MCLMC is explicitly approximate. Both use fixed step .08/sqrt(dimension), eight integration steps and fixed-discard warmup. Their one-dimensional combinations are unsupported by the implemented kernels.",
+    "RMHMC/SoftAbs remains exactness-pending and is measured with AD Hessians and explicit central differences of Hessians for third derivatives, h=1e-4*(1+abs(q)). Dense derivative budget limits it to dimension<=10, 32 warmup and 64 retained draws per chain; scalar-alpha=1, two integration steps and four implicit iterations. The manifold variant selects among steps .01/.02/.04 using the existing tuner. No diagnostics close its open numerical-map laws.",
+    "ChEES adapts a four-chain ensemble with identity geometry; GHMC/DR-G-HMC, learned transport, OMF/BCSS and deterministic/randomized WALNUTS are separately labelled configurations. Fixed-policy research settings are exploratory, not optimized over this corpus.",
+    "Every failure, timeout, partial output and unsupported method/model combination remains in the planned denominator. Missing or undefined ESS/R-hat is reported, not silently filtered. Efficiency warnings are observations, not decision gates.",
+    "Reference comparisons report mean discrepancy in reference posterior standard-deviation units and posterior spread ratios, with current-chain MCSE separately. Reference draws are empirical, not exact truth; no universal calibration or significance claim is made.",
+    "Actual target/Hessian/HVP API counts and exposed factorization/solve costs are recorded. Internal Stan AD operation counts and upstream allocation counts are unavailable; no work count is inferred from integration steps.",
+    "One physical host; timing repetitions do not establish cross-host performance or universal sampler superiority.",
+    "Gradient and signed-direction HVP finite-difference preflight occurs before measurements. All six native-JAX translations are checked against Stan scores and density differences before measurements. A failed HVP capability excludes only the HVP-dependent ATLAS workflow; full-Hessian RMHMC failures remain observed attempts. Cold phase records start inside each worker; interpreter/dynamic-loader costs remain in fresh-process wall time. Native retained timers include sampler conversion and owned position collection; affine transport also includes mapping retained positions back to target coordinates."
+  ]
+}

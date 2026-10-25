@@ -12,8 +12,9 @@ fn main() {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     use alea_math::buffer::OwnedBuffer;
     use alea_mcmc::{
-        HmcOptions, Nuts, Walnuts, WalnutsMicrostepDistribution, WalnutsOptions,
+        HmcOptions, Nuts,
         adapt::{FisherHmcWarmup, FisherOptions},
+        walnuts::{Walnuts, WalnutsMicrostepDistribution, WalnutsOptions},
     };
     use alea_runtime::diagnostics::modern;
     use rand::{SeedableRng, rngs::SmallRng};
@@ -51,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         fn add_walnuts(
             &mut self,
-            transition: alea_mcmc::WalnutsTransition,
+            transition: alea_mcmc::walnuts::WalnutsTransition,
         ) -> Result<(), &'static str> {
             self.macrosteps = self
                 .macrosteps
@@ -65,8 +66,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .refinement_stops
                 .checked_add(usize::from(matches!(
                     transition.termination,
-                    alea_mcmc::WalnutsTermination::RefinementLimit
-                        | alea_mcmc::WalnutsTermination::ReverseSelection
+                    alea_mcmc::walnuts::WalnutsTermination::RefinementLimit
+                        | alea_mcmc::walnuts::WalnutsTermination::ReverseSelection
                 )))
                 .ok_or("refinement-stop counter overflow")?;
             Ok(())

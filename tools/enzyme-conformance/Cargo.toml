@@ -1,0 +1,31 @@
+[package]
+name = "alea-enzyme-conformance"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+alea-core = { path = "../../crates/alea-core" }
+alea-autodiff = { path = "../../crates/alea-autodiff", features = ["std-autodiff"] }
+
+[build-dependencies]
+alea-core = { path = "../../crates/alea-core" }
+alea-autodiff = { path = "../../crates/alea-autodiff" }
+alea-distributions = { path = "../../crates/alea-distributions" }
+
+[dev-dependencies]
+alea-distributions = { path = "../../crates/alea-distributions" }
+alea-math = { path = "../../crates/alea-math" }
+alea-mcmc = { path = "../../crates/alea-mcmc" }
+rand = "=0.10.1"
+allocation-counter = "=0.8.1"
+
+[profile.release]
+lto = "fat"
+
+[lints.clippy]
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }

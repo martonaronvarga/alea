@@ -3,14 +3,16 @@ set -euo pipefail
 export MIRIFLAGS='-Zmiri-strict-provenance -Zmiri-symbolic-alignment-check'
 args=(--manifest-path crates/Cargo.toml --locked)
 cargo miri test "${args[@]}" -p alea-ffi --lib
-cargo miri test "${args[@]}" -p alea-math --lib --test metrics --test interpolation --test low_rank
-cargo miri test "${args[@]}" -p alea-core --test target --test transforms --test density --test capability
+cargo miri test "${args[@]}" -p alea-math --lib --test metrics --test inverse_metrics --test interpolation --test low_rank
+cargo miri test "${args[@]}" -p alea-core --test target --test transforms --test density --test capability --test transport
 cargo miri test "${args[@]}" -p alea-autodiff --test models
 # Keep interpreter work bounded to memory, ownership, rollback, and deterministic
 # algorithmic contracts. Native CI owns long statistical/calibration tests.
 cargo miri test "${args[@]}" -p alea-mcmc --test hmc_chain --test hmc_validation --test hmc_stress --test phase_state --test rwmh --test adaptation --test warmup --test warmup_reference --test fisher --test integrators --test integrator_failures
 cargo miri test "${args[@]}" -p alea-mcmc --test nuts_contracts
 cargo miri test "${args[@]}" -p alea-mcmc --test walnuts_contracts
+cargo miri test "${args[@]}" -p alea-mcmc --test isokinetic_failures
+cargo miri test "${args[@]}" -p alea-mcmc --lib singular_newton_system_rejects_without_publishing
 cargo miri test "${args[@]}" -p alea-mcmc --lib nuts::tests::iterative_carries_match_independent_recursive_scalar_oracle -- --exact
 cargo miri test "${args[@]}" -p alea-mcmc --lib walnuts::tests::selected_reverse_level_is_replayed_at_floating_point_thresholds -- --exact
 cargo miri test "${args[@]}" -p alea-mcmc --lib hamiltonian::tests::partial_step_error_and_unwind_require_restart_and_leave_live_cache_untouched -- --exact

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "stable_ci": {
+    "command": "bash tools/ci/check.sh",
+    "exit_code": 0,
+    "rust_tests_and_doctests": 385,
+    "successful_suites": 92,
+    "clippy": "warnings denied",
+    "rustdoc": "warnings denied"
+  },
+  "ci_tool_mutation_tests": 55,
+  "downstream_compile_fail_cases": 7,
+  "scalar_and_simd_m14": {
+    "assembly_tests": 7,
+    "distribution_tests": 12
+  },
+  "enzyme_models": "passed with pinned nightly-2026-06-23",
+  "public_api": "5990 base rendered entries, two additional Faer snapshots, five API-neutral variants; separately reproduced",
+  "independent_external_distribution_law": "passed"
+}

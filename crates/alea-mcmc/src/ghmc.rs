@@ -147,6 +147,9 @@ impl GhmcTransition {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum GhmcError<E: Error + 'static> {
+    /// A derived warmup retry step cannot be represented.
+    #[error(transparent)]
+    Configuration(#[from] HmcConfigError),
     /// Initial point construction failed.
     #[error(transparent)]
     Initialization(#[from] HmcError<E>),
@@ -346,6 +349,13 @@ where
         self.options
     }
 
+    pub(crate) fn set_step_size(&mut self, step: StepSize) {
+        self.options.hmc = HmcOptions::new(step.value(), self.options.integration_steps().get())
+            .expect("validated step/count")
+            .with_max_energy_error(self.options.max_energy_error())
+            .expect("validated cutoff");
+    }
+
     /// Attempts one persistent-momentum transition without sampler allocation.
     ///
     /// Rejection stores the negative refreshed momentum. Acceptance stores the
@@ -519,6 +529,8 @@ impl DrGhmcOptions {
 /// One delayed-rejection stage diagnostic.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DrGhmcStage {
+    /// Actual macrosteps attempted by this stage, excluding reverse ghosts.
+    pub integration_steps: usize,
     /// Whether this stage's actual proposal was attempted.
     pub attempted: bool,
     /// Correct delayed-rejection probability, zero for a divergence.
@@ -533,6 +545,8 @@ pub struct DrGhmcStage {
 #[derive(Debug, Clone, Copy)]
 #[must_use]
 pub struct DrGhmcTransition {
+    /// Macrosteps spent evaluating the reverse first-stage ghost.
+    pub ghost_integration_steps: usize,
     /// Whether either proposal was accepted.
     pub accepted: bool,
     /// One-based accepted stage, or `None` after rejection.
@@ -719,6 +733,20 @@ where
         self.core.live.momentum()
     }
 
+    /// Validated immutable settings for both delayed-rejection stages.
+    pub fn options(&self) -> DrGhmcOptions {
+        self.options
+    }
+
+    pub(crate) fn set_step_size(&mut self, step: StepSize) -> Result<(), GhmcError<T::Error>> {
+        let second = (step.value() / self.options.retry_scale)
+            .try_into()
+            .map_err(GhmcError::Configuration)?;
+        self.options.first_step = step;
+        self.options.second_step = second;
+        Ok(())
+    }
+
     /// Attempts one two-stage transition with a bounded one-step reverse ghost.
     ///
     /// # Errors
@@ -729,6 +757,7 @@ where
     ) -> Result<DrGhmcTransition, GhmcError<T::Error>> {
         self.core.refresh(self.options.persistence, rng)?;
         let mut transition = DrGhmcTransition {
+            ghost_integration_steps: 0,
             accepted: false,
             accepted_stage: None,
             first: DrGhmcStage::default(),
@@ -747,6 +776,7 @@ where
             self.options.integration_steps,
         )?;
         transition.integration_steps += first.attempted_steps;
+        transition.first.integration_steps = first.attempted_steps;
         transition.initial_energy = first.initial;
         transition.first.attempted = true;
         transition.first.energy_error = first
@@ -778,6 +808,7 @@ where
             self.options.integration_steps,
         )?;
         transition.integration_steps += second.attempted_steps;
+        transition.second.integration_steps = second.attempted_steps;
         transition.second.attempted = true;
         transition.second.energy_error = second
             .initial
@@ -808,6 +839,7 @@ where
             self.options.integration_steps,
         )?;
         transition.integration_steps += reverse.attempted_steps;
+        transition.ghost_integration_steps = reverse.attempted_steps;
         let (reverse_probability, _) = map_probability(reverse, self.options.max_energy_error);
         let second_probability = delayed_rejection_probability(
             initial - proposed,

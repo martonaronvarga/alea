@@ -29,6 +29,14 @@ def discover_transitions(root: Path) -> set[str]:
     return set(CHAIN_IMPL.findall(snapshot.read_text()))
 
 
+def discover_proposals(root: Path) -> set[str]:
+    """Sealed integrators and public phase/batch proposal entry points."""
+    text = (root / "tools/ci/public-api/alea-mcmc.txt").read_text()
+    integrators = set(re.findall(r"Integrator for (alea_mcmc::integrator::[A-Za-z0-9_]+)", text))
+    methods = set(re.findall(r"pub fn (alea_mcmc::(?:hamiltonian::Phase|batch::BatchedLeapfrog))<[^\n]*?::(step_with|step|advance)[<(]", text))
+    return integrators | {f"{owner}::{method}" for owner, method in methods}
+
+
 def validate_laws(entry: dict) -> None:
     laws = entry["laws"]
     if not isinstance(laws, dict) or tuple(laws) != LAW_FIELDS:
@@ -77,7 +85,7 @@ def validate_evidence(root: Path, entry: dict) -> None:
 
 
 def validate(root: Path, ledger: dict) -> dict[str, int]:
-    if set(ledger) != {"schema_version", "transitions"} or ledger.get("schema_version") != 1:
+    if set(ledger) != {"schema_version", "transitions", "proposals", "feature_effects"} or ledger.get("schema_version") != 2:
         raise ValueError("unsupported exactness-ledger schema")
     transitions = ledger["transitions"]
     if not isinstance(transitions, list):
@@ -138,6 +146,33 @@ def validate(root: Path, ledger: dict) -> dict[str, int]:
         missing = sorted(discovered - recorded_set)
         stale = sorted(recorded_set - discovered)
         raise ValueError(f"transition inventory mismatch; missing={missing}, stale={stale}")
+    proposals = ledger["proposals"]
+    if {entry["path"] for entry in proposals} != discover_proposals(root):
+        raise ValueError("standalone proposal/integrator inventory mismatch")
+    if len(proposals) != len({entry["path"] for entry in proposals}):
+        raise ValueError("duplicate standalone proposal law")
+    for entry in proposals:
+        if entry["guarantee"] != "proposal_only":
+            raise ValueError("standalone integration cannot claim a corrected transition")
+        validate_laws(entry)
+        validate_evidence(root, entry)
+        if entry["laws"]["selection"]["status"] != "not_applicable":
+            raise ValueError("standalone proposal must require its caller's correction")
+    features = ledger["feature_effects"]
+    import tomllib
+    cargo = tomllib.loads((root / "crates/alea-mcmc/Cargo.toml").read_text())
+    if set(features) != set(cargo["features"]):
+        raise ValueError("feature-specific exactness inventory mismatch")
+    for name, entry in features.items():
+        if not entry.get("law") or not entry.get("evidence"):
+            raise ValueError(f"{name}: missing feature map law/evidence")
+        validate_evidence(root, dict(entry, path=name))
+    # Feature-only new kernels cannot hide outside the default API inventory.
+    implemented = set()
+    for path in (root / "crates/alea-mcmc/src").rglob("*.rs"):
+        implemented.update(re.findall(r"impl[^;{]*?MarkovChain\s+for\s+(\w+)", path.read_text()))
+    if implemented != {path.rsplit("::", 1)[1] for path in discovered}:
+        raise ValueError("feature/source MarkovChain inventory differs from audited transitions")
     return counts
 
 

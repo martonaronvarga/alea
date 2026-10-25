@@ -4,6 +4,7 @@
 //! returns another token. Failure/unwinding may dirty workspace but cannot leave
 //! a usable partial phase. Starting again resets from a coherent cached point.
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 use alea_core::target::{
     DimensionError, EvaluationError, EvaluationWorkspace, LogDensityGradient, PointState,
@@ -11,6 +12,7 @@ use alea_core::target::{
 use alea_math::buffer::OwnedBuffer;
 use alea_math::metric::{EuclideanMetric, MetricError};
 use rand::Rng;
+mod vector;
 
 /// Numerical reason a trajectory stopped. Fixed HMC rejects its proposal;
 /// NUTS discards the invalid subtree and may retain an earlier valid candidate.
@@ -18,13 +20,22 @@ use rand::Rng;
 #[non_exhaustive]
 pub enum Divergence {
     /// Integration produced a non-finite coordinate.
-    Position { index: usize },
+    Position {
+        /// Zero-based index of the invalid entry.
+        index: usize,
+    },
     /// The target returned a non-finite log density (including negative infinity).
     LogDensity,
     /// The target returned an incomplete or non-finite gradient.
-    Gradient { index: usize },
+    Gradient {
+        /// Zero-based index of the invalid entry.
+        index: usize,
+    },
     /// Momentum generation or an integration kick produced a non-finite value.
-    Momentum { index: usize },
+    Momentum {
+        /// Zero-based index of the invalid entry.
+        index: usize,
+    },
     /// Kinetic/Hamiltonian energy or its difference was not finite.
     Energy,
     /// The finite energy error exceeded the configured limit (absolute in HMC,
@@ -37,10 +48,13 @@ pub enum Divergence {
 #[non_exhaustive]
 pub enum PhaseError<E: std::error::Error + 'static> {
     #[error(transparent)]
+    /// Underlying metric construction or operation failed.
     Metric(MetricError),
     #[error(transparent)]
+    /// Checked target evaluation failed; its concrete source error is retained.
     Evaluation(EvaluationError<E>),
     #[error("numerical trajectory divergence: {0:?}")]
+    /// Numerical trajectory divergence: {0:?}.
     Divergence(Divergence),
 }
 
@@ -243,8 +257,13 @@ impl<'a, T: LogDensityGradient + ?Sized> PhaseWorkspace<'a, T> {
                 destination_len: self.momentum.len(),
             }));
         }
+        let fast_normal = self.velocity.len() >= 16;
         for z in self.velocity.iter_mut() {
-            *z = alea_math::random::standard_normal(rng);
+            *z = if fast_normal {
+                rand_distr::Distribution::sample(&rand_distr::StandardNormal, rng)
+            } else {
+                alea_math::random::standard_normal(rng)
+            };
         }
         metric
             .sample_momentum(&self.velocity, &mut self.momentum)
@@ -257,7 +276,7 @@ impl<'a, T: LogDensityGradient + ?Sized> PhaseWorkspace<'a, T> {
     }
 
     fn check_momentum(&self) -> Result<(), PhaseError<T::Error>> {
-        if let Some(index) = self.momentum.iter().position(|p| !p.is_finite()) {
+        if let Some(index) = alea_math::numeric::first_nonfinite(&self.momentum) {
             return Err(PhaseError::Divergence(Divergence::Momentum { index }));
         }
         Ok(())
@@ -304,6 +323,105 @@ impl<'a, T: LogDensityGradient + ?Sized> PhaseWorkspace<'a, T> {
             metric,
         })
     }
+
+    /// Start one macrostep directly from an immutable admitted snapshot. The
+    /// first kick/drift read it in place, avoiding copies of its q, gradient and p.
+    /// No phase token escapes a failed stage; only scratch storage is dirtied.
+    pub(crate) fn step_from_phase<'w, M: EuclideanMetric, I: crate::integrator::Integrator>(
+        &'w mut self,
+        state: &PhaseState<'a, T>,
+        metric: &'w M,
+        step: SignedStep,
+        integrator: &I,
+    ) -> Result<Phase<'w, 'a, T, M>, PhaseError<T::Error>> {
+        let expected = self.momentum.len();
+        let point = state.point();
+        if point.dimension() != expected || !std::ptr::eq(point.target(), self.point.target()) {
+            self.prepare(point).map_err(PhaseError::Evaluation)?;
+        }
+        let actual = point.target().dimension();
+        if actual != expected {
+            return Err(PhaseError::Evaluation(
+                EvaluationError::TargetDimensionChanged { expected, actual },
+            ));
+        }
+        if metric.dimension() != expected || state.momentum.len() != expected {
+            return Err(PhaseError::Metric(MetricError::VectorLength {
+                expected: metric.dimension(),
+                source_len: state.momentum.len(),
+                destination_len: expected,
+            }));
+        }
+        self.advance(metric, step.0, integrator, Some(state))?;
+        Ok(Phase {
+            workspace: self,
+            metric,
+        })
+    }
+
+    fn advance<M: EuclideanMetric, I: crate::integrator::Integrator>(
+        &mut self,
+        metric: &M,
+        eps: f64,
+        integrator: &I,
+        initial: Option<&PhaseState<'a, T>>,
+    ) -> Result<(), PhaseError<T::Error>> {
+        for stage in 0..integrator.stages() {
+            let first = initial.filter(|_| stage == 0);
+            let invalid = if let Some(initial) = first {
+                vector::add_scaled_into::<true>(
+                    &mut self.momentum,
+                    initial.momentum(),
+                    initial.point().gradient(),
+                    integrator.kick(stage) * eps,
+                )
+            } else {
+                vector::add_scaled(
+                    &mut self.momentum,
+                    self.point.gradient(),
+                    integrator.kick(stage) * eps,
+                )
+            };
+            if let Some(index) = invalid {
+                return Err(PhaseError::Divergence(Divergence::Momentum { index }));
+            }
+            metric
+                .velocity(&self.momentum, &mut self.velocity)
+                .map_err(PhaseError::Metric)?;
+            let position = first.map_or_else(|| self.point.position(), |s| s.point().position());
+            let _ = vector::add_scaled_into::<false>(
+                &mut self.next_position,
+                position,
+                &self.velocity,
+                eps * integrator.drift(stage),
+            );
+            if let Err(error) = self
+                .point
+                .try_update_owned(&mut self.next_position, &mut self.evaluation)
+            {
+                return Err(match error {
+                    EvaluationError::NonFinitePosition { index } => {
+                        PhaseError::Divergence(Divergence::Position { index })
+                    }
+                    EvaluationError::NonFiniteLogDensity => {
+                        PhaseError::Divergence(Divergence::LogDensity)
+                    }
+                    EvaluationError::NonFiniteGradient { index } => {
+                        PhaseError::Divergence(Divergence::Gradient { index })
+                    }
+                    other => PhaseError::Evaluation(other),
+                });
+            }
+        }
+        if let Some(index) = vector::add_scaled(
+            &mut self.momentum,
+            self.point.gradient(),
+            integrator.kick(integrator.stages()) * eps,
+        ) {
+            return Err(PhaseError::Divergence(Divergence::Momentum { index }));
+        }
+        Ok(())
+    }
 }
 
 /// Only a complete phase has this token. It is deliberately neither Clone nor Copy.
@@ -342,43 +460,8 @@ impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric> Phase<'_, '_, T, M> {
         step: SignedStep,
         integrator: &I,
     ) -> Result<Self, PhaseError<T::Error>> {
-        let s = &mut *self.workspace;
-        let eps = step.0;
-        for stage in 0..integrator.stages() {
-            for (p, g) in s.momentum.iter_mut().zip(s.point.gradient()) {
-                *p += integrator.kick(stage) * eps * g;
-            }
-            s.check_momentum()?;
-            self.metric
-                .velocity(&s.momentum, &mut s.velocity)
-                .map_err(PhaseError::Metric)?;
-            for ((next, q), v) in s
-                .next_position
-                .iter_mut()
-                .zip(s.point.position())
-                .zip(s.velocity.iter())
-            {
-                *next = q + (eps * integrator.drift(stage)) * v;
-            }
-            if let Err(error) = s.point.try_update(&s.next_position, &mut s.evaluation) {
-                return Err(match error {
-                    EvaluationError::NonFinitePosition { index } => {
-                        PhaseError::Divergence(Divergence::Position { index })
-                    }
-                    EvaluationError::NonFiniteLogDensity => {
-                        PhaseError::Divergence(Divergence::LogDensity)
-                    }
-                    EvaluationError::NonFiniteGradient { index } => {
-                        PhaseError::Divergence(Divergence::Gradient { index })
-                    }
-                    other => PhaseError::Evaluation(other),
-                });
-            }
-        }
-        for (p, g) in s.momentum.iter_mut().zip(s.point.gradient()) {
-            *p += integrator.kick(integrator.stages()) * eps * g;
-        }
-        s.check_momentum()?;
+        self.workspace
+            .advance(self.metric, step.0, integrator, None)?;
         Ok(self)
     }
 
@@ -387,21 +470,57 @@ impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric> Phase<'_, '_, T, M> {
     /// Returns metric errors or a non-finite energy divergence.
     pub fn energy(&mut self) -> Result<f64, PhaseError<T::Error>> {
         let s = &mut self.workspace;
-        self.metric
-            .velocity(&s.momentum, &mut s.velocity)
+        let kinetic = self
+            .metric
+            .kinetic_energy_with_velocity(&s.momentum, &mut s.velocity)
             .map_err(PhaseError::Metric)?;
-        let kinetic = 0.5
-            * s.momentum
-                .iter()
-                .zip(s.velocity.iter())
-                .map(|(p, v)| p * v)
-                .sum::<f64>();
         let energy = -s.point.log_density() + kinetic;
-        if !energy.is_finite() {
+        // A factor-based norm can have finite energy while applying the matrix
+        // overflows a velocity component. Admit both before caching the endpoint.
+        if !energy.is_finite() || alea_math::numeric::first_nonfinite(&s.velocity).is_some() {
             return Err(PhaseError::Divergence(Divergence::Energy));
         }
         Ok(energy)
     }
+}
+
+impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric> Phase<'_, 'a, T, M> {
+    /// Finish energy admission and transfer its matching endpoint velocity. The
+    /// cache is private to immutable NUTS slots and never spans a momentum change.
+    pub(crate) fn finish_cached_into<const POSITION: bool>(
+        mut self,
+        destination: &mut PhaseState<'a, T>,
+        velocity: &mut OwnedBuffer,
+    ) -> Result<PhaseAdmission, PhaseError<T::Error>> {
+        let expected = self.workspace.point.dimension();
+        if destination.dimension() != expected || velocity.len() != expected {
+            return Err(PhaseError::Metric(MetricError::VectorLength {
+                expected,
+                source_len: destination.dimension(),
+                destination_len: velocity.len(),
+            }));
+        }
+        let s = &mut self.workspace;
+        let kinetic = self
+            .metric
+            .kinetic_energy_with_velocity(&s.momentum, &mut s.velocity)
+            .map_err(PhaseError::Metric)?;
+        let energy = -s.point.log_density() + kinetic;
+        if !energy.is_finite() {
+            return Err(PhaseError::Divergence(Divergence::Energy));
+        }
+        let scales = vector::admit::<POSITION>(&s.momentum, &s.velocity, s.point.position())
+            .ok_or(PhaseError::Divergence(Divergence::Energy))?;
+        std::mem::swap(velocity, &mut self.workspace.velocity);
+        self.exchange_into(destination)?;
+        Ok(PhaseAdmission { energy, scales })
+    }
+}
+
+/// Energy and norm certificates for one immutable, fully admitted phase.
+pub(crate) struct PhaseAdmission {
+    pub(crate) energy: f64,
+    pub(crate) scales: Option<[f64; 2]>,
 }
 
 impl<'a, T: LogDensityGradient + ?Sized, M> Phase<'_, 'a, T, M> {
@@ -435,6 +554,25 @@ impl<'a, T: LogDensityGradient + ?Sized, M> Phase<'_, 'a, T, M> {
         destination
             .momentum
             .copy_from_slice(&self.workspace.momentum);
+        Ok(())
+    }
+
+    /// Consume a completed phase by exchanging reusable snapshot storage. The
+    /// old destination becomes inaccessible workspace scratch.
+    pub(crate) fn exchange_into(
+        self,
+        destination: &mut PhaseState<'a, T>,
+    ) -> Result<(), PhaseError<T::Error>> {
+        let expected = self.workspace.point.dimension();
+        if destination.dimension() != expected {
+            return Err(PhaseError::Metric(MetricError::VectorLength {
+                expected,
+                source_len: expected,
+                destination_len: destination.dimension(),
+            }));
+        }
+        std::mem::swap(&mut destination.point, &mut self.workspace.point);
+        std::mem::swap(&mut destination.momentum, &mut self.workspace.momentum);
         Ok(())
     }
 

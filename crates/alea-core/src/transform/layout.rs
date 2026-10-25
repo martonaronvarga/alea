@@ -2,26 +2,33 @@ use super::{Transform, TransformError, finite, log_jacobian, shape, size};
 use std::ops::Range;
 
 /// Immutable block offsets, computed by the layout rather than supplied by callers.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
+#[must_use]
 pub struct ParameterBlock {
     transform: Transform,
     unconstrained: Range<usize>,
     constrained: Range<usize>,
 }
 impl ParameterBlock {
+    /// Transform associated with this parameter block.
     pub fn transform(&self) -> &Transform {
         &self.transform
     }
+    #[must_use]
+    /// Half-open range in the unconstrained coordinate vector.
     pub fn unconstrained_range(&self) -> Range<usize> {
         self.unconstrained.clone()
     }
+    #[must_use]
+    /// Half-open range in the constrained coordinate vector.
     pub fn constrained_range(&self) -> Range<usize> {
         self.constrained.clone()
     }
 }
 
 /// Flat, validated parameter layout. Construction allocates; evaluation does not.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
+#[must_use = "a parameter layout has no effect unless it is retained or applied"]
 pub struct ParameterLayout {
     blocks: Vec<ParameterBlock>,
     input: usize,
@@ -29,6 +36,11 @@ pub struct ParameterLayout {
     scratch: usize,
 }
 impl ParameterLayout {
+    /// Builds a checked flat layout in iteration order.
+    ///
+    /// # Errors
+    /// Returns [`TransformError::InvalidDimension`] if aggregate dimensions
+    /// overflow addressable storage.
     pub fn new(transforms: impl IntoIterator<Item = Transform>) -> Result<Self, TransformError> {
         let mut layout = Self {
             blocks: Vec::new(),
@@ -60,15 +72,22 @@ impl ParameterLayout {
         }
         Ok(layout)
     }
+    /// Parameter blocks in declaration order.
     pub fn blocks(&self) -> &[ParameterBlock] {
         &self.blocks
     }
+    #[must_use]
+    /// Number of input unconstrained coordinates.
     pub fn unconstrained_dimension(&self) -> usize {
         self.input
     }
+    #[must_use]
+    /// Number of output constrained coordinates.
     pub fn constrained_dimension(&self) -> usize {
         self.output
     }
+    #[must_use]
+    /// Number of scratch elements required for one layout evaluation.
     pub fn scratch_dimension(&self) -> usize {
         self.scratch
     }
@@ -85,6 +104,10 @@ impl ParameterLayout {
         Ok(())
     }
     /// Errors carry block-local coordinate indices; block ranges remain available.
+    ///
+    /// # Errors
+    /// Returns [`TransformError`] for shape, non-finite input, domain, precision,
+    /// output, or log-Jacobian failures in any block.
     pub fn constrain(
         &self,
         q: &[f64],
@@ -103,6 +126,11 @@ impl ParameterLayout {
         }
         log_jacobian(jac)
     }
+    /// Maps constrained parameters back to the layout's unconstrained coordinates.
+    ///
+    /// # Errors
+    /// Returns [`TransformError`] for shape, non-finite input, domain, precision,
+    /// or output failures in any block.
     pub fn unconstrain(
         &self,
         x: &[f64],
@@ -121,6 +149,10 @@ impl ParameterLayout {
         Ok(())
     }
     /// Compose model gradients with all transforms, including their Jacobians.
+    ///
+    /// # Errors
+    /// Returns [`TransformError`] for shape, non-finite input, or numerical
+    /// pullback failures in any block.
     pub fn pullback(
         &self,
         q: &[f64],

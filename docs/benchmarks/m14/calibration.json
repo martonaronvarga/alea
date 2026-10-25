@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "hierarchical_sbc": [
+    {
+      "model": "hierarchical logistic",
+      "coordinate": 0,
+      "bins": [
+        7,
+        9,
+        6,
+        10
+      ],
+      "chi_square": 1.25,
+      "retained_divergences": 0
+    },
+    {
+      "model": "hierarchical logistic",
+      "coordinate": 1,
+      "bins": [
+        13,
+        3,
+        9,
+        7
+      ],
+      "chi_square": 6.5,
+      "retained_divergences": 0
+    },
+    {
+      "model": "hierarchical logistic",
+      "coordinate": 2,
+      "bins": [
+        6,
+        9,
+        12,
+        5
+      ],
+      "chi_square": 3.75,
+      "retained_divergences": 0
+    },
+    {
+      "model": "hierarchical logistic",
+      "coordinate": 3,
+      "bins": [
+        8,
+        7,
+        11,
+        6
+      ],
+      "chi_square": 1.75,
+      "retained_divergences": 0
+    },
+    {
+      "model": "hierarchical DDM",
+      "coordinate": 0,
+      "bins": [
+        6,
+        10,
+        7,
+        9
+      ],
+      "chi_square": 1.25,
+      "retained_divergences": 0
+    },
+    {
+      "model": "hierarchical DDM",
+      "coordinate": 1,
+      "bins": [
+        7,
+        11,
+        4,
+        10
+      ],
+      "chi_square": 3.75,
+      "retained_divergences": 0
+    },
+    {
+      "model": "hierarchical DDM",
+      "coordinate": 2,
+      "bins": [
+        6,
+        14,
+        7,
+        5
+      ],
+      "chi_square": 6.25,
+      "retained_divergences": 0
+    },
+    {
+      "model": "hierarchical DDM",
+      "coordinate": 3,
+      "bins": [
+        7,
+        8,
+        10,
+        7
+      ],
+      "chi_square": 0.75,
+      "retained_divergences": 0
+    }
+  ],
+  "normal_sbc": {
+    "datasets": 64,
+    "posterior_draws": 512,
+    "bins": [
+      14,
+      22,
+      15,
+      13
+    ],
+    "chi_square": 3.125
+  },
+  "chi_square_limit": 16.3
+}

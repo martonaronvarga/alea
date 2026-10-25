@@ -174,45 +174,235 @@ pub type alea_core::density::LogDensity::Error: core::error::Error + 'static
 pub fn alea_core::density::LogDensity::dimension(&self) -> usize
 pub fn alea_core::density::LogDensity::logp(&self, position: &[f64]) -> core::result::Result<f64, Self::Error>
 pub fn alea_core::density::evaluate<T: alea_core::density::LogDensity + ?core::marker::Sized>(target: &T, q: &[f64]) -> core::result::Result<f64, alea_core::target::EvaluationError<<T as alea_core::density::LogDensity>::Error>>
-pub mod alea_core::error
-#[non_exhaustive] pub enum alea_core::error::TransformError
-pub alea_core::error::TransformError::Dimension
-pub alea_core::error::TransformError::Dimension::actual: usize
-pub alea_core::error::TransformError::Dimension::expected: usize
-pub alea_core::error::TransformError::Domain
-pub alea_core::error::TransformError::Domain::index: usize
-pub alea_core::error::TransformError::InvalidBounds
-pub alea_core::error::TransformError::InvalidBounds::index: usize
-pub alea_core::error::TransformError::InvalidDimension
-pub alea_core::error::TransformError::NonFiniteInput
-pub alea_core::error::TransformError::NonFiniteInput::index: usize
-pub alea_core::error::TransformError::NonFiniteJacobian
-pub alea_core::error::TransformError::NonFiniteOutput
-pub alea_core::error::TransformError::NonFiniteOutput::index: usize
-pub alea_core::error::TransformError::PrecisionLoss
-pub alea_core::error::TransformError::PrecisionLoss::index: usize
-impl core::clone::Clone for alea_core::error::TransformError
-pub fn alea_core::error::TransformError::clone(&self) -> alea_core::error::TransformError
-impl core::cmp::Eq for alea_core::error::TransformError
-impl core::cmp::PartialEq for alea_core::error::TransformError
-pub fn alea_core::error::TransformError::eq(&self, other: &alea_core::error::TransformError) -> bool
-impl core::error::Error for alea_core::error::TransformError
-impl core::fmt::Debug for alea_core::error::TransformError
-pub fn alea_core::error::TransformError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::fmt::Display for alea_core::error::TransformError
-pub fn alea_core::error::TransformError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_core::error::TransformError
-impl core::marker::StructuralPartialEq for alea_core::error::TransformError
-impl<E: core::error::Error + 'static> core::convert::From<alea_core::error::TransformError> for alea_core::model::ModelError<E>
-pub fn alea_core::model::ModelError<E>::from(source: alea_core::error::TransformError) -> Self
+pub mod alea_core::distribution
+#[non_exhaustive] pub enum alea_core::distribution::DistributionError
+pub alea_core::distribution::DistributionError::Numerical
+pub alea_core::distribution::DistributionError::Observation
+pub alea_core::distribution::DistributionError::Parameter(&'static str)
+pub alea_core::distribution::DistributionError::SamplingBudget
+pub alea_core::distribution::DistributionError::Shape
+impl core::clone::Clone for alea_core::distribution::DistributionError
+pub fn alea_core::distribution::DistributionError::clone(&self) -> alea_core::distribution::DistributionError
+impl core::cmp::Eq for alea_core::distribution::DistributionError
+impl core::cmp::PartialEq for alea_core::distribution::DistributionError
+pub fn alea_core::distribution::DistributionError::eq(&self, other: &alea_core::distribution::DistributionError) -> bool
+impl core::error::Error for alea_core::distribution::DistributionError
+impl core::fmt::Debug for alea_core::distribution::DistributionError
+pub fn alea_core::distribution::DistributionError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_core::distribution::DistributionError
+pub fn alea_core::distribution::DistributionError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::distribution::DistributionError
+impl core::marker::StructuralPartialEq for alea_core::distribution::DistributionError
+#[non_exhaustive] pub enum alea_core::distribution::EventShape
+pub alea_core::distribution::EventShape::Matrix
+pub alea_core::distribution::EventShape::Matrix::columns: usize
+pub alea_core::distribution::EventShape::Matrix::rows: usize
+pub alea_core::distribution::EventShape::Scalar
+pub alea_core::distribution::EventShape::Vector(usize)
+impl core::clone::Clone for alea_core::distribution::EventShape
+pub fn alea_core::distribution::EventShape::clone(&self) -> alea_core::distribution::EventShape
+impl core::cmp::Eq for alea_core::distribution::EventShape
+impl core::cmp::PartialEq for alea_core::distribution::EventShape
+pub fn alea_core::distribution::EventShape::eq(&self, other: &alea_core::distribution::EventShape) -> bool
+impl core::fmt::Debug for alea_core::distribution::EventShape
+pub fn alea_core::distribution::EventShape::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::distribution::EventShape
+impl core::marker::StructuralPartialEq for alea_core::distribution::EventShape
+#[non_exhaustive] pub enum alea_core::distribution::Support
+pub alea_core::distribution::Support::CorrelationCholesky
+pub alea_core::distribution::Support::Count
+pub alea_core::distribution::Support::Finite
+pub alea_core::distribution::Support::Finite::outcomes: usize
+pub alea_core::distribution::Support::Positive
+pub alea_core::distribution::Support::Real
+pub alea_core::distribution::Support::RealVector
+pub alea_core::distribution::Support::Simplex
+pub alea_core::distribution::Support::UnitInterval
+impl core::clone::Clone for alea_core::distribution::Support
+pub fn alea_core::distribution::Support::clone(&self) -> alea_core::distribution::Support
+impl core::cmp::Eq for alea_core::distribution::Support
+impl core::cmp::PartialEq for alea_core::distribution::Support
+pub fn alea_core::distribution::Support::eq(&self, other: &alea_core::distribution::Support) -> bool
+impl core::fmt::Debug for alea_core::distribution::Support
+pub fn alea_core::distribution::Support::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::distribution::Support
+impl core::marker::StructuralPartialEq for alea_core::distribution::Support
+pub trait alea_core::distribution::ContinuousDistribution: alea_core::distribution::Distribution<Event = f64>
+pub fn alea_core::distribution::ContinuousDistribution::event_score(&self, event: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub trait alea_core::distribution::Distribution
+pub type alea_core::distribution::Distribution::Event: ?core::marker::Sized
+pub fn alea_core::distribution::Distribution::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_core::distribution::Distribution::log_prob(&self, event: &Self::Event) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_core::distribution::Distribution::support(&self) -> alea_core::distribution::Support
+pub trait alea_core::distribution::ParameterScore: alea_core::distribution::Distribution
+pub fn alea_core::distribution::ParameterScore::parameter_count(&self) -> usize
+pub fn alea_core::distribution::ParameterScore::parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+pub trait alea_core::distribution::Sample: alea_core::distribution::Distribution
+pub type alea_core::distribution::Sample::Draw
+pub fn alea_core::distribution::Sample::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<Self::Draw, alea_core::distribution::DistributionError>
+pub fn alea_core::distribution::log_prob_batch<D: alea_core::distribution::Distribution<Event = f64>>(distribution: &D, observations: &[f64], output: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 pub mod alea_core::model
+pub mod alea_core::model::assembly
+#[non_exhaustive] pub enum alea_core::model::assembly::AssemblyError
+pub alea_core::model::assembly::AssemblyError::Empty
+pub alea_core::model::assembly::AssemblyError::Factor(alloc::boxed::Box<(dyn core::error::Error + core::marker::Send + core::marker::Sync)>)
+pub alea_core::model::assembly::AssemblyError::ForeignHandle
+pub alea_core::model::assembly::AssemblyError::MissingPrimal
+pub alea_core::model::assembly::AssemblyError::MissingPrimal::node: usize
+pub alea_core::model::assembly::AssemblyError::Name
+pub alea_core::model::assembly::AssemblyError::Numerical
+pub alea_core::model::assembly::AssemblyError::Shape
+pub alea_core::model::assembly::AssemblyError::Transform(alea_core::transform::TransformError)
+pub alea_core::model::assembly::AssemblyError::WorkspaceBusy
+impl core::convert::From<alea_core::transform::TransformError> for alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::AssemblyError::from(source: alea_core::transform::TransformError) -> Self
+impl core::error::Error for alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::AssemblyError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl core::fmt::Debug for alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::AssemblyError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::AssemblyError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub enum alea_core::model::assembly::Positive
+impl core::clone::Clone for alea_core::model::assembly::Positive
+pub fn alea_core::model::assembly::Positive::clone(&self) -> alea_core::model::assembly::Positive
+impl core::fmt::Debug for alea_core::model::assembly::Positive
+pub fn alea_core::model::assembly::Positive::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::model::assembly::Positive
+pub enum alea_core::model::assembly::Real
+impl core::clone::Clone for alea_core::model::assembly::Real
+pub fn alea_core::model::assembly::Real::clone(&self) -> alea_core::model::assembly::Real
+impl core::fmt::Debug for alea_core::model::assembly::Real
+pub fn alea_core::model::assembly::Real::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::model::assembly::Real
+pub enum alea_core::model::assembly::UnitInterval
+impl core::clone::Clone for alea_core::model::assembly::UnitInterval
+pub fn alea_core::model::assembly::UnitInterval::clone(&self) -> alea_core::model::assembly::UnitInterval
+impl core::fmt::Debug for alea_core::model::assembly::UnitInterval
+pub fn alea_core::model::assembly::UnitInterval::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::model::assembly::UnitInterval
+pub struct alea_core::model::assembly::CompiledModel
+impl alea_core::model::assembly::CompiledModel
+pub fn alea_core::model::assembly::CompiledModel::coordinates(&self) -> alloc::sync::Arc<[alea_core::model::assembly::Coordinate]>
+pub fn alea_core::model::assembly::CompiledModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
+pub fn alea_core::model::assembly::CompiledModel::layout(&self) -> &alea_core::transform::ParameterLayout
+impl alea_core::model::assembly::CompiledModel
+pub fn alea_core::model::assembly::CompiledModel::rust_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::CompiledModel::rust_validation(&self) -> alloc::string::String
+impl alea_core::model::ConstrainedModel for alea_core::model::assembly::CompiledModel
+pub type alea_core::model::assembly::CompiledModel::Error = alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::CompiledModel::dimension(&self) -> usize
+pub fn alea_core::model::assembly::CompiledModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+pub struct alea_core::model::assembly::Coordinate
+pub alea_core::model::assembly::Coordinate::block: core::option::Option<alloc::string::String>
+pub alea_core::model::assembly::Coordinate::coordinate: core::option::Option<alloc::string::String>
+pub alea_core::model::assembly::Coordinate::dimension: core::option::Option<alloc::string::String>
+pub alea_core::model::assembly::Coordinate::name: alloc::string::String
+impl core::clone::Clone for alea_core::model::assembly::Coordinate
+pub fn alea_core::model::assembly::Coordinate::clone(&self) -> alea_core::model::assembly::Coordinate
+impl core::cmp::Eq for alea_core::model::assembly::Coordinate
+impl core::cmp::PartialEq for alea_core::model::assembly::Coordinate
+pub fn alea_core::model::assembly::Coordinate::eq(&self, other: &alea_core::model::assembly::Coordinate) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::Coordinate
+pub fn alea_core::model::assembly::Coordinate::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::Coordinate
+pub struct alea_core::model::assembly::Expr
+impl core::clone::Clone for alea_core::model::assembly::Expr
+pub fn alea_core::model::assembly::Expr::clone(&self) -> alea_core::model::assembly::Expr
+impl core::cmp::Eq for alea_core::model::assembly::Expr
+impl core::cmp::PartialEq for alea_core::model::assembly::Expr
+pub fn alea_core::model::assembly::Expr::eq(&self, other: &alea_core::model::assembly::Expr) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::Expr
+pub fn alea_core::model::assembly::Expr::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::model::assembly::Expr
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::Expr
+pub struct alea_core::model::assembly::ModelBuilder
+impl alea_core::model::assembly::ModelBuilder
+pub fn alea_core::model::assembly::ModelBuilder::add(&mut self, a: alea_core::model::assembly::Expr, b: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::annotate<S>(&mut self, p: &alea_core::model::assembly::Parameter<S>, dimension: &str, coordinate: &str, block: &str) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::compile(self) -> core::result::Result<alea_core::model::assembly::CompiledModel, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::constant(&mut self, x: f64) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::custom<F>(&mut self, inputs: &[alea_core::model::assembly::Expr], callback: F) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError> where F: core::ops::function::Fn(&[f64], &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static
+pub fn alea_core::model::assembly::ModelBuilder::custom_with_primal<F>(&mut self, inputs: &[alea_core::model::assembly::Expr], primal: &'static str, callback: F) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError> where F: core::ops::function::Fn(&[f64], &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static
+pub fn alea_core::model::assembly::ModelBuilder::exp(&mut self, a: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::factor(&mut self, log_factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::log(&mut self, a: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::multiply(&mut self, a: alea_core::model::assembly::Expr, b: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::new() -> Self
+pub fn alea_core::model::assembly::ModelBuilder::plate<T, F>(&mut self, data: &[T], factor: F) -> core::result::Result<(), alea_core::model::assembly::AssemblyError> where F: core::ops::function::FnMut(&mut Self, usize, &T) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::positive(&mut self, name: &str) -> core::result::Result<alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::real(&mut self, name: &str) -> core::result::Result<alea_core::model::assembly::Parameter<alea_core::model::assembly::Real>, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::sum(&mut self, values: &[alea_core::model::assembly::Expr]) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::unit_interval(&mut self, name: &str) -> core::result::Result<alea_core::model::assembly::Parameter<alea_core::model::assembly::UnitInterval>, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::vector(&mut self, name: &str, dimension: &str, labels: &[&str], block: &str, transform: alea_core::transform::Transform) -> core::result::Result<alea_core::model::assembly::VectorParameter, alea_core::model::assembly::AssemblyError>
+impl core::default::Default for alea_core::model::assembly::ModelBuilder
+pub fn alea_core::model::assembly::ModelBuilder::default() -> Self
+pub struct alea_core::model::assembly::Parameter<S>
+impl<S> alea_core::model::assembly::Parameter<S>
+pub fn alea_core::model::assembly::Parameter<S>::expr(&self) -> alea_core::model::assembly::Expr
+pub fn alea_core::model::assembly::Parameter<S>::slot(&self) -> usize
+impl<S: core::clone::Clone> core::clone::Clone for alea_core::model::assembly::Parameter<S>
+pub fn alea_core::model::assembly::Parameter<S>::clone(&self) -> alea_core::model::assembly::Parameter<S>
+impl<S: core::fmt::Debug> core::fmt::Debug for alea_core::model::assembly::Parameter<S>
+pub fn alea_core::model::assembly::Parameter<S>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<S: core::marker::Copy> core::marker::Copy for alea_core::model::assembly::Parameter<S>
+pub struct alea_core::model::assembly::VectorParameter
+impl alea_core::model::assembly::VectorParameter
+pub fn alea_core::model::assembly::VectorParameter::expressions(&self) -> &[alea_core::model::assembly::Expr]
+impl core::clone::Clone for alea_core::model::assembly::VectorParameter
+pub fn alea_core::model::assembly::VectorParameter::clone(&self) -> alea_core::model::assembly::VectorParameter
+impl core::fmt::Debug for alea_core::model::assembly::VectorParameter
+pub fn alea_core::model::assembly::VectorParameter::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub mod alea_core::model::prediction
+pub enum alea_core::model::prediction::PredictionError<E: core::error::Error + 'static>
+pub alea_core::model::prediction::PredictionError::Generator(E)
+pub alea_core::model::prediction::PredictionError::Transform(alea_core::transform::TransformError)
+impl<E: core::error::Error + 'static> core::convert::From<alea_core::transform::TransformError> for alea_core::model::prediction::PredictionError<E>
+pub fn alea_core::model::prediction::PredictionError<E>::from(source: alea_core::transform::TransformError) -> Self
+impl<E: core::fmt::Debug + core::error::Error + 'static> core::fmt::Debug for alea_core::model::prediction::PredictionError<E>
+pub fn alea_core::model::prediction::PredictionError<E>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<E> core::error::Error for alea_core::model::prediction::PredictionError<E> where E: core::error::Error + 'static + core::error::Error, Self: core::fmt::Debug + core::fmt::Display
+pub fn alea_core::model::prediction::PredictionError<E>::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl<E> core::fmt::Display for alea_core::model::prediction::PredictionError<E> where E: core::fmt::Display + core::error::Error + 'static
+pub fn alea_core::model::prediction::PredictionError<E>::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub enum alea_core::model::prediction::PredictiveOrigin
+pub alea_core::model::prediction::PredictiveOrigin::Posterior
+pub alea_core::model::prediction::PredictiveOrigin::Prior
+impl core::clone::Clone for alea_core::model::prediction::PredictiveOrigin
+pub fn alea_core::model::prediction::PredictiveOrigin::clone(&self) -> alea_core::model::prediction::PredictiveOrigin
+impl core::cmp::Eq for alea_core::model::prediction::PredictiveOrigin
+impl core::cmp::PartialEq for alea_core::model::prediction::PredictiveOrigin
+pub fn alea_core::model::prediction::PredictiveOrigin::eq(&self, other: &alea_core::model::prediction::PredictiveOrigin) -> bool
+impl core::fmt::Debug for alea_core::model::prediction::PredictiveOrigin
+pub fn alea_core::model::prediction::PredictiveOrigin::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::model::prediction::PredictiveOrigin
+impl core::marker::StructuralPartialEq for alea_core::model::prediction::PredictiveOrigin
+pub struct alea_core::model::prediction::NamedOutput<T>
+pub alea_core::model::prediction::NamedOutput::values: T
+impl<T> alea_core::model::prediction::NamedOutput<T>
+pub fn alea_core::model::prediction::NamedOutput<T>::blocks(&self) -> alloc::vec::Vec<(alloc::string::String, alloc::vec::Vec<usize>)>
+pub fn alea_core::model::prediction::NamedOutput<T>::coordinates(&self) -> &[alea_core::model::assembly::Coordinate]
+pub fn alea_core::model::prediction::NamedOutput<T>::layout(&self) -> &alea_core::transform::ParameterLayout
+pub fn alea_core::model::prediction::NamedOutput<T>::new(coordinates: alloc::sync::Arc<[alea_core::model::assembly::Coordinate]>, layout: alea_core::transform::ParameterLayout, values: T) -> core::result::Result<Self, alea_core::transform::TransformError>
+impl<T: core::clone::Clone> core::clone::Clone for alea_core::model::prediction::NamedOutput<T>
+pub fn alea_core::model::prediction::NamedOutput<T>::clone(&self) -> alea_core::model::prediction::NamedOutput<T>
+impl<T: core::fmt::Debug> core::fmt::Debug for alea_core::model::prediction::NamedOutput<T>
+pub fn alea_core::model::prediction::NamedOutput<T>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_core::model::prediction::Predictions<T>
+pub alea_core::model::prediction::Predictions::generated: alloc::vec::Vec<T>
+pub alea_core::model::prediction::Predictions::origin: alea_core::model::prediction::PredictiveOrigin
+impl<T: core::clone::Clone> core::clone::Clone for alea_core::model::prediction::Predictions<T>
+pub fn alea_core::model::prediction::Predictions<T>::clone(&self) -> alea_core::model::prediction::Predictions<T>
+impl<T: core::fmt::Debug> core::fmt::Debug for alea_core::model::prediction::Predictions<T>
+pub fn alea_core::model::prediction::Predictions<T>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub fn alea_core::model::prediction::posterior_predict<'a, T, E, R, F>(layout: &alea_core::transform::ParameterLayout, draws: impl core::iter::traits::collect::IntoIterator<Item = &'a [f64]>, rng: &mut R, generate: F) -> core::result::Result<alea_core::model::prediction::Predictions<T>, alea_core::model::prediction::PredictionError<E>> where E: core::error::Error + 'static, R: rand_core::Rng + ?core::marker::Sized, F: core::ops::function::FnMut(&[f64], &mut R) -> core::result::Result<T, E>
+pub fn alea_core::model::prediction::prior_predict<T, E, R, F>(count: usize, rng: &mut R, generate: F) -> core::result::Result<alea_core::model::prediction::Predictions<T>, E> where R: rand_core::Rng + ?core::marker::Sized, F: core::ops::function::FnMut(&mut R) -> core::result::Result<T, E>
 pub enum alea_core::model::ModelError<E: core::error::Error + 'static>
 pub alea_core::model::ModelError::Dimension
 pub alea_core::model::ModelError::Evaluation(alea_core::target::EvaluationError<E>)
-pub alea_core::model::ModelError::Transform(alea_core::error::TransformError)
+pub alea_core::model::ModelError::Transform(alea_core::transform::TransformError)
 pub alea_core::model::ModelError::WorkspaceBusy
-impl<E: core::error::Error + 'static> core::convert::From<alea_core::error::TransformError> for alea_core::model::ModelError<E>
-pub fn alea_core::model::ModelError<E>::from(source: alea_core::error::TransformError) -> Self
+impl<E: core::error::Error + 'static> core::convert::From<alea_core::transform::TransformError> for alea_core::model::ModelError<E>
+pub fn alea_core::model::ModelError<E>::from(source: alea_core::transform::TransformError) -> Self
 impl<E: core::error::Error + 'static> core::error::Error for alea_core::model::ModelError<E> where alea_core::target::EvaluationError<E>: core::error::Error + 'static, Self: core::fmt::Debug + core::fmt::Display
 pub fn alea_core::model::ModelError<E>::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
 impl<E: core::error::Error + 'static> core::fmt::Display for alea_core::model::ModelError<E> where alea_core::target::EvaluationError<E>: core::fmt::Display
@@ -272,6 +462,10 @@ pub trait alea_core::model::ConstrainedModel
 pub type alea_core::model::ConstrainedModel::Error: core::error::Error + 'static
 pub fn alea_core::model::ConstrainedModel::dimension(&self) -> usize
 pub fn alea_core::model::ConstrainedModel::logp_grad(&self, parameters: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_core::model::assembly::CompiledModel
+pub type alea_core::model::assembly::CompiledModel::Error = alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::CompiledModel::dimension(&self) -> usize
+pub fn alea_core::model::assembly::CompiledModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
 impl<A: alea_core::model::ConstrainedModel, B: alea_core::model::ConstrainedModel> alea_core::model::ConstrainedModel for alea_core::model::SumModel<A, B>
 pub type alea_core::model::SumModel<A, B>::Error = alea_core::model::SumModelError<<A as alea_core::model::ConstrainedModel>::Error, <B as alea_core::model::ConstrainedModel>::Error>
 pub fn alea_core::model::SumModel<A, B>::dimension(&self) -> usize
@@ -332,20 +526,24 @@ pub alea_core::reference::TransformError::NonFiniteOutput
 pub alea_core::reference::TransformError::NonFiniteOutput::index: usize
 pub alea_core::reference::TransformError::PrecisionLoss
 pub alea_core::reference::TransformError::PrecisionLoss::index: usize
-impl core::clone::Clone for alea_core::error::TransformError
-pub fn alea_core::error::TransformError::clone(&self) -> alea_core::error::TransformError
-impl core::cmp::Eq for alea_core::error::TransformError
-impl core::cmp::PartialEq for alea_core::error::TransformError
-pub fn alea_core::error::TransformError::eq(&self, other: &alea_core::error::TransformError) -> bool
-impl core::error::Error for alea_core::error::TransformError
-impl core::fmt::Debug for alea_core::error::TransformError
-pub fn alea_core::error::TransformError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::fmt::Display for alea_core::error::TransformError
-pub fn alea_core::error::TransformError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_core::error::TransformError
-impl core::marker::StructuralPartialEq for alea_core::error::TransformError
-impl<E: core::error::Error + 'static> core::convert::From<alea_core::error::TransformError> for alea_core::model::ModelError<E>
-pub fn alea_core::model::ModelError<E>::from(source: alea_core::error::TransformError) -> Self
+impl core::clone::Clone for alea_core::transform::TransformError
+pub fn alea_core::transform::TransformError::clone(&self) -> alea_core::transform::TransformError
+impl core::cmp::Eq for alea_core::transform::TransformError
+impl core::cmp::PartialEq for alea_core::transform::TransformError
+pub fn alea_core::transform::TransformError::eq(&self, other: &alea_core::transform::TransformError) -> bool
+impl core::convert::From<alea_core::transform::TransformError> for alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::AssemblyError::from(source: alea_core::transform::TransformError) -> Self
+impl core::error::Error for alea_core::transform::TransformError
+impl core::fmt::Debug for alea_core::transform::TransformError
+pub fn alea_core::transform::TransformError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_core::transform::TransformError
+pub fn alea_core::transform::TransformError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::transform::TransformError
+impl core::marker::StructuralPartialEq for alea_core::transform::TransformError
+impl<E: core::error::Error + 'static> core::convert::From<alea_core::transform::TransformError> for alea_core::model::ModelError<E>
+pub fn alea_core::model::ModelError<E>::from(source: alea_core::transform::TransformError) -> Self
+impl<E: core::error::Error + 'static> core::convert::From<alea_core::transform::TransformError> for alea_core::model::prediction::PredictionError<E>
+pub fn alea_core::model::prediction::PredictionError<E>::from(source: alea_core::transform::TransformError) -> Self
 pub struct alea_core::reference::DensityPoint<'a, T: alea_core::density::LogDensity + ?core::marker::Sized>
 impl<'a, T: alea_core::density::LogDensity + ?core::marker::Sized> alea_core::density::DensityPoint<'a, T>
 pub fn alea_core::density::DensityPoint<'a, T>::dimension(&self) -> usize
@@ -390,22 +588,28 @@ pub fn alea_core::transform::ParameterBlock::transform(&self) -> &alea_core::tra
 pub fn alea_core::transform::ParameterBlock::unconstrained_range(&self) -> core::ops::range::Range<usize>
 impl core::clone::Clone for alea_core::transform::ParameterBlock
 pub fn alea_core::transform::ParameterBlock::clone(&self) -> alea_core::transform::ParameterBlock
+impl core::cmp::PartialEq for alea_core::transform::ParameterBlock
+pub fn alea_core::transform::ParameterBlock::eq(&self, other: &alea_core::transform::ParameterBlock) -> bool
 impl core::fmt::Debug for alea_core::transform::ParameterBlock
 pub fn alea_core::transform::ParameterBlock::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_core::transform::ParameterBlock
 pub struct alea_core::reference::ParameterLayout
 impl alea_core::transform::ParameterLayout
 pub fn alea_core::transform::ParameterLayout::blocks(&self) -> &[alea_core::transform::ParameterBlock]
-pub fn alea_core::transform::ParameterLayout::constrain(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_core::error::TransformError>
+pub fn alea_core::transform::ParameterLayout::constrain(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_core::transform::TransformError>
 pub fn alea_core::transform::ParameterLayout::constrained_dimension(&self) -> usize
-pub fn alea_core::transform::ParameterLayout::new(transforms: impl core::iter::traits::collect::IntoIterator<Item = alea_core::transform::Transform>) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::ParameterLayout::pullback(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::error::TransformError>
+pub fn alea_core::transform::ParameterLayout::new(transforms: impl core::iter::traits::collect::IntoIterator<Item = alea_core::transform::Transform>) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::ParameterLayout::pullback(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::ParameterLayout::scratch_dimension(&self) -> usize
-pub fn alea_core::transform::ParameterLayout::unconstrain(&self, x: &[f64], q: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::error::TransformError>
+pub fn alea_core::transform::ParameterLayout::unconstrain(&self, x: &[f64], q: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::ParameterLayout::unconstrained_dimension(&self) -> usize
 impl core::clone::Clone for alea_core::transform::ParameterLayout
 pub fn alea_core::transform::ParameterLayout::clone(&self) -> alea_core::transform::ParameterLayout
+impl core::cmp::PartialEq for alea_core::transform::ParameterLayout
+pub fn alea_core::transform::ParameterLayout::eq(&self, other: &alea_core::transform::ParameterLayout) -> bool
 impl core::fmt::Debug for alea_core::transform::ParameterLayout
 pub fn alea_core::transform::ParameterLayout::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_core::transform::ParameterLayout
 pub struct alea_core::reference::PointState<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized>
 impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized> alea_core::target::PointState<'a, T>
 pub fn alea_core::target::PointState<'a, T>::dimension(&self) -> usize
@@ -415,6 +619,7 @@ pub fn alea_core::target::PointState<'a, T>::new(target: &'a T, position: alea_m
 pub fn alea_core::target::PointState<'a, T>::position(&self) -> &[f64]
 pub fn alea_core::target::PointState<'a, T>::target(&self) -> &'a T
 pub fn alea_core::target::PointState<'a, T>::try_update(&mut self, position: &[f64], workspace: &mut alea_core::target::EvaluationWorkspace) -> core::result::Result<(), alea_core::target::EvaluationError<<T as alea_core::target::LogDensityGradient>::Error>>
+pub fn alea_core::target::PointState<'a, T>::try_update_owned(&mut self, position: &mut alea_math::buffer::OwnedBuffer, workspace: &mut alea_core::target::EvaluationWorkspace) -> core::result::Result<(), alea_core::target::EvaluationError<<T as alea_core::target::LogDensityGradient>::Error>>
 impl<'a, T: core::fmt::Debug + alea_core::target::LogDensityGradient + ?core::marker::Sized> core::fmt::Debug for alea_core::target::PointState<'a, T>
 pub fn alea_core::target::PointState<'a, T>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized> core::clone::Clone for alea_core::target::PointState<'_, T>
@@ -422,31 +627,34 @@ pub fn alea_core::target::PointState<'_, T>::clone(&self) -> Self
 pub fn alea_core::target::PointState<'_, T>::clone_from(&mut self, source: &Self)
 pub struct alea_core::reference::Transform
 impl alea_core::transform::Transform
-pub fn alea_core::transform::Transform::cholesky_correlation(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::cholesky_covariance(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::correlation(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::covariance(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
+pub fn alea_core::transform::Transform::cholesky_correlation(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::cholesky_covariance(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::correlation(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::covariance(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
 impl alea_core::transform::Transform
-pub fn alea_core::transform::Transform::constrain(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_core::error::TransformError>
+pub fn alea_core::transform::Transform::constrain(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::constrained_dimension(&self) -> usize
-pub fn alea_core::transform::Transform::identity(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::interval(n: usize, lower: f64, upper: f64) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::lower(n: usize, bound: f64) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::ordered(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::positive(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::positive_ordered(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::pullback(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::error::TransformError>
+pub fn alea_core::transform::Transform::identity(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::interval(n: usize, lower: f64, upper: f64) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::lower(n: usize, bound: f64) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::ordered(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::positive(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::positive_ordered(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::pullback(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::scratch_dimension(&self) -> usize
-pub fn alea_core::transform::Transform::simplex(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::unconstrain(&self, x: &[f64], q: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::error::TransformError>
+pub fn alea_core::transform::Transform::simplex(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::unconstrain(&self, x: &[f64], q: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::unconstrained_dimension(&self) -> usize
-pub fn alea_core::transform::Transform::unit_vector(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::upper(n: usize, bound: f64) -> core::result::Result<Self, alea_core::error::TransformError>
+pub fn alea_core::transform::Transform::unit_vector(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::upper(n: usize, bound: f64) -> core::result::Result<Self, alea_core::transform::TransformError>
 impl core::clone::Clone for alea_core::transform::Transform
 pub fn alea_core::transform::Transform::clone(&self) -> alea_core::transform::Transform
+impl core::cmp::PartialEq for alea_core::transform::Transform
+pub fn alea_core::transform::Transform::eq(&self, other: &alea_core::transform::Transform) -> bool
 impl core::fmt::Debug for alea_core::transform::Transform
 pub fn alea_core::transform::Transform::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_core::transform::Transform
+impl core::marker::StructuralPartialEq for alea_core::transform::Transform
 pub trait alea_core::reference::LogDensity
 pub type alea_core::reference::LogDensity::Error: core::error::Error + 'static
 pub fn alea_core::reference::LogDensity::dimension(&self) -> usize
@@ -533,6 +741,7 @@ pub fn alea_core::target::PointState<'a, T>::new(target: &'a T, position: alea_m
 pub fn alea_core::target::PointState<'a, T>::position(&self) -> &[f64]
 pub fn alea_core::target::PointState<'a, T>::target(&self) -> &'a T
 pub fn alea_core::target::PointState<'a, T>::try_update(&mut self, position: &[f64], workspace: &mut alea_core::target::EvaluationWorkspace) -> core::result::Result<(), alea_core::target::EvaluationError<<T as alea_core::target::LogDensityGradient>::Error>>
+pub fn alea_core::target::PointState<'a, T>::try_update_owned(&mut self, position: &mut alea_math::buffer::OwnedBuffer, workspace: &mut alea_core::target::EvaluationWorkspace) -> core::result::Result<(), alea_core::target::EvaluationError<<T as alea_core::target::LogDensityGradient>::Error>>
 impl<'a, T: core::fmt::Debug + alea_core::target::LogDensityGradient + ?core::marker::Sized> core::fmt::Debug for alea_core::target::PointState<'a, T>
 pub fn alea_core::target::PointState<'a, T>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized> core::clone::Clone for alea_core::target::PointState<'_, T>
@@ -568,20 +777,24 @@ pub alea_core::transform::TransformError::NonFiniteOutput
 pub alea_core::transform::TransformError::NonFiniteOutput::index: usize
 pub alea_core::transform::TransformError::PrecisionLoss
 pub alea_core::transform::TransformError::PrecisionLoss::index: usize
-impl core::clone::Clone for alea_core::error::TransformError
-pub fn alea_core::error::TransformError::clone(&self) -> alea_core::error::TransformError
-impl core::cmp::Eq for alea_core::error::TransformError
-impl core::cmp::PartialEq for alea_core::error::TransformError
-pub fn alea_core::error::TransformError::eq(&self, other: &alea_core::error::TransformError) -> bool
-impl core::error::Error for alea_core::error::TransformError
-impl core::fmt::Debug for alea_core::error::TransformError
-pub fn alea_core::error::TransformError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::fmt::Display for alea_core::error::TransformError
-pub fn alea_core::error::TransformError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_core::error::TransformError
-impl core::marker::StructuralPartialEq for alea_core::error::TransformError
-impl<E: core::error::Error + 'static> core::convert::From<alea_core::error::TransformError> for alea_core::model::ModelError<E>
-pub fn alea_core::model::ModelError<E>::from(source: alea_core::error::TransformError) -> Self
+impl core::clone::Clone for alea_core::transform::TransformError
+pub fn alea_core::transform::TransformError::clone(&self) -> alea_core::transform::TransformError
+impl core::cmp::Eq for alea_core::transform::TransformError
+impl core::cmp::PartialEq for alea_core::transform::TransformError
+pub fn alea_core::transform::TransformError::eq(&self, other: &alea_core::transform::TransformError) -> bool
+impl core::convert::From<alea_core::transform::TransformError> for alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::AssemblyError::from(source: alea_core::transform::TransformError) -> Self
+impl core::error::Error for alea_core::transform::TransformError
+impl core::fmt::Debug for alea_core::transform::TransformError
+pub fn alea_core::transform::TransformError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_core::transform::TransformError
+pub fn alea_core::transform::TransformError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::transform::TransformError
+impl core::marker::StructuralPartialEq for alea_core::transform::TransformError
+impl<E: core::error::Error + 'static> core::convert::From<alea_core::transform::TransformError> for alea_core::model::ModelError<E>
+pub fn alea_core::model::ModelError<E>::from(source: alea_core::transform::TransformError) -> Self
+impl<E: core::error::Error + 'static> core::convert::From<alea_core::transform::TransformError> for alea_core::model::prediction::PredictionError<E>
+pub fn alea_core::model::prediction::PredictionError<E>::from(source: alea_core::transform::TransformError) -> Self
 pub struct alea_core::transform::ParameterBlock
 impl alea_core::transform::ParameterBlock
 pub fn alea_core::transform::ParameterBlock::constrained_range(&self) -> core::ops::range::Range<usize>
@@ -589,49 +802,58 @@ pub fn alea_core::transform::ParameterBlock::transform(&self) -> &alea_core::tra
 pub fn alea_core::transform::ParameterBlock::unconstrained_range(&self) -> core::ops::range::Range<usize>
 impl core::clone::Clone for alea_core::transform::ParameterBlock
 pub fn alea_core::transform::ParameterBlock::clone(&self) -> alea_core::transform::ParameterBlock
+impl core::cmp::PartialEq for alea_core::transform::ParameterBlock
+pub fn alea_core::transform::ParameterBlock::eq(&self, other: &alea_core::transform::ParameterBlock) -> bool
 impl core::fmt::Debug for alea_core::transform::ParameterBlock
 pub fn alea_core::transform::ParameterBlock::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_core::transform::ParameterBlock
 pub struct alea_core::transform::ParameterLayout
 impl alea_core::transform::ParameterLayout
 pub fn alea_core::transform::ParameterLayout::blocks(&self) -> &[alea_core::transform::ParameterBlock]
-pub fn alea_core::transform::ParameterLayout::constrain(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_core::error::TransformError>
+pub fn alea_core::transform::ParameterLayout::constrain(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_core::transform::TransformError>
 pub fn alea_core::transform::ParameterLayout::constrained_dimension(&self) -> usize
-pub fn alea_core::transform::ParameterLayout::new(transforms: impl core::iter::traits::collect::IntoIterator<Item = alea_core::transform::Transform>) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::ParameterLayout::pullback(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::error::TransformError>
+pub fn alea_core::transform::ParameterLayout::new(transforms: impl core::iter::traits::collect::IntoIterator<Item = alea_core::transform::Transform>) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::ParameterLayout::pullback(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::ParameterLayout::scratch_dimension(&self) -> usize
-pub fn alea_core::transform::ParameterLayout::unconstrain(&self, x: &[f64], q: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::error::TransformError>
+pub fn alea_core::transform::ParameterLayout::unconstrain(&self, x: &[f64], q: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::ParameterLayout::unconstrained_dimension(&self) -> usize
 impl core::clone::Clone for alea_core::transform::ParameterLayout
 pub fn alea_core::transform::ParameterLayout::clone(&self) -> alea_core::transform::ParameterLayout
+impl core::cmp::PartialEq for alea_core::transform::ParameterLayout
+pub fn alea_core::transform::ParameterLayout::eq(&self, other: &alea_core::transform::ParameterLayout) -> bool
 impl core::fmt::Debug for alea_core::transform::ParameterLayout
 pub fn alea_core::transform::ParameterLayout::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_core::transform::ParameterLayout
 pub struct alea_core::transform::Transform
 impl alea_core::transform::Transform
-pub fn alea_core::transform::Transform::cholesky_correlation(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::cholesky_covariance(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::correlation(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::covariance(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
+pub fn alea_core::transform::Transform::cholesky_correlation(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::cholesky_covariance(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::correlation(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::covariance(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
 impl alea_core::transform::Transform
-pub fn alea_core::transform::Transform::constrain(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_core::error::TransformError>
+pub fn alea_core::transform::Transform::constrain(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::constrained_dimension(&self) -> usize
-pub fn alea_core::transform::Transform::identity(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::interval(n: usize, lower: f64, upper: f64) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::lower(n: usize, bound: f64) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::ordered(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::positive(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::positive_ordered(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::pullback(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::error::TransformError>
+pub fn alea_core::transform::Transform::identity(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::interval(n: usize, lower: f64, upper: f64) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::lower(n: usize, bound: f64) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::ordered(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::positive(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::positive_ordered(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::pullback(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::scratch_dimension(&self) -> usize
-pub fn alea_core::transform::Transform::simplex(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::unconstrain(&self, x: &[f64], q: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::error::TransformError>
+pub fn alea_core::transform::Transform::simplex(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::unconstrain(&self, x: &[f64], q: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::unconstrained_dimension(&self) -> usize
-pub fn alea_core::transform::Transform::unit_vector(n: usize) -> core::result::Result<Self, alea_core::error::TransformError>
-pub fn alea_core::transform::Transform::upper(n: usize, bound: f64) -> core::result::Result<Self, alea_core::error::TransformError>
+pub fn alea_core::transform::Transform::unit_vector(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::upper(n: usize, bound: f64) -> core::result::Result<Self, alea_core::transform::TransformError>
 impl core::clone::Clone for alea_core::transform::Transform
 pub fn alea_core::transform::Transform::clone(&self) -> alea_core::transform::Transform
+impl core::cmp::PartialEq for alea_core::transform::Transform
+pub fn alea_core::transform::Transform::eq(&self, other: &alea_core::transform::Transform) -> bool
 impl core::fmt::Debug for alea_core::transform::Transform
 pub fn alea_core::transform::Transform::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_core::transform::Transform
+impl core::marker::StructuralPartialEq for alea_core::transform::Transform
 pub mod alea_core::transport
 pub enum alea_core::transport::FrozenTransportError<E: core::error::Error + 'static>
 pub alea_core::transport::FrozenTransportError::Affine(alea_math::affine::AffineMapError)

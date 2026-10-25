@@ -1,20 +1,4 @@
 pub mod alea_distributions
-pub mod alea_distributions::error
-pub enum alea_distributions::error::ProbError
-pub alea_distributions::error::ProbError::BufferError(alloc::string::String)
-pub alea_distributions::error::ProbError::DimensionMismatch
-pub alea_distributions::error::ProbError::DimensionMismatch::actual: usize
-pub alea_distributions::error::ProbError::DimensionMismatch::expected: usize
-pub alea_distributions::error::ProbError::InvalidParameters(alloc::string::String)
-pub alea_distributions::error::ProbError::NumericalError(alloc::string::String)
-pub alea_distributions::error::ProbError::OutOfSupport(alloc::string::String)
-pub alea_distributions::error::ProbError::SamplerError(alloc::string::String)
-impl core::error::Error for alea_distributions::error::ProbError
-impl core::fmt::Debug for alea_distributions::error::ProbError
-pub fn alea_distributions::error::ProbError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::fmt::Display for alea_distributions::error::ProbError
-pub fn alea_distributions::error::ProbError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-pub type alea_distributions::error::Result<T> = core::result::Result<T, alea_distributions::error::ProbError>
 pub mod alea_distributions::gaussian
 pub struct alea_distributions::gaussian::Gaussian
 impl alea_distributions::gaussian::Gaussian
@@ -159,6 +143,348 @@ pub type alea_distributions::latent::LatentState<Context, Latent>::Context = Con
 pub type alea_distributions::latent::LatentState<Context, Latent>::Latent = Latent
 pub fn alea_distributions::latent::LatentState<Context, Latent>::context(&self) -> &Self::Context
 pub fn alea_distributions::latent::LatentState<Context, Latent>::latent(&self) -> &Self::Latent
+pub mod alea_distributions::mixture
+pub struct alea_distributions::mixture::FiniteMixture<D>
+impl<D: alea_core::distribution::Distribution> alea_distributions::mixture::FiniteMixture<D>
+pub fn alea_distributions::mixture::FiniteMixture<D>::new(weights: alloc::vec::Vec<f64>, components: alloc::vec::Vec<D>) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl<D: alea_core::distribution::ContinuousDistribution> alea_core::distribution::ContinuousDistribution for alea_distributions::mixture::FiniteMixture<D>
+pub fn alea_distributions::mixture::FiniteMixture<D>::event_score(&self, x: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl<D: alea_core::distribution::Distribution> alea_core::distribution::Distribution for alea_distributions::mixture::FiniteMixture<D>
+pub type alea_distributions::mixture::FiniteMixture<D>::Event = <D as alea_core::distribution::Distribution>::Event
+pub fn alea_distributions::mixture::FiniteMixture<D>::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::mixture::FiniteMixture<D>::log_prob(&self, x: &Self::Event) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::mixture::FiniteMixture<D>::support(&self) -> alea_core::distribution::Support
+impl<D: alea_core::distribution::ParameterScore> alea_core::distribution::ParameterScore for alea_distributions::mixture::FiniteMixture<D>
+pub fn alea_distributions::mixture::FiniteMixture<D>::parameter_count(&self) -> usize
+pub fn alea_distributions::mixture::FiniteMixture<D>::parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl<D: alea_core::distribution::Sample> alea_core::distribution::Sample for alea_distributions::mixture::FiniteMixture<D>
+pub type alea_distributions::mixture::FiniteMixture<D>::Draw = <D as alea_core::distribution::Sample>::Draw
+pub fn alea_distributions::mixture::FiniteMixture<D>::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<Self::Draw, alea_core::distribution::DistributionError>
+impl<D: core::fmt::Debug> core::fmt::Debug for alea_distributions::mixture::FiniteMixture<D>
+pub fn alea_distributions::mixture::FiniteMixture<D>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub mod alea_distributions::modeling
+pub fn alea_distributions::modeling::bernoulli_logit(builder: &mut alea_core::model::assembly::ModelBuilder, event: bool, logit: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::ddm_upper_probability(alpha: f64, beta: f64, drift: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::modeling::normal(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_core::model::assembly::Expr, location: alea_core::model::assembly::Expr, scale: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::normal_observation(builder: &mut alea_core::model::assembly::ModelBuilder, event: f64, location: alea_core::model::assembly::Expr, scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::wiener4(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_distributions::wiener::WienerObservation, parameters: [alea_core::model::assembly::Expr; 4], options: alea_distributions::wiener::WienerOptions) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub mod alea_distributions::multivariate
+pub struct alea_distributions::multivariate::Categorical
+impl alea_distributions::multivariate::Categorical
+pub fn alea_distributions::multivariate::Categorical::new(probabilities: alloc::vec::Vec<f64>) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::multivariate::Categorical
+pub type alea_distributions::multivariate::Categorical::Event = usize
+pub fn alea_distributions::multivariate::Categorical::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::multivariate::Categorical::log_prob(&self, x: &usize) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::multivariate::Categorical::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::multivariate::Categorical
+pub fn alea_distributions::multivariate::Categorical::parameter_count(&self) -> usize
+pub fn alea_distributions::multivariate::Categorical::parameter_score(&self, event: &usize, output: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::multivariate::Categorical
+pub type alea_distributions::multivariate::Categorical::Draw = usize
+pub fn alea_distributions::multivariate::Categorical::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<usize, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::multivariate::Categorical
+pub fn alea_distributions::multivariate::Categorical::clone(&self) -> alea_distributions::multivariate::Categorical
+impl core::cmp::PartialEq for alea_distributions::multivariate::Categorical
+pub fn alea_distributions::multivariate::Categorical::eq(&self, other: &alea_distributions::multivariate::Categorical) -> bool
+impl core::fmt::Debug for alea_distributions::multivariate::Categorical
+pub fn alea_distributions::multivariate::Categorical::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_distributions::multivariate::Categorical
+pub struct alea_distributions::multivariate::Dirichlet
+impl alea_distributions::multivariate::Dirichlet
+pub fn alea_distributions::multivariate::Dirichlet::event_gradient(&self, x: &[f64], out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+pub fn alea_distributions::multivariate::Dirichlet::new(alpha: alloc::vec::Vec<f64>) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::multivariate::Dirichlet
+pub type alea_distributions::multivariate::Dirichlet::Event = [f64]
+pub fn alea_distributions::multivariate::Dirichlet::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::multivariate::Dirichlet::log_prob(&self, x: &[f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::multivariate::Dirichlet::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::multivariate::Dirichlet
+pub fn alea_distributions::multivariate::Dirichlet::parameter_count(&self) -> usize
+pub fn alea_distributions::multivariate::Dirichlet::parameter_score(&self, x: &[f64], out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::multivariate::Dirichlet
+pub type alea_distributions::multivariate::Dirichlet::Draw = alloc::vec::Vec<f64>
+pub fn alea_distributions::multivariate::Dirichlet::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<alloc::vec::Vec<f64>, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::multivariate::Dirichlet
+pub fn alea_distributions::multivariate::Dirichlet::clone(&self) -> alea_distributions::multivariate::Dirichlet
+impl core::cmp::PartialEq for alea_distributions::multivariate::Dirichlet
+pub fn alea_distributions::multivariate::Dirichlet::eq(&self, other: &alea_distributions::multivariate::Dirichlet) -> bool
+impl core::fmt::Debug for alea_distributions::multivariate::Dirichlet
+pub fn alea_distributions::multivariate::Dirichlet::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_distributions::multivariate::Dirichlet
+pub struct alea_distributions::multivariate::LkjCholesky
+impl alea_distributions::multivariate::LkjCholesky
+pub fn alea_distributions::multivariate::LkjCholesky::event_gradient(&self, l: &[f64], out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+pub fn alea_distributions::multivariate::LkjCholesky::new(dimension: usize, eta: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::multivariate::LkjCholesky
+pub type alea_distributions::multivariate::LkjCholesky::Event = [f64]
+pub fn alea_distributions::multivariate::LkjCholesky::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::multivariate::LkjCholesky::log_prob(&self, l: &[f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::multivariate::LkjCholesky::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::multivariate::LkjCholesky
+pub fn alea_distributions::multivariate::LkjCholesky::parameter_count(&self) -> usize
+pub fn alea_distributions::multivariate::LkjCholesky::parameter_score(&self, l: &[f64], out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::multivariate::LkjCholesky
+pub type alea_distributions::multivariate::LkjCholesky::Draw = alloc::vec::Vec<f64>
+pub fn alea_distributions::multivariate::LkjCholesky::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<alloc::vec::Vec<f64>, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::multivariate::LkjCholesky
+pub fn alea_distributions::multivariate::LkjCholesky::clone(&self) -> alea_distributions::multivariate::LkjCholesky
+impl core::cmp::PartialEq for alea_distributions::multivariate::LkjCholesky
+pub fn alea_distributions::multivariate::LkjCholesky::eq(&self, other: &alea_distributions::multivariate::LkjCholesky) -> bool
+impl core::fmt::Debug for alea_distributions::multivariate::LkjCholesky
+pub fn alea_distributions::multivariate::LkjCholesky::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::multivariate::LkjCholesky
+impl core::marker::StructuralPartialEq for alea_distributions::multivariate::LkjCholesky
+pub struct alea_distributions::multivariate::Multinomial
+impl alea_distributions::multivariate::Multinomial
+pub fn alea_distributions::multivariate::Multinomial::new(trials: u64, p: alloc::vec::Vec<f64>) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::multivariate::Multinomial
+pub type alea_distributions::multivariate::Multinomial::Event = [u64]
+pub fn alea_distributions::multivariate::Multinomial::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::multivariate::Multinomial::log_prob(&self, x: &[u64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::multivariate::Multinomial::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::multivariate::Multinomial
+pub fn alea_distributions::multivariate::Multinomial::parameter_count(&self) -> usize
+pub fn alea_distributions::multivariate::Multinomial::parameter_score(&self, event: &[u64], output: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::multivariate::Multinomial
+pub type alea_distributions::multivariate::Multinomial::Draw = alloc::vec::Vec<u64>
+pub fn alea_distributions::multivariate::Multinomial::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<alloc::vec::Vec<u64>, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::multivariate::Multinomial
+pub fn alea_distributions::multivariate::Multinomial::clone(&self) -> alea_distributions::multivariate::Multinomial
+impl core::cmp::PartialEq for alea_distributions::multivariate::Multinomial
+pub fn alea_distributions::multivariate::Multinomial::eq(&self, other: &alea_distributions::multivariate::Multinomial) -> bool
+impl core::fmt::Debug for alea_distributions::multivariate::Multinomial
+pub fn alea_distributions::multivariate::Multinomial::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_distributions::multivariate::Multinomial
+pub struct alea_distributions::multivariate::MultivariateNormal
+impl alea_distributions::multivariate::MultivariateNormal
+pub fn alea_distributions::multivariate::MultivariateNormal::event_gradient(&self, x: &[f64], out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+pub fn alea_distributions::multivariate::MultivariateNormal::new(mean: alloc::vec::Vec<f64>, lower: alloc::vec::Vec<f64>) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::multivariate::MultivariateNormal
+pub type alea_distributions::multivariate::MultivariateNormal::Event = [f64]
+pub fn alea_distributions::multivariate::MultivariateNormal::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::multivariate::MultivariateNormal::log_prob(&self, x: &[f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::multivariate::MultivariateNormal::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::multivariate::MultivariateNormal
+pub fn alea_distributions::multivariate::MultivariateNormal::parameter_count(&self) -> usize
+pub fn alea_distributions::multivariate::MultivariateNormal::parameter_score(&self, x: &[f64], out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::multivariate::MultivariateNormal
+pub type alea_distributions::multivariate::MultivariateNormal::Draw = alloc::vec::Vec<f64>
+pub fn alea_distributions::multivariate::MultivariateNormal::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<alloc::vec::Vec<f64>, alea_core::distribution::DistributionError>
+impl core::fmt::Debug for alea_distributions::multivariate::MultivariateNormal
+pub fn alea_distributions::multivariate::MultivariateNormal::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub mod alea_distributions::scalar
+pub struct alea_distributions::scalar::Bernoulli
+impl alea_distributions::scalar::Bernoulli
+pub fn alea_distributions::scalar::Bernoulli::logit_log_prob(logit: f64, event: bool) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Bernoulli::new(p: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::scalar::Bernoulli
+pub type alea_distributions::scalar::Bernoulli::Event = bool
+pub fn alea_distributions::scalar::Bernoulli::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::scalar::Bernoulli::log_prob(&self, x: &bool) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Bernoulli::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Bernoulli
+pub fn alea_distributions::scalar::Bernoulli::parameter_count(&self) -> usize
+pub fn alea_distributions::scalar::Bernoulli::parameter_score(&self, x: &bool, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::scalar::Bernoulli
+pub type alea_distributions::scalar::Bernoulli::Draw = bool
+pub fn alea_distributions::scalar::Bernoulli::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<bool, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::scalar::Bernoulli
+pub fn alea_distributions::scalar::Bernoulli::clone(&self) -> alea_distributions::scalar::Bernoulli
+impl core::cmp::PartialEq for alea_distributions::scalar::Bernoulli
+pub fn alea_distributions::scalar::Bernoulli::eq(&self, other: &alea_distributions::scalar::Bernoulli) -> bool
+impl core::fmt::Debug for alea_distributions::scalar::Bernoulli
+pub fn alea_distributions::scalar::Bernoulli::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::scalar::Bernoulli
+impl core::marker::StructuralPartialEq for alea_distributions::scalar::Bernoulli
+pub struct alea_distributions::scalar::Beta(_)
+impl alea_distributions::scalar::Beta
+pub fn alea_distributions::scalar::Beta::new(alpha: f64, beta: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::ContinuousDistribution for alea_distributions::scalar::Beta
+pub fn alea_distributions::scalar::Beta::event_score(&self, x: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::scalar::Beta
+pub type alea_distributions::scalar::Beta::Event = f64
+pub fn alea_distributions::scalar::Beta::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::scalar::Beta::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Beta::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Beta
+pub fn alea_distributions::scalar::Beta::parameter_count(&self) -> usize
+pub fn alea_distributions::scalar::Beta::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::scalar::Beta
+pub type alea_distributions::scalar::Beta::Draw = f64
+pub fn alea_distributions::scalar::Beta::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::scalar::Beta
+pub fn alea_distributions::scalar::Beta::clone(&self) -> alea_distributions::scalar::Beta
+impl core::cmp::PartialEq for alea_distributions::scalar::Beta
+pub fn alea_distributions::scalar::Beta::eq(&self, other: &alea_distributions::scalar::Beta) -> bool
+impl core::fmt::Debug for alea_distributions::scalar::Beta
+pub fn alea_distributions::scalar::Beta::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::scalar::Beta
+impl core::marker::StructuralPartialEq for alea_distributions::scalar::Beta
+pub struct alea_distributions::scalar::Binomial
+impl alea_distributions::scalar::Binomial
+pub fn alea_distributions::scalar::Binomial::new(n: u64, p: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::scalar::Binomial
+pub type alea_distributions::scalar::Binomial::Event = u64
+pub fn alea_distributions::scalar::Binomial::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::scalar::Binomial::log_prob(&self, k: &u64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Binomial::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Binomial
+pub fn alea_distributions::scalar::Binomial::parameter_count(&self) -> usize
+pub fn alea_distributions::scalar::Binomial::parameter_score(&self, k: &u64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::scalar::Binomial
+pub type alea_distributions::scalar::Binomial::Draw = u64
+pub fn alea_distributions::scalar::Binomial::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<u64, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::scalar::Binomial
+pub fn alea_distributions::scalar::Binomial::clone(&self) -> alea_distributions::scalar::Binomial
+impl core::cmp::PartialEq for alea_distributions::scalar::Binomial
+pub fn alea_distributions::scalar::Binomial::eq(&self, other: &alea_distributions::scalar::Binomial) -> bool
+impl core::fmt::Debug for alea_distributions::scalar::Binomial
+pub fn alea_distributions::scalar::Binomial::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::scalar::Binomial
+impl core::marker::StructuralPartialEq for alea_distributions::scalar::Binomial
+pub struct alea_distributions::scalar::Exponential(_)
+impl alea_distributions::scalar::Exponential
+pub fn alea_distributions::scalar::Exponential::new(rate: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::ContinuousDistribution for alea_distributions::scalar::Exponential
+pub fn alea_distributions::scalar::Exponential::event_score(&self, x: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::scalar::Exponential
+pub type alea_distributions::scalar::Exponential::Event = f64
+pub fn alea_distributions::scalar::Exponential::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::scalar::Exponential::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Exponential::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Exponential
+pub fn alea_distributions::scalar::Exponential::parameter_count(&self) -> usize
+pub fn alea_distributions::scalar::Exponential::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::scalar::Exponential
+pub type alea_distributions::scalar::Exponential::Draw = f64
+pub fn alea_distributions::scalar::Exponential::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::scalar::Exponential
+pub fn alea_distributions::scalar::Exponential::clone(&self) -> alea_distributions::scalar::Exponential
+impl core::cmp::PartialEq for alea_distributions::scalar::Exponential
+pub fn alea_distributions::scalar::Exponential::eq(&self, other: &alea_distributions::scalar::Exponential) -> bool
+impl core::fmt::Debug for alea_distributions::scalar::Exponential
+pub fn alea_distributions::scalar::Exponential::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::scalar::Exponential
+impl core::marker::StructuralPartialEq for alea_distributions::scalar::Exponential
+pub struct alea_distributions::scalar::Gamma(_)
+impl alea_distributions::scalar::Gamma
+pub fn alea_distributions::scalar::Gamma::new(shape: f64, rate: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::ContinuousDistribution for alea_distributions::scalar::Gamma
+pub fn alea_distributions::scalar::Gamma::event_score(&self, x: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::scalar::Gamma
+pub type alea_distributions::scalar::Gamma::Event = f64
+pub fn alea_distributions::scalar::Gamma::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::scalar::Gamma::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Gamma::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Gamma
+pub fn alea_distributions::scalar::Gamma::parameter_count(&self) -> usize
+pub fn alea_distributions::scalar::Gamma::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::scalar::Gamma
+pub type alea_distributions::scalar::Gamma::Draw = f64
+pub fn alea_distributions::scalar::Gamma::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::scalar::Gamma
+pub fn alea_distributions::scalar::Gamma::clone(&self) -> alea_distributions::scalar::Gamma
+impl core::cmp::PartialEq for alea_distributions::scalar::Gamma
+pub fn alea_distributions::scalar::Gamma::eq(&self, other: &alea_distributions::scalar::Gamma) -> bool
+impl core::fmt::Debug for alea_distributions::scalar::Gamma
+pub fn alea_distributions::scalar::Gamma::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::scalar::Gamma
+impl core::marker::StructuralPartialEq for alea_distributions::scalar::Gamma
+pub struct alea_distributions::scalar::LogNormal(_)
+impl alea_distributions::scalar::LogNormal
+pub fn alea_distributions::scalar::LogNormal::new(location: f64, scale: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::ContinuousDistribution for alea_distributions::scalar::LogNormal
+pub fn alea_distributions::scalar::LogNormal::event_score(&self, x: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::scalar::LogNormal
+pub type alea_distributions::scalar::LogNormal::Event = f64
+pub fn alea_distributions::scalar::LogNormal::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::scalar::LogNormal::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::LogNormal::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::scalar::LogNormal
+pub fn alea_distributions::scalar::LogNormal::parameter_count(&self) -> usize
+pub fn alea_distributions::scalar::LogNormal::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::scalar::LogNormal
+pub type alea_distributions::scalar::LogNormal::Draw = f64
+pub fn alea_distributions::scalar::LogNormal::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::scalar::LogNormal
+pub fn alea_distributions::scalar::LogNormal::clone(&self) -> alea_distributions::scalar::LogNormal
+impl core::cmp::PartialEq for alea_distributions::scalar::LogNormal
+pub fn alea_distributions::scalar::LogNormal::eq(&self, other: &alea_distributions::scalar::LogNormal) -> bool
+impl core::fmt::Debug for alea_distributions::scalar::LogNormal
+pub fn alea_distributions::scalar::LogNormal::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::scalar::LogNormal
+impl core::marker::StructuralPartialEq for alea_distributions::scalar::LogNormal
+pub struct alea_distributions::scalar::Normal(_)
+impl alea_distributions::scalar::Normal
+pub fn alea_distributions::scalar::Normal::new(location: f64, scale: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::ContinuousDistribution for alea_distributions::scalar::Normal
+pub fn alea_distributions::scalar::Normal::event_score(&self, x: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::scalar::Normal
+pub type alea_distributions::scalar::Normal::Event = f64
+pub fn alea_distributions::scalar::Normal::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::scalar::Normal::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Normal::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Normal
+pub fn alea_distributions::scalar::Normal::parameter_count(&self) -> usize
+pub fn alea_distributions::scalar::Normal::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::scalar::Normal
+pub type alea_distributions::scalar::Normal::Draw = f64
+pub fn alea_distributions::scalar::Normal::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::scalar::Normal
+pub fn alea_distributions::scalar::Normal::clone(&self) -> alea_distributions::scalar::Normal
+impl core::cmp::PartialEq for alea_distributions::scalar::Normal
+pub fn alea_distributions::scalar::Normal::eq(&self, other: &alea_distributions::scalar::Normal) -> bool
+impl core::fmt::Debug for alea_distributions::scalar::Normal
+pub fn alea_distributions::scalar::Normal::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::scalar::Normal
+impl core::marker::StructuralPartialEq for alea_distributions::scalar::Normal
+pub struct alea_distributions::scalar::Poisson
+impl alea_distributions::scalar::Poisson
+pub fn alea_distributions::scalar::Poisson::new(rate: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::scalar::Poisson
+pub type alea_distributions::scalar::Poisson::Event = u64
+pub fn alea_distributions::scalar::Poisson::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::scalar::Poisson::log_prob(&self, k: &u64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Poisson::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Poisson
+pub fn alea_distributions::scalar::Poisson::parameter_count(&self) -> usize
+pub fn alea_distributions::scalar::Poisson::parameter_score(&self, k: &u64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::scalar::Poisson
+pub type alea_distributions::scalar::Poisson::Draw = u64
+pub fn alea_distributions::scalar::Poisson::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<u64, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::scalar::Poisson
+pub fn alea_distributions::scalar::Poisson::clone(&self) -> alea_distributions::scalar::Poisson
+impl core::cmp::PartialEq for alea_distributions::scalar::Poisson
+pub fn alea_distributions::scalar::Poisson::eq(&self, other: &alea_distributions::scalar::Poisson) -> bool
+impl core::fmt::Debug for alea_distributions::scalar::Poisson
+pub fn alea_distributions::scalar::Poisson::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::scalar::Poisson
+impl core::marker::StructuralPartialEq for alea_distributions::scalar::Poisson
+pub struct alea_distributions::scalar::StudentT(_)
+impl alea_distributions::scalar::StudentT
+pub fn alea_distributions::scalar::StudentT::new(df: f64, location: f64, scale: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>
+impl alea_core::distribution::ContinuousDistribution for alea_distributions::scalar::StudentT
+pub fn alea_distributions::scalar::StudentT::event_score(&self, x: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl alea_core::distribution::Distribution for alea_distributions::scalar::StudentT
+pub type alea_distributions::scalar::StudentT::Event = f64
+pub fn alea_distributions::scalar::StudentT::event_shape(&self) -> alea_core::distribution::EventShape
+pub fn alea_distributions::scalar::StudentT::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::StudentT::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::scalar::StudentT
+pub fn alea_distributions::scalar::StudentT::parameter_count(&self) -> usize
+pub fn alea_distributions::scalar::StudentT::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+impl alea_core::distribution::Sample for alea_distributions::scalar::StudentT
+pub type alea_distributions::scalar::StudentT::Draw = f64
+pub fn alea_distributions::scalar::StudentT::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+impl core::clone::Clone for alea_distributions::scalar::StudentT
+pub fn alea_distributions::scalar::StudentT::clone(&self) -> alea_distributions::scalar::StudentT
+impl core::cmp::PartialEq for alea_distributions::scalar::StudentT
+pub fn alea_distributions::scalar::StudentT::eq(&self, other: &alea_distributions::scalar::StudentT) -> bool
+impl core::fmt::Debug for alea_distributions::scalar::StudentT
+pub fn alea_distributions::scalar::StudentT::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::scalar::StudentT
+impl core::marker::StructuralPartialEq for alea_distributions::scalar::StudentT
 pub mod alea_distributions::wiener
 pub enum alea_distributions::wiener::BatchStrategy
 pub alea_distributions::wiener::BatchStrategy::BranchBuckets
@@ -186,6 +512,20 @@ impl core::fmt::Debug for alea_distributions::wiener::Boundary
 pub fn alea_distributions::wiener::Boundary::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_distributions::wiener::Boundary
 impl core::marker::StructuralPartialEq for alea_distributions::wiener::Boundary
+pub enum alea_distributions::wiener::ProbError
+pub alea_distributions::wiener::ProbError::BufferError(alloc::string::String)
+pub alea_distributions::wiener::ProbError::DimensionMismatch
+pub alea_distributions::wiener::ProbError::DimensionMismatch::actual: usize
+pub alea_distributions::wiener::ProbError::DimensionMismatch::expected: usize
+pub alea_distributions::wiener::ProbError::InvalidParameters(alloc::string::String)
+pub alea_distributions::wiener::ProbError::NumericalError(alloc::string::String)
+pub alea_distributions::wiener::ProbError::OutOfSupport(alloc::string::String)
+pub alea_distributions::wiener::ProbError::SamplerError(alloc::string::String)
+impl core::error::Error for alea_distributions::wiener::ProbError
+impl core::fmt::Debug for alea_distributions::wiener::ProbError
+pub fn alea_distributions::wiener::ProbError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_distributions::wiener::ProbError
+pub fn alea_distributions::wiener::ProbError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub enum alea_distributions::wiener::Quadrature
 pub alea_distributions::wiener::Quadrature::Adaptive
 pub alea_distributions::wiener::Quadrature::FixedGaussLegendre
@@ -238,8 +578,8 @@ impl alea_distributions::wiener::Wiener4
 pub fn alea_distributions::wiener::Wiener4::branch_counts(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener4Params, eps: f64) -> core::option::Option<alea_distributions::wiener::WienerBranchCounts>
 pub fn alea_distributions::wiener::Wiener4::fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener4Params, eps: f64) -> alea_distributions::wiener::Wiener4Eval
 pub fn alea_distributions::wiener::Wiener4::log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener4Params, eps: f64) -> alea_distributions::wiener::Wiener4Eval
-pub fn alea_distributions::wiener::Wiener4::try_fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener4Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::error::Result<alea_distributions::wiener::Wiener4Eval>
-pub fn alea_distributions::wiener::Wiener4::try_log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener4Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::error::Result<alea_distributions::wiener::Wiener4Eval>
+pub fn alea_distributions::wiener::Wiener4::try_fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener4Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
+pub fn alea_distributions::wiener::Wiener4::try_log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener4Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
 impl core::clone::Clone for alea_distributions::wiener::Wiener4
 pub fn alea_distributions::wiener::Wiener4::clone(&self) -> alea_distributions::wiener::Wiener4
 impl core::fmt::Debug for alea_distributions::wiener::Wiener4
@@ -290,7 +630,7 @@ pub fn alea_distributions::wiener::Wiener4Params::builder() -> alea_distribution
 pub fn alea_distributions::wiener::Wiener4Params::decision_time(&self, rt: f64) -> core::option::Option<f64>
 pub fn alea_distributions::wiener::Wiener4Params::new() -> Self
 pub fn alea_distributions::wiener::Wiener4Params::valid(&self) -> bool
-pub fn alea_distributions::wiener::Wiener4Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64) -> alea_distributions::error::Result<Self>
+pub fn alea_distributions::wiener::Wiener4Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64) -> alea_distributions::wiener::Result<Self>
 pub fn alea_distributions::wiener::Wiener4Params::with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64) -> Self
 impl core::clone::Clone for alea_distributions::wiener::Wiener4Params
 pub fn alea_distributions::wiener::Wiener4Params::clone(&self) -> alea_distributions::wiener::Wiener4Params
@@ -314,8 +654,8 @@ impl alea_distributions::wiener::Wiener5
 pub fn alea_distributions::wiener::Wiener5::branch_counts(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener5Params, eps: f64) -> core::option::Option<alea_distributions::wiener::WienerBranchCounts>
 pub fn alea_distributions::wiener::Wiener5::fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener5Params, eps: f64) -> alea_distributions::wiener::Wiener5Eval
 pub fn alea_distributions::wiener::Wiener5::log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener5Params, eps: f64) -> alea_distributions::wiener::Wiener5Eval
-pub fn alea_distributions::wiener::Wiener5::try_fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener5Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::error::Result<alea_distributions::wiener::Wiener5Eval>
-pub fn alea_distributions::wiener::Wiener5::try_log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener5Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::error::Result<alea_distributions::wiener::Wiener5Eval>
+pub fn alea_distributions::wiener::Wiener5::try_fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener5Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
+pub fn alea_distributions::wiener::Wiener5::try_log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener5Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
 pub struct alea_distributions::wiener::Wiener5Eval
 pub alea_distributions::wiener::Wiener5Eval::grad: alea_distributions::wiener::Wiener5Grad
 pub alea_distributions::wiener::Wiener5Eval::log_prob: f64
@@ -361,7 +701,7 @@ pub fn alea_distributions::wiener::Wiener5Params::to_array(&self) -> [f64; 5]
 impl alea_distributions::wiener::Wiener5Params
 pub fn alea_distributions::wiener::Wiener5Params::builder() -> alea_distributions::wiener::Wiener7ParamsBuilder
 pub fn alea_distributions::wiener::Wiener5Params::new() -> Self
-pub fn alea_distributions::wiener::Wiener5Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64, s_delta: f64) -> alea_distributions::error::Result<Self>
+pub fn alea_distributions::wiener::Wiener5Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64, s_delta: f64) -> alea_distributions::wiener::Result<Self>
 pub fn alea_distributions::wiener::Wiener5Params::with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64, s_delta: f64) -> Self
 impl alea_distributions::wiener::Wiener5Params
 pub fn alea_distributions::wiener::Wiener5Params::from_unconstrained(u: &[f64; 5]) -> Self
@@ -389,8 +729,8 @@ impl alea_distributions::wiener::Wiener7
 pub fn alea_distributions::wiener::Wiener7::fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener7Params, eps: f64) -> alea_distributions::wiener::Wiener7Eval
 pub fn alea_distributions::wiener::Wiener7::gauss_legendre_01(n: usize) -> (alloc::vec::Vec<f64>, alloc::vec::Vec<f64>)
 pub fn alea_distributions::wiener::Wiener7::log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener7Params, eps: f64) -> alea_distributions::wiener::Wiener7Eval
-pub fn alea_distributions::wiener::Wiener7::try_fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener7Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::error::Result<alea_distributions::wiener::Wiener7Eval>
-pub fn alea_distributions::wiener::Wiener7::try_log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener7Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::error::Result<alea_distributions::wiener::Wiener7Eval>
+pub fn alea_distributions::wiener::Wiener7::try_fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener7Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Eval>
+pub fn alea_distributions::wiener::Wiener7::try_log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener7Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Eval>
 pub struct alea_distributions::wiener::Wiener7Eval
 pub alea_distributions::wiener::Wiener7Eval::grad: alea_distributions::wiener::Wiener7Grad
 pub alea_distributions::wiener::Wiener7Eval::log_prob: f64
@@ -440,7 +780,7 @@ pub fn alea_distributions::wiener::Wiener7Params::to_array(&self) -> [f64; 7]
 impl alea_distributions::wiener::Wiener7Params
 pub fn alea_distributions::wiener::Wiener7Params::builder() -> alea_distributions::wiener::Wiener7ParamsBuilder
 pub fn alea_distributions::wiener::Wiener7Params::new() -> Self
-pub fn alea_distributions::wiener::Wiener7Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64, s_beta: f64, s_tau: f64, s_delta: f64) -> alea_distributions::error::Result<Self>
+pub fn alea_distributions::wiener::Wiener7Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64, s_beta: f64, s_tau: f64, s_delta: f64) -> alea_distributions::wiener::Result<Self>
 pub fn alea_distributions::wiener::Wiener7Params::with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64, s_beta: f64, s_tau: f64, s_delta: f64) -> Self
 impl alea_distributions::wiener::Wiener7Params
 pub fn alea_distributions::wiener::Wiener7Params::from_unconstrained(u: &[f64; 7]) -> Self
@@ -467,7 +807,7 @@ pub struct alea_distributions::wiener::Wiener7ParamsBuilder
 impl alea_distributions::wiener::Wiener7ParamsBuilder
 pub fn alea_distributions::wiener::Wiener7ParamsBuilder::alpha(self, alpha: f64) -> Self
 pub fn alea_distributions::wiener::Wiener7ParamsBuilder::beta(self, beta: f64) -> Self
-pub fn alea_distributions::wiener::Wiener7ParamsBuilder::build(self) -> alea_distributions::error::Result<alea_distributions::wiener::Wiener7Params>
+pub fn alea_distributions::wiener::Wiener7ParamsBuilder::build(self) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Params>
 pub fn alea_distributions::wiener::Wiener7ParamsBuilder::build_unchecked(self) -> alea_distributions::wiener::Wiener7Params
 pub fn alea_distributions::wiener::Wiener7ParamsBuilder::delta(self, delta: f64) -> Self
 pub fn alea_distributions::wiener::Wiener7ParamsBuilder::s_beta(self, s_beta: f64) -> Self
@@ -600,6 +940,7 @@ pub fn alea_distributions::wiener::WienerPrimitive::new(observation: alea_distri
 impl alea_core::model::primitive::OpaquePrimitive<4> for alea_distributions::wiener::WienerPrimitive
 pub type alea_distributions::wiener::WienerPrimitive::Error = alea_distributions::wiener::WienerPrimitiveError
 pub fn alea_distributions::wiener::WienerPrimitive::value_gradient(&self, input: &[f64; 4]) -> core::result::Result<(f64, [f64; 4]), Self::Error>
+pub type alea_distributions::wiener::Result<T> = core::result::Result<T, alea_distributions::wiener::ProbError>
 pub struct alea_distributions::Gaussian
 impl alea_distributions::gaussian::Gaussian
 pub fn alea_distributions::gaussian::Gaussian::new(dimension: usize) -> Self

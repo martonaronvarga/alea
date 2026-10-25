@@ -21,6 +21,7 @@ use crate::{
 #[derive(Debug, Clone, Copy, Default)]
 pub struct MamsOptions {
     hmc: HmcOptions,
+    trajectory: Option<(f64, NonZeroUsize)>,
 }
 
 impl MamsOptions {
@@ -31,7 +32,41 @@ impl MamsOptions {
     pub fn new(step_size: f64, integration_steps: usize) -> Result<Self, HmcConfigError> {
         Ok(Self {
             hmc: HmcOptions::new(step_size, integration_steps)?,
+            trajectory: None,
         })
+    }
+
+    /// During step adaptation, keep duration near this frozen pilot scale by
+    /// recomputing `ceil(time / step)`, capped by `maximum_steps` (1..=1024).
+    /// Retained transitions use the resulting frozen count and never adapt it.
+    /// # Errors
+    /// Rejects nonpositive/nonfinite duration or an invalid work cap.
+    pub fn with_trajectory_time(
+        mut self,
+        time: f64,
+        maximum_steps: usize,
+    ) -> Result<Self, HmcConfigError> {
+        if !time.is_finite() || time <= 0. || !(1..=1024).contains(&maximum_steps) {
+            return Err(HmcConfigError::IntegrationCount);
+        }
+        self.trajectory = Some((
+            time,
+            NonZeroUsize::new(maximum_steps).expect("positive cap"),
+        ));
+        self.update_step(self.step_size());
+        Ok(self)
+    }
+
+    fn update_step(&mut self, step: StepSize) {
+        let count = self
+            .trajectory
+            .map_or(self.integration_steps().get(), |(time, cap)| {
+                (time / step.value()).ceil().clamp(1., cap.get() as f64) as usize
+            });
+        self.hmc = HmcOptions::new(step.value(), count)
+            .expect("validated step and bounded count")
+            .with_max_energy_error(self.max_correction_error())
+            .expect("validated cutoff");
     }
 
     /// Sets the absolute negative-log acceptance correction limit.
@@ -85,6 +120,21 @@ pub enum MamsError<E: Error + 'static> {
         #[source]
         source: EvaluationError<E>,
     },
+}
+
+impl<E: Error + 'static> MamsError<E> {
+    pub(crate) fn is_numerical(&self) -> bool {
+        matches!(
+            self,
+            Self::Numerical
+                | Self::Evaluation {
+                    source: EvaluationError::NonFinitePosition { .. }
+                        | EvaluationError::NonFiniteLogDensity
+                        | EvaluationError::NonFiniteGradient { .. },
+                    ..
+                }
+        )
+    }
 }
 
 /// One Metropolis-adjusted microcanonical transition.
@@ -145,6 +195,15 @@ impl<'a, T: LogDensityGradient + ?Sized> Mams<'a, T> {
         })
     }
 
+    /// Frozen corrected trajectory options.
+    pub fn options(&self) -> MamsOptions {
+        self.options
+    }
+
+    pub(crate) fn set_step_size(&mut self, step: StepSize) {
+        self.options.update_step(step);
+    }
+
     /// Current coherent exact-target cache.
     pub fn point(&self) -> &PointState<'a, T> {
         &self.live
@@ -189,12 +248,21 @@ impl<'a, T: LogDensityGradient + ?Sized> Mams<'a, T> {
             {
                 *next = position + self.options.step_size().value() * direction;
             }
-            self.proposal
+            if let Err(source) = self
+                .proposal
                 .try_update(&self.next_position, &mut self.evaluation)
-                .map_err(|source| MamsError::Evaluation {
+            {
+                let failure = MamsError::Evaluation {
                     integration_step: index,
                     source,
-                })?;
+                };
+                if failure.is_numerical() {
+                    transition.integration_steps = index;
+                    transition.divergence = Some(MamsDivergence::Dynamics);
+                    return Ok(transition);
+                }
+                return Err(failure);
+            }
             let second =
                 match isokinetic_kick(&mut self.direction, self.proposal.gradient(), half_step) {
                     Some(value) => value,
@@ -270,6 +338,19 @@ pub struct ApproximateMclmcOptions {
 }
 
 impl ApproximateMclmcOptions {
+    /// Frozen integration step.
+    pub fn step_size(self) -> StepSize {
+        self.mams.step_size()
+    }
+    /// Frozen angular refresh length; None disables refreshment.
+    pub fn refresh_length(self) -> Option<f64> {
+        self.refresh_length
+    }
+    /// Complete macrosteps per retained transition.
+    pub fn integration_steps(self) -> NonZeroUsize {
+        self.mams.integration_steps()
+    }
+
     /// Creates unadjusted isokinetic integration. `refresh_length=None` disables
     /// angular noise; otherwise it must be finite and positive.
     pub fn new(
@@ -295,6 +376,9 @@ pub struct ApproximateMclmcTransition {
     pub integration_steps: usize,
     /// Sum of corrections deliberately not used for MH adjustment.
     pub discarded_isokinetic_correction: f64,
+    /// Negative log density change plus the deterministic isokinetic Jacobian.
+    /// This is diagnostic only and never supplies an acceptance decision.
+    pub correction_error: f64,
     /// Static finite-step guarantee marker.
     pub guarantee: ApproximateTarget,
 }
@@ -311,6 +395,7 @@ pub struct ApproximateMclmc<'a, T: LogDensityGradient + ?Sized> {
     proposal_direction: OwnedBuffer,
     noise: OwnedBuffer,
     options: ApproximateMclmcOptions,
+    attempted_steps: usize,
 }
 
 impl<'a, T: LogDensityGradient + ?Sized> ApproximateMclmc<'a, T> {
@@ -344,7 +429,25 @@ impl<'a, T: LogDensityGradient + ?Sized> ApproximateMclmc<'a, T> {
             direction,
             live,
             options,
+            attempted_steps: 0,
         })
+    }
+
+    /// Frozen finite-step options, including the explicit refresh length.
+    pub fn options(&self) -> ApproximateMclmcOptions {
+        self.options
+    }
+
+    pub(crate) fn set_step_size(&mut self, step: StepSize) {
+        self.options.mams.hmc =
+            HmcOptions::new(step.value(), self.options.mams.integration_steps().get())
+                .expect("validated options")
+                .with_max_energy_error(self.options.mams.max_correction_error())
+                .expect("validated cutoff");
+    }
+
+    pub(crate) fn attempted_steps(&self) -> usize {
+        self.attempted_steps
     }
 
     /// Current coherent approximate-target cache.
@@ -358,11 +461,14 @@ impl<'a, T: LogDensityGradient + ?Sized> ApproximateMclmc<'a, T> {
         &mut self,
         rng: &mut R,
     ) -> Result<ApproximateMclmcTransition, MamsError<T::Error>> {
+        self.attempted_steps = 0;
         self.proposal.clone_from(&self.live);
         self.proposal_direction.copy_from_slice(&self.direction);
+        let initial_log_density = self.live.log_density();
         let mut discarded_correction = 0.0;
         let half_step = 0.5 * self.options.mams.step_size().value();
         for index in 1..=self.options.mams.integration_steps().get() {
+            self.attempted_steps = index;
             if let Some(length) = self.options.refresh_length {
                 angular_refresh(
                     &mut self.proposal_direction,
@@ -410,7 +516,9 @@ impl<'a, T: LogDensityGradient + ?Sized> ApproximateMclmc<'a, T> {
                 .map_err(|_| MamsError::Numerical)?;
             }
         }
-        if !discarded_correction.is_finite() {
+        let correction_error =
+            initial_log_density - self.proposal.log_density() + discarded_correction;
+        if !discarded_correction.is_finite() || !correction_error.is_finite() {
             return Err(MamsError::Numerical);
         }
         self.live.clone_from(&self.proposal);
@@ -418,6 +526,7 @@ impl<'a, T: LogDensityGradient + ?Sized> ApproximateMclmc<'a, T> {
         Ok(ApproximateMclmcTransition {
             integration_steps: self.options.mams.integration_steps().get(),
             discarded_isokinetic_correction: discarded_correction,
+            correction_error,
             guarantee: ApproximateTarget::acknowledge_bias(),
         })
     }

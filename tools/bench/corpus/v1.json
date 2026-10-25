@@ -1,0 +1,467 @@
+{
+  "schema_version": 1,
+  "id": "reference-corpus-v1",
+  "cases": [
+    {
+      "id": "gaussian_tune",
+      "kind": 0,
+      "dimension": 2,
+      "rows": 0,
+      "data": [
+        1.0,
+        1.0
+      ],
+      "partition": "tuning",
+      "step": 0.25,
+      "initial": [
+        0.1,
+        -0.1
+      ],
+      "family": "controlled",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "Alea controlled formula v1"
+    },
+    {
+      "id": "correlated_heldout",
+      "kind": 1,
+      "dimension": 4,
+      "rows": 0,
+      "data": [
+        0.8
+      ],
+      "partition": "heldout",
+      "step": 0.15,
+      "initial": [
+        0.1,
+        -0.1,
+        0.1,
+        -0.1
+      ],
+      "family": "controlled",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "Alea controlled formula v1"
+    },
+    {
+      "id": "ill_conditioned_heldout",
+      "kind": 0,
+      "dimension": 4,
+      "rows": 0,
+      "data": [
+        0.03,
+        0.2,
+        1.0,
+        5.0
+      ],
+      "partition": "heldout",
+      "step": 0.01,
+      "initial": [
+        0.1,
+        -0.1,
+        0.1,
+        -0.1
+      ],
+      "family": "pathological",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "Alea controlled formula v1"
+    },
+    {
+      "id": "banana_tune",
+      "kind": 2,
+      "dimension": 2,
+      "rows": 0,
+      "data": [
+        0.4
+      ],
+      "partition": "tuning",
+      "step": 0.2,
+      "initial": [
+        0.1,
+        -0.1
+      ],
+      "family": "pathological",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "Alea controlled formula v1"
+    },
+    {
+      "id": "funnel_heldout",
+      "kind": 3,
+      "dimension": 5,
+      "rows": 0,
+      "data": [
+        3.0
+      ],
+      "partition": "heldout",
+      "step": 0.05,
+      "initial": [
+        0.1,
+        -0.1,
+        0.1,
+        -0.1,
+        0.1
+      ],
+      "family": "pathological",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "Alea controlled formula v1"
+    },
+    {
+      "id": "logistic_heldout",
+      "kind": 4,
+      "dimension": 3,
+      "rows": 16,
+      "data": [
+        1.0,
+        -1.0,
+        -1.0,
+        1.0,
+        1.0,
+        0.1333333333333333,
+        -0.0714285714285714,
+        1.0,
+        1.0,
+        -0.8,
+        0.8571428571428572,
+        0.0,
+        1.0,
+        0.33333333333333326,
+        -0.2857142857142857,
+        1.0,
+        1.0,
+        -0.6,
+        0.6428571428571428,
+        0.0,
+        1.0,
+        0.5333333333333334,
+        -0.5,
+        1.0,
+        1.0,
+        -0.4,
+        0.4285714285714286,
+        1.0,
+        1.0,
+        0.7333333333333334,
+        -0.7142857142857143,
+        0.0,
+        1.0,
+        -0.19999999999999996,
+        0.2142857142857142,
+        1.0,
+        1.0,
+        0.9333333333333333,
+        -0.9285714285714286,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        -0.9333333333333333,
+        0.9285714285714286,
+        0.0,
+        1.0,
+        0.19999999999999996,
+        -0.2142857142857143,
+        0.0,
+        1.0,
+        -0.7333333333333334,
+        0.7142857142857142,
+        1.0,
+        1.0,
+        0.3999999999999999,
+        -0.4285714285714286,
+        0.0,
+        1.0,
+        -0.5333333333333333,
+        0.5,
+        1.0
+      ],
+      "partition": "heldout",
+      "step": 0.15,
+      "initial": [
+        0.1,
+        -0.1,
+        0.1
+      ],
+      "family": "regression",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "Alea controlled formula v1"
+    },
+    {
+      "id": "hierarchical_normal",
+      "kind": 5,
+      "dimension": 4,
+      "rows": 8,
+      "data": [
+        0,
+        0.3,
+        1,
+        -0.5499999999999999,
+        0,
+        0.4,
+        1,
+        -0.44999999999999996,
+        0,
+        0.5,
+        1,
+        -0.35,
+        0,
+        0.6000000000000001,
+        1,
+        -0.24999999999999994
+      ],
+      "partition": "heldout",
+      "step": 0.08,
+      "initial": [
+        0.1,
+        -0.7,
+        0.1,
+        -0.1
+      ],
+      "family": "hierarchical",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "Alea controlled formula v1"
+    },
+    {
+      "id": "stochastic_volatility",
+      "kind": 6,
+      "dimension": 8,
+      "rows": 8,
+      "data": [
+        0.85,
+        0.3,
+        0.5,
+        0.7524412954423689,
+        0.7727892280477044,
+        0.5423360024179602,
+        0.27295925140762156,
+        0.21232271760105847,
+        0.41617535054032223,
+        0.6970959796156367
+      ],
+      "partition": "heldout",
+      "step": 0.07,
+      "initial": [
+        0.1,
+        -0.1,
+        0.1,
+        -0.1,
+        0.1,
+        -0.1,
+        0.1,
+        -0.1
+      ],
+      "family": "latent",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "Alea controlled formula v1"
+    },
+    {
+      "id": "latent_gaussian",
+      "kind": 7,
+      "dimension": 4,
+      "rows": 4,
+      "data": [
+        -0.2,
+        0.4,
+        0.7,
+        -0.5
+      ],
+      "partition": "heldout",
+      "step": 0.2,
+      "initial": [
+        0.1,
+        -0.1,
+        0.1,
+        -0.1
+      ],
+      "family": "latent",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "Alea controlled formula v1"
+    },
+    {
+      "id": "wiener_drift",
+      "kind": 8,
+      "dimension": 1,
+      "rows": 8,
+      "data": [
+        0.5,
+        -1.0,
+        -0.4195484520547525,
+        0.58,
+        1.0,
+        -0.6935227658703145,
+        0.66,
+        1.0,
+        -0.9676582138167377,
+        0.74,
+        -1.0,
+        -1.2418116349257322,
+        0.8200000000000001,
+        1.0,
+        -1.5159670609900098,
+        0.9,
+        1.0,
+        -1.7901227107149975,
+        0.98,
+        -1.0,
+        -2.0642783853902555,
+        1.06,
+        1.0,
+        -2.3384340628488185
+      ],
+      "partition": "heldout",
+      "step": 0.15,
+      "initial": [
+        0.1
+      ],
+      "family": "wiener",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "Wiener4 alpha=1.2,tau=.15,beta=.5; drift inferred; independent spectral zero-drift density"
+    },
+    {
+      "id": "hierarchical_ddm_boundary",
+      "kind": 9,
+      "dimension": 4,
+      "rows": 12,
+      "data": [
+        0,
+        0.0,
+        1,
+        1.0,
+        0,
+        1.0,
+        1,
+        0.0,
+        0,
+        1.0,
+        1,
+        1.0,
+        0,
+        0.0,
+        1,
+        1.0,
+        0,
+        1.0,
+        1,
+        0.0,
+        0,
+        1.0,
+        1,
+        1.0
+      ],
+      "partition": "heldout",
+      "step": 0.1,
+      "initial": [
+        0.1,
+        -0.7,
+        0.1,
+        -0.1
+      ],
+      "family": "wiener",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "Alea controlled formula v1"
+    },
+    {
+      "id": "eight_schools_centered",
+      "kind": 10,
+      "dimension": 10,
+      "rows": 8,
+      "data": [
+        28,
+        15,
+        8,
+        10,
+        -3,
+        16,
+        7,
+        11,
+        -1,
+        9,
+        1,
+        11,
+        18,
+        10,
+        12,
+        18
+      ],
+      "partition": "tuning",
+      "step": 0.12,
+      "initial": [
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "family": "posteriordb",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "posteriordb 91027f9cdd13b7e76283fec3f2898f59d4b83ec4 eight_schools_centered; log(tau) Jacobian included"
+    },
+    {
+      "id": "eight_schools_noncentered",
+      "kind": 11,
+      "dimension": 10,
+      "rows": 8,
+      "data": [
+        28,
+        15,
+        8,
+        10,
+        -3,
+        16,
+        7,
+        11,
+        -1,
+        9,
+        1,
+        11,
+        18,
+        10,
+        12,
+        18
+      ],
+      "partition": "heldout",
+      "step": 0.12,
+      "initial": [
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "family": "posteriordb",
+      "measure": "Lebesgue on unconstrained q; parameter Jacobians included once; parameter-independent constants omitted except Wiener likelihood",
+      "provenance": "posteriordb 91027f9cdd13b7e76283fec3f2898f59d4b83ec4 eight_schools_noncentered; log(tau) Jacobian included"
+    }
+  ],
+  "vendor": {
+    "repository": "https://github.com/stan-dev/posteriordb",
+    "revision": "91027f9cdd13b7e76283fec3f2898f59d4b83ec4",
+    "files": {
+      "eight_schools_centered.stan": {
+        "url": "https://raw.githubusercontent.com/stan-dev/posteriordb/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database/models/stan/eight_schools_centered.stan",
+        "sha256": "ccaf2d7beed22602f62f276cd4096194ab5de5b5c1d6bb2bae9a3655a3845c05"
+      },
+      "eight_schools_noncentered.stan": {
+        "url": "https://raw.githubusercontent.com/stan-dev/posteriordb/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database/models/stan/eight_schools_noncentered.stan",
+        "sha256": "b28d5326b1936cce0014c98c2591d1ba5c1d21987ea5a5d0d9c074c6d6ce9253"
+      },
+      "eight_schools.json.zip": {
+        "url": "https://raw.githubusercontent.com/stan-dev/posteriordb/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/posterior_database/data/data/eight_schools.json.zip",
+        "sha256": "8e37cc01fe05b0e1779255e9bd386261f3d61daf7f75f02f72f38cdc9750531c"
+      },
+      "LICENCE.md": {
+        "url": "https://raw.githubusercontent.com/stan-dev/posteriordb/91027f9cdd13b7e76283fec3f2898f59d4b83ec4/LICENCE.md",
+        "sha256": "4cb546a2529533c4d3d73fb02cf3d9d7109232a91bcb6c6bf2cc0bf00fcc7f83"
+      }
+    }
+  }
+}

@@ -25,11 +25,17 @@ class ExactnessGuardTests(unittest.TestCase):
         counts = exactness.validate(self.root, self.ledger)
         self.assertEqual(
             counts,
-            {"approximate_target": 1, "exact_target": 11, "exactness_pending": 1},
+            {"approximate_target": 1, "exact_target": 12, "exactness_pending": 1},
         )
 
     def test_unlisted_transition_fails(self):
         self.check_rejected(lambda ledger: ledger["transitions"].pop())
+
+    def test_unlisted_proposal_fails(self):
+        self.check_rejected(lambda ledger: ledger["proposals"].pop())
+
+    def test_unlisted_feature_law_fails(self):
+        self.check_rejected(lambda ledger: ledger["feature_effects"].pop("simd"))
 
     def test_duplicate_transition_fails(self):
         self.check_rejected(

@@ -5,11 +5,19 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 publish.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+description = "Bounded inference sessions, diagnostics and durable output for Alea"
+keywords = ["bayesian", "statistics", "inference"]
+categories = ["science", "mathematics"]
 
 [lints]
 workspace = true
 
 [dependencies]
+alea-core.workspace = true
 alea-mcmc.workspace = true
 alea-math.workspace = true
 rand.workspace = true
@@ -23,7 +31,6 @@ rustfft.workspace = true
 statrs.workspace = true
 
 [dev-dependencies]
-alea-core.workspace = true
 alea-distributions.workspace = true
 allocation-counter.workspace = true
 

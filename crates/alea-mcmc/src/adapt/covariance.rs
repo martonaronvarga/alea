@@ -1,13 +1,15 @@
-//! Online centered moments and cold-path conversion from covariance to mass.
+//! Online centered moments and cold-path fitting of inverse-mass geometry.
 use alea_math::{
     buffer::OwnedBuffer,
     metric::{
-        CholeskyFactor, DenseMetric, DiagonalMetric, EuclideanMetric, IdentityMetric, MetricError,
+        CholeskyFactor, DenseMetric, DiagonalMetric, EuclideanMetric, IdentityMetric,
+        InverseDenseMetric, InverseDiagonalMetric, MetricError,
     },
 };
 
 /// Diagonal adaptation is the default; dense adaptation is explicitly opt-in.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum MetricKind {
     /// Linear-memory variance adaptation; does not learn rotations.
     #[default]
@@ -18,20 +20,28 @@ pub enum MetricKind {
 
 /// Invalid covariance input or an unrepresentable estimate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum CovarianceError {
     #[error("covariance requires a nonzero, addressable dimension")]
+    /// Covariance requires a nonzero, addressable dimension.
     Dimension,
     #[error("covariance observation has the wrong dimension")]
+    /// Covariance observation has the wrong dimension.
     Shape,
     #[error("covariance arithmetic is nonfinite")]
+    /// Covariance arithmetic is nonfinite.
     NonFinite,
     #[error("covariance requires at least two observations")]
+    /// Covariance requires at least two observations.
     TooFewSamples,
     #[error("covariance sample count overflow")]
+    /// Covariance sample count overflow.
     CountOverflow,
     #[error("regularized covariance is not representably positive definite")]
+    /// Regularized covariance is not representably positive definite.
     NotPositiveDefinite,
     #[error(transparent)]
+    /// Underlying metric construction or operation failed.
     Metric(#[from] MetricError),
 }
 
@@ -39,6 +49,7 @@ pub enum CovarianceError {
 /// Dense moments use symmetric full column-major storage. Rejected Markov states
 /// must be included as repeated observations; omitting them biases the estimate.
 #[derive(Debug)]
+#[must_use = "online covariance has no effect unless observations are incorporated"]
 pub struct OnlineCovariance {
     kind: MetricKind,
     count: usize,
@@ -73,12 +84,17 @@ impl OnlineCovariance {
     }
 
     /// Number of successfully incorporated observations in this window.
+    #[must_use]
     pub fn count(&self) -> usize {
         self.count
     }
     /// Current mean (zero before the first observation).
+    #[must_use]
     pub fn mean(&self) -> &[f64] {
         &self.mean
+    }
+    pub(super) fn scatter(&self) -> &[f64] {
+        &self.m2
     }
 
     /// Update centered moments. Invalid/overflowing observations leave the
@@ -171,44 +187,22 @@ impl OnlineCovariance {
         Ok(covariance)
     }
 
-    /// Build a validated momentum mass M = inverse(regularized covariance).
-    /// Dense inversion/factorization allocates only at window boundaries; the
-    /// resulting sampler reuses the existing SIMD/Faer/OpenBLAS metric kernels.
+    /// Build geometry directly from the regularized inverse mass G.
+    /// Dense construction performs one Cholesky factorization and no inversion.
     ///
     /// # Errors
-    /// Propagates insufficient/nonfinite covariance and rejects an unrepresentable
-    /// inverse or factor. The estimator and any installed metric are unchanged.
+    /// Propagates insufficient/nonfinite covariance or an invalid factor. The
+    /// estimator and any previously installed geometry remain unchanged.
     pub fn metric(&self) -> Result<WarmupMetric, CovarianceError> {
         let covariance = self.regularized_covariance()?;
-        match self.kind {
+        Ok(match self.kind {
             MetricKind::Diagonal => {
-                let mass = OwnedBuffer::from_fn(covariance.len(), |i| 1.0 / covariance[i]);
-                Ok(WarmupMetric::Diagonal(DiagonalMetric::new(mass)?))
+                WarmupMetric::InverseDiagonal(InverseDiagonalMetric::new(covariance)?)
             }
-            MetricKind::Dense => {
-                let n = self.mean.len();
-                let factor = cholesky(covariance, n)?;
-                let covariance_metric = DenseMetric::new(CholeskyFactor::new_lower(n, factor)?);
-                let mut mass = OwnedBuffer::new(n * n);
-                let mut basis = OwnedBuffer::new(n);
-                for col in 0..n {
-                    basis.fill(0.0);
-                    basis[col] = 1.0;
-                    covariance_metric.velocity(&basis, &mut mass[col * n..(col + 1) * n])?;
-                }
-                // Roundoff in independent solves can differ across the diagonal.
-                for col in 0..n {
-                    for row in col + 1..n {
-                        let value = 0.5 * mass[row + col * n] + 0.5 * mass[col + row * n];
-                        mass[row + col * n] = value;
-                        mass[col + row * n] = value;
-                    }
-                }
-                Ok(WarmupMetric::Dense(DenseMetric::new(
-                    CholeskyFactor::new_lower(n, cholesky(mass, n)?)?,
-                )))
-            }
-        }
+            MetricKind::Dense => WarmupMetric::InverseDense(InverseDenseMetric::new(
+                CholeskyFactor::new_lower(self.mean.len(), cholesky(covariance, self.mean.len())?)?,
+            )),
+        })
     }
 }
 
@@ -239,40 +233,71 @@ fn cholesky(mut matrix: OwnedBuffer, n: usize) -> Result<OwnedBuffer, Covariance
     Ok(matrix)
 }
 
-/// Frozen metric selected by warmup, using the canonical optimized math kernels.
-#[derive(Debug)]
+/// Frozen metric with an explicit mass or learned inverse-mass representation.
+#[derive(Debug, Clone, PartialEq)]
+#[must_use]
+#[non_exhaustive]
 pub enum WarmupMetric {
+    /// Identity momentum mass, without learned covariance.
     Identity(IdentityMetric),
+    /// Frozen diagonal momentum mass.
     Diagonal(DiagonalMetric),
+    /// Frozen dense momentum mass.
     Dense(DenseMetric),
+    /// Learned diagonal inverse momentum mass, with cached square-root scales.
+    InverseDiagonal(InverseDiagonalMetric),
+    /// Learned dense inverse momentum mass, storing its Cholesky factor directly.
+    InverseDense(InverseDenseMetric),
 }
 impl EuclideanMetric for WarmupMetric {
+    #[inline]
     fn dimension(&self) -> usize {
         match self {
             Self::Identity(m) => m.dimension(),
             Self::Diagonal(m) => m.dimension(),
             Self::Dense(m) => m.dimension(),
+            Self::InverseDiagonal(m) => m.dimension(),
+            Self::InverseDense(m) => m.dimension(),
         }
     }
+    #[inline]
     fn velocity(&self, p: &[f64], out: &mut [f64]) -> Result<(), MetricError> {
         match self {
             Self::Identity(m) => m.velocity(p, out),
             Self::Diagonal(m) => m.velocity(p, out),
             Self::Dense(m) => m.velocity(p, out),
+            Self::InverseDiagonal(m) => m.velocity(p, out),
+            Self::InverseDense(m) => m.velocity(p, out),
         }
     }
+    #[inline]
     fn sample_momentum(&self, z: &[f64], out: &mut [f64]) -> Result<(), MetricError> {
         match self {
             Self::Identity(m) => m.sample_momentum(z, out),
             Self::Diagonal(m) => m.sample_momentum(z, out),
             Self::Dense(m) => m.sample_momentum(z, out),
+            Self::InverseDiagonal(m) => m.sample_momentum(z, out),
+            Self::InverseDense(m) => m.sample_momentum(z, out),
         }
     }
+    #[inline]
+    fn kinetic_energy_with_velocity(&self, p: &[f64], out: &mut [f64]) -> Result<f64, MetricError> {
+        match self {
+            Self::Identity(m) => m.kinetic_energy_with_velocity(p, out),
+            Self::Diagonal(m) => m.kinetic_energy_with_velocity(p, out),
+            Self::Dense(m) => m.kinetic_energy_with_velocity(p, out),
+            Self::InverseDiagonal(m) => m.kinetic_energy_with_velocity(p, out),
+            Self::InverseDense(m) => m.kinetic_energy_with_velocity(p, out),
+        }
+    }
+    #[inline]
     fn log_det(&self) -> f64 {
         match self {
             Self::Identity(m) => m.log_det(),
             Self::Diagonal(m) => m.log_det(),
             Self::Dense(m) => m.log_det(),
+            Self::InverseDiagonal(m) => m.log_det(),
+            Self::InverseDense(m) => m.log_det(),
         }
     }
 }

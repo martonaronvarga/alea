@@ -1,0 +1,11 @@
+{
+  "archive_sha256": "7f344b726ecb02ce313722aaf90300f5507b424dab477b9695a87825c97fbadd",
+  "files": {
+    "tools/nuts-reference/parity/Cargo.toml": "687d25f2847fd9ed53b9ee08a3a955c3292cd59b3b6e745e2ffdbeaf61149981",
+    "tools/nuts-reference/parity/Cargo.lock": "fde605415537a90c222fcbc0e10fea76cb21e5e90c587df6cf451262dd1b8971",
+    "tools/nuts-reference/parity/README.md": "73ea34c1088ac794899bf95f3c00ef8455b3ed1fc2bf58902c8cffe59b4f71ac",
+    "tools/nuts-reference/parity/src/main.rs": "367ed6ef28d03ca1df7c1dce0bd5042a9b4477d9acefaa35ccc373dd54330732"
+  },
+  "reproduction": "Extract the probe archive at an unpacked source root. For the pre-repair baseline, use the preceding native broad evidence source archive; for the current implementation, use final/. Build both with the recorded stable flake and --release --locked. Same probe/lock, CPU affinity, seeds and budgets; use separate output directories.",
+  "baseline_evidence": "../m16/posteriordb-native-v3/broad/bundle.json"
+}

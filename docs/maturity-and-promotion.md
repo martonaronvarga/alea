@@ -177,7 +177,7 @@ of the underlying algorithms.
 | SoftAbs and manifold GP tuner | S1 | research opt-in | Dense Hessian/third derivatives, O(d^4) reconstruction, narrow benchmark and RMHMC exactness dependency. |
 | SMC traits | S0 | not exposed as inference | No particle filter, resampler, likelihood estimator or PMCMC implementation. |
 | Cubature FFI | S2 in current native use | internal/opt-in | Cross-platform packaging, ABI/version and downstream native-build gates remain. |
-| CLI binaries | S1 utilities | development | No complete model-to-diagnostics inference command, manifest, persistence or stable output contract. |
+| CLI binaries | Three S1 development utilities; S2 `alea-bench` | opt-in | M16 provides source-bound manifests/results and reports; this is an experiment utility, with no general inference CLI or S3/S4 output/API promise. |
 | Preserved `research/` and `archive/` prototypes | S0 | not exposed | Recovery/provenance material only; the historical migration record is not executed semantic evidence. |
 
 ## Machine-readable enforcement
@@ -185,29 +185,40 @@ of the underlying algorithms.
 [`tools/ci/maturity-ledger.json`](../tools/ci/maturity-ledger.json) is the
 executable counterpart to this policy. It records an exact entry for every source
 module containing an unrestricted public declaration, every named public API
-namespace, every explicit Cargo feature and every Cargo binary. Each entry names a
-reusable profile that fixes maturity, adoption and target-guarantee vocabulary.
-Research entries also retain a concrete promotion blocker; CI rejects assigning a
-validated profile while that blocker remains.
+namespace, every non-module item exported directly from a crate root, every
+explicit Cargo feature and every Cargo binary. Each entry names a reusable profile
+that fixes maturity, adoption and target-guarantee vocabulary. Research entries
+also retain a concrete promotion blocker; CI rejects assigning a validated profile
+while that blocker remains.
 
 [`tools/ci/maturity.py`](../tools/ci/maturity.py) discovers the live workspace
 surface instead of trusting ledger cardinalities. A new public module, named
-reference namespace, feature or binary therefore fails CI until it is classified,
-while a stale ledger entry fails after removal. It also prevents design-only
-contracts from being adopted,
+reference/approximate namespace, root item, feature or binary therefore fails CI
+until it is classified, while a stale ledger entry fails after removal. It also
+prevents design-only contracts from being adopted,
 approximate-target mechanisms from using an exact-looking adoption state,
 exactness-pending mechanisms from moving above S1, and S3/S4 claims before the
 release-candidate policy is deliberately opened. Mutation tests exercise those
 failure modes.
 
-Source files still use module-level inheritance rather than final public-item
-classification. The additive `reference` facades provide the first narrower path
-boundary, while mixed root facades retain the lowest defensible state and an open
-promotion gate. A separately locked compiler-negative package now enforces phase
-ownership, consumed adaptation, WALNUTS integrator compatibility and the
-approximate-MCLMC/exact-NUTS boundary. M13 still needs research/approximate path
-refinement and accepted compatibility decisions before the inventory task can be
-marked complete.
+Every distinct rendered public declaration/implementation is now classified in
+`api_items`, including the two feature-only Faer surfaces. The source-module
+inventory remains a second guard. Mixed adaptation/integration owners are refined
+at item level: reference covariance/window/dual-averaging and sealed integrators
+remain S2; research owners retain explicit gates. Digest-bound compatibility
+adjudication records the deliberate pre-release API break. Research kernels have
+named module paths, approximate MCLMC has its explicit namespace, and RMHMC is
+executable only as `ExactnessPendingRmhmc`. The protected reference constructors,
+result evolution, common traits, error sources and laws complete M13's selected
+reference-owner audit. New typed-model/distribution owners are validated opt-ins
+under M14, with no research-sampler promotion or S3/S4 claim.
+
+The named-module disposition is now explicit. Standalone core/distribution error
+modules were internalized behind their transform/Wiener owners, and the incomplete
+ATLAS probe module was replaced at the public boundary by the narrower curvature
+budget used by joint warmup. Remaining named modules have a concrete cross-crate,
+reference, or opt-in research role; none are retained solely as pre-alpha aliases.
+Design-only state-space/particle contracts remain unfrozen pending M14/M12 verticals.
 
 External implementations of the current open target, Euclidean metric, Markov
 chain and diagnostic boundaries, together with the borrowed draw sink, are now
@@ -216,24 +227,20 @@ compiled and law-tested by the separately locked
 downstream evidence for those specific contracts, not a promise that sealed
 integrators or design-only particle traits are ready to open.
 
-The first item-level compatibility baseline is recorded in
-[`m13-api-boundary.md`](m13-api-boundary.md). The pinned nightly CI row regenerates
-the current 6,089 reachable default-feature entries across all eight library crates
-with `cargo-public-api`; every other row verifies the committed files, counts and
-digests. The initial 5,057-entry inventory remains documented as the pre-boundary
-baseline. This makes additions, removals and signature changes reviewable, but it
-does not promote the recorded pre-alpha surface. Feature-specific snapshots and
-path-level maturity refinement for mixed facades remain open.
+The complete item-level boundary and compatibility decision are recorded in
+[`m13-api-boundary.md`](m13-api-boundary.md). Pinned nightly extraction checks eight
+default-feature libraries (5,990 rendered lines), two additional Faer surfaces and
+five API-neutral feature variants. Other CI rows validate all accepted digests.
+The inventory contains 4,729 distinct declarations after duplicate rendering is
+removed. New or changed entries need explicit maturity and compatibility review.
 
 [`tools/ci/exactness-ledger.json`](../tools/ci/exactness-ledger.json) separately
-records the finite-precision laws of every public default-feature `MarkovChain`.
-Its checker discovers transitions from the accepted API snapshot and requires
-refresh, support, reversibility, volume/proposal-density, selection/correction and
-failure claims plus executable evidence. An exact-target entry cannot carry an
-open or deliberately omitted law; an approximate transition must expose its
-omitted correction; an exactness-pending transition must retain an open law. The
-current 13-transition review is summarized in
-[`m13-exactness-audit.md`](m13-exactness-audit.md).
+records refresh, support, reversal, volume/density, selection and failure laws for
+all 13 public chains, five standalone proposal/integrator entry points and every
+MCMC feature. Source discovery also rejects feature-only unaudited chains. Proposal
+components require caller correction; approximate MCLMC exposes its omitted
+correction; `ExactnessPendingRmhmc` retains its open numerical-map obligations.
+See [`m13-exactness-audit.md`](m13-exactness-audit.md).
 
 ## Research re-entry gates
 

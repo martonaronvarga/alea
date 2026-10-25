@@ -1,0 +1,21 @@
+{
+  "manifest_sha256": "49f22f61a3c76688b8f090ac064ae1b1dcd1dece5abf33678e9b722a287ab7ca",
+  "parts": [
+    {
+      "bytes": 12689950,
+      "name": "evidence.tar.gz.part001",
+      "sha256": "8a4326832debb741a3449aaf42ed3c37bbdf88bb00acdc9de6062dc794a23be6"
+    }
+  ],
+  "planned_jobs": 18,
+  "review_files": {
+    "manifest.json": "b6f5fa29987227859c342fd0cb0862828868add28f371cf6130cebcd40db4741",
+    "reference-comparisons.csv": "411ec5af2585cfa946a061d0fc7fcf92a7b31d82b5e1748f1f3ab6ece1b17349",
+    "report.html": "4dbfc68b7a70eb5535655b9150286daa95f4af8b90155559eb0d5a4d22a08edd",
+    "report.json": "1122ed38d58a1829fa24bb8c11f4fc271fdad792b9c5b8e1716ee3ebfbbf4bf2",
+    "report.md": "3537559223cbdc5ef014b353fdab509778da08debdbeac56ae76a834fdc28bf8",
+    "summary.csv": "8e7fb71f24adedf19716a6932105bc03864e9e6e56268533c2d1ef0cdeeb1c46"
+  },
+  "root": "posteriordb-v3",
+  "schema_version": 3
+}

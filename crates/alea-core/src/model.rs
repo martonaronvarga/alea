@@ -3,6 +3,8 @@
 
 use alea_math::buffer::OwnedBuffer;
 
+pub mod assembly;
+pub mod prediction;
 mod primitive;
 pub use primitive::{OpaquePrimitive, PrimitiveError, PrimitiveModel};
 

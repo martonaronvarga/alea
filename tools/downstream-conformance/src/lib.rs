@@ -208,3 +208,39 @@ where
         "chain conformance observed no successful step"
     );
 }
+pub mod modeling;
+
+/// Checks repeatable normalized scalar values against independent measure fixtures.
+///
+/// Support zeros and boundary infinities must match exactly; finite values use
+/// the supplied absolute/relative tolerance. This does not numerically integrate
+/// an arbitrary distribution or certify its normalization beyond the fixtures.
+///
+/// # Panics
+/// Panics on invalid fixtures/tolerance, errors, NaNs or disagreement.
+pub fn assert_distribution_conformance<D>(distribution: &D, cases: &[(f64, f64)], tolerance: f64)
+where
+    D: alea_core::distribution::Distribution<Event = f64>,
+{
+    assert!(!cases.is_empty());
+    assert!(tolerance.is_finite() && tolerance >= 0.0);
+    let shape = distribution.event_shape();
+    let support = distribution.support();
+    for (event, expected) in cases {
+        let actual = distribution
+            .log_prob(event)
+            .expect("distribution fixture must evaluate");
+        let repeated = distribution
+            .log_prob(event)
+            .expect("distribution fixture must repeat");
+        assert_eq!(actual, repeated);
+        if expected.is_infinite() {
+            assert_eq!(actual, *expected);
+        } else {
+            assert!(expected.is_finite() && actual.is_finite());
+            assert!(close(actual, *expected, tolerance));
+        }
+        assert_eq!(distribution.event_shape(), shape);
+        assert_eq!(distribution.support(), support);
+    }
+}

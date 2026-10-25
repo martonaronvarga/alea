@@ -122,7 +122,7 @@ fn bench(c: &mut Criterion) {
                     WarmupOptions::new(200).with_metric(kind),
                 )
                 .unwrap();
-                black_box(controller.run(&mut SmallRng::seed_from_u64(7)).unwrap());
+                let _ = black_box(controller.run(&mut SmallRng::seed_from_u64(7)).unwrap());
             })
         });
     }
@@ -173,7 +173,7 @@ fn bench(c: &mut Criterion) {
                         options,
                     )
                     .unwrap();
-                    black_box(warmup.run(&mut SmallRng::seed_from_u64(7)).unwrap());
+                    let _ = black_box(warmup.run(&mut SmallRng::seed_from_u64(7)).unwrap());
                 })
             },
         );

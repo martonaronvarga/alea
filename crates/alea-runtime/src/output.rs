@@ -1,8 +1,12 @@
 //! Versioned, borrowed streaming records; no serialization or storage is imposed.
 use alea_mcmc::{
-    ApproximateMclmcTransition, CheesHmcTransition, DrGhmcTransition, GhmcTransition,
-    HmcTransition, MamsTransition, NutsTransition, RwmhTransition, WalnutsTermination,
-    WalnutsTransition, nuts::NutsTermination,
+    HmcTransition, NutsTransition, RwmhTransition,
+    approximate::ApproximateMclmcTransition,
+    chees::CheesHmcTransition,
+    ghmc::{DrGhmcTransition, GhmcTransition},
+    mams::MamsTransition,
+    nuts::NutsTermination,
+    walnuts::{WalnutsTermination, WalnutsTransition},
 };
 
 /// Version of the draw/transition record contract.

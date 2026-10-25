@@ -4,7 +4,7 @@ use std::{convert::Infallible, hint::black_box};
 
 use alea_core::{capability::PositionMetric, target::LogDensityGradient};
 use alea_math::buffer::OwnedBuffer;
-use alea_mcmc::{Rmhmc, RmhmcOptions};
+use alea_mcmc::riemannian::{ExactnessPendingRmhmc, RmhmcOptions};
 use rand::{SeedableRng, rngs::SmallRng};
 
 struct Normal;
@@ -50,7 +50,8 @@ fn retained_rmhmc_transition_allocates_nothing() {
     let target = Normal;
     let metric = Identity;
     let options = RmhmcOptions::new(0.1, 4, 2, 1.0e-14).unwrap();
-    let mut chain = Rmhmc::new(&target, &metric, OwnedBuffer::new(4), options).unwrap();
+    let mut chain =
+        ExactnessPendingRmhmc::new(&target, &metric, OwnedBuffer::new(4), options).unwrap();
     let mut rng = SmallRng::seed_from_u64(11_011);
     let allocations = allocation_counter::measure(|| {
         for _ in 0..64 {

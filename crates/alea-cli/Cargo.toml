@@ -7,6 +7,13 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 publish.workspace = true
+license = "GPL-3.0-or-later"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+description = "Command-line experiment and benchmark utilities for Alea"
+keywords = ["bayesian", "statistics", "inference"]
+categories = ["science", "mathematics"]
 
 [lints]
 workspace = true
@@ -35,3 +42,7 @@ path = "src/bin/gradient_check.rs"
 [[bin]]
 name = "alea-rwmh"
 path = "src/bin/rwmh.rs"
+
+[[bin]]
+name = "alea-bench"
+path = "src/bin/bench.rs"

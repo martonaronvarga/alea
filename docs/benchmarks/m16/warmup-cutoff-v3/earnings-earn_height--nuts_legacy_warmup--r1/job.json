@@ -1,0 +1,84 @@
+{
+  "case": "earnings-earn_height",
+  "classification": {
+    "component": "historical eight-step HMC covariance warmup + unchanged NUTS retention; controlled ablation only",
+    "engine": "alea",
+    "guarantee": "research_exact_target_intent"
+  },
+  "data": "/home/usu/alea-bench-runs/m16-posteriordb-complete-20261022/source/tools/bench/corpus/pdb-v2/earnings-earn_height/data.json",
+  "depth": 8,
+  "derivative_validation": {
+    "gradient_relative_error": 2.0636315380208018e-08,
+    "hvp_error": null,
+    "hvp_relative_error": 2.3057696019855522e-10,
+    "scope": "central finite differences at first shared initial point; signed alternating HVP direction; HVP limitations do not reject gradient-only methods"
+  },
+  "dimension": 3,
+  "directory": "/home/usu/alea-bench-runs/m16-posteriordb-complete-20261022/cutoff-ablation/earnings-earn_height--nuts_legacy_warmup--r1",
+  "draws": 512,
+  "family": "linear_regression",
+  "id": "earnings-earn_height--nuts_legacy_warmup--r1",
+  "include_tp": true,
+  "initial_constrained": [
+    [
+      0.09729261982202697,
+      1.6132077727605374,
+      2.6550500767524707
+    ],
+    [
+      1.4251575795189488,
+      0.999193697087895,
+      0.36895604566647633
+    ],
+    [
+      1.4485358855192434,
+      -0.7700325789070694,
+      0.6810183603902481
+    ],
+    [
+      -1.0381119839903725,
+      0.9184738080660395,
+      1.3535420583967719
+    ]
+  ],
+  "initial_parameter_names": "beta.1,beta.2,sigma",
+  "initials": [
+    [
+      0.09729261982202697,
+      1.6132077727605374,
+      0.9764635158163957
+    ],
+    [
+      1.4251575795189488,
+      0.999193697087895,
+      -0.9970777594716784
+    ],
+    [
+      1.4485358855192434,
+      -0.7700325789070694,
+      -0.38416601227058944
+    ],
+    [
+      -1.0381119839903725,
+      0.9184738080660395,
+      0.30272490339569735
+    ]
+  ],
+  "library": "/home/usu/alea-bench-runs/m16-posteriordb-complete-20261022/source/target/m16b-models-01/earnings-earn_height/bridge/model_model.so",
+  "method": "nuts_legacy_warmup",
+  "model_info": "BridgeStan version: 2.7.0\nStan version: 2.38.0\nStan C++ Defines:\n\tSTAN_THREADS=true\n\tSTAN_MPI=false\n\tSTAN_OPENCL=false\n\tSTAN_NO_RANGE_CHECKS=false\n\tBRIDGESTAN_AD_HESSIAN=true\nStan Compiler Details:\n\tstanc_version = %%NAME%%3 %%VERSION%%\n\tstancflags = \n",
+  "parameter_names": "beta.1,beta.2,sigma",
+  "repetition": 1,
+  "seeds": [
+    28001,
+    28002,
+    28003,
+    28004
+  ],
+  "stan_binary": "/home/usu/alea-bench-runs/m16-posteriordb-complete-20261022/source/target/m16b-models-01/earnings-earn_height/stan/model",
+  "timeout_seconds": 180,
+  "unconstrained_names": "beta.1,beta.2,sigma",
+  "unsupported_reason": null,
+  "warmup": 512,
+  "workflow_version": 3
+}

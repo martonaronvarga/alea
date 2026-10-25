@@ -1,5 +1,5 @@
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
-use alea_mcmc::{Walnuts, WalnutsOptions};
+use alea_mcmc::walnuts::{Walnuts, WalnutsOptions};
 use alea_runtime::diagnostics::modern;
 use rand::{SeedableRng, rngs::SmallRng};
 

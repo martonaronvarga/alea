@@ -1,0 +1,68 @@
+{
+  "current_and_archived_reports_identical": true,
+  "runs": {
+    "broad": {
+      "manifest_sha256": "fb22e68aafc8a783effa59173c1e1e35007ab7132bd210282f7923f078e4c0b6",
+      "summary": {
+        "methods": 6,
+        "physical_hosts": 1,
+        "planned_jobs": 360,
+        "posterior_cases": 20,
+        "status_counts": {
+          "completed": 360
+        }
+      }
+    },
+    "parallel": {
+      "manifest_sha256": "6e4af9aa217568811cbce0982a065bba440dc7e97e2d5f28df29e11554a6b6a8",
+      "summary": {
+        "methods": 6,
+        "physical_hosts": 1,
+        "planned_jobs": 72,
+        "posterior_cases": 6,
+        "status_counts": {
+          "completed": 72
+        }
+      }
+    },
+    "pilot": {
+      "manifest_sha256": "5c06fc9078c111929093626e3113246b8f0dec0633e017cef35350f86522c1bf",
+      "summary": {
+        "methods": 6,
+        "physical_hosts": 1,
+        "planned_jobs": 36,
+        "posterior_cases": 6,
+        "status_counts": {
+          "completed": 36
+        }
+      }
+    },
+    "research": {
+      "manifest_sha256": "d62be06fd9da49f9661d50d91348ab18992c01916231bd0e4067b27bea70c7a5",
+      "summary": {
+        "methods": 21,
+        "physical_hosts": 1,
+        "planned_jobs": 420,
+        "posterior_cases": 20,
+        "status_counts": {
+          "completed": 387,
+          "failed": 23,
+          "unsupported": 10
+        }
+      }
+    },
+    "shared-stan": {
+      "manifest_sha256": "c560214a06f2da79d6d1e67ffaf678c6a435e3856844a15fc52fc917db6ebf17",
+      "summary": {
+        "methods": 4,
+        "physical_hosts": 1,
+        "planned_jobs": 240,
+        "posterior_cases": 20,
+        "status_counts": {
+          "completed": 240
+        }
+      }
+    }
+  },
+  "schema_version": 1
+}

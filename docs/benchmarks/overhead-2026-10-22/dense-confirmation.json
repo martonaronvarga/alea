@@ -1,0 +1,109 @@
+{
+  "processes": 12,
+  "affinity": [
+    1
+  ],
+  "instrumented": true,
+  "all_draw_trace_work_identities_match": true,
+  "ratios": {
+    "process_seconds": {
+      "median_paired_ratio": 0.9754384778496044,
+      "minimum_paired_ratio": 0.9159060119258661,
+      "maximum_paired_ratio": 1.0499052218270652
+    },
+    "cpu_seconds": {
+      "median_paired_ratio": 0.9756581836772318,
+      "minimum_paired_ratio": 0.9174293744777454,
+      "maximum_paired_ratio": 1.0531698319243081
+    },
+    "warmup_seconds": {
+      "median_paired_ratio": 0.965732293597956,
+      "minimum_paired_ratio": 0.9151822870284326,
+      "maximum_paired_ratio": 1.0512701753684621
+    },
+    "retained_seconds": {
+      "median_paired_ratio": 1.0301851038093535,
+      "minimum_paired_ratio": 0.905765176460203,
+      "maximum_paired_ratio": 1.1055543352816855
+    }
+  },
+  "instruction_medians": {
+    "baseline-worker": 25691104285.0,
+    "optimized-worker": 25673000390.0
+  },
+  "instruction_ratio": 0.9992953243737923,
+  "counters": [
+    {
+      "round": 0,
+      "binary": "baseline-worker",
+      "instructions:u": 25691104057,
+      "cycles:u": 9464755406
+    },
+    {
+      "round": 0,
+      "binary": "optimized-worker",
+      "instructions:u": 25673000313,
+      "cycles:u": 9963365138
+    },
+    {
+      "round": 1,
+      "binary": "optimized-worker",
+      "instructions:u": 25673000483,
+      "cycles:u": 9471565430
+    },
+    {
+      "round": 1,
+      "binary": "baseline-worker",
+      "instructions:u": 25691103876,
+      "cycles:u": 9337555321
+    },
+    {
+      "round": 2,
+      "binary": "baseline-worker",
+      "instructions:u": 25691103174,
+      "cycles:u": 9715314310
+    },
+    {
+      "round": 2,
+      "binary": "optimized-worker",
+      "instructions:u": 25673000467,
+      "cycles:u": 9226265937
+    },
+    {
+      "round": 3,
+      "binary": "optimized-worker",
+      "instructions:u": 25673000608,
+      "cycles:u": 9367342054
+    },
+    {
+      "round": 3,
+      "binary": "baseline-worker",
+      "instructions:u": 25691131219,
+      "cycles:u": 10206685814
+    },
+    {
+      "round": 4,
+      "binary": "baseline-worker",
+      "instructions:u": 25691104513,
+      "cycles:u": 9860886238
+    },
+    {
+      "round": 4,
+      "binary": "optimized-worker",
+      "instructions:u": 25672999970,
+      "cycles:u": 9529354448
+    },
+    {
+      "round": 5,
+      "binary": "optimized-worker",
+      "instructions:u": 25673000069,
+      "cycles:u": 9717243662
+    },
+    {
+      "round": 5,
+      "binary": "baseline-worker",
+      "instructions:u": 25691159368,
+      "cycles:u": 9849916482
+    }
+  ]
+}

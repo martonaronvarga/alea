@@ -1,0 +1,988 @@
+{
+  "cohort": "docs/benchmarks/m16/posteriordb-complete-v3",
+  "baseline": "nuts_rs",
+  "methods": {
+    "nuts_cov_diag": {
+      "cases": [
+        {
+          "case": "Rate_1_data-Rate_1_model",
+          "retained_call_ratios": [
+            1.151331153666511,
+            1.0973201692524683,
+            1.1720075400565504
+          ],
+          "median_retained_call_ratio": 1.151331153666511,
+          "retained_seconds_per_call_ratios": [
+            1.9782966035304888,
+            0.9283031009428119,
+            1.2993716999791973
+          ],
+          "median_retained_seconds_per_call_ratio": 1.2993716999791973,
+          "retained_ess_per_call_ratio": 0.7844254016687631
+        },
+        {
+          "case": "Rate_2_data-Rate_2_model",
+          "retained_call_ratios": [
+            1.3738181818181818,
+            1.373811265544989,
+            1.2390423572744014
+          ],
+          "median_retained_call_ratio": 1.373811265544989,
+          "retained_seconds_per_call_ratios": [
+            1.3374748160149064,
+            1.0320767885842106,
+            1.1926615966376357
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1926615966376357,
+          "retained_ess_per_call_ratio": 0.5546416678777707
+        },
+        {
+          "case": "Rate_5_data-Rate_5_model",
+          "retained_call_ratios": [
+            1.3183325438180957,
+            1.271342870327642,
+            1.179076343072573
+          ],
+          "median_retained_call_ratio": 1.271342870327642,
+          "retained_seconds_per_call_ratios": [
+            0.9306868708189879,
+            0.9270416471406868,
+            1.2512439647080755
+          ],
+          "median_retained_seconds_per_call_ratio": 0.9306868708189879,
+          "retained_ess_per_call_ratio": 0.683947409928561
+        },
+        {
+          "case": "arK-arK",
+          "retained_call_ratios": [
+            1.5925664074335926,
+            1.6242189824457007,
+            1.5644171779141105
+          ],
+          "median_retained_call_ratio": 1.5925664074335926,
+          "retained_seconds_per_call_ratios": [
+            0.6963637003563555,
+            1.075832837255435,
+            1.2719348680581328
+          ],
+          "median_retained_seconds_per_call_ratio": 1.075832837255435,
+          "retained_ess_per_call_ratio": 0.894876013528813
+        },
+        {
+          "case": "arma-arma11",
+          "retained_call_ratios": [
+            1.4906689635371806,
+            1.515247410817031,
+            1.6076168493941143
+          ],
+          "median_retained_call_ratio": 1.515247410817031,
+          "retained_seconds_per_call_ratios": [
+            1.2629111137653108,
+            1.0627081946641412,
+            1.3557157256991164
+          ],
+          "median_retained_seconds_per_call_ratio": 1.2629111137653108,
+          "retained_ess_per_call_ratio": 0.5076820046338246
+        },
+        {
+          "case": "dogs-dogs_log",
+          "retained_call_ratios": [
+            1.3210739242368519,
+            1.2678833904948554,
+            1.4660633484162895
+          ],
+          "median_retained_call_ratio": 1.3210739242368519,
+          "retained_seconds_per_call_ratios": [
+            0.8082281693380611,
+            0.9304956005411741,
+            1.1964934723851397
+          ],
+          "median_retained_seconds_per_call_ratio": 0.9304956005411741,
+          "retained_ess_per_call_ratio": 0.8474682815276043
+        },
+        {
+          "case": "earnings-earn_height",
+          "retained_call_ratios": [
+            2.8491826966495077,
+            2.9156498917998066,
+            3.0459580256509913
+          ],
+          "median_retained_call_ratio": 2.9156498917998066,
+          "retained_seconds_per_call_ratios": [
+            0.6182191721896296,
+            0.9042885682960752,
+            1.3770160412555608
+          ],
+          "median_retained_seconds_per_call_ratio": 0.9042885682960752,
+          "retained_ess_per_call_ratio": 0.6552780115589705
+        },
+        {
+          "case": "earnings-logearn_interaction_z",
+          "retained_call_ratios": [
+            1.704589172849684,
+            1.6163618595560518,
+            1.7549386011745862
+          ],
+          "median_retained_call_ratio": 1.704589172849684,
+          "retained_seconds_per_call_ratios": [
+            0.9851334021032476,
+            0.8776468041141572,
+            0.956017864525149
+          ],
+          "median_retained_seconds_per_call_ratio": 0.956017864525149,
+          "retained_ess_per_call_ratio": 0.7938498037261191
+        },
+        {
+          "case": "eight_schools-eight_schools_centered",
+          "retained_call_ratios": [
+            1.8413909705721074,
+            1.623920416007235,
+            1.744544355050744
+          ],
+          "median_retained_call_ratio": 1.744544355050744,
+          "retained_seconds_per_call_ratios": [
+            0.8250188208413116,
+            1.2761265057537206,
+            1.6767569298476912
+          ],
+          "median_retained_seconds_per_call_ratio": 1.2761265057537206,
+          "retained_ess_per_call_ratio": 2.1915132881795305
+        },
+        {
+          "case": "eight_schools-eight_schools_noncentered",
+          "retained_call_ratios": [
+            1.0883361295499308,
+            1.4729289940828403,
+            1.1851580259587886
+          ],
+          "median_retained_call_ratio": 1.1851580259587886,
+          "retained_seconds_per_call_ratios": [
+            1.2013965906591768,
+            1.4613322459028082,
+            1.1500275846390862
+          ],
+          "median_retained_seconds_per_call_ratio": 1.2013965906591768,
+          "retained_ess_per_call_ratio": 1.0026264324978822
+        },
+        {
+          "case": "garch-garch11",
+          "retained_call_ratios": [
+            1.6180174840717143,
+            1.593680131167089,
+            1.6692340008402184
+          ],
+          "median_retained_call_ratio": 1.6180174840717143,
+          "retained_seconds_per_call_ratios": [
+            1.0331386852425037,
+            1.0490938959540685,
+            1.220191433552405
+          ],
+          "median_retained_seconds_per_call_ratio": 1.0490938959540685,
+          "retained_ess_per_call_ratio": 0.8258022940169487
+        },
+        {
+          "case": "hmm_example-hmm_example",
+          "retained_call_ratios": [
+            1.8416370106761566,
+            1.941783100465735,
+            1.80705957514774
+          ],
+          "median_retained_call_ratio": 1.8416370106761566,
+          "retained_seconds_per_call_ratios": [
+            1.143939791269622,
+            1.4599023941224776,
+            1.1440977993605237
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1440977993605237,
+          "retained_ess_per_call_ratio": 0.6031999370424734
+        },
+        {
+          "case": "kidiq-kidscore_momhs",
+          "retained_call_ratios": [
+            1.690071791279986,
+            1.7547338335119687,
+            1.8175760849990996
+          ],
+          "median_retained_call_ratio": 1.7547338335119687,
+          "retained_seconds_per_call_ratios": [
+            0.9900037078374305,
+            1.1866512246920007,
+            0.8486284113761658
+          ],
+          "median_retained_seconds_per_call_ratio": 0.9900037078374305,
+          "retained_ess_per_call_ratio": 0.6022034575388052
+        },
+        {
+          "case": "low_dim_gauss_mix_collapse-low_dim_gauss_mix_collapse",
+          "retained_call_ratios": [
+            2.1132683188691064,
+            1.8312035917803489,
+            1.9472872436944293
+          ],
+          "median_retained_call_ratio": 1.9472872436944293,
+          "retained_seconds_per_call_ratios": [
+            0.8866464234001854,
+            0.6361869757354639,
+            0.9130570862257981
+          ],
+          "median_retained_seconds_per_call_ratio": 0.8866464234001854,
+          "retained_ess_per_call_ratio": 0.5154658432754899
+        },
+        {
+          "case": "normal_2-normal_mixture",
+          "retained_call_ratios": [
+            1.674505794137696,
+            1.4080732700135685,
+            1.589969501863775
+          ],
+          "median_retained_call_ratio": 1.589969501863775,
+          "retained_seconds_per_call_ratios": [
+            1.438153816497499,
+            1.2991614423427205,
+            0.9759263229275883
+          ],
+          "median_retained_seconds_per_call_ratio": 1.2991614423427205,
+          "retained_ess_per_call_ratio": 0.6285244422013887
+        },
+        {
+          "case": "radon_mn-radon_variable_intercept_noncentered",
+          "retained_call_ratios": [
+            1.8982213438735178,
+            1.8567279767666989,
+            1.914713216957606
+          ],
+          "median_retained_call_ratio": 1.8982213438735178,
+          "retained_seconds_per_call_ratios": [
+            1.0614940751192268,
+            1.0064951169594385,
+            1.0115878191744978
+          ],
+          "median_retained_seconds_per_call_ratio": 1.0115878191744978,
+          "retained_ess_per_call_ratio": 1.1254287676795665
+        },
+        {
+          "case": "sblri-blr",
+          "retained_call_ratios": [
+            2.082223242994947,
+            1.9746313963573288,
+            2.153341148886284
+          ],
+          "median_retained_call_ratio": 2.082223242994947,
+          "retained_seconds_per_call_ratios": [
+            0.6839144609327483,
+            1.0816788907326365,
+            0.9962177127128646
+          ],
+          "median_retained_seconds_per_call_ratio": 0.9962177127128646,
+          "retained_ess_per_call_ratio": 0.07821197091680358
+        },
+        {
+          "case": "seeds_data-seeds_stanified_model",
+          "retained_call_ratios": [
+            1.619947604790419,
+            1.7496012759170654,
+            1.5941198224852071
+          ],
+          "median_retained_call_ratio": 1.619947604790419,
+          "retained_seconds_per_call_ratios": [
+            1.2912618911611455,
+            1.329054928240477,
+            1.9379467279307092
+          ],
+          "median_retained_seconds_per_call_ratio": 1.329054928240477,
+          "retained_ess_per_call_ratio": 0.5679097157976862
+        },
+        {
+          "case": "surgical_data-surgical_model",
+          "retained_call_ratios": [
+            1.417179230439136,
+            1.6382264743681278,
+            1.6610791366906474
+          ],
+          "median_retained_call_ratio": 1.6382264743681278,
+          "retained_seconds_per_call_ratios": [
+            1.5187769914154308,
+            1.1059382710688175,
+            1.065643196376941
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1059382710688175,
+          "retained_ess_per_call_ratio": 0.7959198911842664
+        },
+        {
+          "case": "wells_data-wells_dist100_model",
+          "retained_call_ratios": [
+            1.4225420834349842,
+            1.3628468033775634,
+            1.4535546197671538
+          ],
+          "median_retained_call_ratio": 1.4225420834349842,
+          "retained_seconds_per_call_ratios": [
+            0.9413375976678826,
+            0.9475847058610111,
+            1.0051926313129995
+          ],
+          "median_retained_seconds_per_call_ratio": 0.9475847058610111,
+          "retained_ess_per_call_ratio": 0.7006678119518024
+        }
+      ],
+      "median_retained_call_ratio": 1.6189825444310668,
+      "median_retained_seconds_per_call_ratio": 1.0624633666047518,
+      "median_retained_ess_per_call_ratio": 0.6923076109401817
+    },
+    "nuts_fisher_diag": {
+      "cases": [
+        {
+          "case": "Rate_1_data-Rate_1_model",
+          "retained_call_ratios": [
+            1.1447921531994396,
+            1.1236483309826046,
+            1.1116870876531575
+          ],
+          "median_retained_call_ratio": 1.1236483309826046,
+          "retained_seconds_per_call_ratios": [
+            1.9551724921421914,
+            1.035745638555658,
+            1.3347067701753172
+          ],
+          "median_retained_seconds_per_call_ratio": 1.3347067701753172,
+          "retained_ess_per_call_ratio": 0.795156602123937
+        },
+        {
+          "case": "Rate_2_data-Rate_2_model",
+          "retained_call_ratios": [
+            1.2312727272727273,
+            1.2077542062911486,
+            1.2268876611418047
+          ],
+          "median_retained_call_ratio": 1.2268876611418047,
+          "retained_seconds_per_call_ratios": [
+            1.0348755472502706,
+            1.5441132710461283,
+            1.157522822246631
+          ],
+          "median_retained_seconds_per_call_ratio": 1.157522822246631,
+          "retained_ess_per_call_ratio": 0.7455008594244376
+        },
+        {
+          "case": "Rate_5_data-Rate_5_model",
+          "retained_call_ratios": [
+            1.17621980104216,
+            1.0922934933087218,
+            1.1022620169651272
+          ],
+          "median_retained_call_ratio": 1.1022620169651272,
+          "retained_seconds_per_call_ratios": [
+            1.426635794579134,
+            0.9688172333044281,
+            0.9806616778772852
+          ],
+          "median_retained_seconds_per_call_ratio": 0.9806616778772852,
+          "retained_ess_per_call_ratio": 0.8606225621882712
+        },
+        {
+          "case": "arK-arK",
+          "retained_call_ratios": [
+            1.3951116048883951,
+            1.3411683030843995,
+            1.3236447752187468
+          ],
+          "median_retained_call_ratio": 1.3411683030843995,
+          "retained_seconds_per_call_ratios": [
+            0.7484433473574004,
+            1.1335660820390019,
+            1.292010331510449
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1335660820390019,
+          "retained_ess_per_call_ratio": 0.910791898360731
+        },
+        {
+          "case": "arma-arma11",
+          "retained_call_ratios": [
+            1.3626184323858743,
+            1.4919447640966628,
+            1.4668205424120022
+          ],
+          "median_retained_call_ratio": 1.4668205424120022,
+          "retained_seconds_per_call_ratios": [
+            1.2446271719113238,
+            1.0063568001167973,
+            1.0273804804700466
+          ],
+          "median_retained_seconds_per_call_ratio": 1.0273804804700466,
+          "retained_ess_per_call_ratio": 0.5538969920636089
+        },
+        {
+          "case": "dogs-dogs_log",
+          "retained_call_ratios": [
+            1.195905357361775,
+            1.2716805487506124,
+            1.2958297664180016
+          ],
+          "median_retained_call_ratio": 1.2716805487506124,
+          "retained_seconds_per_call_ratios": [
+            0.8841980422937166,
+            0.9307600639881853,
+            1.413853938771237
+          ],
+          "median_retained_seconds_per_call_ratio": 0.9307600639881853,
+          "retained_ess_per_call_ratio": 0.7178654328815083
+        },
+        {
+          "case": "earnings-earn_height",
+          "retained_call_ratios": [
+            1.4741262530479544,
+            1.5805055481375754,
+            1.5549941702293044
+          ],
+          "median_retained_call_ratio": 1.5549941702293044,
+          "retained_seconds_per_call_ratios": [
+            0.6599095107213065,
+            0.800641828753391,
+            1.5465515265025425
+          ],
+          "median_retained_seconds_per_call_ratio": 0.800641828753391,
+          "retained_ess_per_call_ratio": 0.8460571233052688
+        },
+        {
+          "case": "earnings-logearn_interaction_z",
+          "retained_call_ratios": [
+            1.3840340752954108,
+            1.460561217367025,
+            1.359717031500267
+          ],
+          "median_retained_call_ratio": 1.3840340752954108,
+          "retained_seconds_per_call_ratios": [
+            0.9624927809109312,
+            0.9491801345366344,
+            0.8806591685465078
+          ],
+          "median_retained_seconds_per_call_ratio": 0.9491801345366344,
+          "retained_ess_per_call_ratio": 0.7557736542968881
+        },
+        {
+          "case": "eight_schools-eight_schools_centered",
+          "retained_call_ratios": [
+            1.6395997075488942,
+            1.5078001356545332,
+            2.1883052006099803
+          ],
+          "median_retained_call_ratio": 1.6395997075488942,
+          "retained_seconds_per_call_ratios": [
+            1.0850653219900688,
+            0.8276311371811566,
+            1.1893324665040477
+          ],
+          "median_retained_seconds_per_call_ratio": 1.0850653219900688,
+          "retained_ess_per_call_ratio": 2.1055830694689797
+        },
+        {
+          "case": "eight_schools-eight_schools_noncentered",
+          "retained_call_ratios": [
+            1.0261871763075352,
+            1.1505917159763313,
+            1.0229522622277627
+          ],
+          "median_retained_call_ratio": 1.0261871763075352,
+          "retained_seconds_per_call_ratios": [
+            1.178211352392766,
+            1.8441603481033169,
+            1.1796224337111272
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1796224337111272,
+          "retained_ess_per_call_ratio": 1.0543324547704953
+        },
+        {
+          "case": "garch-garch11",
+          "retained_call_ratios": [
+            1.3522003259742184,
+            1.3782978089134,
+            1.3933622741912897
+          ],
+          "median_retained_call_ratio": 1.3782978089134,
+          "retained_seconds_per_call_ratios": [
+            1.180217662367483,
+            1.069256663034515,
+            1.1416154625911357
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1416154625911357,
+          "retained_ess_per_call_ratio": 0.7609166905106594
+        },
+        {
+          "case": "hmm_example-hmm_example",
+          "retained_call_ratios": [
+            1.336784212229052,
+            1.4253160345974718,
+            1.3695895224405048
+          ],
+          "median_retained_call_ratio": 1.3695895224405048,
+          "retained_seconds_per_call_ratios": [
+            0.9725976350339977,
+            1.0338789698923712,
+            0.962766779353539
+          ],
+          "median_retained_seconds_per_call_ratio": 0.9725976350339977,
+          "retained_ess_per_call_ratio": 0.48203371409106277
+        },
+        {
+          "case": "kidiq-kidscore_momhs",
+          "retained_call_ratios": [
+            1.3897741201190685,
+            1.3919256877456234,
+            1.353322528363047
+          ],
+          "median_retained_call_ratio": 1.3897741201190685,
+          "retained_seconds_per_call_ratios": [
+            1.0037045131522875,
+            1.0139073184688496,
+            0.7393912138017388
+          ],
+          "median_retained_seconds_per_call_ratio": 1.0037045131522875,
+          "retained_ess_per_call_ratio": 0.5319036660599995
+        },
+        {
+          "case": "low_dim_gauss_mix_collapse-low_dim_gauss_mix_collapse",
+          "retained_call_ratios": [
+            1.563657510960007,
+            1.5364358487307892,
+            1.6155870078025767
+          ],
+          "median_retained_call_ratio": 1.563657510960007,
+          "retained_seconds_per_call_ratios": [
+            0.9055914315758102,
+            0.6382544699612077,
+            1.576063302175334
+          ],
+          "median_retained_seconds_per_call_ratio": 0.9055914315758102,
+          "retained_ess_per_call_ratio": 0.6842783955327763
+        },
+        {
+          "case": "normal_2-normal_mixture",
+          "retained_call_ratios": [
+            1.3687798227675527,
+            1.28561736770692,
+            1.4124025753981702
+          ],
+          "median_retained_call_ratio": 1.3687798227675527,
+          "retained_seconds_per_call_ratios": [
+            1.803818651986005,
+            1.2291039263188288,
+            1.0478988177544166
+          ],
+          "median_retained_seconds_per_call_ratio": 1.2291039263188288,
+          "retained_ess_per_call_ratio": 0.7360293897812341
+        },
+        {
+          "case": "radon_mn-radon_variable_intercept_noncentered",
+          "retained_call_ratios": [
+            1.474802371541502,
+            1.6844143272023233,
+            1.5526184538653367
+          ],
+          "median_retained_call_ratio": 1.5526184538653367,
+          "retained_seconds_per_call_ratios": [
+            1.2547607168962016,
+            1.5459317481222272,
+            1.024910844889886
+          ],
+          "median_retained_seconds_per_call_ratio": 1.2547607168962016,
+          "retained_ess_per_call_ratio": 0.9445010796326019
+        },
+        {
+          "case": "sblri-blr",
+          "retained_call_ratios": [
+            1.380799265043638,
+            1.3232870771899392,
+            1.3894490035169988
+          ],
+          "median_retained_call_ratio": 1.380799265043638,
+          "retained_seconds_per_call_ratios": [
+            0.8179535774824228,
+            1.4098498088895746,
+            1.0540651397505532
+          ],
+          "median_retained_seconds_per_call_ratio": 1.0540651397505532,
+          "retained_ess_per_call_ratio": 0.745348935747483
+        },
+        {
+          "case": "seeds_data-seeds_stanified_model",
+          "retained_call_ratios": [
+            1.3613398203592815,
+            1.1790271132376395,
+            1.360207100591716
+          ],
+          "median_retained_call_ratio": 1.360207100591716,
+          "retained_seconds_per_call_ratios": [
+            1.1249196598984819,
+            0.8899592560031583,
+            1.4461174874746596
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1249196598984819,
+          "retained_ess_per_call_ratio": 0.45795915066360116
+        },
+        {
+          "case": "surgical_data-surgical_model",
+          "retained_call_ratios": [
+            1.1038478043198399,
+            1.1206625731829216,
+            1.223525179856115
+          ],
+          "median_retained_call_ratio": 1.1206625731829216,
+          "retained_seconds_per_call_ratios": [
+            1.3934728043539015,
+            1.5331247691030458,
+            1.0638758268385713
+          ],
+          "median_retained_seconds_per_call_ratio": 1.3934728043539015,
+          "retained_ess_per_call_ratio": 0.9866835637087006
+        },
+        {
+          "case": "wells_data-wells_dist100_model",
+          "retained_call_ratios": [
+            1.286655281776043,
+            1.4168878166465622,
+            1.3685905375278673
+          ],
+          "median_retained_call_ratio": 1.3685905375278673,
+          "retained_seconds_per_call_ratios": [
+            0.9960532359376449,
+            1.01620070883886,
+            1.113283703618259
+          ],
+          "median_retained_seconds_per_call_ratio": 1.01620070883886,
+          "retained_ess_per_call_ratio": 0.7124255376472933
+        }
+      ],
+      "median_retained_call_ratio": 1.3691846726040287,
+      "median_retained_seconds_per_call_ratio": 1.069565230870311,
+      "median_retained_ess_per_call_ratio": 0.7506372568606628
+    },
+    "nuts_fisher_rank4": {
+      "cases": [
+        {
+          "case": "Rate_1_data-Rate_1_model",
+          "retained_call_ratios": [
+            1.1447921531994396,
+            1.1236483309826046,
+            1.1116870876531575
+          ],
+          "median_retained_call_ratio": 1.1236483309826046,
+          "retained_seconds_per_call_ratios": [
+            1.596885415910287,
+            1.1208134833080972,
+            1.791309668748066
+          ],
+          "median_retained_seconds_per_call_ratio": 1.596885415910287,
+          "retained_ess_per_call_ratio": 0.795156602123937
+        },
+        {
+          "case": "Rate_2_data-Rate_2_model",
+          "retained_call_ratios": [
+            1.2312727272727273,
+            1.2077542062911486,
+            1.2268876611418047
+          ],
+          "median_retained_call_ratio": 1.2268876611418047,
+          "retained_seconds_per_call_ratios": [
+            1.1903018764064803,
+            1.0570968172426936,
+            1.2804062270986036
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1903018764064803,
+          "retained_ess_per_call_ratio": 0.7455008594244376
+        },
+        {
+          "case": "Rate_5_data-Rate_5_model",
+          "retained_call_ratios": [
+            1.17621980104216,
+            1.0922934933087218,
+            1.1022620169651272
+          ],
+          "median_retained_call_ratio": 1.1022620169651272,
+          "retained_seconds_per_call_ratios": [
+            1.046638826355039,
+            0.9686816569807793,
+            1.6418943084552806
+          ],
+          "median_retained_seconds_per_call_ratio": 1.046638826355039,
+          "retained_ess_per_call_ratio": 0.8606225621882712
+        },
+        {
+          "case": "arK-arK",
+          "retained_call_ratios": [
+            0.29431370568629434,
+            0.30521670137855794,
+            0.29794830534044053
+          ],
+          "median_retained_call_ratio": 0.29794830534044053,
+          "retained_seconds_per_call_ratios": [
+            0.6347967675051736,
+            1.2016955463350685,
+            1.1147977499296338
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1147977499296338,
+          "retained_ess_per_call_ratio": 10.735600500370039
+        },
+        {
+          "case": "arma-arma11",
+          "retained_call_ratios": [
+            1.4659776055124891,
+            1.4890678941311852,
+            1.4385458742065782
+          ],
+          "median_retained_call_ratio": 1.4659776055124891,
+          "retained_seconds_per_call_ratios": [
+            1.0007741026490609,
+            0.9730244252264507,
+            1.4805774143772397
+          ],
+          "median_retained_seconds_per_call_ratio": 1.0007741026490609,
+          "retained_ess_per_call_ratio": 0.46910844869710294
+        },
+        {
+          "case": "dogs-dogs_log",
+          "retained_call_ratios": [
+            0.9119774426872624,
+            1.0329495345418913,
+            0.875137581019934
+          ],
+          "median_retained_call_ratio": 0.9119774426872624,
+          "retained_seconds_per_call_ratios": [
+            0.8837401845750573,
+            1.0546804925592277,
+            1.733256875309529
+          ],
+          "median_retained_seconds_per_call_ratio": 1.0546804925592277,
+          "retained_ess_per_call_ratio": 2.950607401516406
+        },
+        {
+          "case": "earnings-earn_height",
+          "retained_call_ratios": [
+            0.17899394924591347,
+            0.1682397900455822,
+            0.19986397201710066
+          ],
+          "median_retained_call_ratio": 0.17899394924591347,
+          "retained_seconds_per_call_ratios": [
+            0.6515375642857696,
+            0.6821941497517158,
+            2.0282311127621857
+          ],
+          "median_retained_seconds_per_call_ratio": 0.6821941497517158,
+          "retained_ess_per_call_ratio": 41.63434251665111
+        },
+        {
+          "case": "earnings-logearn_interaction_z",
+          "retained_call_ratios": [
+            0.7535037098103875,
+            0.7244171436548932,
+            0.7217031500266952
+          ],
+          "median_retained_call_ratio": 0.7244171436548932,
+          "retained_seconds_per_call_ratios": [
+            0.942456403910919,
+            0.8419456862965184,
+            0.8532682284467221
+          ],
+          "median_retained_seconds_per_call_ratio": 0.8532682284467221,
+          "retained_ess_per_call_ratio": 3.639329590540872
+        },
+        {
+          "case": "eight_schools-eight_schools_centered",
+          "retained_call_ratios": [
+            1.74501919210382,
+            1.1591227673524758,
+            1.3333333333333333
+          ],
+          "median_retained_call_ratio": 1.3333333333333333,
+          "retained_seconds_per_call_ratios": [
+            0.8175236115580958,
+            1.2240761204825326,
+            1.412690447867174
+          ],
+          "median_retained_seconds_per_call_ratio": 1.2240761204825326,
+          "retained_ess_per_call_ratio": 2.274344671573232
+        },
+        {
+          "case": "eight_schools-eight_schools_noncentered",
+          "retained_call_ratios": [
+            1.0415055802757314,
+            1.0445266272189349,
+            1.0893891618391143
+          ],
+          "median_retained_call_ratio": 1.0445266272189349,
+          "retained_seconds_per_call_ratios": [
+            1.1554394810428221,
+            1.4743408230500392,
+            1.1970285771276985
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1970285771276985,
+          "retained_ess_per_call_ratio": 1.0288974690049648
+        },
+        {
+          "case": "garch-garch11",
+          "retained_call_ratios": [
+            0.9798488664987406,
+            0.9539424653450589,
+            0.842739112169164
+          ],
+          "median_retained_call_ratio": 0.9539424653450589,
+          "retained_seconds_per_call_ratios": [
+            0.9487606250651653,
+            1.0513445204996776,
+            1.380878070901584
+          ],
+          "median_retained_seconds_per_call_ratio": 1.0513445204996776,
+          "retained_ess_per_call_ratio": 1.6929691285418687
+        },
+        {
+          "case": "hmm_example-hmm_example",
+          "retained_call_ratios": [
+            0.7832416693626658,
+            0.8958749168330007,
+            0.8367672895703562
+          ],
+          "median_retained_call_ratio": 0.8367672895703562,
+          "retained_seconds_per_call_ratios": [
+            0.8936290961065531,
+            1.2327636472141332,
+            1.0290220409069928
+          ],
+          "median_retained_seconds_per_call_ratio": 1.0290220409069928,
+          "retained_ess_per_call_ratio": 2.65007858273
+        },
+        {
+          "case": "kidiq-kidscore_momhs",
+          "retained_call_ratios": [
+            0.7364734722465418,
+            0.786530903894248,
+            0.678732216819737
+          ],
+          "median_retained_call_ratio": 0.7364734722465418,
+          "retained_seconds_per_call_ratios": [
+            1.0440501111805651,
+            1.0321090584829575,
+            0.7225390237042826
+          ],
+          "median_retained_seconds_per_call_ratio": 1.0321090584829575,
+          "retained_ess_per_call_ratio": 4.23556446165311
+        },
+        {
+          "case": "low_dim_gauss_mix_collapse-low_dim_gauss_mix_collapse",
+          "retained_call_ratios": [
+            0.7774000178938892,
+            0.9334311863236056,
+            2.141988749773181
+          ],
+          "median_retained_call_ratio": 0.9334311863236056,
+          "retained_seconds_per_call_ratios": [
+            0.8919286494336993,
+            0.5773589893692216,
+            1.5567781051125396
+          ],
+          "median_retained_seconds_per_call_ratio": 0.8919286494336993,
+          "retained_ess_per_call_ratio": 0.823799460998054
+        },
+        {
+          "case": "normal_2-normal_mixture",
+          "retained_call_ratios": [
+            1.3687798227675527,
+            1.28561736770692,
+            1.4124025753981702
+          ],
+          "median_retained_call_ratio": 1.3687798227675527,
+          "retained_seconds_per_call_ratios": [
+            1.5674643920029834,
+            1.1284024593849762,
+            1.0144019394121357
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1284024593849762,
+          "retained_ess_per_call_ratio": 0.7360293897812341
+        },
+        {
+          "case": "radon_mn-radon_variable_intercept_noncentered",
+          "retained_call_ratios": [
+            1.4688735177865613,
+            1.4772507260406582,
+            1.455361596009975
+          ],
+          "median_retained_call_ratio": 1.4688735177865613,
+          "retained_seconds_per_call_ratios": [
+            1.2773089774112505,
+            1.1958399060104905,
+            1.0177129837187373
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1958399060104905,
+          "retained_ess_per_call_ratio": 1.3468537375085756
+        },
+        {
+          "case": "sblri-blr",
+          "retained_call_ratios": [
+            1.2928341754708315,
+            1.3065915004336512,
+            1.4042203985932005
+          ],
+          "median_retained_call_ratio": 1.3065915004336512,
+          "retained_seconds_per_call_ratios": [
+            0.6906660599040679,
+            1.641312200102894,
+            1.0697241847529069
+          ],
+          "median_retained_seconds_per_call_ratio": 1.0697241847529069,
+          "retained_ess_per_call_ratio": 0.7313861327753328
+        },
+        {
+          "case": "seeds_data-seeds_stanified_model",
+          "retained_call_ratios": [
+            0.968562874251497,
+            1.3419457735247209,
+            1.463387573964497
+          ],
+          "median_retained_call_ratio": 1.3419457735247209,
+          "retained_seconds_per_call_ratios": [
+            1.1086944421650786,
+            1.1847430596655333,
+            1.9071862198466834
+          ],
+          "median_retained_seconds_per_call_ratio": 1.1847430596655333,
+          "retained_ess_per_call_ratio": 0.8051344459423521
+        },
+        {
+          "case": "surgical_data-surgical_model",
+          "retained_call_ratios": [
+            1.0484909168931484,
+            1.0478366414393832,
+            1.0828776978417267
+          ],
+          "median_retained_call_ratio": 1.0484909168931484,
+          "retained_seconds_per_call_ratios": [
+            1.4621626245703772,
+            1.5908650935215631,
+            1.2945257296856296
+          ],
+          "median_retained_seconds_per_call_ratio": 1.4621626245703772,
+          "retained_ess_per_call_ratio": 1.3090034857749637
+        },
+        {
+          "case": "wells_data-wells_dist100_model",
+          "retained_call_ratios": [
+            0.8550866064893876,
+            0.8810615199034982,
+            0.8617785484270498
+          ],
+          "median_retained_call_ratio": 0.8617785484270498,
+          "retained_seconds_per_call_ratios": [
+            0.998050047992439,
+            0.9586005225644445,
+            1.1843014639683962
+          ],
+          "median_retained_seconds_per_call_ratio": 0.998050047992439,
+          "retained_ess_per_call_ratio": 3.8460304480113585
+        }
+      ],
+      "median_retained_call_ratio": 1.0465087720560415,
+      "median_retained_seconds_per_call_ratio": 1.0622023386560673,
+      "median_retained_ess_per_call_ratio": 1.3279286116417697
+    }
+  },
+  "limits": "Existing 20-target cohort, all targets included without a quality filter. Three repeated runs of declared seed sets. Policies differ. Ratios of summary ESS medians are not medians of paired ESS ratios. Seconds per call includes all retained sampler work and the shared derivative backend. This is descriptive evidence, not a default-selection rule or a new timing run."
+}

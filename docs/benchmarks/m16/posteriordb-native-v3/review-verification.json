@@ -1,0 +1,14 @@
+{
+  "completed_native_enzyme_jobs": 621,
+  "completed_rmhmc_jobs_with_third_ad_calls": 12,
+  "derived_receipts_verified": true,
+  "documentation_links_verified": true,
+  "imported_report_identities_verified": true,
+  "schema_version": 1,
+  "serial_parallel_identical_pairs": 72,
+  "status_counts": {
+    "completed": 1095,
+    "failed": 23,
+    "unsupported": 10
+  }
+}

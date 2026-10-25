@@ -157,7 +157,7 @@ pub struct Report {
 }
 
 impl Report {
-    fn calculate(snapshot: &Snapshot) -> Self {
+    pub(crate) fn calculate(snapshot: &Snapshot) -> Self {
         let width = snapshot.coordinates.len();
         let first = &snapshot.windows[0];
         let aligned = snapshot

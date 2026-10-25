@@ -8,7 +8,7 @@ use alea_math::{
 };
 use thiserror::Error;
 
-use crate::target::{EvaluationError, LogDensityGradient, evaluate};
+use crate::target::{EvaluationError, LogDensityGradient};
 
 /// Failure while evaluating a frozen transported target.
 #[derive(Debug, Error)]
@@ -40,7 +40,10 @@ struct Workspace {
 ///
 /// For `x=A z+b`, this evaluates `log p(x)+log|det A|` and returns
 /// `A^T grad_x log p(x)`. The map cannot train or mutate during retained draws.
-/// One adapter is intended per chain because its reusable workspace is not `Sync`.
+/// Raw nonfinite values remain numerical outputs, so the outer checked evaluator
+/// can distinguish a divergent proposal from a concrete backend failure. Checked
+/// point caches reject these outputs, including missing scores. One adapter is intended per chain because its
+/// reusable workspace is not `Sync`.
 pub struct FrozenTransportTarget<'a, T: LogDensityGradient + ?Sized> {
     target: &'a T,
     map: LowRankAffineMap,
@@ -111,13 +114,37 @@ impl<T: LogDensityGradient + ?Sized> LogDensityGradient for FrozenTransportTarge
             target_score,
             latent_score,
         } = &mut *workspace;
-        self.map.forward(position, target_position)?;
-        let log_density = evaluate(self.target, target_position, target_score)?;
-        self.map.pullback(target_score, latent_score)?;
-        let transformed = log_density + self.map.log_abs_det();
-        if !transformed.is_finite() {
-            return Err(FrozenTransportError::NonFiniteLogDensity);
+        if let Err(error) = self.map.forward(position, target_position) {
+            if error == AffineMapError::Numerical {
+                gradient.fill(f64::NAN);
+                return Ok(f64::NAN);
+            }
+            return Err(error.into());
         }
+        // Raw support zero remains support zero through a finite affine map.
+        // Calling evaluate here would wrap it as a backend error, preventing the
+        // outer sampler from rejecting an out-of-support proposal normally.
+        target_score.fill(f64::NAN);
+        let log_density = self
+            .target
+            .logp_grad(target_position, target_score)
+            .map_err(|source| FrozenTransportError::Evaluation(EvaluationError::Model(source)))?;
+        if !log_density.is_finite() {
+            gradient.fill(f64::NAN);
+            return Ok(log_density);
+        }
+        if target_score.iter().any(|x| !x.is_finite()) {
+            gradient.fill(f64::NAN);
+            return Ok(log_density);
+        }
+        if let Err(error) = self.map.pullback(target_score, latent_score) {
+            if error == AffineMapError::Numerical {
+                gradient.fill(f64::NAN);
+                return Ok(log_density);
+            }
+            return Err(error.into());
+        }
+        let transformed = log_density + self.map.log_abs_det();
         gradient.copy_from_slice(latent_score);
         Ok(transformed)
     }

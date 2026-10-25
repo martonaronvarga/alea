@@ -38,7 +38,7 @@ scope; it is not automatically a proof over all floating-point inputs.
 | `ApproximateMclmc` | approximate target | S1 | No MH step; the discarded noncanonical correction and bias acknowledgement are public. |
 | `Mams` | exact target | S1 | Analytic isokinetic Jacobian/kinetic correction enters MH selection. |
 | `Nuts` | exact target | S2 | Symmetric tree edges and multiplicity-preserving multinomial selection. |
-| `Rmhmc` | exactness pending | S1 | Energy-only MH depends on unclosed numerical reverse-support, involution and volume assumptions. |
+| `ExactnessPendingRmhmc` | exactness pending | S1 | Energy-only MH depends on unclosed numerical reverse-support, involution and volume assumptions. |
 | `Rwmh` | exact target | S2 | Symmetric Gaussian proposal density cancels in the target-density MH ratio. |
 | `Walnuts` | exact target | S1 policy | Candidate mass includes explicit reverse/forward refinement probability. |
 
@@ -49,7 +49,7 @@ fixed retained chain is returned.
 
 ## The RMHMC boundary
 
-`Rmhmc` is deliberately the only `exactness_pending` transition. Its bounded Picard
+`ExactnessPendingRmhmc` is deliberately the only `exactness_pending` transition. Its bounded Picard
 iterations and forward residual make work deterministic, and sampled reversal plus
 low-dimensional numerical-Jacobian tests remain useful regressions. They do not
 show that a reverse finite-tolerance solve chooses the same branch for every
@@ -61,10 +61,11 @@ another derived correction, transactional rejection when reverse support fails,
 and adversarial validation of the corresponding volume/Jacobian property. Until
 then RMHMC remains an explicitly research-only geometry experiment.
 
-## Remaining audit work
+## M13 closure
 
-The inventory covers every public default-feature `MarkovChain` implementation and
-the correction used by each transition. M13 still needs feature-specific API
-coverage, reusable law/conformance suites for third-party implementations, and an
-explicit audit of standalone proposal/integrator components that are public but do
-not themselves implement `MarkovChain`.
+The relabeling option closes M13's containment task: the executable kernel is
+`riemannian::ExactnessPendingRmhmc`, with no old alias or reference export. The
+M11 reverse-support/volume promotion gate remains open; the numerical algorithm
+is unchanged. The ledger additionally audits five standalone proposal/integrator
+entry points and every MCMC feature. These are proposal-only components requiring
+their caller's compatible correction, not additional exact-target samplers.

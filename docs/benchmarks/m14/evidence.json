@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "toolchain": "rustc 1.95.0 (59807616e 2026-04-14); Enzyme nightly-2026-06-23",
+  "hardware": "Intel Core i5-8250U, Linux x86_64",
+  "sources": {
+    "crates/Cargo.toml": "2d1c73e3efb9a0661315d3dc03449634a32a9e1f252e5b8a5fc7b70534f2e7ad",
+    "crates/Cargo.lock": "c41d0283b316c423ee49b5328ac5305e4284b38a9c7288dbb0d9b5cd8f3b19a6",
+    "tools/downstream-conformance/Cargo.toml": "8e95377af0a2421d96023e8adb4282321ddfc99b9c6ed93bcf18b4685ec87222",
+    "tools/downstream-conformance/Cargo.lock": "9733daf7397ae0029551121cc3a010ef0ad93ca04d400379b30698e06b89cefa",
+    "crates/alea-core/src/model.rs": "8ac191bca61fd308112c35f4afd9221f238a199187754505baa8d1741dd3826f",
+    "crates/alea-core/src/transform/layout.rs": "d2b922464784a0f6d164d64ca78c69470393b4a144a5dd1656a0a8ac9c3aa6f5",
+    "crates/alea-core/src/distribution.rs": "913a1e9cb39469daee87c85e58a192d10fb7367d298253b723b83e7dc61630c6",
+    "crates/alea-core/src/model/assembly.rs": "2c638ed80f49ae7f82a5414ab7834277ab8e24a5a1519608ed0153bb72d2a67c",
+    "crates/alea-core/src/model/prediction.rs": "fc65f20b228ea2f44cdcc44daf69c491f4bcc8187a001fbc6ec3cb2f2fec07b7",
+    "crates/alea-core/tests/m14_assembly.rs": "9d3b101c7704a9a951f3d50a48416ca8c6c93add48e2327825d450ce9e40952b",
+    "crates/alea-distributions/src/scalar.rs": "e5c5faa40206cf80e21b0106895b80fad2956fdc33eb367d9c78ba3d8d5dda9b",
+    "crates/alea-distributions/src/multivariate.rs": "a4fa49ef88916869826a25c2e63110e36dc526e12844745677df829f6b853ab6",
+    "crates/alea-distributions/src/mixture.rs": "41968174d534a5c1f95d6fa98a1246c48ec99c42f9e00632471f820afcd3be10",
+    "crates/alea-distributions/src/modeling.rs": "047ce8db82be0ef80bfc3cf8b308ee7445a9025e9122a279bfff6b5d1be412fc",
+    "crates/alea-distributions/tests/m14_distributions.rs": "1a655feb3864409dfacdd46b859c7c8aea1e16737f9e521b1e25ca98b40aebe5",
+    "crates/alea-distributions/examples/m14_profile.rs": "6f5cc2e2c303d7e9a1abd5ffab5deae830d6f4053311f1466d354505ac3d39e4",
+    "crates/alea-autodiff/tests/m14_models.rs": "2c2d1697b96148f148b3fee962d16f91d162c556c69dac9b0cb3587b127fb921",
+    "tools/downstream-conformance/src/lib.rs": "adfdf24d3513459d169101021192d123c4630a2b111ef662ea7764f85fc4d1f1",
+    "tools/downstream-conformance/tests/distribution.rs": "1f2b9a1ea35ab0515e0fa25495220930f3b8f5f68887a20fc2c2c607866e934d",
+    "tools/downstream-conformance/src/modeling.rs": "c5eb016fc922290733fde529792522b46176defef8daae72cf1b3ced7fa4d173",
+    "tools/downstream-conformance/tests/modeling.rs": "7144a20c0f132bba93edf5564ef3648decc929900884e6192e10293a39707d68",
+    "tools/downstream-conformance/examples/modeling.rs": "f66f603c60ff01eded3f99388a15b9de823723141e01e0e3c51915bc2f2e1837",
+    "docs/m14-validation-protocol.md": "ec408f75038c606c759b6087306d546f5ec5d8b0fb9d44e59a2d049705184285"
+  },
+  "artifacts": {
+    "docs/benchmarks/m14/calibration.json": "886c0c366b47c791dfa855f8bd178d7d1b02f51a6d56f9b47ab519ab9ea9a7cf",
+    "docs/benchmarks/m14/distribution-cost.csv": "899050ad370ac97c7b26e23f2839af4ab6c55b882f6afaa2c250d5f8c34734b0",
+    "docs/benchmarks/m14/downstream.txt": "48401cedc0d2cbc3b3fdd175786a092d62a014674e6b5e52c327b64eb876a0cf",
+    "docs/benchmarks/m14/enzyme.txt": "c38435c07542512731cf1493aace225119f43e4c4679485b2c197098b44d4fe9",
+    "docs/benchmarks/m14/examples.txt": "d1878f0bc0755ed20347c5b31d036e5636b356ed4dd84fb98b3a2dec334622eb",
+    "docs/benchmarks/m14/external-law.txt": "4eb5ed24b5d107c8d72b906bde0b08ef034eba6722aaaba2eb60fcf489d8a66a",
+    "docs/benchmarks/m14/gates.json": "2c71862b6da01119d61e76649543409904b9862feb4093e1aab7c889cf31810e",
+    "docs/benchmarks/m14/simd.txt": "6e92f058ee57b74bfec826d21fa7bda0ff6d266599357ca1e637bdeca9b2ff5d",
+    "docs/benchmarks/m14/unit-tests.txt": "dd41df19b2388450dc5e9b4984ef42bb74c4ef1a560ae4d5d78f1703b84a8eb8",
+    "docs/benchmarks/m14/downstream-conformance.lock": "9733daf7397ae0029551121cc3a010ef0ad93ca04d400379b30698e06b89cefa"
+  },
+  "preserved_failure": {
+    "warmup_integration_steps": 5,
+    "initial_step": 0.08,
+    "warmup_transitions": 512,
+    "seed": 14020,
+    "kind": "Transform(NonFiniteOutput { index: 0 })",
+    "integration_step": 2,
+    "retained_draws": 0
+  },
+  "post_m14_lock_scope": "Measured downstream lock archived verbatim. M15 adds only alea-runtime -> alea-core for target/error contracts; tools/test_m14.py rejects any other resolved graph/version/checksum change. Historical calibration and timing are not relabeled as remeasurements."
+}

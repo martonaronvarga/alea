@@ -1,0 +1,19 @@
+[package]
+name = "alea-nuts-parity"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+alea-core = { path = "../../../crates/alea-core" }
+alea-math = { path = "../../../crates/alea-math" }
+alea-mcmc = { path = "../../../crates/alea-mcmc" }
+nuts-rs = { path = "../../../target/nuts-reference-upstream", default-features = false }
+rand = "=0.10.1"
+serde_json = "1"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1

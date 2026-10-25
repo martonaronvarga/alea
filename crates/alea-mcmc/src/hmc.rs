@@ -1,5 +1,6 @@
 //! Target-bound fixed-length HMC with fallible evaluation and coherent caches.
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 use std::{error::Error, num::NonZeroUsize};
 
@@ -30,6 +31,7 @@ pub enum HmcConfigError {
 
 /// Finite, strictly positive integration step size.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[must_use]
 pub struct StepSize(f64);
 
 impl TryFrom<f64> for StepSize {
@@ -45,13 +47,15 @@ impl TryFrom<f64> for StepSize {
 
 impl StepSize {
     /// The validated step size.
+    #[must_use]
     pub fn value(self) -> f64 {
         self.0
     }
 }
 
 /// Validated immutable settings for a fixed-length trajectory.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[must_use]
 pub struct HmcOptions {
     step_size: StepSize,
     integration_steps: NonZeroUsize,
@@ -89,10 +93,12 @@ impl HmcOptions {
         self.step_size
     }
     /// Fixed nonzero trajectory length in complete integration macrosteps.
+    #[must_use]
     pub fn integration_steps(self) -> NonZeroUsize {
         self.integration_steps
     }
     /// Maximum allowed absolute endpoint Hamiltonian error.
+    #[must_use]
     pub fn max_energy_error(self) -> f64 {
         self.max_energy_error
     }
@@ -109,8 +115,9 @@ impl Default for HmcOptions {
 }
 
 /// Typed outcome of a transition, including rejected numerical trajectories.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[must_use]
+#[non_exhaustive]
 pub struct HmcTransition {
     /// Whether position, gradient, and density were committed together.
     pub accepted: bool,
@@ -171,7 +178,12 @@ pub enum HmcError<E: Error + 'static> {
     EmptyTarget,
     /// EuclideanMetric and target dimensions disagree.
     #[error("metric dimension {metric} does not match target dimension {target}")]
-    MetricDimension { target: usize, metric: usize },
+    MetricDimension {
+        /// Target dimension.
+        target: usize,
+        /// Metric dimension.
+        metric: usize,
+    },
     /// A metric operation rejected its buffers.
     #[error(transparent)]
     Metric(#[from] MetricError),
@@ -261,13 +273,22 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Hmc<
             integration_step: 0,
             source,
         })?;
-        Ok(Self {
+        Ok(Self::from_cached(point, metric, options, integrator))
+    }
+
+    pub(crate) fn from_cached(
+        point: PointState<'a, T>,
+        metric: M,
+        options: HmcOptions,
+        integrator: I,
+    ) -> Self {
+        Self {
             proposal: PhaseWorkspace::new(&point),
             point,
             metric,
             options,
             integrator,
-        })
+        }
     }
 
     /// Current coherent cached point, with no mutable state escape hatch.
@@ -280,6 +301,7 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Hmc<
     }
 
     /// Read-only metric; stationary transitions never change its parameters.
+    #[must_use]
     pub fn metric(&self) -> &M {
         &self.metric
     }

@@ -1,0 +1,22 @@
+{
+  "crates/alea-mcmc/src/hamiltonian.rs": {
+    "before": "eff32e2608c6174dc029c4e7fbd87619c8d349d8e871b1e1cb4d48445ee500ef",
+    "after": "ce93a77f03f605836b3d1a710e4e960e189502b7fbaefc89fac57a674c6e687c"
+  },
+  "crates/alea-mcmc/src/nuts.rs": {
+    "before": "6554f6a3f45b2ec408930c269bb004674c16961b1d0612144f0059cf9d6974c3",
+    "after": "88bc2cf4292e50ca943725e10bc0910f46f6ba0f81f72317bc116e111af15024"
+  },
+  "crates/alea-mcmc/src/adapt/covariance.rs": {
+    "before": "ac9fd5ed1ed67977d9f7e98061dd407fd8d903adb60bb8fcd7b7da601e887432",
+    "after": "d2ccd874bd7593336d313bd14f8c04ecd240aa7904b8b870211ff7c8e2b651ae"
+  },
+  "crates/alea-mcmc/src/nuts/turning.rs": {
+    "before": "e8a7d1dad03e61b5b7884307d281d234c11f970479badc62f3609a96f58cd0ae",
+    "after": "7f4e5900add5e50d90392268ccf861380ad1263a1ae1bc823d927a1b727f493b"
+  },
+  "crates/alea-runtime/src/diagnostics/modern.rs": {
+    "before": "20031a39fb0ac4950a4cbaf7b89faf008b856946d09bd234e50ac56c381fe89e",
+    "after": "f389b79463efd3d3c11243eee90dea88562ee214c8575022b5bbda70490d92b7"
+  }
+}

@@ -1,0 +1,781 @@
+{
+  "$comment": "Structural contract. alea_bench.schema enforces cross-field budgets, parameter/engine compatibility, digest seals, completeness and scientific laws. Availability is explicitly extensible, with measured values or null/reasons.",
+  "$defs": {
+    "case": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "dimension": {
+          "maximum": 128,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "family": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "initial": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "maximum": 11,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "measure": {
+          "type": "string"
+        },
+        "partition": {
+          "enum": [
+            "tuning",
+            "heldout"
+          ]
+        },
+        "provenance": {
+          "type": "string"
+        },
+        "rows": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "step": {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "data",
+        "dimension",
+        "family",
+        "id",
+        "initial",
+        "kind",
+        "measure",
+        "partition",
+        "provenance",
+        "rows",
+        "step"
+      ],
+      "type": "object"
+    },
+    "corpus": {
+      "additionalProperties": false,
+      "properties": {
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/case"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "vendor": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "cases",
+        "id",
+        "schema_version",
+        "vendor"
+      ],
+      "type": "object"
+    },
+    "diagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "bulk_ess": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mcse": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "mean": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rhat": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tail_ess": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "bulk_ess",
+        "error",
+        "mcse",
+        "mean",
+        "rhat",
+        "tail_ess"
+      ],
+      "type": "object"
+    },
+    "manifest": {
+      "additionalProperties": false,
+      "properties": {
+        "corpus": {
+          "$ref": "#/$defs/corpus"
+        },
+        "corpus_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "git": {
+          "additionalProperties": false,
+          "properties": {
+            "head": {
+              "type": "string"
+            },
+            "worktree_content_is_authoritative": {
+              "const": true
+            }
+          },
+          "required": [
+            "head",
+            "worktree_content_is_authoritative"
+          ],
+          "type": "object"
+        },
+        "ledgers": {
+          "type": "object"
+        },
+        "manifest_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "$ref": "#/$defs/protocol"
+        },
+        "protocol_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "sources": {
+          "additionalProperties": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "toolchains": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "corpus",
+        "corpus_sha256",
+        "git",
+        "ledgers",
+        "manifest_sha256",
+        "protocol",
+        "protocol_sha256",
+        "schema_version",
+        "sources",
+        "toolchains"
+      ],
+      "type": "object"
+    },
+    "metrics": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_observations": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "coordinates": {
+          "items": {
+            "$ref": "#/$defs/diagnostic"
+          },
+          "type": "array"
+        },
+        "depth_saturations": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "divergences": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "draws": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "ebfmi": {
+          "items": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "type": "array"
+        },
+        "integration_steps": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maximum_reported_energy_error": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "mean_acceptance": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "nonfinite_energy_errors": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "schema_version": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "second_moments": {
+          "items": {
+            "$ref": "#/$defs/diagnostic"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "acceptance_observations",
+        "coordinates",
+        "depth_saturations",
+        "divergences",
+        "draws",
+        "ebfmi",
+        "integration_steps",
+        "maximum_reported_energy_error",
+        "mean_acceptance",
+        "nonfinite_energy_errors",
+        "schema_version",
+        "second_moments"
+      ],
+      "type": "object"
+    },
+    "policy": {
+      "additionalProperties": false,
+      "properties": {
+        "adaptation": {
+          "const": "none"
+        },
+        "algorithm": {
+          "const": "multinomial_nuts"
+        },
+        "chains": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "depth": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "draws": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "energy_limit": {
+          "const": 1000.0
+        },
+        "geometry": {
+          "const": "identity"
+        },
+        "precision": {
+          "const": "float64"
+        },
+        "repetitions": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "seeds": {
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "warmup": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "adaptation",
+        "algorithm",
+        "chains",
+        "depth",
+        "draws",
+        "energy_limit",
+        "geometry",
+        "precision",
+        "repetitions",
+        "seeds",
+        "warmup"
+      ],
+      "type": "object"
+    },
+    "protocol": {
+      "additionalProperties": false,
+      "properties": {
+        "calibration": {
+          "additionalProperties": false,
+          "properties": {
+            "bins": {
+              "type": "number"
+            },
+            "cases": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "datasets": {
+              "type": "number"
+            },
+            "maximum_coverage": {
+              "type": "number"
+            },
+            "maximum_rank_chi_square": {
+              "type": "number"
+            },
+            "minimum_coverage": {
+              "type": "number"
+            },
+            "seed": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "bins",
+            "cases",
+            "datasets",
+            "maximum_coverage",
+            "maximum_rank_chi_square",
+            "minimum_coverage",
+            "seed"
+          ],
+          "type": "object"
+        },
+        "corpus": {
+          "type": "string"
+        },
+        "engine_differences": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "engines": {
+          "items": {
+            "enum": [
+              "alea",
+              "blackjax",
+              "stan",
+              "nuts-rs"
+            ]
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "excluded_claims": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/policy"
+        },
+        "purpose": {
+          "enum": [
+            "validation",
+            "correctness_ci"
+          ]
+        },
+        "resources": {
+          "additionalProperties": false,
+          "properties": {
+            "maximum_cases": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maximum_output_bytes": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "threads": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "timeout_seconds": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "maximum_cases",
+            "maximum_output_bytes",
+            "threads",
+            "timeout_seconds"
+          ],
+          "type": "object"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "thresholds": {
+          "additionalProperties": false,
+          "properties": {
+            "bootstrap_resamples": {
+              "type": "number"
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "gradient_absolute_tolerance": {
+              "type": "number"
+            },
+            "gradient_relative_tolerance": {
+              "type": "number"
+            },
+            "maximum_depth_rate": {
+              "type": "number"
+            },
+            "maximum_divergence_rate": {
+              "type": "number"
+            },
+            "maximum_failure_rate_increase": {
+              "type": "number"
+            },
+            "maximum_rhat": {
+              "type": "number"
+            },
+            "maximum_time_regression": {
+              "type": "number"
+            },
+            "mean_absolute_tolerance": {
+              "type": "number"
+            },
+            "mean_mcse_multiplier": {
+              "type": "number"
+            },
+            "minimum_ess": {
+              "type": "number"
+            },
+            "minimum_speedup": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "bootstrap_resamples",
+            "confidence",
+            "gradient_absolute_tolerance",
+            "gradient_relative_tolerance",
+            "maximum_depth_rate",
+            "maximum_divergence_rate",
+            "maximum_failure_rate_increase",
+            "maximum_rhat",
+            "maximum_time_regression",
+            "mean_absolute_tolerance",
+            "mean_mcse_multiplier",
+            "minimum_ess",
+            "minimum_speedup"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "calibration",
+        "corpus",
+        "engine_differences",
+        "engines",
+        "excluded_claims",
+        "id",
+        "policy",
+        "purpose",
+        "resources",
+        "schema_version",
+        "thresholds"
+      ],
+      "type": "object"
+    },
+    "result": {
+      "additionalProperties": false,
+      "properties": {
+        "artifacts": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "bytes": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "bytes",
+              "sha256"
+            ],
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "availability": {
+          "type": "object"
+        },
+        "engine": {
+          "enum": [
+            "alea",
+            "blackjax",
+            "stan",
+            "nuts-rs"
+          ]
+        },
+        "failure": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "message"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        "host": {
+          "type": "object"
+        },
+        "job": {
+          "additionalProperties": false,
+          "properties": {
+            "case": {
+              "$ref": "#/$defs/case"
+            },
+            "dataset": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "engine": {
+              "enum": [
+                "alea",
+                "blackjax",
+                "stan",
+                "nuts-rs"
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "repetition": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "truth": {
+              "items": {
+                "type": "number"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "case",
+            "dataset",
+            "engine",
+            "id",
+            "repetition",
+            "truth"
+          ],
+          "type": "object"
+        },
+        "manifest_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "metrics": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/metrics"
+            }
+          ]
+        },
+        "phases": {
+          "additionalProperties": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "preflight": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "process": {
+          "additionalProperties": false,
+          "properties": {
+            "binary_sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "command": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "cpu_affinity": {
+              "items": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "peak_rss_kib": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "returncode": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "wall_seconds": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "binary_sha256",
+            "command",
+            "cpu_affinity",
+            "peak_rss_kib",
+            "returncode",
+            "wall_seconds"
+          ],
+          "type": "object"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "required": [
+        "artifacts",
+        "availability",
+        "engine",
+        "failure",
+        "host",
+        "job",
+        "manifest_sha256",
+        "metrics",
+        "phases",
+        "preflight",
+        "process",
+        "schema_version",
+        "status"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "urn:alea:bench:1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/manifest"
+    },
+    {
+      "$ref": "#/$defs/result"
+    },
+    {
+      "$ref": "#/$defs/protocol"
+    }
+  ]
+}

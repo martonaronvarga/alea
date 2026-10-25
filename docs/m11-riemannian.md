@@ -21,7 +21,7 @@ validates dimensions, finite values and symmetry, canonicalizing only symmetric
 roundoff. Positive definiteness is established by the sampler's factorization.
 Backend errors preserve their concrete type.
 
-`Rmhmc` targets
+`ExactnessPendingRmhmc` targets
 
 ```text
 H(q, p) = -log pi(q) + 1/2 log det G(q) + 1/2 p^T G(q)^-1 p.
@@ -93,6 +93,13 @@ the scalar model boundary instead of differentiating validation and allocation
 code. Analytic adapters are tested on stable; generated callbacks remain tied to
 the separately pinned Enzyme toolchain.
 
+`alea_autodiff::codegen::enzyme_source` now generates these callbacks directly
+from typed native models. Its executed downstream conformance includes nonzero
+third derivatives, potential-sign/tensor-order checks, SoftAbs metric finite
+differences and reverse-checked RMHMC transitions. See
+[native Enzyme models](enzyme-native-models.md). This does not change the finite-map
+exactness obligations of `ExactnessPendingRmhmc`.
+
 The stationary gates cover a constant-metric Gaussian, a logistic posterior
 against independent quadrature, and the hierarchical funnel's known
 `v ~ Normal(0, 3)` and conditional standardized second moment under SoftAbs.
@@ -117,7 +124,7 @@ exposed as a reference function, but Alea never uses it for retained draws.
 
 `RmhmcManifoldWarmup` can switch candidates without cold refactorization. Its
 `finish` method consumes the warmup boundary, installs the selected fixed options,
-and returns an ordinary `Rmhmc`; no GP state reaches stationary sampling. This is
+and returns an ordinary `ExactnessPendingRmhmc`; no GP state reaches stationary sampling. This is
 a bounded finite-grid reproduction, not a bitwise copy of the paper's continuous
 Bayesian optimizer.
 

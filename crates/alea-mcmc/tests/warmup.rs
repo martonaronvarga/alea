@@ -338,7 +338,8 @@ fn online_updates_search_and_frozen_sampling_allocate_nothing() {
         .run(&mut rng)
         .unwrap();
         let count = allocation_counter::measure(|| {
-            find_reasonable_step_size(&mut chain, SearchOptions::default(), &mut rng).unwrap();
+            let _ =
+                find_reasonable_step_size(&mut chain, SearchOptions::default(), &mut rng).unwrap();
             for _ in 0..100 {
                 let _ = chain.step(&mut rng).unwrap();
             }

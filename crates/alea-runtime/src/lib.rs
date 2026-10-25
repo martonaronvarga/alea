@@ -6,6 +6,7 @@ pub mod draws;
 pub mod ensemble;
 pub mod monitor;
 pub mod output;
+pub mod session;
 use alea_mcmc::MarkovChain;
 use std::ops::ControlFlow;
 
@@ -39,8 +40,7 @@ where
 
 /// Draw collection and diagnostics for Alea's current reference inference path.
 ///
-/// Session persistence, checkpointing, monitoring policy, and parallel orchestration
-/// remain separate components until their M15 release contracts are complete.
+/// Sessions compose the same kernels with explicit budgets and durable restart.
 pub mod reference {
     pub use crate::diagnostics::modern::{
         Error as ModernDiagnosticError, Summary as ModernSummary, ebfmi,
@@ -51,4 +51,5 @@ pub mod reference {
     };
     pub use crate::draws::{DrawError, Draws, collect_draws};
     pub use crate::run_chain;
+    pub use crate::session::{Session, SessionBuilder};
 }

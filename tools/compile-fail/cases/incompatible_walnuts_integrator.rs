@@ -1,5 +1,9 @@
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
-use alea_mcmc::{Hmc, HmcOptions, Walnuts, WalnutsOptions, integrator::TwoStage};
+use alea_mcmc::{
+    Hmc, HmcOptions,
+    integrator::TwoStage,
+    walnuts::{Walnuts, WalnutsOptions},
+};
 
 mod support;
 use support::Gaussian;

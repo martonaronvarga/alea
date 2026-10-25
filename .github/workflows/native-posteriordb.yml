@@ -1,0 +1,38 @@
+name: Native PosteriorDB observations
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: 'Persistent Linux runner with at least four CPUs'
+        default: self-hosted
+        required: true
+permissions:
+  contents: read
+jobs:
+  observe:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 2160
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
+      - name: Prepare compiled reference models
+        run: |
+          stan=$(nix build .#cmdStan --no-link --print-out-paths)
+          export LD_LIBRARY_PATH="$stan/opt/cmdstan/stan/lib/stan_math/lib/tbb"
+          nix develop .#stable --command python3 tools/bench/alea-bench pdb prepare target/native-reference
+      - name: Validate native ports, run pilot and broad protocols
+        run: |
+          nix develop .#stable --command python3 tools/bench/alea-bench native campaign target/native-campaign --models target/native-reference/models
+      - name: Preserve results and preparation failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-posteriordb-${{ github.run_id }}
+          path: |
+            target/native-campaign
+            target/native-reference/**/*.json
+            target/native-reference/**/*.log
+          if-no-files-found: error

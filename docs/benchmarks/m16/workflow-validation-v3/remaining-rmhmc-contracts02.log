@@ -1,0 +1,18 @@
+   Compiling alea-mcmc v0.1.0 (/home/usu/documents/dev/alea/crates/alea-mcmc)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.95s
+     Running unittests src/lib.rs (crates/target/debug/deps/alea_mcmc-d221f25799802e07)
+
+running 10 tests
+test riemannian::tests::dense_log_determinant_inverse_and_action_match_two_by_two_oracle ... ok
+test riemannian::tests::multiple_implicit_roots_are_valid_but_do_not_define_one_selected_map ... ok
+test riemannian::tests::full_reverse_replay_detects_corrupted_intermediate_half_momentum ... ok
+test riemannian::tests::implicit_failure_is_explicit_and_does_not_publish ... ok
+test riemannian::tests::finite_newton_termination_does_not_supply_a_unit_volume_contract ... ok
+test riemannian::tests::singular_newton_system_rejects_without_publishing ... ok
+test riemannian::tests::newton_matches_independent_decimal_implicit_roots ... ok
+test riemannian::tests::finite_map_can_pass_full_tolerant_replay_and_still_change_volume ... ok
+test riemannian::tests::generalized_leapfrog_signed_reversal_and_volume ... ok
+test riemannian::tests::solver_tolerance_ladder_matches_independent_decimal_maps_and_failures ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.03s
+

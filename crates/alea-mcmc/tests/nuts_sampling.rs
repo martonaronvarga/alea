@@ -18,12 +18,14 @@ fn buffer(values: &[f64]) -> OwnedBuffer {
 fn check<M: EuclideanMetric, I: Integrator + Copy>(metric: impl Fn() -> M, integrator: I) {
     let target = Gaussian::new(2);
     let mut batches = Vec::new();
-    for seed in 601..605 {
+    for (seed, position) in (601..605).flat_map(|seed| [(seed, false), (seed, true)]) {
         let mut chain = Nuts::new_with_integrator(
             &target,
             buffer(&[1.0, -1.0]),
             metric(),
-            NutsOptions::new(0.2, 8).unwrap(),
+            NutsOptions::new(0.2, 8)
+                .unwrap()
+                .with_position_turning(position),
             integrator,
         )
         .unwrap();
