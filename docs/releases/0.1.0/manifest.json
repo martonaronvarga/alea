@@ -529,7 +529,7 @@
   "ci_payloads_downloaded_and_compared": false,
   "open_publication_gates": [
     "Authenticated CI artifact download and byte comparison (GitHub API HTTP 401).",
-    "Publish the accepted signed source artifact and tag; no GitHub API authentication is configured.",
+    "Publish the accepted signed source archive and release assets; the signed tag is already public, but no authenticated GitHub API session is configured.",
     "For crates.io only: verify package-name availability, registry dependencies and an unpatched consumer; current API access returns HTTP 403."
   ],
   "external_human_feedback": false,
@@ -619,5 +619,14 @@
       "bytes": 32734,
       "sha256": "8cfedc702e6abd82ab804a34320a84516970f3a2f1dd0dade83c29be39b31be0"
     }
-  ]
+  ],
+  "tag": {
+    "name": "v0.1.0",
+    "target_revision": "6dc7b6c94fa5fa22b03eb9586d9b9390e83226e1",
+    "tag_object": "a45ea7b2998413dfcf09c8417bb2ff5c23ee8ebe",
+    "signed": true,
+    "published": true,
+    "url": "https://github.com/martonaronvarga/alea/releases/tag/v0.1.0",
+    "note": "Published by configured push.followTags with the review branch; release assets and GitHub Release are not published."
+  }
 }

@@ -27,8 +27,10 @@ Artifacts are retained outside the checkout at
 GitHub's CI ZIP payloads have not been compared locally: their download endpoint
 requires authentication and returned HTTP 401. CI's own source-reproduction and
 package-consumer checks passed. No registry dry run or registry-backed consumer
-is claimed; crates.io API access returned HTTP 403. Publication of the accepted
-signed source remains the final S4 gate. A later documentation review commit does
+is claimed; crates.io API access returned HTTP 403. The signed `v0.1.0` tag is public and points to the candidate. The branch push
+also pushed that tag through Git's configured `push.followTags`; release assets
+and a GitHub Release have not been published. Publication of the accepted signed
+source archive remains the final S4 gate. A later documentation review commit does
 not change the candidate or its sealed artifact digest.
 
 ## Changes since the previous candidate
