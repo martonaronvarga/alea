@@ -108,11 +108,33 @@ class MaturityGuardTests(unittest.TestCase):
         self.check_rejected(remove_gate)
 
     def test_release_claim_fails_before_release_gate(self):
-        self.check_rejected(
-            lambda ledger: ledger["profiles"]["validated_component_reference"].__setitem__(
-                "maturity", "S3"
-            )
-        )
+        def promote(ledger):
+            ledger["policy"]["allow_release_candidates"] = False
+            ledger["profiles"]["validated_component_reference"]["maturity"] = "S3"
+        self.check_rejected(promote)
+
+    def test_candidate_gate_does_not_authorize_stable_publication(self):
+        def promote(ledger):
+            ledger["policy"]["allow_release_candidates"] = True
+            ledger["profiles"]["validated_component_reference"]["maturity"] = "S4"
+        self.check_rejected(promote)
+
+    def test_candidate_gate_does_not_promote_all_components(self):
+        def promote(ledger):
+            ledger["policy"]["allow_release_candidates"] = True
+            ledger["profiles"]["validated_component_reference"]["maturity"] = "S3"
+        self.check_rejected(promote)
+
+    def test_candidate_gate_can_qualify_one_explicit_reference_namespace(self):
+        ledger = copy.deepcopy(self.ledger)
+        ledger["policy"]["allow_release_candidates"] = True
+        ledger["profiles"]["test_candidate"] = {
+            "maturity": "S3", "adoption": "reference", "guarantee": "component",
+            "rationale": "Exercise the explicitly reviewed reference candidate boundary.",
+        }
+        entry = next(e for e in ledger["api_namespaces"] if e["path"] == "alea_core::reference")
+        entry["profile"] = "test_candidate"
+        maturity.validate(self.root, ledger)
 
     def test_unknown_maturity_fails(self):
         self.check_rejected(

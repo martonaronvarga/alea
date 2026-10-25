@@ -144,7 +144,9 @@ def validate_profile(name: str, profile: dict, allow_release_candidates: bool) -
         raise ValueError(f"design-only profile {name!r} must be not_exposed")
     if maturity == "S1" and adoption in {"reference", "recommended"}:
         raise ValueError(f"research profile {name!r} cannot be a reference or recommendation")
-    if maturity in {"S3", "S4"} and not allow_release_candidates:
+    if maturity == "S4":
+        raise ValueError(f"profile {name!r} claims stable publication before a stable-release policy review")
+    if maturity == "S3" and not allow_release_candidates:
         raise ValueError(f"profile {name!r} claims release maturity before the release gate")
     if guarantee == "approximate_target" and adoption != "approximate":
         raise ValueError(f"approximate target profile {name!r} must use approximate adoption")
@@ -240,6 +242,20 @@ def validate(root: Path, ledger: dict) -> dict[str, Counter]:
         raise ValueError(f"item-level API inventory mismatch; missing={missing[:5]}, stale={stale[:5]}")
     validate_entries(features, profiles, ("crate", "feature"), "Cargo feature")
     validate_entries(commands, profiles, ("crate", "name", "path"), "CLI command")
+
+    # Opening the candidate cycle does not graduate numerical implementations or
+    # research APIs. This cycle qualifies only the four explicit reference facades.
+    reference_candidates = {
+        (crate, crate.replace("-", "_") + "::reference")
+        for crate in ("alea-core", "alea-math", "alea-mcmc", "alea-runtime")
+    }
+    for entries in (modules, root_items, api_items, features, commands):
+        if any(profiles[e["profile"]]["maturity"] == "S3" for e in entries):
+            raise ValueError("candidate maturity is limited to reviewed reference namespaces")
+    for entry in namespaces:
+        if (profiles[entry["profile"]]["maturity"] == "S3"
+                and (entry["crate"], entry["path"]) not in reference_candidates):
+            raise ValueError("unreviewed release-candidate namespace")
 
     recorded_modules = {entry["path"] for entry in modules}
     discovered_modules = discover_public_modules(root)

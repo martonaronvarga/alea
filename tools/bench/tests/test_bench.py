@@ -107,7 +107,11 @@ class WorkerTests(unittest.TestCase):
 class PipelineTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.temp=tempfile.TemporaryDirectory(dir=ROOT/'target');cls.base=Path(cls.temp.name)
+        # Sealed corpus/protocol paths must remain repository-relative. A fresh
+        # checkout has no target directory until this fixture creates it.
+        (ROOT/'target').mkdir(exist_ok=True)
+        cls.temp=tempfile.TemporaryDirectory(dir=ROOT/'target',prefix='alea-bench-test-');cls.base=Path(cls.temp.name)
+        cls.addClassCleanup(cls.temp.cleanup)
         p=schema.load(HERE/'protocols/smoke-v1.json');case=next(c for c in schema.load(HERE/'corpus/v1.json')['cases'] if c['kind']==7)
         corpus=schema.load(HERE/'corpus/v1.json');corpus['cases']=[case];write_new(cls.base/'corpus.json',corpus)
         p['corpus']=(cls.base/'corpus.json').relative_to(ROOT).as_posix();p['calibration']['datasets']=2;write_new(cls.base/'protocol.json',p)
@@ -115,8 +119,6 @@ class PipelineTests(unittest.TestCase):
         config=dict(schema_version=1,binaries={'alea':str(BINARY)},binary_sha256={'alea':file_hash(BINARY)},records=[],rustc='CI debug worker')
         write_new(cls.base/'engines.json',config);cls.bundle=cls.base/'run'
         run(cls.base/'manifest.json',cls.base/'engines.json',cls.bundle)
-    @classmethod
-    def tearDownClass(cls):cls.temp.cleanup()
     def test_second_reader_regenerates_identical_report_from_manifest_and_bundle(self):
         report=build_report(self.bundle);self.assertEqual(report,build_report(self.bundle));self.assertFalse(report['promotion']['ledger_changed'])
     def test_boolean_schema_versions_cannot_alias_integer_one(self):

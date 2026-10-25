@@ -299,6 +299,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .sum::<f64>()
         })
         .collect();
+    let calibration = json!({"datasets":32,"warmup":512,"draws":512,"bins":bins,
+                            "chi_square":chi,"limit":16.27,"raw_ranks":ranks});
+    // Retain the complete experiment even when a future platform fails the gate.
+    std::fs::write(
+        output.join("calibration.json"),
+        serde_json::to_vec_pretty(&calibration)?,
+    )?;
     assert!(
         chi.iter().all(|&v| v < 16.27),
         "bounded SBC rank check: {bins:?}"
