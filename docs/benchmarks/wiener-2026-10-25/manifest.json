@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "base_revision": "8c48ebb5df39420c2590c084aa299df9da3f40e2",
+  "public_api_decision": "intentional pre-alpha namespace removal; no compatibility aliases",
+  "method": {
+    "path": "docs/wiener-research-notes.md",
+    "sha256": "7915b9754f7b604100c2fbb8fef9d64aad654832d5918a00725d44212de3d216"
+  },
+  "files": [
+    {
+      "path": "assembly.json",
+      "bytes": 1165,
+      "sha256": "d698eee311a0770841115f555132891a1d8b7266588a665afc4ec607402854ce"
+    },
+    {
+      "path": "criterion.json",
+      "bytes": 44847,
+      "sha256": "6cde757a9b34ddb1ccb20e75f56dba154d03b37958975707909c22abe8a71859"
+    },
+    {
+      "path": "stan-comparison.json",
+      "bytes": 66765,
+      "sha256": "9b16572663f8ce4fde25269116a10304af1c820961c422f2b19307d743c65167"
+    }
+  ],
+  "external_artifacts": [
+    {
+      "path": "/home/usu/documents/dev/alea-wiener-evidence/2026-10-25-adjudicated/report.json",
+      "bytes": 625707,
+      "sha256": "73b6725be243ce61cf63de987f020073fce5c5466141d8fda28acae8252bbc2e"
+    },
+    {
+      "path": "/home/usu/documents/dev/alea-wiener-evidence/2026-10-25-adjudicated/stan-source.tar.gz",
+      "bytes": 931513,
+      "sha256": "0f9c11c8532277e9de4eda77b96733aa5ce90bcb44282d5d42b272a65e77ced3"
+    },
+    {
+      "path": "/home/usu/documents/dev/alea-wiener-evidence/2026-10-25-adjudicated/alea-inputs.tar.gz",
+      "bytes": 15593275,
+      "sha256": "1d720123ea5f1f5300d5a949e1c25149a69d9b4a90e5191aab7823abd33adef9"
+    },
+    {
+      "path": "/home/usu/documents/dev/alea-wiener-evidence/2026-10-25-adjudicated/alea-worker",
+      "bytes": 527224,
+      "sha256": "9bb206ee17ae5b12fa5fec6f90eec673cd09a340458b26ed4afec0a33a188fa8"
+    },
+    {
+      "path": "/home/usu/documents/dev/alea-wiener-evidence/2026-10-25-adjudicated/stan-worker",
+      "bytes": 849320,
+      "sha256": "33c08d7e185e06b5f69b5b198e14ad6c48ea5b17f697f227401c5fdc69840410"
+    },
+    {
+      "path": "/home/usu/documents/dev/alea-wiener-evidence/2026-10-25-assembly/alea-distributions.s",
+      "bytes": 755216,
+      "sha256": "de115f8f9dc9b0b0a31d651f905031db53d8295f17fdd26c5e619009570283c5"
+    },
+    {
+      "path": "/home/usu/documents/dev/alea-wiener-evidence/2026-10-25-assembly/report.json",
+      "bytes": 1165,
+      "sha256": "d698eee311a0770841115f555132891a1d8b7266588a665afc4ec607402854ce"
+    },
+    {
+      "path": "/home/usu/documents/dev/alea-wiener-evidence/2026-10-25-criterion/report.json",
+      "bytes": 44847,
+      "sha256": "6cde757a9b34ddb1ccb20e75f56dba154d03b37958975707909c22abe8a71859"
+    }
+  ],
+  "validation": {
+    "stan_regression_logp_tolerance": 1e-08,
+    "finite_support_ci_cases": 96,
+    "extended_cases": 336,
+    "comparison_rows": 140,
+    "quality_checked_comparisons": 12,
+    "retained_failed_vectorized_comparisons": 2,
+    "criterion_cases": 18,
+    "allocated_calls_in_reused_batch_test": 0,
+    "strict_miri_batch_tests": 3,
+    "research_and_sampler_defaults_changed": false
+  }
+}

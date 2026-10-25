@@ -10,3 +10,7 @@ then separately verifies that current manifest changes are precisely the reviewe
 release metadata and that current layout changes contain only documentation and
 formatting. Numerical code, dependency versions and historical results are not
 rewritten. Further changes require a new explicit compatibility review.
+
+The original `tools/downstream-conformance/src/lib.rs` is also retained. Its
+current counterpart uses prelude imports; the checker admits only that spelling
+change, while calibration continues to bind the original source digest.

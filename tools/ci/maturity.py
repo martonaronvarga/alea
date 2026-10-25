@@ -32,7 +32,7 @@ PUBLIC_DECLARATION = re.compile(
     r"(?:fn|struct|enum|union|trait|type|mod|use|static|const|macro)[ \t]"
 )
 PUBLIC_MACRO = re.compile(r"(?m)^[ \t]*#\[macro_export\]")
-MATURITY_NAMESPACES = {"approximate", "reference"}
+MATURITY_NAMESPACES = {"approximate", "prelude"}
 ROOT_ITEM = re.compile(
     r"^(?:#\[[^\]]+\] )?pub "
     r"(?:fn|struct|enum|union|trait|type|use|static|const|macro) "
@@ -243,19 +243,11 @@ def validate(root: Path, ledger: dict) -> dict[str, Counter]:
     validate_entries(features, profiles, ("crate", "feature"), "Cargo feature")
     validate_entries(commands, profiles, ("crate", "name", "path"), "CLI command")
 
-    # Opening the candidate cycle does not graduate numerical implementations or
-    # research APIs. This cycle qualifies only the four explicit reference facades.
-    reference_candidates = {
-        (crate, crate.replace("-", "_") + "::reference")
-        for crate in ("alea-core", "alea-math", "alea-mcmc", "alea-runtime")
-    }
-    for entries in (modules, root_items, api_items, features, commands):
+    # Release qualification belongs to the frozen artifact review. Import paths,
+    # including convenience preludes and deprecated aliases, are not releases.
+    for entries in (modules, root_items, api_items, features, commands, namespaces):
         if any(profiles[e["profile"]]["maturity"] == "S3" for e in entries):
-            raise ValueError("candidate maturity is limited to reviewed reference namespaces")
-    for entry in namespaces:
-        if (profiles[entry["profile"]]["maturity"] == "S3"
-                and (entry["crate"], entry["path"]) not in reference_candidates):
-            raise ValueError("unreviewed release-candidate namespace")
+            raise ValueError("release qualification is recorded separately from import paths")
 
     recorded_modules = {entry["path"] for entry in modules}
     discovered_modules = discover_public_modules(root)
@@ -282,8 +274,8 @@ def validate(root: Path, ledger: dict) -> dict[str, Counter]:
         ):
             raise ValueError(f"API namespace {path!r} does not match crate {crate!r}")
         profile = profiles[namespace_entries[(crate, path)]["profile"]]
-        if namespace == "reference" and profile["adoption"] != "reference":
-            raise ValueError(f"reference namespace {path!r} must use reference adoption")
+        if namespace == "prelude" and profile["adoption"] != "reference":
+            raise ValueError(f"baseline import namespace {path!r} must use reference adoption")
         if namespace == "approximate" and (
             profile["adoption"] != "approximate"
             or profile["guarantee"] != "approximate_target"

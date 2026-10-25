@@ -75,8 +75,8 @@ local Git excludes. Do not include agent artifacts in source commits or releases
 The first **M17 reference candidate cycle is complete**. The
 [candidate review](releases/2026-10-25-reference-candidate/README.md) binds successful
 native CI, the independent downstream workflow, calibration/recovery, compatibility
-checks and a signed reproducible source archive to the exact code revision. Four
-reference namespaces qualify as S3. Constructor defaults and research maturity
+checks and a signed reproducible source archive to the exact code revision. That review applies to the frozen source. Current APIs use ordinary module paths
+and convenience preludes; constructor defaults and research maturity
 retain their documented classifications; all crates remain unpublished.
 
 The next work is field feedback and per-crate stable-release preparation:

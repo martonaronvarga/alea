@@ -8,6 +8,10 @@ on:
         description: 'Run candidate compatibility checks (requires accepted baseline)'
         type: boolean
         default: false
+      initial_release:
+        description: 'First publication only: verify the reviewed unpublished API break'
+        type: boolean
+        default: false
       baseline_ref:
         description: 'Accepted previous source revision; required for candidate mode'
         type: string
@@ -104,18 +108,20 @@ jobs:
         if: ${{ inputs.candidate || startsWith(github.ref, 'refs/tags/') }}
         env:
           ALEA_BASELINE_REF: ${{ inputs.baseline_ref || vars.ALEA_RELEASE_BASELINE_REF }}
+          ALEA_INITIAL_RELEASE: ${{ inputs.initial_release || github.ref == 'refs/tags/v0.1.0' }}
         run: |
           set -euo pipefail
+          if [[ "$ALEA_INITIAL_RELEASE" == true && -z "$ALEA_BASELINE_REF" ]]; then
+            ALEA_BASELINE_REF=$(python3 -c 'import json; print(json.load(open("tools/ci/api-review.json"))["base_revision"])')
+          fi
           test -n "$ALEA_BASELINE_REF"
           baseline=$(git rev-parse --verify --end-of-options "$ALEA_BASELINE_REF^{commit}")
           test "$baseline" != "$(git rev-parse HEAD)"
           git worktree add --detach "$RUNNER_TEMP/alea-baseline" "$baseline"
           nix develop .#release --command python3 tools/release/metadata.py --candidate
-          nix develop .#release --command bash tools/release/semver.sh "$RUNNER_TEMP/alea-baseline"
-      - name: Reference cycle semantic compatibility against accepted consolidation
-        run: |
-          git worktree add --detach "$RUNNER_TEMP/alea-cycle-baseline" df17c0a0af7ab8aabc7753304e3beacd6d8c7135
-          python3 tools/ci/run.py --log "$RUNNER_TEMP/semver.log" -- nix develop .#release --command bash tools/release/semver.sh "$RUNNER_TEMP/alea-cycle-baseline"
+          semver_args=()
+          if [[ "$ALEA_INITIAL_RELEASE" == true ]]; then semver_args+=(--initial); fi
+          nix develop .#release --command bash tools/release/semver.sh "${semver_args[@]}" "$RUNNER_TEMP/alea-baseline"
       - name: Preserve unsigned preparation artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

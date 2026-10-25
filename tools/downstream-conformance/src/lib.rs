@@ -4,9 +4,9 @@
 //! compile as an ordinary dependent package and cannot access crate-private APIs.
 #![forbid(unsafe_code)]
 
-use alea_core::reference::{LogDensityGradient, evaluate};
-use alea_math::reference::EuclideanMetric;
-use alea_mcmc::reference::MarkovChain;
+use alea_core::prelude::{LogDensityGradient, evaluate};
+use alea_math::prelude::EuclideanMetric;
+use alea_mcmc::prelude::MarkovChain;
 use alea_runtime::output::DiagnosticTransition;
 use rand::Rng;
 

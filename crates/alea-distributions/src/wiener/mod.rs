@@ -123,11 +123,15 @@ impl Wiener7Params {
     }
 }
 
+mod batch;
+use batch::BatchEntry;
+pub use batch::WienerBatchWorkspace;
+
 mod primitive;
 pub use primitive::{WienerPrimitive, WienerPrimitiveError};
 
 mod model;
-pub use model::{WienerModel, WienerModelError};
+pub use model::{WienerBatchModel, WienerModel, WienerModelError};
 
 #[cfg(test)]
 mod tests;

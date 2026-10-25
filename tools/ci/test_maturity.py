@@ -66,11 +66,11 @@ class MaturityGuardTests(unittest.TestCase):
     def test_api_namespace_must_match_crate(self):
         self.check_rejected(
             lambda ledger: ledger["api_namespaces"][0].__setitem__(
-                "path", "wrong::reference"
+                "path", "wrong::prelude"
             )
         )
 
-    def test_reference_namespace_requires_reference_adoption(self):
+    def test_prelude_requires_reference_adoption(self):
         self.check_rejected(
             lambda ledger: ledger["api_namespaces"][0].__setitem__(
                 "profile", "validated_component_opt_in"
@@ -125,16 +125,17 @@ class MaturityGuardTests(unittest.TestCase):
             ledger["profiles"]["validated_component_reference"]["maturity"] = "S3"
         self.check_rejected(promote)
 
-    def test_candidate_gate_can_qualify_one_explicit_reference_namespace(self):
+    def test_candidate_gate_cannot_turn_a_prelude_into_a_release(self):
         ledger = copy.deepcopy(self.ledger)
         ledger["policy"]["allow_release_candidates"] = True
         ledger["profiles"]["test_candidate"] = {
             "maturity": "S3", "adoption": "reference", "guarantee": "component",
             "rationale": "Exercise the explicitly reviewed reference candidate boundary.",
         }
-        entry = next(e for e in ledger["api_namespaces"] if e["path"] == "alea_core::reference")
+        entry = next(e for e in ledger["api_namespaces"] if e["path"] == "alea_core::prelude")
         entry["profile"] = "test_candidate"
-        maturity.validate(self.root, ledger)
+        with self.assertRaisesRegex(ValueError, "release qualification"):
+            maturity.validate(self.root, ledger)
 
     def test_unknown_maturity_fails(self):
         self.check_rejected(

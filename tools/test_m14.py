@@ -14,6 +14,7 @@ RELEASE_SOURCES = {"crates/Cargo.toml", "crates/alea-core/src/transform/layout.r
 ARCHIVED_SOURCES = RELEASE_SOURCES | {
     "crates/Cargo.lock", "crates/alea-core/src/model/assembly.rs",
     "crates/alea-distributions/src/modeling.rs",
+    "tools/downstream-conformance/src/lib.rs",
 }
 
 
@@ -33,6 +34,12 @@ def validate(root, evidence):
                 raise ValueError(f"stale M14 {section}: {name}")
             if section == "sources" and name in RELEASE_SOURCES:
                 validate_release_source(name, path.read_text(), (root / name).read_text())
+            if section == "sources" and name == "tools/downstream-conformance/src/lib.rs":
+                # Only the public import spelling changed; historical calibration
+                # continues to bind the original source bytes above.
+                expected_current = path.read_text().replace("::reference", "::prelude")
+                if (root / name).read_text() != expected_current:
+                    raise ValueError("unreviewed downstream change beyond prelude imports")
     measured = tomllib.loads((root / "docs/benchmarks/m14/downstream-conformance.lock").read_text())
     current = tomllib.loads((root / "tools/downstream-conformance/Cargo.lock").read_text())
     validate_lock_review(measured, current)

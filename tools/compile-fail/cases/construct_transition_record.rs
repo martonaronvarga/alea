@@ -1,4 +1,4 @@
-use alea_mcmc::reference::HmcTransition;
+use alea_mcmc::prelude::HmcTransition;
 
 fn transition() -> HmcTransition {
     HmcTransition {

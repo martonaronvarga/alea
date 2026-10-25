@@ -1,6 +1,6 @@
 # Alea maturity and promotion policy
 
-Reviewed: 2026-10-16
+Reviewed: 2026-10-25
 
 This document separates three questions that earlier milestone reports sometimes
 collapsed:
@@ -36,15 +36,18 @@ A component's advertised state is the minimum of its required evidence axes, not
 an average. A fast implementation with an open invariance proof stays S1. An exact
 but uncompetitive algorithm may reach S2 while remaining opt-in indefinitely.
 
-No Alea crate is S4 today. All workspace crates are `publish = false`, the project
-is pre-alpha, and neither semver compatibility nor the complete modeling workflow
-has been declared stable.
+The [first stable release review](releases/0.1.0/README.md) prepares 0.1.0 for four
+libraries. Its published compatibility policy covers all their public items,
+including experimental APIs; numerical classifications and defaults do not change.
+S4 qualification is recorded per published crate/artifact, never inferred from an
+import path or assigned wholesale to mixed numerical implementations. Registry
+guards remain closed during preparation. No artifact is S4 before publication.
 
 The [2026-10-25 candidate review](releases/2026-10-25-reference-candidate/README.md)
-qualifies the four explicit core/math/MCMC/runtime `reference` namespaces as S3.
-Their composed user workflow, native platforms, compatibility and signed artifact
-checks pass. This namespace classification leaves individual numerical
-implementations S2 and research S1; it does not graduate whole crates.
+records successful workflow, native platform, compatibility and signed artifact
+checks for its frozen revision. Current APIs use ordinary modules and curated
+preludes. Import paths carry no release status; experimental methods are marked
+where they live. Implementations retain their separate validation classifications.
 
 ## Evidence axes
 
@@ -199,15 +202,16 @@ while that blocker remains.
 
 [`tools/ci/maturity.py`](../tools/ci/maturity.py) discovers the live workspace
 surface instead of trusting ledger cardinalities. A new public module, named
-reference/approximate namespace, root item, feature or binary therefore fails CI
+prelude/approximate namespace, root item, feature or binary therefore fails CI
 until it is classified, while a stale ledger entry fails after removal. It also
 prevents design-only contracts from being adopted,
 approximate-target mechanisms from using an exact-looking adoption state,
-exactness-pending mechanisms from moving above S1. The candidate policy now admits
-S3 only for the four reviewed reference namespaces; source modules, individual
-items, features and commands cannot inherit that promotion. S4 remains rejected
-until a separate stable-publication policy review. Mutation tests exercise those
-failure modes.
+exactness-pending mechanisms from moving above S1. Release qualification belongs
+to the artifact review, independent of import paths. S3 labels
+cannot be assigned to live import paths or individual implementation entries;
+S4 remains rejected for implementation/import-path profiles: stable publication
+is reviewed per artifact under the release policy. Mutation
+tests exercise those failure modes.
 
 Every distinct rendered public declaration/implementation is now classified in
 `api_items`, including the two feature-only Faer surfaces. The source-module

@@ -1,9 +1,9 @@
-use alea_core::reference::LogDensityGradient;
+use alea_core::prelude::LogDensityGradient;
 use alea_downstream_conformance::{
     TargetCase, assert_chain_conformance, assert_metric_conformance, assert_target_conformance,
 };
-use alea_math::reference::{EuclideanMetric, MetricError};
-use alea_mcmc::reference::MarkovChain;
+use alea_math::prelude::{EuclideanMetric, MetricError};
+use alea_mcmc::prelude::MarkovChain;
 use alea_runtime::{
     ensemble::{self, Chain, Execution, RunOptions, Termination, chain_rng},
     output::{ChainId, DiagnosticTransition, Draw, Phase, TransitionStats},

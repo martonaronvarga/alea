@@ -38,18 +38,9 @@ where
     Ok(steps)
 }
 
-/// Draw collection and diagnostics for Alea's current reference inference path.
+/// Common imports for ordinary Alea workflows.
 ///
-/// Sessions compose the same kernels with explicit budgets and durable restart.
-pub mod reference {
-    pub use crate::diagnostics::modern::{
-        Error as ModernDiagnosticError, Summary as ModernSummary, ebfmi,
-        summarize as summarize_modern,
-    };
-    pub use crate::diagnostics::{
-        DiagnosticError, acceptance_rate, autocorrelation_ess, classical_split_rhat,
-    };
-    pub use crate::draws::{DrawError, Draws, collect_draws};
-    pub use crate::run_chain;
-    pub use crate::session::{Session, SessionBuilder};
-}
+/// This is a convenience prelude, not a release or stability boundary. The
+/// original owning modules remain available. Experimental methods require
+/// explicit imports from their documented modules.
+pub mod prelude;

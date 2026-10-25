@@ -42,15 +42,10 @@ const W4_LARGE_K5: u8 = 4;
 const W4_LARGE_K6: u8 = 5;
 const W4_LARGE_OTHER: u8 = 6;
 
-#[derive(Clone, Copy, Debug)]
-struct BucketedWiener4Core {
-    core: Wiener4Core,
-    bucket: u8,
-    k: usize,
-}
+type BucketedWiener4Core = BatchEntry;
 
 #[inline]
-fn push_wiener4_bucket(scratch: &mut Vec<BucketedWiener4Core>, core: Wiener4Core) {
+fn wiener4_bucket(core: Wiener4Core) -> BatchEntry {
     let ks_density = Wiener4::k_s(core.t_prime, core.w_eff, core.log_eps_eff);
     let kl_density = Wiener4::k_l(core.t_prime, core.log_eps_eff);
     let (bucket, k) = if unlikely(2 * ks_density <= kl_density) {
@@ -69,7 +64,16 @@ fn push_wiener4_bucket(scratch: &mut Vec<BucketedWiener4Core>, core: Wiener4Core
         }
     };
 
-    scratch.push(BucketedWiener4Core { core, bucket, k });
+    BatchEntry {
+        core: Wiener5Core {
+            base: core,
+            sv: 0.0,
+            sv2: 0.0,
+            lam: 1.0,
+        },
+        bucket,
+        k,
+    }
 }
 
 #[inline]
@@ -77,22 +81,22 @@ fn add_wiener4_scratch_bucket(
     total_lp: &mut f64,
     grad: &mut [f64; 4],
     scratch: &[BucketedWiener4Core],
-    bucket: u8,
+    _bucket: u8,
     branch: SeriesBranch,
     fixed_k: Option<usize>,
 ) {
     #[cfg(feature = "simd")]
     if branch == SeriesBranch::LargeTime && matches!(fixed_k, Some(4..=6)) {
-        add_wiener4_large_simd_bucket(total_lp, grad, scratch, bucket, fixed_k.unwrap());
+        add_wiener4_large_simd_bucket(total_lp, grad, scratch, _bucket, fixed_k.unwrap());
         return;
     }
 
-    for entry in scratch.iter().filter(|entry| entry.bucket == bucket) {
+    for entry in scratch.iter() {
         let k = fixed_k.unwrap_or(entry.k);
         add_wiener4_eval(
             total_lp,
             grad,
-            Wiener4.fused_from_core_with_branch(&entry.core, branch, k),
+            Wiener4.fused_from_core_with_branch(&entry.core.base, branch, k),
         );
     }
 }
@@ -103,14 +107,14 @@ fn add_wiener4_large_simd_bucket(
     total_lp: &mut f64,
     grad: &mut [f64; 4],
     scratch: &[BucketedWiener4Core],
-    bucket: u8,
+    _bucket: u8,
     k: usize,
 ) {
     let mut lanes = [None; 4];
     let mut filled = 0;
 
-    for entry in scratch.iter().filter(|entry| entry.bucket == bucket) {
-        lanes[filled] = Some(entry.core);
+    for entry in scratch.iter() {
+        lanes[filled] = Some(entry.core.base);
         filled += 1;
         if filled == 4 {
             if !add_wiener4_large_simd4(total_lp, grad, lanes.map(Option::unwrap), k) {
@@ -537,6 +541,17 @@ impl WienerModel<Wiener4, Vec<WienerObservation>> {
 
 impl WienerModel<Wiener4, WienerObservations> {
     pub fn batch_value_gradient(&self, p: &Wiener4Params, grad: &mut [f64; 4]) -> f64 {
+        self.batch_value_gradient_with_workspace(p, grad, &mut WienerBatchWorkspace::default())
+    }
+
+    /// Evaluate using caller-owned scratch. Direct evaluation never allocates;
+    /// branch bucketing allocates only when the workspace must grow.
+    pub fn batch_value_gradient_with_workspace(
+        &self,
+        p: &Wiener4Params,
+        grad: &mut [f64; 4],
+        workspace: &mut WienerBatchWorkspace,
+    ) -> f64 {
         let eps = 1e-12;
         let mut total_lp = 0.0;
         grad.fill(0.0);
@@ -551,27 +566,27 @@ impl WienerModel<Wiener4, WienerObservations> {
             return total_lp;
         }
 
-        let mut failed = false;
-        let mut scratch = Vec::<BucketedWiener4Core>::with_capacity(self.data.len());
-
-        for (&rt, boundary) in self
-            .data
-            .upper_rt()
-            .iter()
-            .map(|rt| (rt, Boundary::Upper))
-            .chain(self.data.lower_rt().iter().map(|rt| (rt, Boundary::Lower)))
-        {
-            match Wiener4.core_from_parts(rt, boundary, p, eps) {
-                Ok(core) => push_wiener4_bucket(&mut scratch, core),
-                Err(_) => failed = true,
-            }
+        let upper = self.data.upper_rt();
+        let lower = self.data.lower_rt();
+        let entries = (0..upper.len() + lower.len()).map(|i| {
+            let (rt, boundary) = if i < upper.len() {
+                (upper[i], Boundary::Upper)
+            } else {
+                (lower[i - upper.len()], Boundary::Lower)
+            };
+            Wiener4
+                .core_from_parts(rt, boundary, p, eps)
+                .map(wiener4_bucket)
+        });
+        if !workspace.prepare(entries) {
+            grad.fill(f64::NAN);
+            return f64::NEG_INFINITY;
         }
-        let scratch = scratch.as_slice();
 
         add_wiener4_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W4_SMALL_K2),
             W4_SMALL_K2,
             SeriesBranch::SmallTime,
             Some(2),
@@ -579,7 +594,7 @@ impl WienerModel<Wiener4, WienerObservations> {
         add_wiener4_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W4_SMALL_K3),
             W4_SMALL_K3,
             SeriesBranch::SmallTime,
             Some(3),
@@ -587,7 +602,7 @@ impl WienerModel<Wiener4, WienerObservations> {
         add_wiener4_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W4_SMALL_OTHER),
             W4_SMALL_OTHER,
             SeriesBranch::SmallTime,
             None,
@@ -595,7 +610,7 @@ impl WienerModel<Wiener4, WienerObservations> {
         add_wiener4_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W4_LARGE_K4),
             W4_LARGE_K4,
             SeriesBranch::LargeTime,
             Some(4),
@@ -603,7 +618,7 @@ impl WienerModel<Wiener4, WienerObservations> {
         add_wiener4_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W4_LARGE_K5),
             W4_LARGE_K5,
             SeriesBranch::LargeTime,
             Some(5),
@@ -611,7 +626,7 @@ impl WienerModel<Wiener4, WienerObservations> {
         add_wiener4_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W4_LARGE_K6),
             W4_LARGE_K6,
             SeriesBranch::LargeTime,
             Some(6),
@@ -619,17 +634,12 @@ impl WienerModel<Wiener4, WienerObservations> {
         add_wiener4_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W4_LARGE_OTHER),
             W4_LARGE_OTHER,
             SeriesBranch::LargeTime,
             None,
         );
 
-        if unlikely(failed) {
-            grad.fill(f64::NAN);
-            f64::NEG_INFINITY
-        } else {
-            total_lp
-        }
+        total_lp
     }
 }

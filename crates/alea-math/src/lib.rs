@@ -15,14 +15,9 @@ pub mod metric;
 pub mod numeric;
 pub mod random;
 
-/// Validated storage and constant Euclidean geometry for reference inference.
+/// Common imports for ordinary Alea workflows.
 ///
-/// Structured, low-rank, fitted, and position-dependent geometry remains
-/// available through its named modules without inheriting this adoption status.
-pub mod reference {
-    pub use crate::buffer::OwnedBuffer;
-    pub use crate::metric::{
-        CholeskyFactor, DenseMetric, DiagonalMetric, EuclideanMetric, IdentityMetric,
-        InverseDenseMetric, InverseDiagonalMetric, MetricError,
-    };
-}
+/// This is a convenience prelude, not a release or stability boundary. The
+/// original owning modules remain available. Experimental methods require
+/// explicit imports from their documented modules.
+pub mod prelude;

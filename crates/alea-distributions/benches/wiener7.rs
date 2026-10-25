@@ -1,10 +1,20 @@
 use alea_distributions::wiener::WienerModel;
+use alea_distributions::wiener::{BatchStrategy, WienerBatchWorkspace};
 use alea_distributions::wiener::{
     Boundary, Quadrature, SeriesBranch, Wiener4, Wiener4Params, Wiener5, Wiener5Params, Wiener7,
     Wiener7Params, WienerObservation, WienerObservations, WienerOptions,
 };
 use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use pprof::criterion::{Output, PProfProfiler};
+
+// Compile the production series directly so microbenchmarks need no public API.
+#[allow(dead_code)]
+#[path = "../src/wiener/series.rs"]
+mod series;
+const LN_PI: f64 = 1.144_729_885_849_400_2;
+fn unlikely(value: bool) -> bool {
+    value
+}
 
 const EPS4: f64 = 1e-12;
 const EPS5: f64 = 1e-12;
@@ -220,10 +230,83 @@ fn bench_branch_counts(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_series(c: &mut Criterion) {
+    let mut group = c.benchmark_group("wiener/series");
+    for k in [2, 3, 5] {
+        group.bench_function(BenchmarkId::new("small_branch_fused", k), |b| {
+            b.iter(|| {
+                black_box(series::small_branch_fused(
+                    black_box(0.03),
+                    black_box(0.45),
+                    black_box(k),
+                ))
+            })
+        });
+    }
+    for k in [4, 5, 6] {
+        group.bench_function(BenchmarkId::new("large_branch_fused", k), |b| {
+            b.iter(|| {
+                black_box(series::large_branch_fused(
+                    black_box(1.0),
+                    black_box(0.45),
+                    black_box(k),
+                ))
+            })
+        });
+    }
+    group.finish();
+}
+
+fn bench_reused_buckets(c: &mut Criterion) {
+    let mut group = c.benchmark_group("wiener/strategy");
+    for n in [128, 1_000, 10_000] {
+        group.throughput(Throughput::Elements(n as u64));
+        for strategy in [BatchStrategy::Direct, BatchStrategy::BranchBuckets] {
+            let model4 = WienerModel::new(
+                Wiener4,
+                WienerObservations::from(observations(n)).with_batch_strategy(strategy),
+            );
+            let model5 = WienerModel::new(
+                Wiener5,
+                WienerObservations::from(observations(n)).with_batch_strategy(strategy),
+            );
+            let mut workspace = WienerBatchWorkspace::new(n);
+            let label = if strategy == BatchStrategy::Direct {
+                "direct"
+            } else {
+                "buckets_reused"
+            };
+            group.bench_function(BenchmarkId::new(format!("wiener4_{label}"), n), |b| {
+                let mut g = [0.0; 4];
+                let p = wiener4_params();
+                b.iter(|| {
+                    black_box(model4.batch_value_gradient_with_workspace(
+                        black_box(&p),
+                        black_box(&mut g),
+                        &mut workspace,
+                    ))
+                });
+            });
+            group.bench_function(BenchmarkId::new(format!("wiener5_{label}"), n), |b| {
+                let mut g = [0.0; 5];
+                let p = wiener5_params();
+                b.iter(|| {
+                    black_box(model5.batch_value_gradient_with_workspace(
+                        black_box(&p),
+                        black_box(&mut g),
+                        &mut workspace,
+                    ))
+                });
+            });
+        }
+    }
+    group.finish();
+}
+
 criterion_group! {
     name = wiener_benches;
     config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
-    targets = bench_single_observation, bench_wiener4_batch, bench_wiener5_batch, bench_wiener7_batch, bench_branch_counts,
+    targets = bench_single_observation, bench_wiener4_batch, bench_wiener5_batch, bench_wiener7_batch, bench_branch_counts, bench_series, bench_reused_buckets,
 }
 
 criterion_main!(wiener_benches);

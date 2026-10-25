@@ -1,16 +1,15 @@
 # Pre-alpha migration and future deprecations
 
-All current crates are unpublished. Four explicit reference namespaces have an
-[S3 candidate review](releases/2026-10-25-reference-candidate/README.md); no crate
-has an S4 stability promise. Pin source revisions and retain the lockfile when
-upgrading. The complete reviewed API changes are in
-`tools/ci/api-review.json`; the inventory is not a complete Rust semver proof.
+All current crates are unpublished and pre-alpha. The
+[earlier candidate review](releases/2026-10-25-reference-candidate/README.md)
+is evidence for its frozen source, not a promise that later pre-alpha APIs remain
+compatible. Pin source revisions and retain the lockfile when upgrading.
 
-Use the explicit `alea_core::reference`, `alea_math::reference`,
-`alea_mcmc::reference` and `alea_runtime::reference` entry points for the baseline.
-Construct validated options, warm up explicitly, then consume the warmup result
-to obtain a frozen retained chain. For end-to-end execution use `SessionBuilder`;
-do not reproduce seed allocation or checkpoint parsing in application code.
+The `reference` modules have been removed. Use normal module paths, such as
+`alea_core::target::LogDensityGradient`, `alea_mcmc::Nuts` and
+`alea_runtime::session::SessionBuilder`, or import a crate’s curated `prelude::*`.
+There are no compatibility aliases. Experimental samplers remain in their named
+modules and are marked in Rustdoc; a prelude is only an import convenience.
 
 The M13 boundary intentionally removed ambiguous root/research/error aliases.
 Import each error from its owning API. Use the explicitly named

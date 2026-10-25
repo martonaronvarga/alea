@@ -27,7 +27,7 @@ pub alea_distributions::latent::AffineLatentWienerMap::beta: [f64; 3]
 pub alea_distributions::latent::AffineLatentWienerMap::delta: [f64; 3]
 pub alea_distributions::latent::AffineLatentWienerMap::tau: [f64; 3]
 impl alea_distributions::latent::AffineLatentWienerMap
-pub fn alea_distributions::latent::AffineLatentWienerMap::map_frame(&self, frame: alea_distributions::latent::LatentFrame) -> alea_distributions::wiener::Wiener4Params
+pub fn alea_distributions::latent::AffineLatentWienerMap::map_frame(&self, frame: alea_distributions::latent::LatentFrame) -> alea_distributions::prelude::Wiener4Params
 pub fn alea_distributions::latent::AffineLatentWienerMap::map_into(&self, latent: alea_distributions::latent::LatentFrameSoA<'_>, out_alpha: &mut [f64], out_tau: &mut [f64], out_beta: &mut [f64], out_delta: &mut [f64]) -> bool
 pub fn alea_distributions::latent::AffineLatentWienerMap::map_into_parallel(&self, latent: alea_distributions::latent::LatentFrameSoA<'_>, out_alpha: &mut [f64], out_tau: &mut [f64], out_beta: &mut [f64], out_delta: &mut [f64]) -> bool
 pub fn alea_distributions::latent::AffineLatentWienerMap::new(alpha: [f64; 3], tau: [f64; 3], beta: [f64; 3], delta: [f64; 3]) -> Self
@@ -39,8 +39,8 @@ impl core::marker::Copy for alea_distributions::latent::AffineLatentWienerMap
 pub struct alea_distributions::latent::LatentFrame
 pub alea_distributions::latent::LatentFrame::c: f64
 pub alea_distributions::latent::LatentFrame::m: f64
-impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::wiener::WienerObservation> for alea_distributions::latent::LatentObservationModel
-pub fn alea_distributions::latent::LatentObservationModel::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::wiener::WienerObservation) -> f64
+impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentObservationModel
+pub fn alea_distributions::latent::LatentObservationModel::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation) -> f64
 impl alea_core::state_space::TransitionModel<alea_distributions::latent::LatentFrame> for alea_distributions::latent::LatentRandomWalk
 pub fn alea_distributions::latent::LatentRandomWalk::log_transition(&self, prev: &alea_distributions::latent::LatentFrame, next: &alea_distributions::latent::LatentFrame, _t: usize) -> f64
 pub fn alea_distributions::latent::LatentRandomWalk::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &alea_distributions::latent::LatentFrame, rng: &mut R) -> alea_distributions::latent::LatentFrame
@@ -65,12 +65,12 @@ impl<'a> core::fmt::Debug for alea_distributions::latent::LatentFrameSoA<'a>
 pub fn alea_distributions::latent::LatentFrameSoA<'a>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl<'a> core::marker::Copy for alea_distributions::latent::LatentFrameSoA<'a>
 pub struct alea_distributions::latent::LatentObservationModel
-pub alea_distributions::latent::LatentObservationModel::distribution: alea_distributions::wiener::Wiener4
+pub alea_distributions::latent::LatentObservationModel::distribution: alea_distributions::prelude::Wiener4
 pub alea_distributions::latent::LatentObservationModel::projection: alea_distributions::latent::AffineLatentWienerMap
 impl alea_distributions::latent::LatentObservationModel
-pub fn alea_distributions::latent::LatentObservationModel::new(projection: alea_distributions::latent::AffineLatentWienerMap, distribution: alea_distributions::wiener::Wiener4) -> Self
-impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::wiener::WienerObservation> for alea_distributions::latent::LatentObservationModel
-pub fn alea_distributions::latent::LatentObservationModel::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::wiener::WienerObservation) -> f64
+pub fn alea_distributions::latent::LatentObservationModel::new(projection: alea_distributions::latent::AffineLatentWienerMap, distribution: alea_distributions::prelude::Wiener4) -> Self
+impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentObservationModel
+pub fn alea_distributions::latent::LatentObservationModel::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation) -> f64
 impl core::clone::Clone for alea_distributions::latent::LatentObservationModel
 pub fn alea_distributions::latent::LatentObservationModel::clone(&self) -> alea_distributions::latent::LatentObservationModel
 impl core::fmt::Debug for alea_distributions::latent::LatentObservationModel
@@ -93,8 +93,8 @@ pub alea_distributions::latent::LatentState::latent: Latent
 impl<Context, Latent> alea_distributions::latent::LatentState<Context, Latent>
 pub fn alea_distributions::latent::LatentState<Context, Latent>::into_parts(self) -> (Context, Latent)
 pub fn alea_distributions::latent::LatentState<Context, Latent>::new(context: Context, latent: Latent) -> Self
-impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::wiener::WienerObservation> for alea_distributions::latent::ObservationLayer<M> where M: alea_distributions::latent::LatentParameterMap<Context, Latent>
-pub fn alea_distributions::latent::ObservationLayer<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::wiener::WienerObservation) -> f64
+impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::ObservationLayer<M> where M: alea_distributions::latent::LatentParameterMap<Context, Latent>
+pub fn alea_distributions::latent::ObservationLayer<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation) -> f64
 impl<Context, Latent, T> alea_core::state_space::TransitionModel<alea_distributions::latent::LatentState<Context, Latent>> for alea_distributions::latent::TransitionLayer<T> where T: alea_core::state_space::TransitionModel<alea_distributions::latent::LatentState<Context, Latent>>
 pub fn alea_distributions::latent::TransitionLayer<T>::log_transition(&self, prev: &alea_distributions::latent::LatentState<Context, Latent>, next: &alea_distributions::latent::LatentState<Context, Latent>, t: usize) -> f64
 pub fn alea_distributions::latent::TransitionLayer<T>::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &alea_distributions::latent::LatentState<Context, Latent>, rng: &mut R) -> alea_distributions::latent::LatentState<Context, Latent>
@@ -109,12 +109,12 @@ impl<Context: core::fmt::Debug, Latent: core::fmt::Debug> core::fmt::Debug for a
 pub fn alea_distributions::latent::LatentState<Context, Latent>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl<Context: core::marker::Copy, Latent: core::marker::Copy> core::marker::Copy for alea_distributions::latent::LatentState<Context, Latent>
 pub struct alea_distributions::latent::ObservationLayer<M>
-pub alea_distributions::latent::ObservationLayer::density: alea_distributions::wiener::Wiener4
+pub alea_distributions::latent::ObservationLayer::density: alea_distributions::prelude::Wiener4
 pub alea_distributions::latent::ObservationLayer::map: M
 impl<M> alea_distributions::latent::ObservationLayer<M>
-pub fn alea_distributions::latent::ObservationLayer<M>::new(map: M, density: alea_distributions::wiener::Wiener4) -> Self
-impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::wiener::WienerObservation> for alea_distributions::latent::ObservationLayer<M> where M: alea_distributions::latent::LatentParameterMap<Context, Latent>
-pub fn alea_distributions::latent::ObservationLayer<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::wiener::WienerObservation) -> f64
+pub fn alea_distributions::latent::ObservationLayer<M>::new(map: M, density: alea_distributions::prelude::Wiener4) -> Self
+impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::ObservationLayer<M> where M: alea_distributions::latent::LatentParameterMap<Context, Latent>
+pub fn alea_distributions::latent::ObservationLayer<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation) -> f64
 impl<M: core::clone::Clone> core::clone::Clone for alea_distributions::latent::ObservationLayer<M>
 pub fn alea_distributions::latent::ObservationLayer<M>::clone(&self) -> alea_distributions::latent::ObservationLayer<M>
 impl<M: core::fmt::Debug> core::fmt::Debug for alea_distributions::latent::ObservationLayer<M>
@@ -132,7 +132,7 @@ pub fn alea_distributions::latent::TransitionLayer<T>::clone(&self) -> alea_dist
 impl<T: core::fmt::Debug> core::fmt::Debug for alea_distributions::latent::TransitionLayer<T>
 pub fn alea_distributions::latent::TransitionLayer<T>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub trait alea_distributions::latent::LatentParameterMap<Context, Latent>
-pub fn alea_distributions::latent::LatentParameterMap::write_params(&self, context: &Context, latent: &Latent, out: &mut alea_distributions::wiener::Wiener4Params)
+pub fn alea_distributions::latent::LatentParameterMap::write_params(&self, context: &Context, latent: &Latent, out: &mut alea_distributions::prelude::Wiener4Params)
 pub trait alea_distributions::latent::LatentStateView
 pub type alea_distributions::latent::LatentStateView::Context
 pub type alea_distributions::latent::LatentStateView::Latent
@@ -167,7 +167,7 @@ pub fn alea_distributions::modeling::bernoulli_logit(builder: &mut alea_core::mo
 pub fn alea_distributions::modeling::ddm_upper_probability(alpha: f64, beta: f64, drift: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::modeling::normal(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_core::model::assembly::Expr, location: alea_core::model::assembly::Expr, scale: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
 pub fn alea_distributions::modeling::normal_observation(builder: &mut alea_core::model::assembly::ModelBuilder, event: f64, location: alea_core::model::assembly::Expr, scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
-pub fn alea_distributions::modeling::wiener4(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_distributions::wiener::WienerObservation, parameters: [alea_core::model::assembly::Expr; 4], options: alea_distributions::wiener::WienerOptions) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::wiener4(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_distributions::prelude::WienerObservation, parameters: [alea_core::model::assembly::Expr; 4], options: alea_distributions::prelude::WienerOptions) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
 pub mod alea_distributions::multivariate
 pub struct alea_distributions::multivariate::Categorical
 impl alea_distributions::multivariate::Categorical
@@ -273,6 +273,320 @@ pub type alea_distributions::multivariate::MultivariateNormal::Draw = alloc::vec
 pub fn alea_distributions::multivariate::MultivariateNormal::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<alloc::vec::Vec<f64>, alea_core::distribution::DistributionError>
 impl core::fmt::Debug for alea_distributions::multivariate::MultivariateNormal
 pub fn alea_distributions::multivariate::MultivariateNormal::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub mod alea_distributions::prelude
+pub use alea_distributions::prelude::ContinuousDistribution
+pub use alea_distributions::prelude::Distribution
+pub enum alea_distributions::prelude::BatchStrategy
+pub alea_distributions::prelude::BatchStrategy::BranchBuckets
+pub alea_distributions::prelude::BatchStrategy::Direct
+impl core::clone::Clone for alea_distributions::prelude::BatchStrategy
+pub fn alea_distributions::prelude::BatchStrategy::clone(&self) -> alea_distributions::prelude::BatchStrategy
+impl core::cmp::Eq for alea_distributions::prelude::BatchStrategy
+impl core::cmp::PartialEq for alea_distributions::prelude::BatchStrategy
+pub fn alea_distributions::prelude::BatchStrategy::eq(&self, other: &alea_distributions::prelude::BatchStrategy) -> bool
+impl core::default::Default for alea_distributions::prelude::BatchStrategy
+pub fn alea_distributions::prelude::BatchStrategy::default() -> alea_distributions::prelude::BatchStrategy
+impl core::fmt::Debug for alea_distributions::prelude::BatchStrategy
+pub fn alea_distributions::prelude::BatchStrategy::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::BatchStrategy
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::BatchStrategy
+pub enum alea_distributions::prelude::Boundary
+pub alea_distributions::prelude::Boundary::Lower
+pub alea_distributions::prelude::Boundary::Upper
+impl core::clone::Clone for alea_distributions::prelude::Boundary
+pub fn alea_distributions::prelude::Boundary::clone(&self) -> alea_distributions::prelude::Boundary
+impl core::cmp::Eq for alea_distributions::prelude::Boundary
+impl core::cmp::PartialEq for alea_distributions::prelude::Boundary
+pub fn alea_distributions::prelude::Boundary::eq(&self, other: &alea_distributions::prelude::Boundary) -> bool
+impl core::fmt::Debug for alea_distributions::prelude::Boundary
+pub fn alea_distributions::prelude::Boundary::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::Boundary
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::Boundary
+pub enum alea_distributions::prelude::Quadrature
+pub alea_distributions::prelude::Quadrature::Adaptive
+pub alea_distributions::prelude::Quadrature::FixedGaussLegendre
+pub alea_distributions::prelude::Quadrature::FixedGaussLegendre::order: usize
+impl core::clone::Clone for alea_distributions::prelude::Quadrature
+pub fn alea_distributions::prelude::Quadrature::clone(&self) -> alea_distributions::prelude::Quadrature
+impl core::cmp::Eq for alea_distributions::prelude::Quadrature
+impl core::cmp::PartialEq for alea_distributions::prelude::Quadrature
+pub fn alea_distributions::prelude::Quadrature::eq(&self, other: &alea_distributions::prelude::Quadrature) -> bool
+impl core::fmt::Debug for alea_distributions::prelude::Quadrature
+pub fn alea_distributions::prelude::Quadrature::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::Quadrature
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::Quadrature
+pub struct alea_distributions::prelude::Gaussian
+impl alea_distributions::gaussian::Gaussian
+pub fn alea_distributions::gaussian::Gaussian::new(dimension: usize) -> Self
+impl alea_core::capability::BatchLogDensityGradient for alea_distributions::gaussian::Gaussian
+pub fn alea_distributions::gaussian::Gaussian::batch_logp_grad(&self, shape: alea_core::capability::BatchShape, positions: &[f64], gradients: &mut [f64], results: &mut [alea_core::capability::BatchLane<Self::Error>])
+impl alea_core::capability::HessianVector for alea_distributions::gaussian::Gaussian
+pub fn alea_distributions::gaussian::Gaussian::potential_hvp(&self, q: &[f64], vector: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>
+impl alea_core::density::LogDensity for alea_distributions::gaussian::Gaussian
+pub type alea_distributions::gaussian::Gaussian::Error = alea_core::target::DimensionError
+pub fn alea_distributions::gaussian::Gaussian::dimension(&self) -> usize
+pub fn alea_distributions::gaussian::Gaussian::logp(&self, q: &[f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::target::LogDensityGradient for alea_distributions::gaussian::Gaussian
+pub type alea_distributions::gaussian::Gaussian::Error = alea_core::target::DimensionError
+pub fn alea_distributions::gaussian::Gaussian::dimension(&self) -> usize
+pub fn alea_distributions::gaussian::Gaussian::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl core::clone::Clone for alea_distributions::gaussian::Gaussian
+pub fn alea_distributions::gaussian::Gaussian::clone(&self) -> alea_distributions::gaussian::Gaussian
+impl core::fmt::Debug for alea_distributions::gaussian::Gaussian
+pub fn alea_distributions::gaussian::Gaussian::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::gaussian::Gaussian
+pub struct alea_distributions::prelude::Wiener4
+impl alea_distributions::prelude::Wiener4
+pub fn alea_distributions::prelude::Wiener4::branch_counts(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, eps: f64) -> core::option::Option<alea_distributions::wiener::WienerBranchCounts>
+pub fn alea_distributions::prelude::Wiener4::fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, eps: f64) -> alea_distributions::wiener::Wiener4Eval
+pub fn alea_distributions::prelude::Wiener4::log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, eps: f64) -> alea_distributions::wiener::Wiener4Eval
+pub fn alea_distributions::prelude::Wiener4::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
+pub fn alea_distributions::prelude::Wiener4::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
+impl core::clone::Clone for alea_distributions::prelude::Wiener4
+pub fn alea_distributions::prelude::Wiener4::clone(&self) -> alea_distributions::prelude::Wiener4
+impl core::fmt::Debug for alea_distributions::prelude::Wiener4
+pub fn alea_distributions::prelude::Wiener4::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::Wiener4
+pub struct alea_distributions::prelude::Wiener4Params
+pub alea_distributions::prelude::Wiener4Params::alpha: f64
+pub alea_distributions::prelude::Wiener4Params::beta: f64
+pub alea_distributions::prelude::Wiener4Params::delta: f64
+pub alea_distributions::prelude::Wiener4Params::tau: f64
+impl alea_distributions::prelude::Wiener4Params
+pub const alea_distributions::prelude::Wiener4Params::DIM: usize
+pub fn alea_distributions::prelude::Wiener4Params::from_array(arr: [f64; 4]) -> Self
+pub fn alea_distributions::prelude::Wiener4Params::to_array(&self) -> [f64; 4]
+impl alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::builder() -> alea_distributions::wiener::Wiener7ParamsBuilder
+pub fn alea_distributions::prelude::Wiener4Params::decision_time(&self, rt: f64) -> core::option::Option<f64>
+pub fn alea_distributions::prelude::Wiener4Params::new() -> Self
+pub fn alea_distributions::prelude::Wiener4Params::valid(&self) -> bool
+pub fn alea_distributions::prelude::Wiener4Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64) -> alea_distributions::wiener::Result<Self>
+pub fn alea_distributions::prelude::Wiener4Params::with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64) -> Self
+impl core::clone::Clone for alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::clone(&self) -> alea_distributions::prelude::Wiener4Params
+impl core::cmp::PartialEq for alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::eq(&self, other: &alea_distributions::prelude::Wiener4Params) -> bool
+impl core::cmp::PartialOrd for alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::partial_cmp(&self, other: &alea_distributions::prelude::Wiener4Params) -> core::option::Option<core::cmp::Ordering>
+impl core::default::Default for alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::default() -> Self
+impl core::fmt::Debug for alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::Wiener4Params
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::Wiener4Params
+impl core::ops::index::Index<usize> for alea_distributions::prelude::Wiener4Params
+pub type alea_distributions::prelude::Wiener4Params::Output = f64
+pub fn alea_distributions::prelude::Wiener4Params::index(&self, idx: usize) -> &Self::Output
+impl core::ops::index::IndexMut<usize> for alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::index_mut(&mut self, idx: usize) -> &mut Self::Output
+pub struct alea_distributions::prelude::Wiener5
+impl alea_distributions::prelude::Wiener5
+pub fn alea_distributions::prelude::Wiener5::branch_counts(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, eps: f64) -> core::option::Option<alea_distributions::wiener::WienerBranchCounts>
+pub fn alea_distributions::prelude::Wiener5::fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, eps: f64) -> alea_distributions::wiener::Wiener5Eval
+pub fn alea_distributions::prelude::Wiener5::log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, eps: f64) -> alea_distributions::wiener::Wiener5Eval
+pub fn alea_distributions::prelude::Wiener5::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
+pub fn alea_distributions::prelude::Wiener5::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
+pub struct alea_distributions::prelude::Wiener5Params
+impl alea_distributions::prelude::Wiener5Params
+pub const alea_distributions::prelude::Wiener5Params::DIM: usize
+pub fn alea_distributions::prelude::Wiener5Params::alpha(&self) -> f64
+pub fn alea_distributions::prelude::Wiener5Params::beta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener5Params::delta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener5Params::from_array(arr: [f64; 5]) -> Self
+pub fn alea_distributions::prelude::Wiener5Params::s_delta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener5Params::tau(&self) -> f64
+pub fn alea_distributions::prelude::Wiener5Params::to_array(&self) -> [f64; 5]
+impl alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::builder() -> alea_distributions::wiener::Wiener7ParamsBuilder
+pub fn alea_distributions::prelude::Wiener5Params::new() -> Self
+pub fn alea_distributions::prelude::Wiener5Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64, s_delta: f64) -> alea_distributions::wiener::Result<Self>
+pub fn alea_distributions::prelude::Wiener5Params::with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64, s_delta: f64) -> Self
+impl alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::from_unconstrained(u: &[f64; 5]) -> Self
+pub fn alea_distributions::prelude::Wiener5Params::log_abs_det_jacobian(u: &[f64; 5]) -> f64
+pub fn alea_distributions::prelude::Wiener5Params::to_unconstrained(c: &Self) -> [f64; 5]
+impl core::clone::Clone for alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::clone(&self) -> alea_distributions::prelude::Wiener5Params
+impl core::cmp::PartialEq for alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::eq(&self, other: &alea_distributions::prelude::Wiener5Params) -> bool
+impl core::cmp::PartialOrd for alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::partial_cmp(&self, other: &alea_distributions::prelude::Wiener5Params) -> core::option::Option<core::cmp::Ordering>
+impl core::default::Default for alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::default() -> Self
+impl core::fmt::Debug for alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::Wiener5Params
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::Wiener5Params
+impl core::ops::index::Index<usize> for alea_distributions::prelude::Wiener5Params
+pub type alea_distributions::prelude::Wiener5Params::Output = f64
+pub fn alea_distributions::prelude::Wiener5Params::index(&self, idx: usize) -> &Self::Output
+impl core::ops::index::IndexMut<usize> for alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::index_mut(&mut self, idx: usize) -> &mut Self::Output
+pub struct alea_distributions::prelude::Wiener7
+impl alea_distributions::prelude::Wiener7
+pub fn alea_distributions::prelude::Wiener7::fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, eps: f64) -> alea_distributions::wiener::Wiener7Eval
+pub fn alea_distributions::prelude::Wiener7::log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, eps: f64) -> alea_distributions::wiener::Wiener7Eval
+pub fn alea_distributions::prelude::Wiener7::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Eval>
+pub fn alea_distributions::prelude::Wiener7::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Eval>
+impl alea_distributions::prelude::Wiener7
+pub fn alea_distributions::prelude::Wiener7::gauss_legendre_01(n: usize) -> (alloc::vec::Vec<f64>, alloc::vec::Vec<f64>)
+pub struct alea_distributions::prelude::Wiener7Params
+impl alea_distributions::prelude::Wiener7Params
+pub const alea_distributions::prelude::Wiener7Params::DIM: usize
+pub fn alea_distributions::prelude::Wiener7Params::alpha(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::beta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::delta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::from_array(arr: [f64; 7]) -> Self
+pub fn alea_distributions::prelude::Wiener7Params::s_beta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::s_delta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::s_tau(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::tau(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::to_array(&self) -> [f64; 7]
+impl alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::builder() -> alea_distributions::wiener::Wiener7ParamsBuilder
+pub fn alea_distributions::prelude::Wiener7Params::new() -> Self
+pub fn alea_distributions::prelude::Wiener7Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64, s_beta: f64, s_tau: f64, s_delta: f64) -> alea_distributions::wiener::Result<Self>
+pub fn alea_distributions::prelude::Wiener7Params::with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64, s_beta: f64, s_tau: f64, s_delta: f64) -> Self
+impl alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::from_unconstrained(u: &[f64; 7]) -> Self
+pub fn alea_distributions::prelude::Wiener7Params::log_abs_det_jacobian(u: &[f64; 7]) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::to_unconstrained(c: &Self) -> [f64; 7]
+impl core::clone::Clone for alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::clone(&self) -> alea_distributions::prelude::Wiener7Params
+impl core::cmp::PartialEq for alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::eq(&self, other: &alea_distributions::prelude::Wiener7Params) -> bool
+impl core::cmp::PartialOrd for alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::partial_cmp(&self, other: &alea_distributions::prelude::Wiener7Params) -> core::option::Option<core::cmp::Ordering>
+impl core::default::Default for alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::default() -> Self
+impl core::fmt::Debug for alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::Wiener7Params
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::Wiener7Params
+impl core::ops::index::Index<usize> for alea_distributions::prelude::Wiener7Params
+pub type alea_distributions::prelude::Wiener7Params::Output = f64
+pub fn alea_distributions::prelude::Wiener7Params::index(&self, idx: usize) -> &Self::Output
+impl core::ops::index::IndexMut<usize> for alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::index_mut(&mut self, idx: usize) -> &mut Self::Output
+pub struct alea_distributions::prelude::WienerBatchModel<F>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener4>
+pub type alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener4>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener4>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener4>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener5>
+pub type alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener5>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener5>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener5>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl<F: core::fmt::Debug> core::fmt::Debug for alea_distributions::prelude::WienerBatchModel<F>
+pub fn alea_distributions::prelude::WienerBatchModel<F>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_distributions::prelude::WienerBatchWorkspace
+impl alea_distributions::prelude::WienerBatchWorkspace
+pub fn alea_distributions::prelude::WienerBatchWorkspace::capacity(&self) -> usize
+pub fn alea_distributions::prelude::WienerBatchWorkspace::new(observations: usize) -> Self
+impl core::default::Default for alea_distributions::prelude::WienerBatchWorkspace
+pub fn alea_distributions::prelude::WienerBatchWorkspace::default() -> Self
+impl core::fmt::Debug for alea_distributions::prelude::WienerBatchWorkspace
+pub fn alea_distributions::prelude::WienerBatchWorkspace::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_distributions::prelude::WienerModel<F, D>
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>::batch_value_gradient(&self, p: &alea_distributions::prelude::Wiener4Params, grad: &mut [f64; 4]) -> f64
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>::batch_value_gradient_with_workspace(&self, p: &alea_distributions::prelude::Wiener4Params, grad: &mut [f64; 4], workspace: &mut alea_distributions::prelude::WienerBatchWorkspace) -> f64
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>::with_workspace(self) -> alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener4>
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::batch_value_gradient<'a>(&'a self, p: &'a alea_distributions::prelude::Wiener4Params, grad: &mut [f64; 4]) -> f64
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>::batch_value_gradient(&self, p: &alea_distributions::prelude::Wiener5Params, grad: &mut [f64; 5]) -> f64
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>::batch_value_gradient_with_workspace(&self, p: &alea_distributions::prelude::Wiener5Params, grad: &mut [f64; 5], workspace: &mut alea_distributions::prelude::WienerBatchWorkspace) -> f64
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>::with_workspace(self) -> alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener5>
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::batch_value_gradient(&self, p: &alea_distributions::prelude::Wiener5Params, grad: &mut [f64; 5]) -> f64
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alea_distributions::prelude::WienerObservations>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alea_distributions::prelude::WienerObservations>::batch_value_gradient(&self, p: &alea_distributions::prelude::Wiener7Params, grad: &mut [f64; 7]) -> f64
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::batch_value_gradient<'a>(&'a self, p: &'a alea_distributions::prelude::Wiener7Params, grad: &mut [f64; 7]) -> f64
+impl<F, D> alea_distributions::prelude::WienerModel<F, D>
+pub fn alea_distributions::prelude::WienerModel<F, D>::data(&self) -> &D
+pub fn alea_distributions::prelude::WienerModel<F, D>::family(&self) -> &F
+pub fn alea_distributions::prelude::WienerModel<F, D>::new(family: F, data: D) -> Self
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>
+pub type alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>
+pub type alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>
+pub type alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>
+pub type alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alea_distributions::prelude::WienerObservations>
+pub type alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alea_distributions::prelude::WienerObservations>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alea_distributions::prelude::WienerObservations>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alea_distributions::prelude::WienerObservations>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>
+pub type alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl<F: core::fmt::Debug, D: core::fmt::Debug> core::fmt::Debug for alea_distributions::prelude::WienerModel<F, D>
+pub fn alea_distributions::prelude::WienerModel<F, D>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_distributions::prelude::WienerObservation
+pub alea_distributions::prelude::WienerObservation::boundary: alea_distributions::prelude::Boundary
+pub alea_distributions::prelude::WienerObservation::rt: f64
+impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentObservationModel
+pub fn alea_distributions::latent::LatentObservationModel::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation) -> f64
+impl core::clone::Clone for alea_distributions::prelude::WienerObservation
+pub fn alea_distributions::prelude::WienerObservation::clone(&self) -> alea_distributions::prelude::WienerObservation
+impl core::cmp::PartialEq for alea_distributions::prelude::WienerObservation
+pub fn alea_distributions::prelude::WienerObservation::eq(&self, other: &alea_distributions::prelude::WienerObservation) -> bool
+impl core::fmt::Debug for alea_distributions::prelude::WienerObservation
+pub fn alea_distributions::prelude::WienerObservation::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::iter::traits::collect::FromIterator<alea_distributions::prelude::WienerObservation> for alea_distributions::prelude::WienerObservations
+pub fn alea_distributions::prelude::WienerObservations::from_iter<T: core::iter::traits::collect::IntoIterator<Item = alea_distributions::prelude::WienerObservation>>(iter: T) -> Self
+impl core::marker::Copy for alea_distributions::prelude::WienerObservation
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::WienerObservation
+impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::ObservationLayer<M> where M: alea_distributions::latent::LatentParameterMap<Context, Latent>
+pub fn alea_distributions::latent::ObservationLayer<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation) -> f64
+pub struct alea_distributions::prelude::WienerObservations
+impl alea_distributions::prelude::WienerObservations
+pub fn alea_distributions::prelude::WienerObservations::batch_strategy(&self) -> alea_distributions::prelude::BatchStrategy
+pub fn alea_distributions::prelude::WienerObservations::is_empty(&self) -> bool
+pub fn alea_distributions::prelude::WienerObservations::len(&self) -> usize
+pub fn alea_distributions::prelude::WienerObservations::lower_rt(&self) -> &[f64]
+pub fn alea_distributions::prelude::WienerObservations::new(upper_rt: alea_math::buffer::OwnedBuffer<f64>, lower_rt: alea_math::buffer::OwnedBuffer<f64>) -> Self
+pub fn alea_distributions::prelude::WienerObservations::upper_rt(&self) -> &[f64]
+pub fn alea_distributions::prelude::WienerObservations::with_batch_strategy(self, batch_strategy: alea_distributions::prelude::BatchStrategy) -> Self
+impl core::convert::From<alloc::vec::Vec<alea_distributions::prelude::WienerObservation>> for alea_distributions::prelude::WienerObservations
+pub fn alea_distributions::prelude::WienerObservations::from(observations: alloc::vec::Vec<alea_distributions::prelude::WienerObservation>) -> Self
+impl core::fmt::Debug for alea_distributions::prelude::WienerObservations
+pub fn alea_distributions::prelude::WienerObservations::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::iter::traits::collect::FromIterator<alea_distributions::prelude::WienerObservation> for alea_distributions::prelude::WienerObservations
+pub fn alea_distributions::prelude::WienerObservations::from_iter<T: core::iter::traits::collect::IntoIterator<Item = alea_distributions::prelude::WienerObservation>>(iter: T) -> Self
+pub struct alea_distributions::prelude::WienerOptions
+pub alea_distributions::prelude::WienerOptions::inner_precision: core::option::Option<f64>
+pub alea_distributions::prelude::WienerOptions::precision: f64
+pub alea_distributions::prelude::WienerOptions::quadrature: alea_distributions::prelude::Quadrature
+impl alea_distributions::prelude::WienerOptions
+pub fn alea_distributions::prelude::WienerOptions::new(precision: f64) -> Self
+pub fn alea_distributions::prelude::WienerOptions::with_inner_precision(self, inner_precision: f64) -> Self
+pub fn alea_distributions::prelude::WienerOptions::with_quadrature(self, quadrature: alea_distributions::prelude::Quadrature) -> Self
+impl core::clone::Clone for alea_distributions::prelude::WienerOptions
+pub fn alea_distributions::prelude::WienerOptions::clone(&self) -> alea_distributions::prelude::WienerOptions
+impl core::cmp::PartialEq for alea_distributions::prelude::WienerOptions
+pub fn alea_distributions::prelude::WienerOptions::eq(&self, other: &alea_distributions::prelude::WienerOptions) -> bool
+impl core::default::Default for alea_distributions::prelude::WienerOptions
+pub fn alea_distributions::prelude::WienerOptions::default() -> Self
+impl core::fmt::Debug for alea_distributions::prelude::WienerOptions
+pub fn alea_distributions::prelude::WienerOptions::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::WienerOptions
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::WienerOptions
 pub mod alea_distributions::scalar
 pub struct alea_distributions::scalar::Bernoulli
 impl alea_distributions::scalar::Bernoulli
@@ -489,29 +803,29 @@ pub mod alea_distributions::wiener
 pub enum alea_distributions::wiener::BatchStrategy
 pub alea_distributions::wiener::BatchStrategy::BranchBuckets
 pub alea_distributions::wiener::BatchStrategy::Direct
-impl core::clone::Clone for alea_distributions::wiener::BatchStrategy
-pub fn alea_distributions::wiener::BatchStrategy::clone(&self) -> alea_distributions::wiener::BatchStrategy
-impl core::cmp::Eq for alea_distributions::wiener::BatchStrategy
-impl core::cmp::PartialEq for alea_distributions::wiener::BatchStrategy
-pub fn alea_distributions::wiener::BatchStrategy::eq(&self, other: &alea_distributions::wiener::BatchStrategy) -> bool
-impl core::default::Default for alea_distributions::wiener::BatchStrategy
-pub fn alea_distributions::wiener::BatchStrategy::default() -> alea_distributions::wiener::BatchStrategy
-impl core::fmt::Debug for alea_distributions::wiener::BatchStrategy
-pub fn alea_distributions::wiener::BatchStrategy::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_distributions::wiener::BatchStrategy
-impl core::marker::StructuralPartialEq for alea_distributions::wiener::BatchStrategy
+impl core::clone::Clone for alea_distributions::prelude::BatchStrategy
+pub fn alea_distributions::prelude::BatchStrategy::clone(&self) -> alea_distributions::prelude::BatchStrategy
+impl core::cmp::Eq for alea_distributions::prelude::BatchStrategy
+impl core::cmp::PartialEq for alea_distributions::prelude::BatchStrategy
+pub fn alea_distributions::prelude::BatchStrategy::eq(&self, other: &alea_distributions::prelude::BatchStrategy) -> bool
+impl core::default::Default for alea_distributions::prelude::BatchStrategy
+pub fn alea_distributions::prelude::BatchStrategy::default() -> alea_distributions::prelude::BatchStrategy
+impl core::fmt::Debug for alea_distributions::prelude::BatchStrategy
+pub fn alea_distributions::prelude::BatchStrategy::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::BatchStrategy
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::BatchStrategy
 pub enum alea_distributions::wiener::Boundary
 pub alea_distributions::wiener::Boundary::Lower
 pub alea_distributions::wiener::Boundary::Upper
-impl core::clone::Clone for alea_distributions::wiener::Boundary
-pub fn alea_distributions::wiener::Boundary::clone(&self) -> alea_distributions::wiener::Boundary
-impl core::cmp::Eq for alea_distributions::wiener::Boundary
-impl core::cmp::PartialEq for alea_distributions::wiener::Boundary
-pub fn alea_distributions::wiener::Boundary::eq(&self, other: &alea_distributions::wiener::Boundary) -> bool
-impl core::fmt::Debug for alea_distributions::wiener::Boundary
-pub fn alea_distributions::wiener::Boundary::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_distributions::wiener::Boundary
-impl core::marker::StructuralPartialEq for alea_distributions::wiener::Boundary
+impl core::clone::Clone for alea_distributions::prelude::Boundary
+pub fn alea_distributions::prelude::Boundary::clone(&self) -> alea_distributions::prelude::Boundary
+impl core::cmp::Eq for alea_distributions::prelude::Boundary
+impl core::cmp::PartialEq for alea_distributions::prelude::Boundary
+pub fn alea_distributions::prelude::Boundary::eq(&self, other: &alea_distributions::prelude::Boundary) -> bool
+impl core::fmt::Debug for alea_distributions::prelude::Boundary
+pub fn alea_distributions::prelude::Boundary::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::Boundary
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::Boundary
 pub enum alea_distributions::wiener::ProbError
 pub alea_distributions::wiener::ProbError::BufferError(alloc::string::String)
 pub alea_distributions::wiener::ProbError::DimensionMismatch
@@ -530,15 +844,15 @@ pub enum alea_distributions::wiener::Quadrature
 pub alea_distributions::wiener::Quadrature::Adaptive
 pub alea_distributions::wiener::Quadrature::FixedGaussLegendre
 pub alea_distributions::wiener::Quadrature::FixedGaussLegendre::order: usize
-impl core::clone::Clone for alea_distributions::wiener::Quadrature
-pub fn alea_distributions::wiener::Quadrature::clone(&self) -> alea_distributions::wiener::Quadrature
-impl core::cmp::Eq for alea_distributions::wiener::Quadrature
-impl core::cmp::PartialEq for alea_distributions::wiener::Quadrature
-pub fn alea_distributions::wiener::Quadrature::eq(&self, other: &alea_distributions::wiener::Quadrature) -> bool
-impl core::fmt::Debug for alea_distributions::wiener::Quadrature
-pub fn alea_distributions::wiener::Quadrature::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_distributions::wiener::Quadrature
-impl core::marker::StructuralPartialEq for alea_distributions::wiener::Quadrature
+impl core::clone::Clone for alea_distributions::prelude::Quadrature
+pub fn alea_distributions::prelude::Quadrature::clone(&self) -> alea_distributions::prelude::Quadrature
+impl core::cmp::Eq for alea_distributions::prelude::Quadrature
+impl core::cmp::PartialEq for alea_distributions::prelude::Quadrature
+pub fn alea_distributions::prelude::Quadrature::eq(&self, other: &alea_distributions::prelude::Quadrature) -> bool
+impl core::fmt::Debug for alea_distributions::prelude::Quadrature
+pub fn alea_distributions::prelude::Quadrature::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::Quadrature
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::Quadrature
 pub enum alea_distributions::wiener::SeriesBranch
 pub alea_distributions::wiener::SeriesBranch::LargeTime
 pub alea_distributions::wiener::SeriesBranch::SmallTime
@@ -554,6 +868,7 @@ impl core::marker::StructuralPartialEq for alea_distributions::wiener::SeriesBra
 pub enum alea_distributions::wiener::WienerModelError
 pub alea_distributions::wiener::WienerModelError::Dimension
 pub alea_distributions::wiener::WienerModelError::NonFinite
+pub alea_distributions::wiener::WienerModelError::WorkspaceBusy
 impl core::clone::Clone for alea_distributions::wiener::WienerModelError
 pub fn alea_distributions::wiener::WienerModelError::clone(&self) -> alea_distributions::wiener::WienerModelError
 impl core::error::Error for alea_distributions::wiener::WienerModelError
@@ -574,17 +889,17 @@ impl core::fmt::Display for alea_distributions::wiener::WienerPrimitiveError
 pub fn alea_distributions::wiener::WienerPrimitiveError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_distributions::wiener::WienerPrimitiveError
 pub struct alea_distributions::wiener::Wiener4
-impl alea_distributions::wiener::Wiener4
-pub fn alea_distributions::wiener::Wiener4::branch_counts(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener4Params, eps: f64) -> core::option::Option<alea_distributions::wiener::WienerBranchCounts>
-pub fn alea_distributions::wiener::Wiener4::fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener4Params, eps: f64) -> alea_distributions::wiener::Wiener4Eval
-pub fn alea_distributions::wiener::Wiener4::log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener4Params, eps: f64) -> alea_distributions::wiener::Wiener4Eval
-pub fn alea_distributions::wiener::Wiener4::try_fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener4Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
-pub fn alea_distributions::wiener::Wiener4::try_log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener4Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
-impl core::clone::Clone for alea_distributions::wiener::Wiener4
-pub fn alea_distributions::wiener::Wiener4::clone(&self) -> alea_distributions::wiener::Wiener4
-impl core::fmt::Debug for alea_distributions::wiener::Wiener4
-pub fn alea_distributions::wiener::Wiener4::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_distributions::wiener::Wiener4
+impl alea_distributions::prelude::Wiener4
+pub fn alea_distributions::prelude::Wiener4::branch_counts(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, eps: f64) -> core::option::Option<alea_distributions::wiener::WienerBranchCounts>
+pub fn alea_distributions::prelude::Wiener4::fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, eps: f64) -> alea_distributions::wiener::Wiener4Eval
+pub fn alea_distributions::prelude::Wiener4::log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, eps: f64) -> alea_distributions::wiener::Wiener4Eval
+pub fn alea_distributions::prelude::Wiener4::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
+pub fn alea_distributions::prelude::Wiener4::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
+impl core::clone::Clone for alea_distributions::prelude::Wiener4
+pub fn alea_distributions::prelude::Wiener4::clone(&self) -> alea_distributions::prelude::Wiener4
+impl core::fmt::Debug for alea_distributions::prelude::Wiener4
+pub fn alea_distributions::prelude::Wiener4::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::Wiener4
 pub struct alea_distributions::wiener::Wiener4Eval
 pub alea_distributions::wiener::Wiener4Eval::grad: alea_distributions::wiener::Wiener4Grad
 pub alea_distributions::wiener::Wiener4Eval::log_prob: f64
@@ -621,41 +936,41 @@ pub alea_distributions::wiener::Wiener4Params::alpha: f64
 pub alea_distributions::wiener::Wiener4Params::beta: f64
 pub alea_distributions::wiener::Wiener4Params::delta: f64
 pub alea_distributions::wiener::Wiener4Params::tau: f64
-impl alea_distributions::wiener::Wiener4Params
-pub const alea_distributions::wiener::Wiener4Params::DIM: usize
-pub fn alea_distributions::wiener::Wiener4Params::from_array(arr: [f64; 4]) -> Self
-pub fn alea_distributions::wiener::Wiener4Params::to_array(&self) -> [f64; 4]
-impl alea_distributions::wiener::Wiener4Params
-pub fn alea_distributions::wiener::Wiener4Params::builder() -> alea_distributions::wiener::Wiener7ParamsBuilder
-pub fn alea_distributions::wiener::Wiener4Params::decision_time(&self, rt: f64) -> core::option::Option<f64>
-pub fn alea_distributions::wiener::Wiener4Params::new() -> Self
-pub fn alea_distributions::wiener::Wiener4Params::valid(&self) -> bool
-pub fn alea_distributions::wiener::Wiener4Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64) -> alea_distributions::wiener::Result<Self>
-pub fn alea_distributions::wiener::Wiener4Params::with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64) -> Self
-impl core::clone::Clone for alea_distributions::wiener::Wiener4Params
-pub fn alea_distributions::wiener::Wiener4Params::clone(&self) -> alea_distributions::wiener::Wiener4Params
-impl core::cmp::PartialEq for alea_distributions::wiener::Wiener4Params
-pub fn alea_distributions::wiener::Wiener4Params::eq(&self, other: &alea_distributions::wiener::Wiener4Params) -> bool
-impl core::cmp::PartialOrd for alea_distributions::wiener::Wiener4Params
-pub fn alea_distributions::wiener::Wiener4Params::partial_cmp(&self, other: &alea_distributions::wiener::Wiener4Params) -> core::option::Option<core::cmp::Ordering>
-impl core::default::Default for alea_distributions::wiener::Wiener4Params
-pub fn alea_distributions::wiener::Wiener4Params::default() -> Self
-impl core::fmt::Debug for alea_distributions::wiener::Wiener4Params
-pub fn alea_distributions::wiener::Wiener4Params::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_distributions::wiener::Wiener4Params
-impl core::marker::StructuralPartialEq for alea_distributions::wiener::Wiener4Params
-impl core::ops::index::Index<usize> for alea_distributions::wiener::Wiener4Params
-pub type alea_distributions::wiener::Wiener4Params::Output = f64
-pub fn alea_distributions::wiener::Wiener4Params::index(&self, idx: usize) -> &Self::Output
-impl core::ops::index::IndexMut<usize> for alea_distributions::wiener::Wiener4Params
-pub fn alea_distributions::wiener::Wiener4Params::index_mut(&mut self, idx: usize) -> &mut Self::Output
+impl alea_distributions::prelude::Wiener4Params
+pub const alea_distributions::prelude::Wiener4Params::DIM: usize
+pub fn alea_distributions::prelude::Wiener4Params::from_array(arr: [f64; 4]) -> Self
+pub fn alea_distributions::prelude::Wiener4Params::to_array(&self) -> [f64; 4]
+impl alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::builder() -> alea_distributions::wiener::Wiener7ParamsBuilder
+pub fn alea_distributions::prelude::Wiener4Params::decision_time(&self, rt: f64) -> core::option::Option<f64>
+pub fn alea_distributions::prelude::Wiener4Params::new() -> Self
+pub fn alea_distributions::prelude::Wiener4Params::valid(&self) -> bool
+pub fn alea_distributions::prelude::Wiener4Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64) -> alea_distributions::wiener::Result<Self>
+pub fn alea_distributions::prelude::Wiener4Params::with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64) -> Self
+impl core::clone::Clone for alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::clone(&self) -> alea_distributions::prelude::Wiener4Params
+impl core::cmp::PartialEq for alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::eq(&self, other: &alea_distributions::prelude::Wiener4Params) -> bool
+impl core::cmp::PartialOrd for alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::partial_cmp(&self, other: &alea_distributions::prelude::Wiener4Params) -> core::option::Option<core::cmp::Ordering>
+impl core::default::Default for alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::default() -> Self
+impl core::fmt::Debug for alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::Wiener4Params
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::Wiener4Params
+impl core::ops::index::Index<usize> for alea_distributions::prelude::Wiener4Params
+pub type alea_distributions::prelude::Wiener4Params::Output = f64
+pub fn alea_distributions::prelude::Wiener4Params::index(&self, idx: usize) -> &Self::Output
+impl core::ops::index::IndexMut<usize> for alea_distributions::prelude::Wiener4Params
+pub fn alea_distributions::prelude::Wiener4Params::index_mut(&mut self, idx: usize) -> &mut Self::Output
 pub struct alea_distributions::wiener::Wiener5
-impl alea_distributions::wiener::Wiener5
-pub fn alea_distributions::wiener::Wiener5::branch_counts(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener5Params, eps: f64) -> core::option::Option<alea_distributions::wiener::WienerBranchCounts>
-pub fn alea_distributions::wiener::Wiener5::fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener5Params, eps: f64) -> alea_distributions::wiener::Wiener5Eval
-pub fn alea_distributions::wiener::Wiener5::log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener5Params, eps: f64) -> alea_distributions::wiener::Wiener5Eval
-pub fn alea_distributions::wiener::Wiener5::try_fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener5Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
-pub fn alea_distributions::wiener::Wiener5::try_log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener5Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
+impl alea_distributions::prelude::Wiener5
+pub fn alea_distributions::prelude::Wiener5::branch_counts(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, eps: f64) -> core::option::Option<alea_distributions::wiener::WienerBranchCounts>
+pub fn alea_distributions::prelude::Wiener5::fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, eps: f64) -> alea_distributions::wiener::Wiener5Eval
+pub fn alea_distributions::prelude::Wiener5::log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, eps: f64) -> alea_distributions::wiener::Wiener5Eval
+pub fn alea_distributions::prelude::Wiener5::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
+pub fn alea_distributions::prelude::Wiener5::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
 pub struct alea_distributions::wiener::Wiener5Eval
 pub alea_distributions::wiener::Wiener5Eval::grad: alea_distributions::wiener::Wiener5Grad
 pub alea_distributions::wiener::Wiener5Eval::log_prob: f64
@@ -689,48 +1004,49 @@ pub fn alea_distributions::wiener::Wiener5Grad::index(&self, idx: usize) -> &Sel
 impl core::ops::index::IndexMut<usize> for alea_distributions::wiener::Wiener5Grad
 pub fn alea_distributions::wiener::Wiener5Grad::index_mut(&mut self, idx: usize) -> &mut Self::Output
 pub struct alea_distributions::wiener::Wiener5Params
-impl alea_distributions::wiener::Wiener5Params
-pub const alea_distributions::wiener::Wiener5Params::DIM: usize
-pub fn alea_distributions::wiener::Wiener5Params::alpha(&self) -> f64
-pub fn alea_distributions::wiener::Wiener5Params::beta(&self) -> f64
-pub fn alea_distributions::wiener::Wiener5Params::delta(&self) -> f64
-pub fn alea_distributions::wiener::Wiener5Params::from_array(arr: [f64; 5]) -> Self
-pub fn alea_distributions::wiener::Wiener5Params::s_delta(&self) -> f64
-pub fn alea_distributions::wiener::Wiener5Params::tau(&self) -> f64
-pub fn alea_distributions::wiener::Wiener5Params::to_array(&self) -> [f64; 5]
-impl alea_distributions::wiener::Wiener5Params
-pub fn alea_distributions::wiener::Wiener5Params::builder() -> alea_distributions::wiener::Wiener7ParamsBuilder
-pub fn alea_distributions::wiener::Wiener5Params::new() -> Self
-pub fn alea_distributions::wiener::Wiener5Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64, s_delta: f64) -> alea_distributions::wiener::Result<Self>
-pub fn alea_distributions::wiener::Wiener5Params::with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64, s_delta: f64) -> Self
-impl alea_distributions::wiener::Wiener5Params
-pub fn alea_distributions::wiener::Wiener5Params::from_unconstrained(u: &[f64; 5]) -> Self
-pub fn alea_distributions::wiener::Wiener5Params::log_abs_det_jacobian(u: &[f64; 5]) -> f64
-pub fn alea_distributions::wiener::Wiener5Params::to_unconstrained(c: &Self) -> [f64; 5]
-impl core::clone::Clone for alea_distributions::wiener::Wiener5Params
-pub fn alea_distributions::wiener::Wiener5Params::clone(&self) -> alea_distributions::wiener::Wiener5Params
-impl core::cmp::PartialEq for alea_distributions::wiener::Wiener5Params
-pub fn alea_distributions::wiener::Wiener5Params::eq(&self, other: &alea_distributions::wiener::Wiener5Params) -> bool
-impl core::cmp::PartialOrd for alea_distributions::wiener::Wiener5Params
-pub fn alea_distributions::wiener::Wiener5Params::partial_cmp(&self, other: &alea_distributions::wiener::Wiener5Params) -> core::option::Option<core::cmp::Ordering>
-impl core::default::Default for alea_distributions::wiener::Wiener5Params
-pub fn alea_distributions::wiener::Wiener5Params::default() -> Self
-impl core::fmt::Debug for alea_distributions::wiener::Wiener5Params
-pub fn alea_distributions::wiener::Wiener5Params::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_distributions::wiener::Wiener5Params
-impl core::marker::StructuralPartialEq for alea_distributions::wiener::Wiener5Params
-impl core::ops::index::Index<usize> for alea_distributions::wiener::Wiener5Params
-pub type alea_distributions::wiener::Wiener5Params::Output = f64
-pub fn alea_distributions::wiener::Wiener5Params::index(&self, idx: usize) -> &Self::Output
-impl core::ops::index::IndexMut<usize> for alea_distributions::wiener::Wiener5Params
-pub fn alea_distributions::wiener::Wiener5Params::index_mut(&mut self, idx: usize) -> &mut Self::Output
+impl alea_distributions::prelude::Wiener5Params
+pub const alea_distributions::prelude::Wiener5Params::DIM: usize
+pub fn alea_distributions::prelude::Wiener5Params::alpha(&self) -> f64
+pub fn alea_distributions::prelude::Wiener5Params::beta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener5Params::delta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener5Params::from_array(arr: [f64; 5]) -> Self
+pub fn alea_distributions::prelude::Wiener5Params::s_delta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener5Params::tau(&self) -> f64
+pub fn alea_distributions::prelude::Wiener5Params::to_array(&self) -> [f64; 5]
+impl alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::builder() -> alea_distributions::wiener::Wiener7ParamsBuilder
+pub fn alea_distributions::prelude::Wiener5Params::new() -> Self
+pub fn alea_distributions::prelude::Wiener5Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64, s_delta: f64) -> alea_distributions::wiener::Result<Self>
+pub fn alea_distributions::prelude::Wiener5Params::with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64, s_delta: f64) -> Self
+impl alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::from_unconstrained(u: &[f64; 5]) -> Self
+pub fn alea_distributions::prelude::Wiener5Params::log_abs_det_jacobian(u: &[f64; 5]) -> f64
+pub fn alea_distributions::prelude::Wiener5Params::to_unconstrained(c: &Self) -> [f64; 5]
+impl core::clone::Clone for alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::clone(&self) -> alea_distributions::prelude::Wiener5Params
+impl core::cmp::PartialEq for alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::eq(&self, other: &alea_distributions::prelude::Wiener5Params) -> bool
+impl core::cmp::PartialOrd for alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::partial_cmp(&self, other: &alea_distributions::prelude::Wiener5Params) -> core::option::Option<core::cmp::Ordering>
+impl core::default::Default for alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::default() -> Self
+impl core::fmt::Debug for alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::Wiener5Params
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::Wiener5Params
+impl core::ops::index::Index<usize> for alea_distributions::prelude::Wiener5Params
+pub type alea_distributions::prelude::Wiener5Params::Output = f64
+pub fn alea_distributions::prelude::Wiener5Params::index(&self, idx: usize) -> &Self::Output
+impl core::ops::index::IndexMut<usize> for alea_distributions::prelude::Wiener5Params
+pub fn alea_distributions::prelude::Wiener5Params::index_mut(&mut self, idx: usize) -> &mut Self::Output
 pub struct alea_distributions::wiener::Wiener7
-impl alea_distributions::wiener::Wiener7
-pub fn alea_distributions::wiener::Wiener7::fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener7Params, eps: f64) -> alea_distributions::wiener::Wiener7Eval
-pub fn alea_distributions::wiener::Wiener7::gauss_legendre_01(n: usize) -> (alloc::vec::Vec<f64>, alloc::vec::Vec<f64>)
-pub fn alea_distributions::wiener::Wiener7::log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener7Params, eps: f64) -> alea_distributions::wiener::Wiener7Eval
-pub fn alea_distributions::wiener::Wiener7::try_fused(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener7Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Eval>
-pub fn alea_distributions::wiener::Wiener7::try_log_prob(&self, obs: &alea_distributions::wiener::WienerObservation, params: &alea_distributions::wiener::Wiener7Params, options: alea_distributions::wiener::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Eval>
+impl alea_distributions::prelude::Wiener7
+pub fn alea_distributions::prelude::Wiener7::fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, eps: f64) -> alea_distributions::wiener::Wiener7Eval
+pub fn alea_distributions::prelude::Wiener7::log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, eps: f64) -> alea_distributions::wiener::Wiener7Eval
+pub fn alea_distributions::prelude::Wiener7::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Eval>
+pub fn alea_distributions::prelude::Wiener7::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Eval>
+impl alea_distributions::prelude::Wiener7
+pub fn alea_distributions::prelude::Wiener7::gauss_legendre_01(n: usize) -> (alloc::vec::Vec<f64>, alloc::vec::Vec<f64>)
 pub struct alea_distributions::wiener::Wiener7Eval
 pub alea_distributions::wiener::Wiener7Eval::grad: alea_distributions::wiener::Wiener7Grad
 pub alea_distributions::wiener::Wiener7Eval::log_prob: f64
@@ -766,49 +1082,49 @@ pub fn alea_distributions::wiener::Wiener7Grad::index(&self, idx: usize) -> &Sel
 impl core::ops::index::IndexMut<usize> for alea_distributions::wiener::Wiener7Grad
 pub fn alea_distributions::wiener::Wiener7Grad::index_mut(&mut self, idx: usize) -> &mut Self::Output
 pub struct alea_distributions::wiener::Wiener7Params
-impl alea_distributions::wiener::Wiener7Params
-pub const alea_distributions::wiener::Wiener7Params::DIM: usize
-pub fn alea_distributions::wiener::Wiener7Params::alpha(&self) -> f64
-pub fn alea_distributions::wiener::Wiener7Params::beta(&self) -> f64
-pub fn alea_distributions::wiener::Wiener7Params::delta(&self) -> f64
-pub fn alea_distributions::wiener::Wiener7Params::from_array(arr: [f64; 7]) -> Self
-pub fn alea_distributions::wiener::Wiener7Params::s_beta(&self) -> f64
-pub fn alea_distributions::wiener::Wiener7Params::s_delta(&self) -> f64
-pub fn alea_distributions::wiener::Wiener7Params::s_tau(&self) -> f64
-pub fn alea_distributions::wiener::Wiener7Params::tau(&self) -> f64
-pub fn alea_distributions::wiener::Wiener7Params::to_array(&self) -> [f64; 7]
-impl alea_distributions::wiener::Wiener7Params
-pub fn alea_distributions::wiener::Wiener7Params::builder() -> alea_distributions::wiener::Wiener7ParamsBuilder
-pub fn alea_distributions::wiener::Wiener7Params::new() -> Self
-pub fn alea_distributions::wiener::Wiener7Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64, s_beta: f64, s_tau: f64, s_delta: f64) -> alea_distributions::wiener::Result<Self>
-pub fn alea_distributions::wiener::Wiener7Params::with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64, s_beta: f64, s_tau: f64, s_delta: f64) -> Self
-impl alea_distributions::wiener::Wiener7Params
-pub fn alea_distributions::wiener::Wiener7Params::from_unconstrained(u: &[f64; 7]) -> Self
-pub fn alea_distributions::wiener::Wiener7Params::log_abs_det_jacobian(u: &[f64; 7]) -> f64
-pub fn alea_distributions::wiener::Wiener7Params::to_unconstrained(c: &Self) -> [f64; 7]
-impl core::clone::Clone for alea_distributions::wiener::Wiener7Params
-pub fn alea_distributions::wiener::Wiener7Params::clone(&self) -> alea_distributions::wiener::Wiener7Params
-impl core::cmp::PartialEq for alea_distributions::wiener::Wiener7Params
-pub fn alea_distributions::wiener::Wiener7Params::eq(&self, other: &alea_distributions::wiener::Wiener7Params) -> bool
-impl core::cmp::PartialOrd for alea_distributions::wiener::Wiener7Params
-pub fn alea_distributions::wiener::Wiener7Params::partial_cmp(&self, other: &alea_distributions::wiener::Wiener7Params) -> core::option::Option<core::cmp::Ordering>
-impl core::default::Default for alea_distributions::wiener::Wiener7Params
-pub fn alea_distributions::wiener::Wiener7Params::default() -> Self
-impl core::fmt::Debug for alea_distributions::wiener::Wiener7Params
-pub fn alea_distributions::wiener::Wiener7Params::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_distributions::wiener::Wiener7Params
-impl core::marker::StructuralPartialEq for alea_distributions::wiener::Wiener7Params
-impl core::ops::index::Index<usize> for alea_distributions::wiener::Wiener7Params
-pub type alea_distributions::wiener::Wiener7Params::Output = f64
-pub fn alea_distributions::wiener::Wiener7Params::index(&self, idx: usize) -> &Self::Output
-impl core::ops::index::IndexMut<usize> for alea_distributions::wiener::Wiener7Params
-pub fn alea_distributions::wiener::Wiener7Params::index_mut(&mut self, idx: usize) -> &mut Self::Output
+impl alea_distributions::prelude::Wiener7Params
+pub const alea_distributions::prelude::Wiener7Params::DIM: usize
+pub fn alea_distributions::prelude::Wiener7Params::alpha(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::beta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::delta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::from_array(arr: [f64; 7]) -> Self
+pub fn alea_distributions::prelude::Wiener7Params::s_beta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::s_delta(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::s_tau(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::tau(&self) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::to_array(&self) -> [f64; 7]
+impl alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::builder() -> alea_distributions::wiener::Wiener7ParamsBuilder
+pub fn alea_distributions::prelude::Wiener7Params::new() -> Self
+pub fn alea_distributions::prelude::Wiener7Params::with_params(alpha: f64, tau: f64, beta: f64, delta: f64, s_beta: f64, s_tau: f64, s_delta: f64) -> alea_distributions::wiener::Result<Self>
+pub fn alea_distributions::prelude::Wiener7Params::with_params_unchecked(alpha: f64, tau: f64, beta: f64, delta: f64, s_beta: f64, s_tau: f64, s_delta: f64) -> Self
+impl alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::from_unconstrained(u: &[f64; 7]) -> Self
+pub fn alea_distributions::prelude::Wiener7Params::log_abs_det_jacobian(u: &[f64; 7]) -> f64
+pub fn alea_distributions::prelude::Wiener7Params::to_unconstrained(c: &Self) -> [f64; 7]
+impl core::clone::Clone for alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::clone(&self) -> alea_distributions::prelude::Wiener7Params
+impl core::cmp::PartialEq for alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::eq(&self, other: &alea_distributions::prelude::Wiener7Params) -> bool
+impl core::cmp::PartialOrd for alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::partial_cmp(&self, other: &alea_distributions::prelude::Wiener7Params) -> core::option::Option<core::cmp::Ordering>
+impl core::default::Default for alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::default() -> Self
+impl core::fmt::Debug for alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::Wiener7Params
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::Wiener7Params
+impl core::ops::index::Index<usize> for alea_distributions::prelude::Wiener7Params
+pub type alea_distributions::prelude::Wiener7Params::Output = f64
+pub fn alea_distributions::prelude::Wiener7Params::index(&self, idx: usize) -> &Self::Output
+impl core::ops::index::IndexMut<usize> for alea_distributions::prelude::Wiener7Params
+pub fn alea_distributions::prelude::Wiener7Params::index_mut(&mut self, idx: usize) -> &mut Self::Output
 pub struct alea_distributions::wiener::Wiener7ParamsBuilder
 impl alea_distributions::wiener::Wiener7ParamsBuilder
 pub fn alea_distributions::wiener::Wiener7ParamsBuilder::alpha(self, alpha: f64) -> Self
 pub fn alea_distributions::wiener::Wiener7ParamsBuilder::beta(self, beta: f64) -> Self
-pub fn alea_distributions::wiener::Wiener7ParamsBuilder::build(self) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Params>
-pub fn alea_distributions::wiener::Wiener7ParamsBuilder::build_unchecked(self) -> alea_distributions::wiener::Wiener7Params
+pub fn alea_distributions::wiener::Wiener7ParamsBuilder::build(self) -> alea_distributions::wiener::Result<alea_distributions::prelude::Wiener7Params>
+pub fn alea_distributions::wiener::Wiener7ParamsBuilder::build_unchecked(self) -> alea_distributions::prelude::Wiener7Params
 pub fn alea_distributions::wiener::Wiener7ParamsBuilder::delta(self, delta: f64) -> Self
 pub fn alea_distributions::wiener::Wiener7ParamsBuilder::s_beta(self, s_beta: f64) -> Self
 pub fn alea_distributions::wiener::Wiener7ParamsBuilder::s_delta(self, s_delta: f64) -> Self
@@ -824,6 +1140,25 @@ impl core::fmt::Debug for alea_distributions::wiener::Wiener7ParamsBuilder
 pub fn alea_distributions::wiener::Wiener7ParamsBuilder::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_distributions::wiener::Wiener7ParamsBuilder
 impl core::marker::StructuralPartialEq for alea_distributions::wiener::Wiener7ParamsBuilder
+pub struct alea_distributions::wiener::WienerBatchModel<F>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener4>
+pub type alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener4>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener4>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener4>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener5>
+pub type alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener5>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener5>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener5>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl<F: core::fmt::Debug> core::fmt::Debug for alea_distributions::prelude::WienerBatchModel<F>
+pub fn alea_distributions::prelude::WienerBatchModel<F>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_distributions::wiener::WienerBatchWorkspace
+impl alea_distributions::prelude::WienerBatchWorkspace
+pub fn alea_distributions::prelude::WienerBatchWorkspace::capacity(&self) -> usize
+pub fn alea_distributions::prelude::WienerBatchWorkspace::new(observations: usize) -> Self
+impl core::default::Default for alea_distributions::prelude::WienerBatchWorkspace
+pub fn alea_distributions::prelude::WienerBatchWorkspace::default() -> Self
+impl core::fmt::Debug for alea_distributions::prelude::WienerBatchWorkspace
+pub fn alea_distributions::prelude::WienerBatchWorkspace::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_distributions::wiener::WienerBranchCounts
 pub alea_distributions::wiener::WienerBranchCounts::branch: alea_distributions::wiener::SeriesBranch
 pub alea_distributions::wiener::WienerBranchCounts::k_large_density: usize
@@ -842,101 +1177,107 @@ pub fn alea_distributions::wiener::WienerBranchCounts::fmt(&self, f: &mut core::
 impl core::marker::Copy for alea_distributions::wiener::WienerBranchCounts
 impl core::marker::StructuralPartialEq for alea_distributions::wiener::WienerBranchCounts
 pub struct alea_distributions::wiener::WienerModel<F, D>
-impl alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener4, alea_distributions::wiener::WienerObservations>
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener4, alea_distributions::wiener::WienerObservations>::batch_value_gradient(&self, p: &alea_distributions::wiener::Wiener4Params, grad: &mut [f64; 4]) -> f64
-impl alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener4, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener4, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>::batch_value_gradient<'a>(&'a self, p: &'a alea_distributions::wiener::Wiener4Params, grad: &mut [f64; 4]) -> f64
-impl alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener5, alea_distributions::wiener::WienerObservations>
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener5, alea_distributions::wiener::WienerObservations>::batch_value_gradient(&self, p: &alea_distributions::wiener::Wiener5Params, grad: &mut [f64; 5]) -> f64
-impl alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener5, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener5, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>::batch_value_gradient(&self, p: &alea_distributions::wiener::Wiener5Params, grad: &mut [f64; 5]) -> f64
-impl alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener7, alea_distributions::wiener::WienerObservations>
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener7, alea_distributions::wiener::WienerObservations>::batch_value_gradient(&self, p: &alea_distributions::wiener::Wiener7Params, grad: &mut [f64; 7]) -> f64
-impl alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener7, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener7, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>::batch_value_gradient<'a>(&'a self, p: &'a alea_distributions::wiener::Wiener7Params, grad: &mut [f64; 7]) -> f64
-impl<F, D> alea_distributions::wiener::WienerModel<F, D>
-pub fn alea_distributions::wiener::WienerModel<F, D>::data(&self) -> &D
-pub fn alea_distributions::wiener::WienerModel<F, D>::family(&self) -> &F
-pub fn alea_distributions::wiener::WienerModel<F, D>::new(family: F, data: D) -> Self
-impl alea_core::model::ConstrainedModel for alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener4, alea_distributions::wiener::WienerObservations>
-pub type alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener4, alea_distributions::wiener::WienerObservations>::Error = alea_distributions::wiener::WienerModelError
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener4, alea_distributions::wiener::WienerObservations>::dimension(&self) -> usize
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener4, alea_distributions::wiener::WienerObservations>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
-impl alea_core::model::ConstrainedModel for alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener4, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>
-pub type alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener4, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>::Error = alea_distributions::wiener::WienerModelError
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener4, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>::dimension(&self) -> usize
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener4, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
-impl alea_core::model::ConstrainedModel for alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener5, alea_distributions::wiener::WienerObservations>
-pub type alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener5, alea_distributions::wiener::WienerObservations>::Error = alea_distributions::wiener::WienerModelError
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener5, alea_distributions::wiener::WienerObservations>::dimension(&self) -> usize
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener5, alea_distributions::wiener::WienerObservations>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
-impl alea_core::model::ConstrainedModel for alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener5, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>
-pub type alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener5, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>::Error = alea_distributions::wiener::WienerModelError
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener5, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>::dimension(&self) -> usize
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener5, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
-impl alea_core::model::ConstrainedModel for alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener7, alea_distributions::wiener::WienerObservations>
-pub type alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener7, alea_distributions::wiener::WienerObservations>::Error = alea_distributions::wiener::WienerModelError
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener7, alea_distributions::wiener::WienerObservations>::dimension(&self) -> usize
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener7, alea_distributions::wiener::WienerObservations>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
-impl alea_core::model::ConstrainedModel for alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener7, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>
-pub type alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener7, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>::Error = alea_distributions::wiener::WienerModelError
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener7, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>::dimension(&self) -> usize
-pub fn alea_distributions::wiener::WienerModel<alea_distributions::wiener::Wiener7, alloc::vec::Vec<alea_distributions::wiener::WienerObservation>>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
-impl<F: core::fmt::Debug, D: core::fmt::Debug> core::fmt::Debug for alea_distributions::wiener::WienerModel<F, D>
-pub fn alea_distributions::wiener::WienerModel<F, D>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>::batch_value_gradient(&self, p: &alea_distributions::prelude::Wiener4Params, grad: &mut [f64; 4]) -> f64
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>::batch_value_gradient_with_workspace(&self, p: &alea_distributions::prelude::Wiener4Params, grad: &mut [f64; 4], workspace: &mut alea_distributions::prelude::WienerBatchWorkspace) -> f64
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>::with_workspace(self) -> alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener4>
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::batch_value_gradient<'a>(&'a self, p: &'a alea_distributions::prelude::Wiener4Params, grad: &mut [f64; 4]) -> f64
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>::batch_value_gradient(&self, p: &alea_distributions::prelude::Wiener5Params, grad: &mut [f64; 5]) -> f64
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>::batch_value_gradient_with_workspace(&self, p: &alea_distributions::prelude::Wiener5Params, grad: &mut [f64; 5], workspace: &mut alea_distributions::prelude::WienerBatchWorkspace) -> f64
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>::with_workspace(self) -> alea_distributions::prelude::WienerBatchModel<alea_distributions::prelude::Wiener5>
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::batch_value_gradient(&self, p: &alea_distributions::prelude::Wiener5Params, grad: &mut [f64; 5]) -> f64
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alea_distributions::prelude::WienerObservations>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alea_distributions::prelude::WienerObservations>::batch_value_gradient(&self, p: &alea_distributions::prelude::Wiener7Params, grad: &mut [f64; 7]) -> f64
+impl alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::batch_value_gradient<'a>(&'a self, p: &'a alea_distributions::prelude::Wiener7Params, grad: &mut [f64; 7]) -> f64
+impl<F, D> alea_distributions::prelude::WienerModel<F, D>
+pub fn alea_distributions::prelude::WienerModel<F, D>::data(&self) -> &D
+pub fn alea_distributions::prelude::WienerModel<F, D>::family(&self) -> &F
+pub fn alea_distributions::prelude::WienerModel<F, D>::new(family: F, data: D) -> Self
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>
+pub type alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alea_distributions::prelude::WienerObservations>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>
+pub type alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener4, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>
+pub type alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alea_distributions::prelude::WienerObservations>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>
+pub type alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener5, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alea_distributions::prelude::WienerObservations>
+pub type alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alea_distributions::prelude::WienerObservations>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alea_distributions::prelude::WienerObservations>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alea_distributions::prelude::WienerObservations>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::model::ConstrainedModel for alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>
+pub type alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::Error = alea_distributions::wiener::WienerModelError
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::dimension(&self) -> usize
+pub fn alea_distributions::prelude::WienerModel<alea_distributions::prelude::Wiener7, alloc::vec::Vec<alea_distributions::prelude::WienerObservation>>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl<F: core::fmt::Debug, D: core::fmt::Debug> core::fmt::Debug for alea_distributions::prelude::WienerModel<F, D>
+pub fn alea_distributions::prelude::WienerModel<F, D>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_distributions::wiener::WienerObservation
-pub alea_distributions::wiener::WienerObservation::boundary: alea_distributions::wiener::Boundary
+pub alea_distributions::wiener::WienerObservation::boundary: alea_distributions::prelude::Boundary
 pub alea_distributions::wiener::WienerObservation::rt: f64
-impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::wiener::WienerObservation> for alea_distributions::latent::LatentObservationModel
-pub fn alea_distributions::latent::LatentObservationModel::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::wiener::WienerObservation) -> f64
-impl core::clone::Clone for alea_distributions::wiener::WienerObservation
-pub fn alea_distributions::wiener::WienerObservation::clone(&self) -> alea_distributions::wiener::WienerObservation
-impl core::cmp::PartialEq for alea_distributions::wiener::WienerObservation
-pub fn alea_distributions::wiener::WienerObservation::eq(&self, other: &alea_distributions::wiener::WienerObservation) -> bool
-impl core::fmt::Debug for alea_distributions::wiener::WienerObservation
-pub fn alea_distributions::wiener::WienerObservation::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::iter::traits::collect::FromIterator<alea_distributions::wiener::WienerObservation> for alea_distributions::wiener::WienerObservations
-pub fn alea_distributions::wiener::WienerObservations::from_iter<T: core::iter::traits::collect::IntoIterator<Item = alea_distributions::wiener::WienerObservation>>(iter: T) -> Self
-impl core::marker::Copy for alea_distributions::wiener::WienerObservation
-impl core::marker::StructuralPartialEq for alea_distributions::wiener::WienerObservation
-impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::wiener::WienerObservation> for alea_distributions::latent::ObservationLayer<M> where M: alea_distributions::latent::LatentParameterMap<Context, Latent>
-pub fn alea_distributions::latent::ObservationLayer<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::wiener::WienerObservation) -> f64
+impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentObservationModel
+pub fn alea_distributions::latent::LatentObservationModel::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation) -> f64
+impl core::clone::Clone for alea_distributions::prelude::WienerObservation
+pub fn alea_distributions::prelude::WienerObservation::clone(&self) -> alea_distributions::prelude::WienerObservation
+impl core::cmp::PartialEq for alea_distributions::prelude::WienerObservation
+pub fn alea_distributions::prelude::WienerObservation::eq(&self, other: &alea_distributions::prelude::WienerObservation) -> bool
+impl core::fmt::Debug for alea_distributions::prelude::WienerObservation
+pub fn alea_distributions::prelude::WienerObservation::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::iter::traits::collect::FromIterator<alea_distributions::prelude::WienerObservation> for alea_distributions::prelude::WienerObservations
+pub fn alea_distributions::prelude::WienerObservations::from_iter<T: core::iter::traits::collect::IntoIterator<Item = alea_distributions::prelude::WienerObservation>>(iter: T) -> Self
+impl core::marker::Copy for alea_distributions::prelude::WienerObservation
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::WienerObservation
+impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::ObservationLayer<M> where M: alea_distributions::latent::LatentParameterMap<Context, Latent>
+pub fn alea_distributions::latent::ObservationLayer<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation) -> f64
 pub struct alea_distributions::wiener::WienerObservations
-impl alea_distributions::wiener::WienerObservations
-pub fn alea_distributions::wiener::WienerObservations::batch_strategy(&self) -> alea_distributions::wiener::BatchStrategy
-pub fn alea_distributions::wiener::WienerObservations::is_empty(&self) -> bool
-pub fn alea_distributions::wiener::WienerObservations::len(&self) -> usize
-pub fn alea_distributions::wiener::WienerObservations::lower_rt(&self) -> &[f64]
-pub fn alea_distributions::wiener::WienerObservations::new(upper_rt: alea_math::buffer::OwnedBuffer<f64>, lower_rt: alea_math::buffer::OwnedBuffer<f64>) -> Self
-pub fn alea_distributions::wiener::WienerObservations::upper_rt(&self) -> &[f64]
-pub fn alea_distributions::wiener::WienerObservations::with_batch_strategy(self, batch_strategy: alea_distributions::wiener::BatchStrategy) -> Self
-impl core::convert::From<alloc::vec::Vec<alea_distributions::wiener::WienerObservation>> for alea_distributions::wiener::WienerObservations
-pub fn alea_distributions::wiener::WienerObservations::from(observations: alloc::vec::Vec<alea_distributions::wiener::WienerObservation>) -> Self
-impl core::fmt::Debug for alea_distributions::wiener::WienerObservations
-pub fn alea_distributions::wiener::WienerObservations::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::iter::traits::collect::FromIterator<alea_distributions::wiener::WienerObservation> for alea_distributions::wiener::WienerObservations
-pub fn alea_distributions::wiener::WienerObservations::from_iter<T: core::iter::traits::collect::IntoIterator<Item = alea_distributions::wiener::WienerObservation>>(iter: T) -> Self
+impl alea_distributions::prelude::WienerObservations
+pub fn alea_distributions::prelude::WienerObservations::batch_strategy(&self) -> alea_distributions::prelude::BatchStrategy
+pub fn alea_distributions::prelude::WienerObservations::is_empty(&self) -> bool
+pub fn alea_distributions::prelude::WienerObservations::len(&self) -> usize
+pub fn alea_distributions::prelude::WienerObservations::lower_rt(&self) -> &[f64]
+pub fn alea_distributions::prelude::WienerObservations::new(upper_rt: alea_math::buffer::OwnedBuffer<f64>, lower_rt: alea_math::buffer::OwnedBuffer<f64>) -> Self
+pub fn alea_distributions::prelude::WienerObservations::upper_rt(&self) -> &[f64]
+pub fn alea_distributions::prelude::WienerObservations::with_batch_strategy(self, batch_strategy: alea_distributions::prelude::BatchStrategy) -> Self
+impl core::convert::From<alloc::vec::Vec<alea_distributions::prelude::WienerObservation>> for alea_distributions::prelude::WienerObservations
+pub fn alea_distributions::prelude::WienerObservations::from(observations: alloc::vec::Vec<alea_distributions::prelude::WienerObservation>) -> Self
+impl core::fmt::Debug for alea_distributions::prelude::WienerObservations
+pub fn alea_distributions::prelude::WienerObservations::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::iter::traits::collect::FromIterator<alea_distributions::prelude::WienerObservation> for alea_distributions::prelude::WienerObservations
+pub fn alea_distributions::prelude::WienerObservations::from_iter<T: core::iter::traits::collect::IntoIterator<Item = alea_distributions::prelude::WienerObservation>>(iter: T) -> Self
 pub struct alea_distributions::wiener::WienerOptions
 pub alea_distributions::wiener::WienerOptions::inner_precision: core::option::Option<f64>
 pub alea_distributions::wiener::WienerOptions::precision: f64
-pub alea_distributions::wiener::WienerOptions::quadrature: alea_distributions::wiener::Quadrature
-impl alea_distributions::wiener::WienerOptions
-pub fn alea_distributions::wiener::WienerOptions::new(precision: f64) -> Self
-pub fn alea_distributions::wiener::WienerOptions::with_inner_precision(self, inner_precision: f64) -> Self
-pub fn alea_distributions::wiener::WienerOptions::with_quadrature(self, quadrature: alea_distributions::wiener::Quadrature) -> Self
-impl core::clone::Clone for alea_distributions::wiener::WienerOptions
-pub fn alea_distributions::wiener::WienerOptions::clone(&self) -> alea_distributions::wiener::WienerOptions
-impl core::cmp::PartialEq for alea_distributions::wiener::WienerOptions
-pub fn alea_distributions::wiener::WienerOptions::eq(&self, other: &alea_distributions::wiener::WienerOptions) -> bool
-impl core::default::Default for alea_distributions::wiener::WienerOptions
-pub fn alea_distributions::wiener::WienerOptions::default() -> Self
-impl core::fmt::Debug for alea_distributions::wiener::WienerOptions
-pub fn alea_distributions::wiener::WienerOptions::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_distributions::wiener::WienerOptions
-impl core::marker::StructuralPartialEq for alea_distributions::wiener::WienerOptions
+pub alea_distributions::wiener::WienerOptions::quadrature: alea_distributions::prelude::Quadrature
+impl alea_distributions::prelude::WienerOptions
+pub fn alea_distributions::prelude::WienerOptions::new(precision: f64) -> Self
+pub fn alea_distributions::prelude::WienerOptions::with_inner_precision(self, inner_precision: f64) -> Self
+pub fn alea_distributions::prelude::WienerOptions::with_quadrature(self, quadrature: alea_distributions::prelude::Quadrature) -> Self
+impl core::clone::Clone for alea_distributions::prelude::WienerOptions
+pub fn alea_distributions::prelude::WienerOptions::clone(&self) -> alea_distributions::prelude::WienerOptions
+impl core::cmp::PartialEq for alea_distributions::prelude::WienerOptions
+pub fn alea_distributions::prelude::WienerOptions::eq(&self, other: &alea_distributions::prelude::WienerOptions) -> bool
+impl core::default::Default for alea_distributions::prelude::WienerOptions
+pub fn alea_distributions::prelude::WienerOptions::default() -> Self
+impl core::fmt::Debug for alea_distributions::prelude::WienerOptions
+pub fn alea_distributions::prelude::WienerOptions::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::prelude::WienerOptions
+impl core::marker::StructuralPartialEq for alea_distributions::prelude::WienerOptions
 pub struct alea_distributions::wiener::WienerPrimitive
 impl alea_distributions::wiener::WienerPrimitive
-pub fn alea_distributions::wiener::WienerPrimitive::new(observation: alea_distributions::wiener::WienerObservation, tolerance: f64) -> core::result::Result<Self, alea_distributions::wiener::WienerPrimitiveError>
+pub fn alea_distributions::wiener::WienerPrimitive::new(observation: alea_distributions::prelude::WienerObservation, tolerance: f64) -> core::result::Result<Self, alea_distributions::wiener::WienerPrimitiveError>
 impl alea_core::model::primitive::OpaquePrimitive<4> for alea_distributions::wiener::WienerPrimitive
 pub type alea_distributions::wiener::WienerPrimitive::Error = alea_distributions::wiener::WienerPrimitiveError
 pub fn alea_distributions::wiener::WienerPrimitive::value_gradient(&self, input: &[f64; 4]) -> core::result::Result<(f64, [f64; 4]), Self::Error>

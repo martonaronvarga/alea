@@ -18,13 +18,13 @@
     },
     "alea-core": {
       "file": "alea-core.txt",
-      "items": 883,
-      "sha256": "8d165babadf0ac513b1f5d4486f83afc51d3525e923c7cc348da1256991e9f34"
+      "items": 949,
+      "sha256": "3296b48bcc73b453527cbcf0a0157123fe49b5e9eb97e5cc7e99c84487b69970"
     },
     "alea-distributions": {
       "file": "alea-distributions.txt",
-      "items": 963,
-      "sha256": "c921e6c1183ee080b556b9e17918212e6d58c38ef29abe7162368725652a8904"
+      "items": 1304,
+      "sha256": "bbf51c33c341c03ab6726c9808aa683be10583694d3124f78c8eb957eca4b255"
     },
     "alea-ffi": {
       "file": "alea-ffi.txt",
@@ -34,17 +34,17 @@
     "alea-math": {
       "file": "alea-math.txt",
       "items": 637,
-      "sha256": "058e73007713e380426df6f6265de79cbb6cb5e2cb0df20388a35b19d9ac2504"
+      "sha256": "62901697017bbd58f04f9338c902379621aeda396c31aaa9e215ad6d34e3b55b"
     },
     "alea-mcmc": {
       "file": "alea-mcmc.txt",
-      "items": 3679,
-      "sha256": "b2dcf493697eff359fa3712a212cb6aa3aa7798cee8a33f34a615b4f5b337ae5"
+      "items": 3703,
+      "sha256": "904d76e1dd0f2f1a13eb50badabcab6e4e15948b6a7642079fa14904c8db1d45"
     },
     "alea-runtime": {
       "file": "alea-runtime.txt",
-      "items": 788,
-      "sha256": "f14ce40aa430d7227268edc0730939ddf6946c63a442abfd1189b3dfd974c2d1"
+      "items": 841,
+      "sha256": "02e34b84e9c103176e0e37179199b5243c2744ab56350dc4274f635fe5c7145b"
     },
     "alea-smc": {
       "file": "alea-smc.txt",
@@ -93,12 +93,12 @@
     "alea-math+faer": {
       "file": "alea-math+faer.txt",
       "items": 655,
-      "sha256": "cc6d2a29e4af59c9aa20bdc0097d5afee7a7b4c77d8e8aa76a29c2c5daee7e0c"
+      "sha256": "c80ec98ad79c8e21352fce102d56999f68e5f72f6614c00aeebe8e7b97eb9cbe"
     },
     "alea-mcmc+faer": {
       "file": "alea-mcmc+faer.txt",
-      "items": 3684,
-      "sha256": "49901d8473fa67c9c79f64bc1c33e8312c4f50a482df5e67c3f7a65bce292649"
+      "items": 3708,
+      "sha256": "fdb1d63fd7490b0e959f01cf7466b74b82d5e4c2355c9722c74c356379764feb"
     }
   }
 }

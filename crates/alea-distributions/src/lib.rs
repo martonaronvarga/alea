@@ -7,6 +7,8 @@ pub mod latent;
 pub mod mixture;
 pub mod modeling;
 pub mod multivariate;
+/// Common probability laws and Wiener model construction types.
+pub mod prelude;
 pub mod scalar;
 pub mod wiener;
 pub use gaussian::Gaussian;

@@ -2,10 +2,11 @@
 
 Bounded inference sessions, diagnostics and durable output for Alea.
 
-Pre-alpha, unpublished (`publish = false`). The explicit `reference` namespace
-has an [S3 candidate review](https://github.com/martonaronvarga/alea/blob/main/docs/releases/2026-10-25-reference-candidate/README.md).
-Individual implementations retain their validation/research classifications.
-No S4 or crate-wide semver stability promise; research requires explicit imports.
+Version 0.1.0 is being prepared for its first stable publication. Use the owning
+modules or `prelude::*` for common imports. The published release will cover every
+public Rust item and feature with the 0.1.x compatibility promise. Experimental
+methods remain explicitly marked; their numerical limitations and default status
+do not change. Preparation alone is not S4 qualification.
 
 See the [release policy](https://github.com/martonaronvarga/alea/blob/main/docs/releases.md)
 for platform, MSRV, feature and compatibility contracts, and the

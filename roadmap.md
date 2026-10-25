@@ -2,7 +2,7 @@
 
 Status: active, pre-alpha<br>
 Last reviewed: 2026-10-16<br>
-Last milestone update: 2026-10-25 — M17 reference candidate cycle complete; four reference namespaces S3, stable publication open<br>
+Last milestone update: 2026-10-25 — M17 reference candidate cycle complete; frozen candidate reviewed; ordinary modules and preludes, stable publication open<br>
 Last architecture update: 2026-10-16 — maturity/adoption states and per-crate graduation gates<br>
 Scope: architecture, correctness, numerical validation, performance, and implementation order
 
@@ -61,9 +61,10 @@ No Alea crate is S4 today. The strongest baseline components are S2: core target
 and state contracts, transforms, Euclidean metric algebra, fixed HMC/RWMH,
 covariance warmup, multinomial NUTS, independent-chain runtime and modern
 diagnostics. They are validated within their documented scope, but the workspace
-is still `publish = false` and pre-alpha. Four explicit reference namespaces have
-completed the S3 workflow/platform/compatibility cycle; crate-wide stable scope,
-publication and support commitments remain open.
+is still `publish = false` and pre-alpha. The earlier frozen candidate completed
+the S3 workflow/platform/compatibility cycle. Current imports use ordinary modules
+and convenience preludes; crate-wide stable scope, publication and support remain
+open.
 
 Research milestones may close with negative promotion decisions. Their checked
 implementation tasks remain historical evidence; their promotion gates remain
@@ -82,8 +83,8 @@ M15 composes these components into validated sessions with partial typed outcome
 bounded/durable output and frozen-phase replay. M16 adds sealed source-bound
 experiments, calibration and reproducible reports with a negative promotion review.
 Preserve covariance/NUTS as the S2 numerical reference; research samplers retain
-their promotion obligations. The composed reference namespaces now have a
-separate S3 candidate review; none of these milestones establishes S4.
+their promotion obligations. The frozen reference candidate has a
+separate S3 review; none of these milestones establishes S4.
 
 The 2026-10-23 [native parity report](docs/benchmarks/walltime-parity-2026-10-23/README.md)
 records approximately comparable walltime for the explicit fast NUTS profile.
@@ -600,10 +601,11 @@ Delivered:
   [buffer.rs](crates/kernels/src/buffer.rs). Growth initializes elements, shrinking
   drops them, and capacity is reused. Tests cover nontrivial destructors, zero-sized
   and over-aligned elements. There is no extra SIMD alignment guarantee.
-- Wiener4/5 branch buckets now push initialized entries into a capacity-reserved
-  `Vec`; invalid observations never expose uninitialized scratch entries.
-  [Batch regressions](crates/kernels/tests/wiener_batches.rs) compare both strategies.
-  Bucket evaluation still allocates per call; a chain-local workspace is pending.
+- Wiener4/5 branch buckets use initialized aligned scratch with contiguous bucket
+  offsets. Caller-owned workspaces and cached models avoid repeated allocation.
+  [Batch regressions](crates/alea-distributions/tests/wiener_batches.rs) cover
+  equivalence, invalid observations and allocation-free reuse.
+  [Wiener notes](docs/wiener-research-notes.md) record tail fixes and measured costs.
 - Repaired stale state/RNG imports and associated-type bounds across runtime,
   examples, and benchmarks. The Gaussian reference target now has native Rust
   scalar and fused implementations, without the unbuilt CXX Gaussian bridge.
@@ -1457,8 +1459,8 @@ independent workflow passes from all native lanes, actual packages and the signe
 archived source, including 32 retained SBC datasets and exact 64+192 draw recovery.
 The cycle repaired incomplete NUTS checkpoint policy replay, deliberately advancing
 checkpoints to v2 while preserving draw-stream v1. All nine package hashes and the
-source archive match independent CI output. The four reference namespaces qualify
-as S3; implementations and research retain their existing classifications. No
+source archive match independent CI output. That frozen source qualified as an S3 candidate; later pre-alpha APIs may change.
+Implementations and research retain their existing classifications. No
 publication, S4 or numerical-default change is claimed. The ABI stays design-only
 because it has no two real consumers.
 
@@ -1468,7 +1470,7 @@ because it has no two real consumers.
   stable surface; document errors, panics, safety, determinism and resource costs.
 - [x] Run Linux/macOS/Windows and supported-architecture CI, MSRV, stable/nightly
   features, Miri, native FFI sanitizers, fuzz/property suites and operational soaks.
-- [x] Qualify the four explicit reference namespaces as S3 through the signed
+- [x] Qualify the frozen reference candidate through the signed
   candidate, independent downstream calibration/recovery and multi-host observations.
 - [ ] Stabilize pure-Rust core/math/reference-MCMC APIs first; graduate optional
   Enzyme, native FFI and research algorithms on their own evidence schedules.

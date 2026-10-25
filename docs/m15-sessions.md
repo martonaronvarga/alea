@@ -1,6 +1,6 @@
 # Reference inference sessions (M15)
 
-`alea_runtime::reference::{SessionBuilder, Session}` composes the S2 covariance
+`alea_runtime::session::{SessionBuilder, Session}` composes the S2 covariance
 warmup, frozen leapfrog HMC/multinomial NUTS and density-only RWMH components.
 The session layer adds execution and persistence policy; it adds no transition
 map, retained adaptation or convergence guarantee. The API remains pre-release S2.

@@ -40,15 +40,10 @@ const W5_LARGE_K5: u8 = 4;
 const W5_LARGE_K6: u8 = 5;
 const W5_LARGE_OTHER: u8 = 6;
 
-#[derive(Clone, Copy, Debug)]
-struct BucketedWiener5Core {
-    core: Wiener5Core,
-    bucket: u8,
-    k: usize,
-}
+type BucketedWiener5Core = BatchEntry;
 
 #[inline]
-fn push_wiener5_bucket(scratch: &mut Vec<BucketedWiener5Core>, core: Wiener5Core) {
+fn wiener5_bucket(core: Wiener5Core) -> BatchEntry {
     let base = core.base;
     let ks_density = Wiener4::k_s(base.t_prime, base.w_eff, base.log_eps_eff);
     let kl_density = Wiener4::k_l(base.t_prime, base.log_eps_eff);
@@ -68,7 +63,7 @@ fn push_wiener5_bucket(scratch: &mut Vec<BucketedWiener5Core>, core: Wiener5Core
         }
     };
 
-    scratch.push(BucketedWiener5Core { core, bucket, k });
+    BatchEntry { core, bucket, k }
 }
 
 #[inline]
@@ -76,11 +71,11 @@ fn add_wiener5_scratch_bucket(
     total_lp: &mut f64,
     grad: &mut [f64; 5],
     scratch: &[BucketedWiener5Core],
-    bucket: u8,
+    _bucket: u8,
     branch: SeriesBranch,
     fixed_k: Option<usize>,
 ) {
-    for entry in scratch.iter().filter(|entry| entry.bucket == bucket) {
+    for entry in scratch.iter() {
         let k = fixed_k.unwrap_or(entry.k);
         add_wiener5_eval(
             total_lp,
@@ -410,6 +405,17 @@ impl WienerModel<Wiener5, Vec<WienerObservation>> {
 
 impl WienerModel<Wiener5, WienerObservations> {
     pub fn batch_value_gradient(&self, p: &Wiener5Params, grad: &mut [f64; 5]) -> f64 {
+        self.batch_value_gradient_with_workspace(p, grad, &mut WienerBatchWorkspace::default())
+    }
+
+    /// Evaluate using caller-owned scratch. Direct evaluation never allocates;
+    /// branch bucketing allocates only when the workspace must grow.
+    pub fn batch_value_gradient_with_workspace(
+        &self,
+        p: &Wiener5Params,
+        grad: &mut [f64; 5],
+        workspace: &mut WienerBatchWorkspace,
+    ) -> f64 {
         let eps = 1e-12;
         if p.s_delta == 0.0 {
             let mut total_lp = 0.0;
@@ -447,27 +453,27 @@ impl WienerModel<Wiener5, WienerObservations> {
             return total_lp;
         }
 
-        let mut failed = false;
-        let mut scratch = Vec::<BucketedWiener5Core>::with_capacity(self.data.len());
-
-        for (&rt, boundary) in self
-            .data
-            .upper_rt()
-            .iter()
-            .map(|rt| (rt, Boundary::Upper))
-            .chain(self.data.lower_rt().iter().map(|rt| (rt, Boundary::Lower)))
-        {
-            match Wiener5.core_from_parts(rt, boundary, p, eps) {
-                Ok(core) => push_wiener5_bucket(&mut scratch, core),
-                Err(_) => failed = true,
-            }
+        let upper = self.data.upper_rt();
+        let lower = self.data.lower_rt();
+        let entries = (0..upper.len() + lower.len()).map(|i| {
+            let (rt, boundary) = if i < upper.len() {
+                (upper[i], Boundary::Upper)
+            } else {
+                (lower[i - upper.len()], Boundary::Lower)
+            };
+            Wiener5
+                .core_from_parts(rt, boundary, p, eps)
+                .map(wiener5_bucket)
+        });
+        if !workspace.prepare(entries) {
+            grad.fill(f64::NAN);
+            return f64::NEG_INFINITY;
         }
-        let scratch = scratch.as_slice();
 
         add_wiener5_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W5_SMALL_K2),
             W5_SMALL_K2,
             SeriesBranch::SmallTime,
             Some(2),
@@ -475,7 +481,7 @@ impl WienerModel<Wiener5, WienerObservations> {
         add_wiener5_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W5_SMALL_K3),
             W5_SMALL_K3,
             SeriesBranch::SmallTime,
             Some(3),
@@ -483,7 +489,7 @@ impl WienerModel<Wiener5, WienerObservations> {
         add_wiener5_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W5_SMALL_OTHER),
             W5_SMALL_OTHER,
             SeriesBranch::SmallTime,
             None,
@@ -491,7 +497,7 @@ impl WienerModel<Wiener5, WienerObservations> {
         add_wiener5_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W5_LARGE_K4),
             W5_LARGE_K4,
             SeriesBranch::LargeTime,
             Some(4),
@@ -499,7 +505,7 @@ impl WienerModel<Wiener5, WienerObservations> {
         add_wiener5_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W5_LARGE_K5),
             W5_LARGE_K5,
             SeriesBranch::LargeTime,
             Some(5),
@@ -507,7 +513,7 @@ impl WienerModel<Wiener5, WienerObservations> {
         add_wiener5_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W5_LARGE_K6),
             W5_LARGE_K6,
             SeriesBranch::LargeTime,
             Some(6),
@@ -515,17 +521,12 @@ impl WienerModel<Wiener5, WienerObservations> {
         add_wiener5_scratch_bucket(
             &mut total_lp,
             grad,
-            scratch,
+            workspace.bucket(W5_LARGE_OTHER),
             W5_LARGE_OTHER,
             SeriesBranch::LargeTime,
             None,
         );
 
-        if unlikely(failed) {
-            grad.fill(f64::NAN);
-            f64::NEG_INFINITY
-        } else {
-            total_lp
-        }
+        total_lp
     }
 }

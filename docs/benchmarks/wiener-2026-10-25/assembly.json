@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "features": [
+    "simd",
+    "branch-hints"
+  ],
+  "target_cpu": "generic x86_64",
+  "rustc": "rustc 1.97.0-nightly (7af3402cd 2026-04-16)\nbinary: rustc\ncommit-hash: 7af3402cda75aaead39f72516fd6cbb2f3ee0dbd\ncommit-date: 2026-04-16\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.0-nightly\nLLVM version: 22.1.2",
+  "command": "cargo rustc --manifest-path crates/Cargo.toml --locked --release -p alea-distributions --features simd,branch-hints --lib -- --emit=asm",
+  "assembly_path": "/home/usu/documents/dev/alea-wiener-evidence/2026-10-25-assembly/alea-distributions.s",
+  "assembly_sha256": "de115f8f9dc9b0b0a31d651f905031db53d8295f17fdd26c5e619009570283c5",
+  "vector_transcendental_symbols": [],
+  "mixed_functions": [
+    {
+      "symbol": "_RNvNtNtCshOltXQotBsX_18alea_distributions6wiener7wiener426add_wiener4_scratch_bucket",
+      "packed_multiply_instructions": 48,
+      "scalar_exp_references": 1,
+      "scalar_log_references": 1
+    }
+  ],
+  "conclusion": "Packed arithmetic and scalar libm exp/log references occur together. No vector transcendental symbol is present; no new SIMD transcendental speedup is claimed."
+}

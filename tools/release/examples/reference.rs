@@ -1,9 +1,9 @@
 //! A fresh project's complete analytic-target workflow, with no native backend.
-use alea_core::reference::LogDensityGradient;
-use alea_mcmc::reference::{MetricKind, NutsOptions};
+use alea_core::target::LogDensityGradient;
+use alea_mcmc::{adapt::MetricKind, NutsOptions};
 use alea_runtime::{
     ensemble::Execution,
-    reference::SessionBuilder,
+    session::SessionBuilder,
     session::{Kernel, Status, Warmup, storage::Discard},
 };
 use std::convert::Infallible;

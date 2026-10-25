@@ -9,7 +9,7 @@ use alea_core::{
 use alea_mcmc::{NutsOptions, adapt::MetricKind};
 use alea_runtime::{
     ensemble::Execution,
-    reference::SessionBuilder,
+    session::SessionBuilder,
     session::{
         Checkpoint, Kernel, Status, Warmup,
         storage::{DrawReader, DurableSink, Observer},

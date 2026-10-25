@@ -1,4 +1,4 @@
-use alea_mcmc::reference::NutsTermination;
+use alea_mcmc::prelude::NutsTermination;
 
 fn classify(termination: NutsTermination) -> usize {
     match termination {

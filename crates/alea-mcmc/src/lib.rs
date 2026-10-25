@@ -2,22 +2,30 @@
 #![cfg_attr(feature = "simd", feature(portable_simd))]
 #![forbid(unsafe_code)]
 pub mod adapt;
+/// Experimental advanced integrators and joint tuning. See the module documentation and maturity ledger.
 pub mod advanced;
 mod atlas;
+/// Experimental Atlas proposals. See the module documentation and maturity ledger.
 pub mod atlas_sampler;
+/// Experimental batched Hamiltonian integration. See the module documentation and maturity ledger.
 pub mod batch;
 mod canonical;
+/// Experimental shared ChEES adaptation. See the module documentation and maturity ledger.
 pub mod chees;
 pub mod config;
+/// Experimental persistent and delayed-rejection dynamics. See the module documentation and maturity ledger.
 pub mod ghmc;
 pub mod hamiltonian;
 pub mod hmc;
 pub mod integrator;
+/// Experimental isokinetic dynamics; MCLMC is explicitly approximate. See the module documentation and maturity ledger.
 pub mod mams;
 pub mod nuts;
+/// Experimental manifold dynamics; RMHMC exactness remains pending. See the module documentation and maturity ledger.
 pub mod riemannian;
 pub mod rwmh;
 mod trajectory_weight;
+/// Experimental locally refined WALNUTS transitions. See the module documentation and maturity ledger.
 pub mod walnuts;
 pub use alea_core::target::LogDensityGradient;
 pub use hmc::{Hmc, HmcOptions, HmcTransition};
@@ -57,29 +65,9 @@ pub mod approximate {
     };
 }
 
-/// Validated exact-target kernels and finite warmup used by the reference path.
+/// Common imports for ordinary Alea workflows.
 ///
-/// This namespace is intentionally narrower than the crate root. In particular it
-/// excludes Fisher fitting, WALNUTS policy, learned geometry, alternative dynamics,
-/// approximate MCLMC, advanced integration, and Riemannian research. The aliases
-/// share the existing implementations and carry no separate numerical behavior.
-pub mod reference {
-    pub use crate::MarkovChain;
-    pub use crate::adapt::{
-        AdaptationError, ControlledHmcWarmupResult, CovarianceError, DualAveraging, HmcWarmup,
-        HmcWarmupReport, HmcWarmupResult, MetricKind, OnlineCovariance, SearchOptions,
-        SearchResult, WarmupConfigError, WarmupError, WarmupMetric, WarmupOptions, WarmupStage,
-        WarmupSummary, WindowSchedule, find_reasonable_step_size, warmup_rwmh,
-    };
-    pub use crate::adapt::{
-        ControlledNutsWarmupResult, NutsWarmup, NutsWarmupError, NutsWarmupObservation,
-        NutsWarmupReport, NutsWarmupResult, find_reasonable_nuts_step_size,
-    };
-    pub use crate::config::{AcceptanceTarget, SamplerConfigError, TreeDepth};
-    pub use crate::hamiltonian::Divergence;
-    pub use crate::hmc::{Hmc, HmcConfigError, HmcError, HmcOptions, HmcTransition, StepSize};
-    pub use crate::nuts::{
-        Nuts, NutsConfigError, NutsError, NutsOptions, NutsTermination, NutsTransition,
-    };
-    pub use crate::rwmh::{NumericalRejection, Rwmh, RwmhError, RwmhOptions, RwmhTransition};
-}
+/// This is a convenience prelude, not a release or stability boundary. The
+/// original owning modules remain available. Experimental methods require
+/// explicit imports from their documented modules.
+pub mod prelude;

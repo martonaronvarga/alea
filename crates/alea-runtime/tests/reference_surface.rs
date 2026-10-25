@@ -1,15 +1,15 @@
-use alea_core::reference::{EvaluationWorkspace, LogDensityGradient, Transform};
+use alea_core::prelude::{EvaluationWorkspace, LogDensityGradient, Transform};
 use alea_distributions::Gaussian;
-use alea_math::reference::{EuclideanMetric, IdentityMetric, OwnedBuffer};
-use alea_mcmc::reference::{
+use alea_math::prelude::{EuclideanMetric, IdentityMetric, OwnedBuffer};
+use alea_mcmc::prelude::{
     Hmc, HmcOptions, HmcWarmup, MarkovChain, Nuts, Rwmh, RwmhOptions, TreeDepth, WarmupOptions,
 };
-use alea_runtime::reference::{collect_draws, run_chain};
+use alea_runtime::prelude::{collect_draws, run_chain};
 use rand::{SeedableRng, rngs::SmallRng};
 use std::ops::ControlFlow;
 
 #[test]
-fn reference_namespaces_form_an_end_to_end_inference_path() -> Result<(), Box<dyn std::error::Error>>
+fn convenience_preludes_form_an_end_to_end_inference_path() -> Result<(), Box<dyn std::error::Error>>
 {
     let target = Gaussian::new(2);
     let mut gradient = [0.0; 2];

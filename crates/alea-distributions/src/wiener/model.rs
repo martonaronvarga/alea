@@ -26,7 +26,60 @@ pub enum WienerModelError {
     Dimension,
     #[error("Wiener value or gradient is non-finite")]
     NonFinite,
+    #[error("Wiener batch workspace is already borrowed")]
+    WorkspaceBusy,
 }
+
+/// A Wiener4/5 model with reusable branch-bucket scratch.
+///
+/// The scratch is chain-local: this model is `Send` when its family is `Send`,
+/// and is not `Sync`. Construct one per chain. No allocation occurs during a
+/// valid evaluation after construction. Direct evaluation remains the default.
+#[derive(Debug)]
+pub struct WienerBatchModel<F> {
+    model: WienerModel<F, WienerObservations>,
+    workspace: std::cell::RefCell<super::WienerBatchWorkspace>,
+}
+
+macro_rules! cached_model {
+    ($family:ty, $params:ty, $dim:literal) => {
+        impl WienerModel<$family, WienerObservations> {
+            /// Retain scratch with the model for repeated likelihood evaluations.
+            pub fn with_workspace(self) -> WienerBatchModel<$family> {
+                let workspace = super::WienerBatchWorkspace::new(self.data.len());
+                WienerBatchModel {
+                    model: self,
+                    workspace: std::cell::RefCell::new(workspace),
+                }
+            }
+        }
+        impl ConstrainedModel for WienerBatchModel<$family> {
+            type Error = WienerModelError;
+            fn dimension(&self) -> usize {
+                $dim
+            }
+            fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
+                let q: [f64; $dim] = q.try_into().map_err(|_| WienerModelError::Dimension)?;
+                let g: &mut [f64; $dim] = g.try_into().map_err(|_| WienerModelError::Dimension)?;
+                let mut workspace = self
+                    .workspace
+                    .try_borrow_mut()
+                    .map_err(|_| WienerModelError::WorkspaceBusy)?;
+                let value = self.model.batch_value_gradient_with_workspace(
+                    &<$params>::from_array(q),
+                    g,
+                    &mut workspace,
+                );
+                if !value.is_finite() || g.iter().any(|x| !x.is_finite()) {
+                    return Err(WienerModelError::NonFinite);
+                }
+                Ok(value)
+            }
+        }
+    };
+}
+cached_model!(Wiener4, Wiener4Params, 4);
+cached_model!(Wiener5, Wiener5Params, 5);
 
 impl ConstrainedModel for WienerModel<Wiener4, Vec<WienerObservation>> {
     type Error = WienerModelError;

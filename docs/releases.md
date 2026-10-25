@@ -1,12 +1,18 @@
 # Release and compatibility policy
 
-Alea is pre-alpha and every crate remains unpublished. The
-[2026-10-25 reference review](releases/2026-10-25-reference-candidate/README.md)
-completes the first candidate cycle for the four explicit core/math/MCMC/runtime
-`reference` namespaces (S3). Numerical implementations retain S2 validation and
-research retains its separate status. No crate is S4. The
-[maturity policy](maturity-and-promotion.md) and machine-readable public API
-inventory continue to own component status.
+Alea's first stable release is being prepared as **0.1.0** for `alea-math`,
+`alea-core`, `alea-mcmc` and `alea-runtime`. The [release review](releases/0.1.0/README.md)
+records its exact candidate and outstanding gates. Preparation is not publication:
+all registry guards remain closed until the signed candidate has passed its review.
+S4 starts only when the reviewed signed artifacts are published. No crate has
+completed that step yet.
+
+The [previous candidate](releases/2026-10-25-reference-candidate/README.md) is
+historical evidence for its frozen revision. The current ordinary-module/prelude
+API deliberately breaks that unpublished revision. There are no compatibility
+aliases. The first published artifact establishes the compatibility baseline.
+Release qualification belongs to a crate/artifact review; the
+[maturity policy](maturity-and-promotion.md) separately records numerical evidence.
 
 ## Independent release units
 
@@ -18,23 +24,50 @@ texts and third-party notices. Metadata and actual archive checks enforce this.
 
 | Crate | First intended release scope | Present release constraints |
 |---|---|---|
-| `alea-math` | Initialized aligned buffers; identity, diagonal and dense Euclidean metrics | Reference namespace S3; crate-wide stable compatibility and publication remain open |
-| `alea-core` | Checked density/score, coherent point caches, transforms and layouts | Reference namespace S3; model assembly and higher-order capabilities graduate separately |
-| `alea-mcmc` | Fixed HMC/RWMH, multinomial NUTS, explicit covariance warmup | Reference namespace S3; named research modules retain their maturity and exactness limits |
-| `alea-runtime` | Reference sessions, deterministic logical chain identity, bounded output and diagnostics | Reference namespace S3; reviewed checkpoint v2/draw-stream v1 scope, no cross-build replay promise |
+| `alea-math` | Initialized aligned buffers; identity, diagonal and dense Euclidean metrics | Prior candidate reviewed; crate-wide stable compatibility and publication remain open |
+| `alea-core` | Checked density/score, coherent point caches, transforms and layouts | Prior candidate reviewed; model assembly and higher-order capabilities graduate separately |
+| `alea-mcmc` | Fixed HMC/RWMH, multinomial NUTS, explicit covariance warmup | Prior candidate reviewed; named research modules retain their maturity and exactness limits |
+| `alea-runtime` | Reference sessions, deterministic logical chain identity, bounded output and diagnostics | Prior candidate reviewed; reviewed checkpoint v2/draw-stream v1 scope, no cross-build replay promise |
 | `alea-distributions` | Individually validated normalized laws and models | GPL native dependency; candidate evidence pending |
 | `alea-autodiff` | Analytic adapters and explicitly enabled Enzyme | Compiler/plugin pins and derivative orders graduate independently |
 | `alea-ffi` | Audited synchronous cubature | Vendored GPL-2.0-or-later sources, native toolchain and sanitizer evidence |
 | `alea-smc` | No stable surface proposed | Contracts only; filters and PMCMC are not implemented |
 | `alea-cli` | No stable inference CLI proposed | Experiment commands do not define a stable user workflow or schema |
 
-Use explicit `reference` imports in core/math/MCMC/runtime. Cargo defaults enable
-no research feature. Research algorithms require named imports, and approximate
-or exactness-pending algorithms retain their explicit type names. A crate's first
-stable release must either place experimental APIs behind a clearly documented
-unstable feature with a compatibility exclusion, or include them in its semver
-promise. The present namespace split alone does not establish a Rust semver
-exception. No research export is being frozen by this preparation milestone.
+Use normal owning modules or each crate's curated `prelude`. Cargo defaults enable
+no research feature. Research algorithms require named imports; approximate and
+exactness-pending algorithms retain their explicit type names.
+
+For the four release crates, the compatibility promise covers **every public item
+and Cargo feature**, including experimental APIs. An experimental label describes
+numerical evidence and intended use; it is not permission to break a public Rust
+API within a compatible release. No unstable feature, release namespace or hidden
+compatibility alias is introduced. Research numerical maturity and default choices
+remain unchanged. Optional nightly/native backends retain their documented
+compiler and system requirements, independently of Rust API compatibility.
+
+### Compatibility and maintenance window
+
+The first published 0.1.0 artifact starts the baseline. Versions 0.1.x preserve
+source compatibility, documented trait laws, errors, feature names and the declared
+MSRV. A breaking change requires 0.2.0 or a later incompatible release, migration
+notes, and an explicit API/semver review. The former unpublished reference paths
+are outside this baseline. API snapshots inventory the full public surface;
+`cargo-semver-checks` compares later releases with the published source, not with
+the candidate itself.
+
+Maintain the current compatible release line and its predecessor with correctness
+and security fixes for at least 12 months after the successor's publication.
+Deprecations stay usable for at least two minor releases and 90 days; removals
+require an incompatible version. If an urgent soundness/security repair cannot
+preserve behavior, publish the advisory and the smallest necessary correction,
+and document its compatibility impact. Numerical bug fixes may change results;
+bitwise identity is only promised under the replay conditions below.
+
+After 1.0, incompatible API removals require a major version. This policy does not
+make unchecked research methods exact or turn S0/S1 mechanisms into validated
+algorithms. Report security issues through [SECURITY.md](../SECURITY.md); ordinary
+bugs use the issue tracker with version, features, platform and a reproducer.
 
 ## Compiler, features and platforms
 
@@ -185,7 +218,12 @@ The command verifies package contents and consumption, not registry publication.
    against an independently retained accepted source baseline. The wrapper calls
    [cargo-semver-checks](https://github.com/obi1kenobi/cargo-semver-checks) for every
    reference crate. First-candidate bootstrap needs an explicit reviewed baseline;
-   comparing the candidate with itself is not compatibility evidence.
+   comparing the candidate with itself is not compatibility evidence. For the
+   initial unpublished-to-0.1.0 transition only, pass `--initial`: the wrapper
+   verifies the actual old API snapshots against the digest-bound breaking review
+   and reports no semver compatibility claim. Workflow dispatch exposes this as
+   `initial_release`; the first `v0.1.0` tag uses that mode explicitly. Future
+   releases use the independently retained published baseline and real semver checks.
 4. Reproduce the fresh-project workflow from the archived source, verify package
    contents and make two matching source archives. Sign the accepted artifact.
 5. Record candidate source digest, per-crate API/feature/schema scope, successful
@@ -203,13 +241,10 @@ native FFI and Enzyme components can remain pre-alpha while the reference surfac
 progresses. Benchmark superiority is not a release gate; practical reliability and
 descriptive performance evidence are sufficient for baseline assessment.
 
-For a future 1.x reference release, semver covers every public item unless an
-explicitly named unstable feature excludes it. Maintain the current stable minor
-and its predecessor with correctness/security fixes for at least 12 months after
-the successor's release. Deprecations remain usable for at least two minor
-releases and 90 days, and removals require a major version. Breaking checkpoint or
-draw-stream changes require a new schema version and a migration reader or
-explicit typed rejection; never reinterpret old bytes under a new meaning.
+Breaking checkpoint or draw-stream changes require a new schema version and a
+migration reader or explicit typed rejection; never reinterpret old bytes under a
+new meaning. Current checkpoints use `ALEACP02`, `session/2`, and `numerics/3`;
+draw streams and owned records use schema 1. Cross-build replay remains unclaimed.
 
 ## Compiled-target ABI
 

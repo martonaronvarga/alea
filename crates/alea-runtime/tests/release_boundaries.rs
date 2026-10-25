@@ -1,6 +1,6 @@
 //! Release input-fuzzing and operational soak boundaries, independent of moments.
 use alea_core::density::LogDensity;
-use alea_mcmc::reference::RwmhOptions;
+use alea_mcmc::prelude::RwmhOptions;
 use alea_runtime::{
     ensemble::Execution,
     session::{

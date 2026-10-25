@@ -339,10 +339,10 @@ impl alea_runtime::output::DiagnosticTransition for alea_mcmc::walnuts::WalnutsT
 pub fn alea_mcmc::walnuts::WalnutsTransition::diagnostic_stats(&self) -> alea_runtime::output::TransitionStats
 impl alea_runtime::output::DiagnosticTransition for alea_runtime::output::TransitionStats
 pub fn alea_runtime::output::TransitionStats::diagnostic_stats(&self) -> alea_runtime::output::TransitionStats
-pub mod alea_runtime::reference
-#[non_exhaustive] pub enum alea_runtime::reference::DiagnosticError
-pub alea_runtime::reference::DiagnosticError::InvalidDraws
-pub alea_runtime::reference::DiagnosticError::Shape
+pub mod alea_runtime::prelude
+#[non_exhaustive] pub enum alea_runtime::prelude::DiagnosticError
+pub alea_runtime::prelude::DiagnosticError::InvalidDraws
+pub alea_runtime::prelude::DiagnosticError::Shape
 impl core::clone::Clone for alea_runtime::diagnostics::DiagnosticError
 pub fn alea_runtime::diagnostics::DiagnosticError::clone(&self) -> alea_runtime::diagnostics::DiagnosticError
 impl core::cmp::Eq for alea_runtime::diagnostics::DiagnosticError
@@ -355,22 +355,40 @@ impl core::fmt::Display for alea_runtime::diagnostics::DiagnosticError
 pub fn alea_runtime::diagnostics::DiagnosticError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_runtime::diagnostics::DiagnosticError
 impl core::marker::StructuralPartialEq for alea_runtime::diagnostics::DiagnosticError
-#[non_exhaustive] pub enum alea_runtime::reference::DrawError<E: core::error::Error + 'static>
-pub alea_runtime::reference::DrawError::Chain(E)
-pub alea_runtime::reference::DrawError::Dimension
-pub alea_runtime::reference::DrawError::Dimension::actual: usize
-pub alea_runtime::reference::DrawError::Dimension::expected: usize
-pub alea_runtime::reference::DrawError::Size
+#[non_exhaustive] pub enum alea_runtime::prelude::DrawError<E: core::error::Error + 'static>
+pub alea_runtime::prelude::DrawError::Chain(E)
+pub alea_runtime::prelude::DrawError::Dimension
+pub alea_runtime::prelude::DrawError::Dimension::actual: usize
+pub alea_runtime::prelude::DrawError::Dimension::expected: usize
+pub alea_runtime::prelude::DrawError::Size
 impl<E: core::fmt::Debug + core::error::Error + 'static> core::fmt::Debug for alea_runtime::draws::DrawError<E>
 pub fn alea_runtime::draws::DrawError<E>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl<E> core::error::Error for alea_runtime::draws::DrawError<E> where E: core::error::Error + 'static + core::error::Error, Self: core::fmt::Debug + core::fmt::Display
 pub fn alea_runtime::draws::DrawError<E>::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
 impl<E> core::fmt::Display for alea_runtime::draws::DrawError<E> where E: core::fmt::Display + core::error::Error + 'static
 pub fn alea_runtime::draws::DrawError<E>::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-#[non_exhaustive] pub enum alea_runtime::reference::ModernDiagnosticError
-pub alea_runtime::reference::ModernDiagnosticError::Nonfinite
-pub alea_runtime::reference::ModernDiagnosticError::Shape
-pub alea_runtime::reference::ModernDiagnosticError::Undefined
+pub enum alea_runtime::prelude::Execution<'a>
+pub alea_runtime::prelude::Execution::Parallel(&'a rayon_core::thread_pool::ThreadPool)
+pub alea_runtime::prelude::Execution::Sequential
+impl<'a> core::clone::Clone for alea_runtime::ensemble::Execution<'a>
+pub fn alea_runtime::ensemble::Execution<'a>::clone(&self) -> alea_runtime::ensemble::Execution<'a>
+impl<'a> core::marker::Copy for alea_runtime::ensemble::Execution<'a>
+#[non_exhaustive] pub enum alea_runtime::prelude::Kernel
+pub alea_runtime::prelude::Kernel::Hmc(alea_mcmc::hmc::HmcOptions)
+pub alea_runtime::prelude::Kernel::Nuts(alea_mcmc::nuts::NutsOptions)
+pub alea_runtime::prelude::Kernel::Rwmh(alea_mcmc::rwmh::RwmhOptions)
+impl core::clone::Clone for alea_runtime::session::Kernel
+pub fn alea_runtime::session::Kernel::clone(&self) -> alea_runtime::session::Kernel
+impl core::cmp::PartialEq for alea_runtime::session::Kernel
+pub fn alea_runtime::session::Kernel::eq(&self, other: &alea_runtime::session::Kernel) -> bool
+impl core::fmt::Debug for alea_runtime::session::Kernel
+pub fn alea_runtime::session::Kernel::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_runtime::session::Kernel
+impl core::marker::StructuralPartialEq for alea_runtime::session::Kernel
+#[non_exhaustive] pub enum alea_runtime::prelude::ModernDiagnosticError
+pub alea_runtime::prelude::ModernDiagnosticError::Nonfinite
+pub alea_runtime::prelude::ModernDiagnosticError::Shape
+pub alea_runtime::prelude::ModernDiagnosticError::Undefined
 impl core::clone::Clone for alea_runtime::diagnostics::modern::Error
 pub fn alea_runtime::diagnostics::modern::Error::clone(&self) -> alea_runtime::diagnostics::modern::Error
 impl core::cmp::Eq for alea_runtime::diagnostics::modern::Error
@@ -383,7 +401,42 @@ impl core::fmt::Display for alea_runtime::diagnostics::modern::Error
 pub fn alea_runtime::diagnostics::modern::Error::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_runtime::diagnostics::modern::Error
 impl core::marker::StructuralPartialEq for alea_runtime::diagnostics::modern::Error
-pub struct alea_runtime::reference::Draws
+#[non_exhaustive] pub enum alea_runtime::prelude::Status
+pub alea_runtime::prelude::Status::BackendFailure
+pub alea_runtime::prelude::Status::Cancelled
+pub alea_runtime::prelude::Status::DiagnosticWarning
+pub alea_runtime::prelude::Status::NumericalExhaustion
+pub alea_runtime::prelude::Status::Success
+impl core::clone::Clone for alea_runtime::session::Status
+pub fn alea_runtime::session::Status::clone(&self) -> alea_runtime::session::Status
+impl core::cmp::Eq for alea_runtime::session::Status
+impl core::cmp::PartialEq for alea_runtime::session::Status
+pub fn alea_runtime::session::Status::eq(&self, other: &alea_runtime::session::Status) -> bool
+impl core::fmt::Debug for alea_runtime::session::Status
+pub fn alea_runtime::session::Status::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_runtime::session::Status
+impl core::marker::StructuralPartialEq for alea_runtime::session::Status
+#[non_exhaustive] pub enum alea_runtime::prelude::Warmup
+pub alea_runtime::prelude::Warmup::Covariance
+pub alea_runtime::prelude::Warmup::Covariance::iterations: usize
+pub alea_runtime::prelude::Warmup::Covariance::metric: alea_mcmc::adapt::covariance::MetricKind
+pub alea_runtime::prelude::Warmup::Covariance::search: core::option::Option<alea_mcmc::adapt::window::SearchOptions>
+pub alea_runtime::prelude::Warmup::Covariance::target: alea_mcmc::config::AcceptanceTarget
+pub alea_runtime::prelude::Warmup::GradientDiagonal
+pub alea_runtime::prelude::Warmup::GradientDiagonal::final_restart: bool
+pub alea_runtime::prelude::Warmup::GradientDiagonal::iterations: usize
+pub alea_runtime::prelude::Warmup::GradientDiagonal::search: core::option::Option<alea_mcmc::adapt::window::SearchOptions>
+pub alea_runtime::prelude::Warmup::GradientDiagonal::target: alea_mcmc::config::AcceptanceTarget
+pub alea_runtime::prelude::Warmup::None
+pub alea_runtime::prelude::Warmup::RwmhScale
+pub alea_runtime::prelude::Warmup::RwmhScale::iterations: usize
+pub alea_runtime::prelude::Warmup::RwmhScale::target: alea_mcmc::config::AcceptanceTarget
+impl core::clone::Clone for alea_runtime::session::Warmup
+pub fn alea_runtime::session::Warmup::clone(&self) -> alea_runtime::session::Warmup
+impl core::fmt::Debug for alea_runtime::session::Warmup
+pub fn alea_runtime::session::Warmup::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_runtime::session::Warmup
+pub struct alea_runtime::prelude::Draws
 impl alea_runtime::draws::Draws
 pub fn alea_runtime::draws::Draws::as_slice(&self) -> &[f64]
 pub fn alea_runtime::draws::Draws::dimension(&self) -> usize
@@ -397,15 +450,15 @@ pub fn alea_runtime::draws::Draws::eq(&self, other: &alea_runtime::draws::Draws)
 impl core::fmt::Debug for alea_runtime::draws::Draws
 pub fn alea_runtime::draws::Draws::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::StructuralPartialEq for alea_runtime::draws::Draws
-#[non_exhaustive] pub struct alea_runtime::reference::ModernSummary
-pub alea_runtime::reference::ModernSummary::bulk_ess: f64
-pub alea_runtime::reference::ModernSummary::folded_rhat: f64
-pub alea_runtime::reference::ModernSummary::mcse_mean: f64
-pub alea_runtime::reference::ModernSummary::mean: f64
-pub alea_runtime::reference::ModernSummary::mean_ess: f64
-pub alea_runtime::reference::ModernSummary::rank_rhat: f64
-pub alea_runtime::reference::ModernSummary::rhat: f64
-pub alea_runtime::reference::ModernSummary::tail_ess: f64
+#[non_exhaustive] pub struct alea_runtime::prelude::ModernSummary
+pub alea_runtime::prelude::ModernSummary::bulk_ess: f64
+pub alea_runtime::prelude::ModernSummary::folded_rhat: f64
+pub alea_runtime::prelude::ModernSummary::mcse_mean: f64
+pub alea_runtime::prelude::ModernSummary::mean: f64
+pub alea_runtime::prelude::ModernSummary::mean_ess: f64
+pub alea_runtime::prelude::ModernSummary::rank_rhat: f64
+pub alea_runtime::prelude::ModernSummary::rhat: f64
+pub alea_runtime::prelude::ModernSummary::tail_ess: f64
 impl core::clone::Clone for alea_runtime::diagnostics::modern::Summary
 pub fn alea_runtime::diagnostics::modern::Summary::clone(&self) -> alea_runtime::diagnostics::modern::Summary
 impl core::cmp::PartialEq for alea_runtime::diagnostics::modern::Summary
@@ -414,14 +467,14 @@ impl core::fmt::Debug for alea_runtime::diagnostics::modern::Summary
 pub fn alea_runtime::diagnostics::modern::Summary::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_runtime::diagnostics::modern::Summary
 impl core::marker::StructuralPartialEq for alea_runtime::diagnostics::modern::Summary
-pub struct alea_runtime::reference::Session
+pub struct alea_runtime::prelude::Session
 impl alea_runtime::session::Session
 pub fn alea_runtime::session::Session::observables(&self) -> &[alea_runtime::session::Observable]
 pub fn alea_runtime::session::Session::plan(&self) -> alea_runtime::session::RunPlan
 pub fn alea_runtime::session::Session::provenance(&self) -> &alea_runtime::session::Provenance
 pub fn alea_runtime::session::Session::run<T, F, E, S>(&self, factory: F, execution: alea_runtime::ensemble::Execution<'_>, sink: &S) -> core::result::Result<alea_runtime::session::RunOutcome<E>, alea_runtime::session::ConfigurationError> where T: alea_core::target::LogDensityGradient<Error = E>, F: core::ops::function::Fn(alea_runtime::output::ChainId) -> core::result::Result<T, E> + core::marker::Sync, E: core::error::Error + core::marker::Send + 'static, S: alea_runtime::session::storage::Sink
 pub fn alea_runtime::session::Session::run_density<T, F, E, S>(&self, factory: F, execution: alea_runtime::ensemble::Execution<'_>, sink: &S) -> core::result::Result<alea_runtime::session::RunOutcome<E>, alea_runtime::session::ConfigurationError> where T: alea_core::density::LogDensity<Error = E>, F: core::ops::function::Fn(alea_runtime::output::ChainId) -> core::result::Result<T, E> + core::marker::Sync, E: core::error::Error + core::marker::Send + 'static, S: alea_runtime::session::storage::Sink
-pub struct alea_runtime::reference::SessionBuilder
+pub struct alea_runtime::prelude::SessionBuilder
 impl alea_runtime::session::SessionBuilder
 pub fn alea_runtime::session::SessionBuilder::build(self) -> core::result::Result<alea_runtime::session::Session, alea_runtime::session::ConfigurationError>
 pub fn alea_runtime::session::SessionBuilder::cancellation(self, cancel: tokio_util::sync::cancellation_token::CancellationToken) -> Self
@@ -437,13 +490,13 @@ pub fn alea_runtime::session::SessionBuilder::restart(self, checkpoints: alloc::
 pub fn alea_runtime::session::SessionBuilder::seed(self, seed: [u8; 32]) -> Self
 pub fn alea_runtime::session::SessionBuilder::wall_time(self, duration: core::time::Duration) -> Self
 pub fn alea_runtime::session::SessionBuilder::warmup(self, warmup: alea_runtime::session::Warmup) -> Self
-pub fn alea_runtime::reference::acceptance_rate(accepted: usize, total: usize) -> f64
-pub fn alea_runtime::reference::autocorrelation_ess(values: &[f64]) -> core::result::Result<f64, alea_runtime::diagnostics::DiagnosticError>
-pub fn alea_runtime::reference::classical_split_rhat(chains: &[&[f64]]) -> core::result::Result<f64, alea_runtime::diagnostics::DiagnosticError>
-pub fn alea_runtime::reference::collect_draws<C: alea_mcmc::MarkovChain, R: rand_core::Rng + ?core::marker::Sized>(chain: &mut C, rows: usize, rng: &mut R) -> core::result::Result<alea_runtime::draws::Draws, alea_runtime::draws::DrawError<<C as alea_mcmc::MarkovChain>::Error>>
-pub fn alea_runtime::reference::ebfmi(energy: &[f64]) -> core::result::Result<f64, alea_runtime::diagnostics::modern::Error>
-pub fn alea_runtime::reference::run_chain<C, R>(chain: &mut C, steps: usize, rng: &mut R, observe: impl core::ops::function::FnMut(&[f64], &<C as alea_mcmc::MarkovChain>::Transition) -> core::ops::control_flow::ControlFlow<()>) -> core::result::Result<usize, <C as alea_mcmc::MarkovChain>::Error> where C: alea_mcmc::MarkovChain, R: rand_core::Rng + ?core::marker::Sized
-pub fn alea_runtime::reference::summarize_modern(chains: &[&[f64]]) -> core::result::Result<alea_runtime::diagnostics::modern::Summary, alea_runtime::diagnostics::modern::Error>
+pub fn alea_runtime::prelude::acceptance_rate(accepted: usize, total: usize) -> f64
+pub fn alea_runtime::prelude::autocorrelation_ess(values: &[f64]) -> core::result::Result<f64, alea_runtime::diagnostics::DiagnosticError>
+pub fn alea_runtime::prelude::classical_split_rhat(chains: &[&[f64]]) -> core::result::Result<f64, alea_runtime::diagnostics::DiagnosticError>
+pub fn alea_runtime::prelude::collect_draws<C: alea_mcmc::MarkovChain, R: rand_core::Rng + ?core::marker::Sized>(chain: &mut C, rows: usize, rng: &mut R) -> core::result::Result<alea_runtime::draws::Draws, alea_runtime::draws::DrawError<<C as alea_mcmc::MarkovChain>::Error>>
+pub fn alea_runtime::prelude::ebfmi(energy: &[f64]) -> core::result::Result<f64, alea_runtime::diagnostics::modern::Error>
+pub fn alea_runtime::prelude::run_chain<C, R>(chain: &mut C, steps: usize, rng: &mut R, observe: impl core::ops::function::FnMut(&[f64], &<C as alea_mcmc::MarkovChain>::Transition) -> core::ops::control_flow::ControlFlow<()>) -> core::result::Result<usize, <C as alea_mcmc::MarkovChain>::Error> where C: alea_mcmc::MarkovChain, R: rand_core::Rng + ?core::marker::Sized
+pub fn alea_runtime::prelude::summarize_modern(chains: &[&[f64]]) -> core::result::Result<alea_runtime::diagnostics::modern::Summary, alea_runtime::diagnostics::modern::Error>
 pub mod alea_runtime::session
 pub mod alea_runtime::session::storage
 #[non_exhaustive] pub enum alea_runtime::session::storage::SinkError
