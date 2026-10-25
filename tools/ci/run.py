@@ -26,8 +26,9 @@ def run(command: list[str], log: Path) -> int:
                               text=True, encoding="utf-8", errors="replace") as process:
             assert process.stdout is not None
             for line in process.stdout:
-                print(line, end="", flush=True)
                 output.write(line)
+                output.flush()
+                print(line, end="", flush=True)
                 tail.append(line[-4000:])
             status = process.wait()
     if status:

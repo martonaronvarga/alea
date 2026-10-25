@@ -123,7 +123,11 @@ mod finite_tests {
     use super::*;
     #[test]
     fn finite_check_preserves_first_error_across_lanes_tails_and_alignment() {
-        for n in 0..=129 {
+        // Keep every error position and alignment through scalar, chunk and
+        // dispatch boundaries under the interpreter. Native tests exhaust the
+        // wider grid; its cubic repeated scanning is prohibitively slow in Miri.
+        let max_len = if cfg!(miri) { 33 } else { 129 };
+        for n in 0..=max_len {
             for offset in 0..4 {
                 let mut values = vec![f64::MAX; n + offset];
                 assert_eq!(first_nonfinite(&values[offset..]), None);
