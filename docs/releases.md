@@ -106,7 +106,10 @@ python3 tools/release/fresh.py .
 The runner creates a separate temporary project with its own manifest and lock,
 copies [the complete example](../tools/release/examples/reference.rs), and runs four
 analytic Gaussian chains with covariance warmup and frozen NUTS using only public
-APIs. It resolves dependencies offline after the fetch. Production dependencies
+APIs. It resolves and fetches that consumer's own dependency graph, then executes
+offline. A workspace fetch alone may omit independently resolved packages or
+platform features; use `--offline` only when the consumer graph is already cached.
+Production dependencies
 for this example require no native cubature, Enzyme, Nix, repository test fixtures
 or test-only helper crates. See [modeling](m14-modeling.md) and
 [sessions](m15-sessions.md) for native model and durable cancel/resume workflows.

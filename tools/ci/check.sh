@@ -10,6 +10,7 @@ fi
 args=(--manifest-path crates/Cargo.toml --workspace --locked)
 if [[ "$scope" == all ]]; then
   python3 tools/ci/architecture.py
+  python3 tools/ci/test_run.py
   python3 tools/ci/maturity.py
   python3 tools/ci/test_maturity.py
   python3 tools/ci/public_api.py --validate

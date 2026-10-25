@@ -12,6 +12,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path, help="repository or unpacked release source")
     parser.add_argument("--packaged", action="store_true", help="patch registry edges to independently unpacked sibling .crate artifacts")
+    parser.add_argument("--offline", action="store_true", help="require the independently resolved consumer dependencies to be cached")
     args = parser.parse_args()
     source = args.source.resolve()
     with tempfile.TemporaryDirectory(prefix="alea-fresh-") as temporary:
@@ -36,7 +37,11 @@ def main():
         env = dict(os.environ)
         # A fresh manifest/lock resolves independently; reuse only compiled objects.
         env.setdefault("CARGO_TARGET_DIR", str(source / "target/m17-fresh"))
-        subprocess.run(["cargo", "generate-lockfile", "--offline"], cwd=project, env=env, check=True)
+        offline = ["--offline"] if args.offline else []
+        subprocess.run(["cargo", "generate-lockfile", *offline], cwd=project, env=env, check=True)
+        # A workspace fetch need not contain the independently resolved graph,
+        # including packages selected by a different host's feature unification.
+        subprocess.run(["cargo", "fetch", "--locked", *offline], cwd=project, env=env, check=True)
         subprocess.run(["cargo", "run", "--locked", "--offline"], cwd=project, env=env, check=True)
 
 

@@ -39,7 +39,7 @@ jobs:
           ALEA_SHELL: ${{ matrix.shell }}
           ALEA_FEATURES: ${{ matrix.features }}
           ALEA_SCOPE: ${{ matrix.scope }}
-        run: nix develop ".#$ALEA_SHELL" --command bash tools/ci/check.sh "$ALEA_FEATURES" "$ALEA_SCOPE"
+        run: python3 tools/ci/run.py --log "$RUNNER_TEMP/native.log" -- nix develop ".#$ALEA_SHELL" --command bash tools/ci/check.sh "$ALEA_FEATURES" "$ALEA_SCOPE"
   autodiff:
     runs-on: ubuntu-24.04
     timeout-minutes: 45

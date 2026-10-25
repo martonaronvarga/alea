@@ -44,9 +44,9 @@ jobs:
           rustup default "$ALEA_TOOLCHAIN"
           rustc -vV
       - name: Reference contracts and docs
-        run: bash tools/ci/portable.sh
+        run: python tools/ci/run.py --log "$RUNNER_TEMP/portable.log" -- bash tools/ci/portable.sh
       - name: Independent fresh project
-        run: python tools/release/fresh.py .
+        run: python tools/ci/run.py --log "$RUNNER_TEMP/fresh.log" -- python tools/release/fresh.py .
   artifacts:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -60,7 +60,7 @@ jobs:
       - name: Artifact contracts, API inventory and fresh archived-source workflow
         run: |
           nix develop .#release --command actionlint .github/workflows/release-validation.yml
-          nix develop .#stable --command bash -euo pipefail -c '
+          python3 tools/ci/run.py --log "$RUNNER_TEMP/artifacts.log" -- nix develop .#stable --command bash -euo pipefail -c '
             python3 -m unittest discover -s tools/release -p "test_*.py"
             python3 tools/release/metadata.py
             python3 tools/ci/public_api.py --validate
