@@ -1,11 +1,35 @@
 # Alea 0.1.0 release review
 
-Status: preparing; not published and not yet S4. The first stable release covers
-`alea-math`, `alea-core`, `alea-mcmc` and `alea-runtime`, under MIT OR Apache-2.0.
-All public items and features enter the compatibility baseline at publication.
-The numerical maturity ledger and exactness ledger remain authoritative: research
-methods stay experimental, approximate methods stay approximate, and RMHMC's
-exactness obligations remain open. No default algorithm changes.
+Status: **candidate verified; publication pending**. S4 graduation is not yet
+complete. The proposed stable release covers `alea-math`, `alea-core`, `alea-mcmc`
+and `alea-runtime`, under MIT OR Apache-2.0. All public items and features enter
+the compatibility baseline at publication. Numerical classifications and defaults
+remain unchanged; experimental methods and RMHMC's open obligations stay explicit.
+
+The exact candidate is
+[`6dc7b6c`](https://github.com/martonaronvarga/alea/commit/6dc7b6c94fa5fa22b03eb9586d9b9390e83226e1).
+All **23 CI jobs passed**:
+[release/platform checks](https://github.com/martonaronvarga/alea/actions/runs/40209341475)
+and [Rust/feature/Miri/Enzyme checks](https://github.com/martonaronvarga/alea/actions/runs/40209341480).
+This includes ten native MSRV/stable platform lanes, sanitizers and operational
+checks. The [evidence manifest](manifest.json) pins the jobs, packages and reports.
+
+The trusted signed source has SHA-256
+`926cdf4b43f19ad2cee11ad7d8c03edff829555170944f0abc91ca2cac83f2e7`.
+Three archives agree byte-for-byte, including regeneration from unpacked source.
+All nine package archives pass notice checks and the independent public consumer;
+source and package workflows pass 32-dataset SBC and exact checkpoint/draw recovery.
+Actual API extraction matches 7,594 items, Faer surfaces and five API-neutral variants.
+The complete local workspace, Clippy, rustdoc, sanitizer and restart-soak gates pass.
+
+Artifacts are retained outside the checkout at
+`../alea-candidates/stable-preparation-2026-10-25/6dc7b6c/`.
+GitHub's CI ZIP payloads have not been compared locally: their download endpoint
+requires authentication and returned HTTP 401. CI's own source-reproduction and
+package-consumer checks passed. No registry dry run or registry-backed consumer
+is claimed; crates.io API access returned HTTP 403. Publication of the accepted
+signed source remains the final S4 gate. A later documentation review commit does
+not change the candidate or its sealed artifact digest.
 
 ## Changes since the previous candidate
 
@@ -68,6 +92,6 @@ This checks the actual reviewed endpoints and does not claim compatibility with
 the unpublished API. Subsequent releases omit `--initial` and compare with the
 published source. The first-publication exception is restricted to version 0.1.0.
 
-The final evidence record will identify the candidate commit, signed source and
-package digests, same-source CI URLs, reviewed API scope, signing identity and
-publication location. No placeholder URL or earlier candidate is publication proof.
+The evidence manifest identifies the candidate, source/package digests, CI jobs,
+API scope and signing identity. It records S4 and registry publication as false
+until actual publication. No placeholder URL or earlier candidate is publication proof.
