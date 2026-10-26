@@ -127,7 +127,10 @@ impl Wiener7 {
                 grad: NAN_GRAD_7,
             };
         }
-        if let Some(e) = self.analytic_start(&core, obs) {
+        // Numerical integration is cheaper for almost constant start intervals.
+        if core.sw > 1e-6
+            && let Some(e) = self.analytic_start(&core, obs)
+        {
             return Wiener7Eval {
                 log_prob: e.log_prob,
                 grad: NAN_GRAD_7,
@@ -135,6 +138,7 @@ impl Wiener7 {
         }
         if core.sw == 0.
             && core.sv == 0.
+            && core.st0 >= 1e-5 * (obs.rt - core.tau0)
             && core.st0 > 0.
             && let Ok(lp) = Wiener4.try_log_interval_prob(
                 obs.rt - core.st0,
@@ -189,6 +193,7 @@ impl Wiener7 {
                 });
         }
         if options.quadrature == Quadrature::Adaptive
+            && core.sw > 1e-6
             && let Some(e) = self.analytic_start(&core, obs)
         {
             return Ok(Wiener7Eval {
@@ -199,6 +204,7 @@ impl Wiener7 {
         if options.quadrature == Quadrature::Adaptive
             && core.sw == 0.
             && core.sv == 0.
+            && core.st0 >= 1e-5 * (obs.rt - core.tau0)
             && core.st0 > 0.
             && let Ok(lp) = Wiener4.try_log_interval_prob(
                 obs.rt - core.st0,
