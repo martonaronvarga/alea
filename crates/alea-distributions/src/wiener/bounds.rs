@@ -40,7 +40,7 @@ fn integral_scaled(p: usize, c: f64, x: f64) -> Option<f64> {
         if z * z > 600. {
             return None;
         }
-        let tail = statrs::function::erf::erfc(z);
+        let tail = libm::erfc(z);
         if tail == 0. {
             return None;
         }

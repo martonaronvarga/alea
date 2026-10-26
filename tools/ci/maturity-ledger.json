@@ -264,6 +264,11 @@
       "summary": "Wiener parameter, evaluation, observation or reusable batch contracts with bounded regression coverage."
     },
     {
+      "path": "crates/alea-distributions/src/wiener/cdf.rs",
+      "profile": "validated_component_reference",
+      "summary": "Boundary-specific Wiener4 CDF, tail and interval probabilities with bounded series work and explicit conditioning failures."
+    },
+    {
       "path": "crates/alea-distributions/src/wiener/mod.rs",
       "profile": "validated_component_reference",
       "summary": "Wiener first-passage model facade."
@@ -8655,6 +8660,11 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::prelude::Wiener4::try_cdf(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<f64>",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::prelude::Wiener4::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>",
       "profile": "validated_component_reference"
     },
@@ -8665,7 +8675,22 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::prelude::Wiener4::try_log_cdf(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<f64>",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::prelude::Wiener4::try_log_interval_prob(&self, lower_rt: f64, upper_rt: f64, boundary: alea_distributions::prelude::Boundary, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<f64>",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::prelude::Wiener4::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::prelude::Wiener4::try_log_survival(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<f64>",
       "profile": "validated_component_reference"
     },
     {

@@ -37,6 +37,7 @@ dependencies = [
  "alea-core",
  "alea-ffi",
  "alea-math",
+ "libm",
  "once_cell",
  "rand",
  "statrs",

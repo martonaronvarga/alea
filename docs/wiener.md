@@ -312,3 +312,42 @@ variation across the interval, unsuccessful truncation checks, and other
 variability configurations retain cubature. An explicitly requested fixed rule
 still evaluates that rule. General Gaussian-drift starting-point marginalization
 is not implemented by this spectral shortcut.
+
+### Cumulative and interval probabilities
+
+Wiener4 provides `try_cdf`, `try_log_cdf`, `try_log_survival`, and
+`try_log_interval_prob`. These describe a **joint boundary subdistribution**:
+`cdf(rt, boundary)` is the probability of reaching that boundary by the stated
+reaction time. Its limit is the probability of choosing that boundary, which
+can be less than one. Likewise, the boundary survival probability is
+`P(T > rt, B = boundary)`, rather than `1 - cdf(rt, boundary)`.
+
+```rust
+use alea::distributions::wiener::{Boundary, Wiener4, Wiener4Params, WienerObservation, WienerOptions};
+let p = Wiener4Params::default();
+let options = WienerOptions::new(1e-10);
+let deadline = WienerObservation { rt: 0.8, boundary: Boundary::Upper };
+let probability = Wiener4.try_cdf(&deadline, &p, options)?;
+let log_interval = Wiener4.try_log_interval_prob(0.5, 0.8, Boundary::Upper, &p, options)?;
+assert!((0.0..=1.0).contains(&probability));
+assert!(log_interval <= 0.0);
+# Ok::<(), alea::distributions::wiener::ProbError>(())
+```
+
+The evaluator uses integrated image terms at short times and an integrated
+spectral tail at longer times. Mills ratios avoid underflow in normal tails.
+Geometric remainder bounds control series truncation in log-probability units;
+they exclude roundoff. The work limit is 128 terms. Unresolved cancellation,
+very large scaled drift, and unsupported numerical regimes return an error.
+
+Interval evaluation chooses a well-separated CDF or boundary-tail difference.
+It tightens the inner truncation budget before subtraction. Very narrow
+intervals can return a numerical error. No negative interval probability is
+silently clamped to zero.
+
+For Wiener7 with only nondecision-time variability, density-only adaptive
+evaluation can use this interval probability divided by the time width. If
+the difference is too narrow or the series cannot meet its numerical checks,
+it retains cubature. Scores continue to use differentiated cubature. Fixed
+quadrature still evaluates the requested rule. The CDF functions do not yet
+marginalize Gaussian drift or starting-point variability.

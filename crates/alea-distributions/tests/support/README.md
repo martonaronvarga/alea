@@ -31,3 +31,10 @@ floating-point error. Regenerate with:
 python -m pip install python-flint==0.9.0
 python crates/alea-distributions/tests/support/generate_wiener_balls.py
 ```
+
+`generate_wiener_cdf_balls.py` generates 400 independent Arb CDF and boundary-tail
+log-probability enclosures in `wiener_cdf_balls.csv`, with the same precision and
+binary64 conversion rules. It uses integrated image terms or spectral tails,
+with geometric remainder bounds, across both boundaries and drift -20 through
+20. Run it with python-flint 0.9.0 installed. These cases include the branch
+switch, very small CDFs and very small boundary tails.

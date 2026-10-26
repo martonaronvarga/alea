@@ -8,6 +8,7 @@ const LN_PI: f64 = 1.1447298858494001741434273513530587;
 
 mod accuracy;
 mod bounds;
+mod cdf;
 pub use accuracy::WienerTruncationError;
 mod quadrature;
 mod sampling;

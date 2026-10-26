@@ -101,6 +101,7 @@ dependencies = [
  "allocation-counter",
  "approx",
  "criterion",
+ "libm",
  "once_cell",
  "pprof",
  "rand 0.10.1",

@@ -127,6 +127,33 @@ fn bench_single_observation(c: &mut Criterion) {
             })
         });
     }
+    let time_only = Wiener7Params::with_params(1.6, 0.2, 0.45, 0.7, 0., 0.1, 0.).unwrap();
+    c.bench_function("wiener7/single/time_cdf", |b| {
+        b.iter(|| {
+            black_box(
+                Wiener7
+                    .try_log_prob(
+                        black_box(&obs),
+                        black_box(&time_only),
+                        WienerOptions::new(EPS5),
+                    )
+                    .unwrap(),
+            )
+        })
+    });
+    c.bench_function("wiener7/single/time_cubature_fused", |b| {
+        b.iter(|| {
+            black_box(
+                Wiener7
+                    .try_fused(
+                        black_box(&obs),
+                        black_box(&time_only),
+                        WienerOptions::new(EPS5),
+                    )
+                    .unwrap(),
+            )
+        })
+    });
     let fixed = WienerOptions::new(EPS7)
         .with_inner_precision(EPS5)
         .with_quadrature(Quadrature::FixedGaussLegendre { order: 25 });

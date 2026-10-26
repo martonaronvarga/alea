@@ -130,6 +130,22 @@ impl Wiener7 {
                 grad: NAN_GRAD_7,
             };
         }
+        if core.sw == 0.
+            && core.sv == 0.
+            && core.st0 > 0.
+            && let Ok(lp) = Wiener4.try_log_interval_prob(
+                obs.rt - core.st0,
+                obs.rt,
+                obs.boundary,
+                &params.base.base,
+                WienerOptions::new(eps),
+            )
+        {
+            return Wiener7Eval {
+                log_prob: lp - core.st0.ln(),
+                grad: NAN_GRAD_7,
+            };
+        }
         let density = self.eval_density_adaptive(&core, obs);
         let log_prob = if density.is_normal() && density > 0.0 {
             density.ln()
@@ -166,6 +182,23 @@ impl Wiener7 {
         {
             return Ok(Wiener7Eval {
                 log_prob: e.log_prob,
+                grad: NAN_GRAD_7,
+            });
+        }
+        if options.quadrature == Quadrature::Adaptive
+            && core.sw == 0.
+            && core.sv == 0.
+            && core.st0 > 0.
+            && let Ok(lp) = Wiener4.try_log_interval_prob(
+                obs.rt - core.st0,
+                obs.rt,
+                obs.boundary,
+                &params.base.base,
+                options,
+            )
+        {
+            return Ok(Wiener7Eval {
+                log_prob: lp - core.st0.ln(),
                 grad: NAN_GRAD_7,
             });
         }
