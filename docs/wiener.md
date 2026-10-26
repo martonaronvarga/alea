@@ -229,3 +229,54 @@ right-hand log-likelihood derivative at `s_tau = 0` is half the `tau` derivative
 which is generally nonzero. In contrast, the starting-point interval is symmetric
 around `beta`, so its width derivative is zero at `s_beta = 0`. Widths are
 constrained to be nonnegative; these are one-sided derivatives on their boundary.
+
+### Controlling series truncation
+
+`try_fused_with_truncation` is an optional Wiener4/Wiener5 evaluator for work
+that needs an explicit truncation budget. The tolerance is an absolute budget
+for the log density and each parameter score, in `grad_array()` order.
+
+```rust
+use alea::distributions::wiener::{Boundary, Wiener4, Wiener4Params, WienerObservation};
+let observation = WienerObservation { rt: 0.8, boundary: Boundary::Upper };
+let (evaluation, error) = Wiener4.try_fused_with_truncation(
+    &observation, &Wiener4Params::default(), 1e-9,
+)?;
+assert!(evaluation.log_prob.is_finite());
+assert!(error.log_prob <= 1e-9);
+assert!(error.scores.iter().all(|bound| *bound <= 1e-9));
+# Ok::<(), alea::distributions::wiener::ProbError>(())
+```
+
+The report concerns truncation in real arithmetic. Floating-point rounding,
+including errors in exponential and trigonometric functions, is excluded.
+It is not an end-to-end numerical certificate. The ordinary evaluator keeps
+its existing precision convention and avoids the extra planning work.
+
+Both representations use a common term count for the density and its two
+normalized derivatives. For a Gaussian moment sequence, the ratio of successive
+terms decreases. Once that ratio is below one, the first omitted term divided
+by one minus the ratio bounds the whole tail. The evaluator takes the smaller
+of this geometric bound and a valid decreasing-function integral bound.
+Spectral density and time-derivative tails additionally use
+`|sin(nπw)| ≤ n|sin(πw)|`, which helps near absorbing boundaries. Image derivative
+bounds include the time-dependent density prefactor, not just the exponential.
+
+The density lower bound must be positive before converting these tails to
+log-density and score errors. The search rejects evaluations that cannot meet
+the budget within 128 harmonics or image pairs. Branch choice compares an
+explicit work estimate of two exponentials per image pair and one spectral
+harmonic. This is a term-work estimate; it does not establish minimum latency.
+
+An independent Arb ball-arithmetic fixture checks values and all Wiener5 scores
+across both boundaries, small and large times, endpoint distances down to
+`1e-12`, and zero/nonzero drift variability. The oracle encloses its arithmetic
+and omitted tails and increases precision until the resulting balls are narrow
+enough. Rust comparisons include a separate floating-point allowance. This
+fixture covers Wiener4/5 series; it does not certify Wiener7 quadrature.
+
+Wiener7 differentiates its fixed unit-cube integrand with respect to both uniform
+widths. This avoids subtracting endpoint terms of size `1 / width` to obtain a
+small score. Fixed Gauss–Legendre gradients differentiate the selected rule,
+including at order one. Adaptive integration still provides estimated
+quadrature errors rather than rigorous integration enclosures.

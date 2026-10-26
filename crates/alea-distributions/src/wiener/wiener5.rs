@@ -313,7 +313,7 @@ impl Wiener5 {
     }
 
     #[inline]
-    fn fused_from_core_with_branch(
+    pub(super) fn fused_from_core_with_branch(
         &self,
         core: &Wiener5Core,
         branch: SeriesBranch,

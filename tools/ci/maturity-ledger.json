@@ -254,6 +254,11 @@
       "summary": "Nine normalized scalar laws with independent values, derivatives, normalization, bounded RNG and allocation gates."
     },
     {
+      "path": "crates/alea-distributions/src/wiener/accuracy.rs",
+      "profile": "validated_component_reference",
+      "summary": "Optional componentwise real-arithmetic Wiener4/5 truncation control; floating-point error is excluded."
+    },
+    {
       "path": "crates/alea-distributions/src/wiener/batch.rs",
       "profile": "validated_component_reference",
       "summary": "Wiener parameter, evaluation, observation or reusable batch contracts with bounded regression coverage."
@@ -7379,6 +7384,21 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl<const N: usize> core::clone::Clone for alea_distributions::wiener::WienerTruncationError<N>",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl<const N: usize> core::fmt::Debug for alea_distributions::wiener::WienerTruncationError<N>",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl<const N: usize> core::marker::Copy for alea_distributions::wiener::WienerTruncationError<N>",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub alea_distributions::latent::AffineLatentWienerMap::alpha: [f64; 3]",
       "profile": "validated_component_opt_in"
     },
@@ -7830,6 +7850,26 @@
     {
       "crate": "alea-distributions",
       "item": "pub alea_distributions::wiener::WienerPrimitiveError::Evaluation",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::wiener::WienerTruncationError::branch: alea_distributions::wiener::SeriesBranch",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::wiener::WienerTruncationError::log_prob: f64",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::wiener::WienerTruncationError::scores: [f64; N]",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::wiener::WienerTruncationError::terms: usize",
       "profile": "validated_component_reference"
     },
     {
@@ -8570,6 +8610,11 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::prelude::Wiener4::try_fused_with_truncation(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, tolerance: f64) -> alea_distributions::wiener::Result<(alea_distributions::wiener::Wiener4Eval, alea_distributions::wiener::WienerTruncationError<4>)>",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::prelude::Wiener4::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>",
       "profile": "validated_component_reference"
     },
@@ -8672,6 +8717,11 @@
     {
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::prelude::Wiener5::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::prelude::Wiener5::try_fused_with_truncation(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, tolerance: f64) -> alea_distributions::wiener::Result<(alea_distributions::wiener::Wiener5Eval, alea_distributions::wiener::WienerTruncationError<5>)>",
       "profile": "validated_component_reference"
     },
     {
@@ -9987,6 +10037,16 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::wiener::WienerTruncationError<N>::clone(&self) -> alea_distributions::wiener::WienerTruncationError<N>",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::wiener::WienerTruncationError<N>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub mod alea_distributions",
       "profile": "validated_component_reference"
     },
@@ -10323,6 +10383,11 @@
     {
       "crate": "alea-distributions",
       "item": "pub struct alea_distributions::wiener::WienerPrimitive",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub struct alea_distributions::wiener::WienerTruncationError<const N: usize>",
       "profile": "validated_component_reference"
     },
     {

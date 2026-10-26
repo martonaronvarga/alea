@@ -6,6 +6,9 @@ use std::f64::consts::PI;
 #[allow(clippy::unreadable_literal)]
 const LN_PI: f64 = 1.1447298858494001741434273513530587;
 
+mod accuracy;
+mod bounds;
+pub use accuracy::WienerTruncationError;
 mod quadrature;
 mod sampling;
 mod series;

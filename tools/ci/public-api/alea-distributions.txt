@@ -344,6 +344,8 @@ pub fn alea_distributions::prelude::Wiener4::try_fused(&self, obs: &alea_distrib
 pub fn alea_distributions::prelude::Wiener4::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
 impl alea_distributions::prelude::Wiener4
 pub fn alea_distributions::prelude::Wiener4::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener4Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>
+impl alea_distributions::prelude::Wiener4
+pub fn alea_distributions::prelude::Wiener4::try_fused_with_truncation(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, tolerance: f64) -> alea_distributions::wiener::Result<(alea_distributions::wiener::Wiener4Eval, alea_distributions::wiener::WienerTruncationError<4>)>
 impl core::clone::Clone for alea_distributions::prelude::Wiener4
 pub fn alea_distributions::prelude::Wiener4::clone(&self) -> alea_distributions::prelude::Wiener4
 impl core::fmt::Debug for alea_distributions::prelude::Wiener4
@@ -391,6 +393,8 @@ pub fn alea_distributions::prelude::Wiener5::try_fused(&self, obs: &alea_distrib
 pub fn alea_distributions::prelude::Wiener5::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
 impl alea_distributions::prelude::Wiener5
 pub fn alea_distributions::prelude::Wiener5::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener5Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>
+impl alea_distributions::prelude::Wiener5
+pub fn alea_distributions::prelude::Wiener5::try_fused_with_truncation(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, tolerance: f64) -> alea_distributions::wiener::Result<(alea_distributions::wiener::Wiener5Eval, alea_distributions::wiener::WienerTruncationError<5>)>
 pub struct alea_distributions::prelude::Wiener5Params
 impl alea_distributions::prelude::Wiener5Params
 pub const alea_distributions::prelude::Wiener5Params::DIM: usize
@@ -903,6 +907,8 @@ pub fn alea_distributions::prelude::Wiener4::try_fused(&self, obs: &alea_distrib
 pub fn alea_distributions::prelude::Wiener4::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
 impl alea_distributions::prelude::Wiener4
 pub fn alea_distributions::prelude::Wiener4::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener4Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>
+impl alea_distributions::prelude::Wiener4
+pub fn alea_distributions::prelude::Wiener4::try_fused_with_truncation(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, tolerance: f64) -> alea_distributions::wiener::Result<(alea_distributions::wiener::Wiener4Eval, alea_distributions::wiener::WienerTruncationError<4>)>
 impl core::clone::Clone for alea_distributions::prelude::Wiener4
 pub fn alea_distributions::prelude::Wiener4::clone(&self) -> alea_distributions::prelude::Wiener4
 impl core::fmt::Debug for alea_distributions::prelude::Wiener4
@@ -981,6 +987,8 @@ pub fn alea_distributions::prelude::Wiener5::try_fused(&self, obs: &alea_distrib
 pub fn alea_distributions::prelude::Wiener5::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
 impl alea_distributions::prelude::Wiener5
 pub fn alea_distributions::prelude::Wiener5::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener5Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>
+impl alea_distributions::prelude::Wiener5
+pub fn alea_distributions::prelude::Wiener5::try_fused_with_truncation(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, tolerance: f64) -> alea_distributions::wiener::Result<(alea_distributions::wiener::Wiener5Eval, alea_distributions::wiener::WienerTruncationError<5>)>
 pub struct alea_distributions::wiener::Wiener5Eval
 pub alea_distributions::wiener::Wiener5Eval::grad: alea_distributions::wiener::Wiener5Grad
 pub alea_distributions::wiener::Wiener5Eval::log_prob: f64
@@ -1293,6 +1301,16 @@ pub fn alea_distributions::wiener::WienerPrimitive::new(observation: alea_distri
 impl alea_core::model::primitive::OpaquePrimitive<4> for alea_distributions::wiener::WienerPrimitive
 pub type alea_distributions::wiener::WienerPrimitive::Error = alea_distributions::wiener::WienerPrimitiveError
 pub fn alea_distributions::wiener::WienerPrimitive::value_gradient(&self, input: &[f64; 4]) -> core::result::Result<(f64, [f64; 4]), Self::Error>
+pub struct alea_distributions::wiener::WienerTruncationError<const N: usize>
+pub alea_distributions::wiener::WienerTruncationError::branch: alea_distributions::wiener::SeriesBranch
+pub alea_distributions::wiener::WienerTruncationError::log_prob: f64
+pub alea_distributions::wiener::WienerTruncationError::scores: [f64; N]
+pub alea_distributions::wiener::WienerTruncationError::terms: usize
+impl<const N: usize> core::clone::Clone for alea_distributions::wiener::WienerTruncationError<N>
+pub fn alea_distributions::wiener::WienerTruncationError<N>::clone(&self) -> alea_distributions::wiener::WienerTruncationError<N>
+impl<const N: usize> core::fmt::Debug for alea_distributions::wiener::WienerTruncationError<N>
+pub fn alea_distributions::wiener::WienerTruncationError<N>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<const N: usize> core::marker::Copy for alea_distributions::wiener::WienerTruncationError<N>
 pub type alea_distributions::wiener::Result<T> = core::result::Result<T, alea_distributions::wiener::ProbError>
 pub struct alea_distributions::Gaussian
 impl alea_distributions::gaussian::Gaussian

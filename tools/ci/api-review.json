@@ -2,7 +2,7 @@
   "schema_version": 1,
   "base_revision": "6dc7b6c94fa5fa22b03eb9586d9b9390e83226e1",
   "decision": "pre_release_break",
-  "rationale": "First application-facing alea facade with feature-aware modules and prelude. Existing implementation APIs remain inventoried. External consumers and generated code now use alea alone; no compatibility aliases are retained for the unpublished direct-crate interface. New facade feature surfaces have no earlier published baseline. Sampling exports are now explicitly enumerated rather than glob-imported; all previously exported sampling paths are retained. The snapshot renderer records the individual aliases instead of a glob marker. Remove unused public positive_finite, finite_or_neg_inf and log_accept_ratio helpers that silently coerce invalid numerical values. No compatibility aliases or replacement coercions are introduced; checked target boundaries and production acceptance code are unchanged. Add explicit bounded Wiener4/5/7 joint time and boundary sampling methods, without changing default inference or promoting their finite validation scope.",
+  "rationale": "First application-facing alea facade with feature-aware modules and prelude. Existing implementation APIs remain inventoried. External consumers and generated code now use alea alone; no compatibility aliases are retained for the unpublished direct-crate interface. New facade feature surfaces have no earlier published baseline. Sampling exports are now explicitly enumerated rather than glob-imported; all previously exported sampling paths are retained. The snapshot renderer records the individual aliases instead of a glob marker. Remove unused public positive_finite, finite_or_neg_inf and log_accept_ratio helpers that silently coerce invalid numerical values. No compatibility aliases or replacement coercions are introduced; checked target boundaries and production acceptance code are unchanged. Add explicit bounded Wiener4/5/7 joint time and boundary sampling methods, without changing default inference or promoting their finite validation scope. Add optional componentwise Wiener4/5 real-arithmetic truncation reports; floating-point roundoff is explicitly excluded and the existing fast path is unchanged.",
   "packages": {
     "alea+autodiff": {
       "before": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
@@ -296,15 +296,27 @@
     },
     "alea-distributions": {
       "before": "af4eb1d72238d90e61bcc6a1cc8050030c0d7a3279196bb097c65709639129b9",
-      "after": "ce3e956279ebf0e1220dc4e81dcee3346308925f0d6bbed28924f9eea8831916",
-      "added": 3,
+      "after": "3244cd707dcefd81da21d1c4b32d327e3f9c31bb93d0fe7b91851337777a452b",
+      "added": 15,
       "removed": 0,
-      "delta": "88686a3936315729243fc24682fbd18dddb825b7afe45b0d559913d2f11a84a8",
+      "delta": "52d15dd971599d83987db2827268120d85a16c0f136fc17dbfa5085fcd703192",
       "classification": "potentially_breaking",
       "added_lines": [
+        "impl<const N: usize> core::clone::Clone for alea_distributions::wiener::WienerTruncationError<N>",
+        "impl<const N: usize> core::fmt::Debug for alea_distributions::wiener::WienerTruncationError<N>",
+        "impl<const N: usize> core::marker::Copy for alea_distributions::wiener::WienerTruncationError<N>",
+        "pub alea_distributions::wiener::WienerTruncationError::branch: alea_distributions::wiener::SeriesBranch",
+        "pub alea_distributions::wiener::WienerTruncationError::log_prob: f64",
+        "pub alea_distributions::wiener::WienerTruncationError::scores: [f64; N]",
+        "pub alea_distributions::wiener::WienerTruncationError::terms: usize",
         "pub fn alea_distributions::prelude::Wiener4::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener4Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>",
+        "pub fn alea_distributions::prelude::Wiener4::try_fused_with_truncation(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, tolerance: f64) -> alea_distributions::wiener::Result<(alea_distributions::wiener::Wiener4Eval, alea_distributions::wiener::WienerTruncationError<4>)>",
         "pub fn alea_distributions::prelude::Wiener5::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener5Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>",
-        "pub fn alea_distributions::prelude::Wiener7::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener7Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>"
+        "pub fn alea_distributions::prelude::Wiener5::try_fused_with_truncation(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, tolerance: f64) -> alea_distributions::wiener::Result<(alea_distributions::wiener::Wiener5Eval, alea_distributions::wiener::WienerTruncationError<5>)>",
+        "pub fn alea_distributions::prelude::Wiener7::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener7Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>",
+        "pub fn alea_distributions::wiener::WienerTruncationError<N>::clone(&self) -> alea_distributions::wiener::WienerTruncationError<N>",
+        "pub fn alea_distributions::wiener::WienerTruncationError<N>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+        "pub struct alea_distributions::wiener::WienerTruncationError<const N: usize>"
       ],
       "removed_lines": []
     },

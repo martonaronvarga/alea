@@ -16,3 +16,18 @@ original alpha, tau, beta, delta and s_delta, including lower-boundary signs.
 The independent formula uses a log-scaled image sum at scaled times <= 0.25 and
 an eigenfunction sum otherwise. mpmath differentiates this formula. Keeping
 inputs exact avoids silently replacing beta by 1-(1-beta) in the reference.
+
+`generate_wiener_balls.py` uses python-flint 0.9.0 (Arb) to regenerate
+`wiener_balls.csv`. The 288 cases use exact binary64 inputs, rigorous ball
+arithmetic and positive geometric remainder bounds for density and both
+normalized derivatives. Precision escalates through a bounded schedule until
+all log-density and parameter-score enclosures meet `1e-24 * (1 + |midpoint|)`.
+Saved radii include conversion of each midpoint to binary64. Ordinary tests
+need no Python dependency. These fixtures cover Wiener4/5, not Wiener7
+integration, and do not assert that the Rust implementation has enclosed
+floating-point error. Regenerate with:
+
+```sh
+python -m pip install python-flint==0.9.0
+python crates/alea-distributions/tests/support/generate_wiener_balls.py
+```
