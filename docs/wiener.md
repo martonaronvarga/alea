@@ -134,3 +134,58 @@ at 432 parameter/boundary combinations using high-precision direct series.
 A finite table validates those points; it does not certify interpolation between
 them or all possible tails. Fixed quadrature remains an explicit approximation,
 and adaptive quadrature error estimates are not interval proofs.
+
+## Simulate reaction times and choices
+
+The same parameter types can generate joint observations. Add `rand = "0.10"`
+to your application's dependencies and give prediction its own random stream:
+
+```rust
+use alea::distributions::wiener::{Boundary, Wiener4, Wiener4Params};
+use rand::{SeedableRng, rngs::SmallRng};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let parameters = Wiener4Params::with_params(1.2, 0.2, 0.5, 0.7)?;
+    let mut rng = SmallRng::seed_from_u64(73001);
+    let mut upper = 0;
+    let mut times = Vec::with_capacity(1_000);
+    for _ in 0..1_000 {
+        let observation = Wiener4.sample(&parameters, &mut rng)?;
+        upper += usize::from(observation.boundary == Boundary::Upper);
+        times.push(observation.rt);
+    }
+    times.sort_by(f64::total_cmp);
+    println!("upper choices: {upper}/1000");
+    println!("median RT: {} seconds", times[500]);
+    Ok(())
+}
+```
+
+`Wiener5.sample` also draws a normally distributed drift for each trial.
+`Wiener7.sample` additionally draws independent starting points uniformly over
+`beta ± s_beta/2` and non-decision times uniformly over `tau..tau + s_tau`.
+A zero width delegates without consuming extra random numbers. Do not draw this
+trial variability again outside the generator.
+
+The generator samples centered first exits and composes them until an original
+boundary is reached. It uses no simulation time step. Each exit uses bounded
+rejection sampling with alternating-series acceptance tests. It returns a
+numerical error if its limits are exhausted, a comparison remains unresolved,
+or the resulting time cannot be represented. Do not silently discard failed
+simulations and report the remainder as an unconditional predictive sample.
+Floating-point error is not a certified bound on the generated distribution.
+
+For a prior predictive check, draw subject/population parameters from their
+priors, then generate observations. For a posterior predictive check, use each
+retained draw's parameters after checking the fit. Existing-subject predictions
+condition on that subject's fitted effects; new-subject predictions require new
+effects from the population distribution. Keep these effects distinct from the
+trial variability already sampled by Wiener5 or Wiener7.
+
+Compare boundary proportions, reaction-time quantiles within each boundary,
+and condition or subject contrasts with the observed data. Keep lower-boundary
+times and any slow responses; selectively removing them changes the model.
+Simulation tests cover choice probabilities, joint time tails, mean decision
+times, and drift calibration with an independently derived conjugate posterior.
+These are bounded checks, not calibration of every hierarchical model or of all
+seven parameters jointly.

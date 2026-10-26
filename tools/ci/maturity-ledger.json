@@ -274,6 +274,12 @@
       "summary": "Wiener primitive density interface."
     },
     {
+      "path": "crates/alea-distributions/src/wiener/sampling.rs",
+      "profile": "research_component",
+      "summary": "Bounded joint reaction-time and boundary simulation without a time mesh; finite floating-point and work limits are explicit.",
+      "promotion_gate": "Broaden joint full-variability and hierarchical generative calibration beyond bounded first-exit, mixture-tail and conjugate-drift checks."
+    },
+    {
       "path": "crates/alea-distributions/src/wiener/types.rs",
       "profile": "validated_component_reference",
       "summary": "Validated Wiener parameter and observation types."
@@ -8553,6 +8559,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::prelude::Wiener4::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener4Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden joint full-variability and hierarchical generative calibration beyond bounded first-exit, mixture-tail and conjugate-drift checks."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::prelude::Wiener4::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>",
       "profile": "validated_component_reference"
     },
@@ -8650,6 +8662,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::prelude::Wiener5::log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, eps: f64) -> alea_distributions::wiener::Wiener5Eval",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::prelude::Wiener5::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener5Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden joint full-variability and hierarchical generative calibration beyond bounded first-exit, mixture-tail and conjugate-drift checks."
     },
     {
       "crate": "alea-distributions",
@@ -8780,6 +8798,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::prelude::Wiener7::log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, eps: f64) -> alea_distributions::wiener::Wiener7Eval",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::prelude::Wiener7::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener7Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden joint full-variability and hierarchical generative calibration beyond bounded first-exit, mixture-tail and conjugate-drift checks."
     },
     {
       "crate": "alea-distributions",

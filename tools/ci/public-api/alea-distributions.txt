@@ -342,6 +342,8 @@ pub fn alea_distributions::prelude::Wiener4::fused(&self, obs: &alea_distributio
 pub fn alea_distributions::prelude::Wiener4::log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, eps: f64) -> alea_distributions::wiener::Wiener4Eval
 pub fn alea_distributions::prelude::Wiener4::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
 pub fn alea_distributions::prelude::Wiener4::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
+impl alea_distributions::prelude::Wiener4
+pub fn alea_distributions::prelude::Wiener4::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener4Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>
 impl core::clone::Clone for alea_distributions::prelude::Wiener4
 pub fn alea_distributions::prelude::Wiener4::clone(&self) -> alea_distributions::prelude::Wiener4
 impl core::fmt::Debug for alea_distributions::prelude::Wiener4
@@ -387,6 +389,8 @@ pub fn alea_distributions::prelude::Wiener5::fused(&self, obs: &alea_distributio
 pub fn alea_distributions::prelude::Wiener5::log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, eps: f64) -> alea_distributions::wiener::Wiener5Eval
 pub fn alea_distributions::prelude::Wiener5::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
 pub fn alea_distributions::prelude::Wiener5::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
+impl alea_distributions::prelude::Wiener5
+pub fn alea_distributions::prelude::Wiener5::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener5Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>
 pub struct alea_distributions::prelude::Wiener5Params
 impl alea_distributions::prelude::Wiener5Params
 pub const alea_distributions::prelude::Wiener5Params::DIM: usize
@@ -431,6 +435,8 @@ pub fn alea_distributions::prelude::Wiener7::try_fused(&self, obs: &alea_distrib
 pub fn alea_distributions::prelude::Wiener7::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Eval>
 impl alea_distributions::prelude::Wiener7
 pub fn alea_distributions::prelude::Wiener7::gauss_legendre_01(n: usize) -> (alloc::vec::Vec<f64>, alloc::vec::Vec<f64>)
+impl alea_distributions::prelude::Wiener7
+pub fn alea_distributions::prelude::Wiener7::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener7Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>
 pub struct alea_distributions::prelude::Wiener7Params
 impl alea_distributions::prelude::Wiener7Params
 pub const alea_distributions::prelude::Wiener7Params::DIM: usize
@@ -895,6 +901,8 @@ pub fn alea_distributions::prelude::Wiener4::fused(&self, obs: &alea_distributio
 pub fn alea_distributions::prelude::Wiener4::log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, eps: f64) -> alea_distributions::wiener::Wiener4Eval
 pub fn alea_distributions::prelude::Wiener4::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
 pub fn alea_distributions::prelude::Wiener4::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener4Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener4Eval>
+impl alea_distributions::prelude::Wiener4
+pub fn alea_distributions::prelude::Wiener4::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener4Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>
 impl core::clone::Clone for alea_distributions::prelude::Wiener4
 pub fn alea_distributions::prelude::Wiener4::clone(&self) -> alea_distributions::prelude::Wiener4
 impl core::fmt::Debug for alea_distributions::prelude::Wiener4
@@ -971,6 +979,8 @@ pub fn alea_distributions::prelude::Wiener5::fused(&self, obs: &alea_distributio
 pub fn alea_distributions::prelude::Wiener5::log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, eps: f64) -> alea_distributions::wiener::Wiener5Eval
 pub fn alea_distributions::prelude::Wiener5::try_fused(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
 pub fn alea_distributions::prelude::Wiener5::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener5Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener5Eval>
+impl alea_distributions::prelude::Wiener5
+pub fn alea_distributions::prelude::Wiener5::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener5Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>
 pub struct alea_distributions::wiener::Wiener5Eval
 pub alea_distributions::wiener::Wiener5Eval::grad: alea_distributions::wiener::Wiener5Grad
 pub alea_distributions::wiener::Wiener5Eval::log_prob: f64
@@ -1047,6 +1057,8 @@ pub fn alea_distributions::prelude::Wiener7::try_fused(&self, obs: &alea_distrib
 pub fn alea_distributions::prelude::Wiener7::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Eval>
 impl alea_distributions::prelude::Wiener7
 pub fn alea_distributions::prelude::Wiener7::gauss_legendre_01(n: usize) -> (alloc::vec::Vec<f64>, alloc::vec::Vec<f64>)
+impl alea_distributions::prelude::Wiener7
+pub fn alea_distributions::prelude::Wiener7::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener7Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>
 pub struct alea_distributions::wiener::Wiener7Eval
 pub alea_distributions::wiener::Wiener7Eval::grad: alea_distributions::wiener::Wiener7Grad
 pub alea_distributions::wiener::Wiener7Eval::log_prob: f64

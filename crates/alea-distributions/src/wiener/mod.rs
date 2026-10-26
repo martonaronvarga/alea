@@ -7,6 +7,7 @@ use std::f64::consts::PI;
 const LN_PI: f64 = 1.1447298858494001741434273513530587;
 
 mod quadrature;
+mod sampling;
 mod series;
 use quadrature::{
     GL_1_NODES, GL_1_WTS, GL_5_NODES, GL_5_WTS, GL_7_NODES, GL_7_WTS, GL_15_NODES, GL_15_WTS,

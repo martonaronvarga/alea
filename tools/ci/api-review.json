@@ -2,7 +2,7 @@
   "schema_version": 1,
   "base_revision": "6dc7b6c94fa5fa22b03eb9586d9b9390e83226e1",
   "decision": "pre_release_break",
-  "rationale": "First application-facing alea facade with feature-aware modules and prelude. Existing implementation APIs remain inventoried. External consumers and generated code now use alea alone; no compatibility aliases are retained for the unpublished direct-crate interface. New facade feature surfaces have no earlier published baseline. Sampling exports are now explicitly enumerated rather than glob-imported; all previously exported sampling paths are retained. The snapshot renderer records the individual aliases instead of a glob marker. Remove unused public positive_finite, finite_or_neg_inf and log_accept_ratio helpers that silently coerce invalid numerical values. No compatibility aliases or replacement coercions are introduced; checked target boundaries and production acceptance code are unchanged.",
+  "rationale": "First application-facing alea facade with feature-aware modules and prelude. Existing implementation APIs remain inventoried. External consumers and generated code now use alea alone; no compatibility aliases are retained for the unpublished direct-crate interface. New facade feature surfaces have no earlier published baseline. Sampling exports are now explicitly enumerated rather than glob-imported; all previously exported sampling paths are retained. The snapshot renderer records the individual aliases instead of a glob marker. Remove unused public positive_finite, finite_or_neg_inf and log_accept_ratio helpers that silently coerce invalid numerical values. No compatibility aliases or replacement coercions are introduced; checked target boundaries and production acceptance code are unchanged. Add explicit bounded Wiener4/5/7 joint time and boundary sampling methods, without changing default inference or promoting their finite validation scope.",
   "packages": {
     "alea+autodiff": {
       "before": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
@@ -296,12 +296,16 @@
     },
     "alea-distributions": {
       "before": "af4eb1d72238d90e61bcc6a1cc8050030c0d7a3279196bb097c65709639129b9",
-      "after": "af4eb1d72238d90e61bcc6a1cc8050030c0d7a3279196bb097c65709639129b9",
-      "added": 0,
+      "after": "ce3e956279ebf0e1220dc4e81dcee3346308925f0d6bbed28924f9eea8831916",
+      "added": 3,
       "removed": 0,
-      "delta": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
-      "classification": "unchanged",
-      "added_lines": [],
+      "delta": "88686a3936315729243fc24682fbd18dddb825b7afe45b0d559913d2f11a84a8",
+      "classification": "potentially_breaking",
+      "added_lines": [
+        "pub fn alea_distributions::prelude::Wiener4::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener4Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>",
+        "pub fn alea_distributions::prelude::Wiener5::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener5Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>",
+        "pub fn alea_distributions::prelude::Wiener7::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener7Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>"
+      ],
       "removed_lines": []
     },
     "alea-ffi": {
