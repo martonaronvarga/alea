@@ -325,6 +325,11 @@
       "summary": "Seven-parameter Wiener kernel."
     },
     {
+      "path": "crates/alea-distributions/src/wiener/wiener7/error.rs",
+      "profile": "validated_component_reference",
+      "summary": "Optional Wiener7 integrated series-envelope and quadrature error estimates; no roundoff or rigorous cubature certificate."
+    },
+    {
       "path": "crates/alea-distributions/src/wiener/wiener7/fixed.rs",
       "profile": "validated_component_reference",
       "summary": "Wiener parameter, evaluation, observation or reusable batch contracts with bounded regression coverage."
@@ -6399,6 +6404,11 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::wiener::Wiener7ErrorEstimate",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::clone::Clone for alea_distributions::wiener::Wiener7Eval",
       "profile": "validated_component_reference"
     },
@@ -6844,6 +6854,11 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::wiener::Wiener7ErrorEstimate",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::fmt::Debug for alea_distributions::wiener::Wiener7Eval",
       "profile": "validated_component_reference"
     },
@@ -7035,6 +7050,11 @@
     {
       "crate": "alea-distributions",
       "item": "impl core::marker::Copy for alea_distributions::wiener::Wiener5Grad",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::marker::Copy for alea_distributions::wiener::Wiener7ErrorEstimate",
       "profile": "validated_component_reference"
     },
     {
@@ -7720,6 +7740,36 @@
     {
       "crate": "alea-distributions",
       "item": "pub alea_distributions::wiener::Wiener5Grad::tau: f64",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::wiener::Wiener7ErrorEstimate::quadrature_log_prob: f64",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::wiener::Wiener7ErrorEstimate::quadrature_scores: [f64; 7]",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::wiener::Wiener7ErrorEstimate::series_log_prob: f64",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::wiener::Wiener7ErrorEstimate::series_scores: [f64; 7]",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::wiener::Wiener7ErrorEstimate::total_log_prob: f64",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::wiener::Wiener7ErrorEstimate::total_scores: [f64; 7]",
       "profile": "validated_component_reference"
     },
     {
@@ -8862,6 +8912,11 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::prelude::Wiener7::try_fused_with_error_estimate(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<(alea_distributions::wiener::Wiener7Eval, alea_distributions::wiener::Wiener7ErrorEstimate)>",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::prelude::Wiener7::try_log_prob(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<alea_distributions::wiener::Wiener7Eval>",
       "profile": "validated_component_reference"
     },
@@ -9867,6 +9922,16 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::wiener::Wiener7ErrorEstimate::clone(&self) -> alea_distributions::wiener::Wiener7ErrorEstimate",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::wiener::Wiener7ErrorEstimate::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::wiener::Wiener7Eval::clone(&self) -> alea_distributions::wiener::Wiener7Eval",
       "profile": "validated_component_reference"
     },
@@ -10323,6 +10388,11 @@
     {
       "crate": "alea-distributions",
       "item": "pub struct alea_distributions::wiener::Wiener7",
+      "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub struct alea_distributions::wiener::Wiener7ErrorEstimate",
       "profile": "validated_component_reference"
     },
     {

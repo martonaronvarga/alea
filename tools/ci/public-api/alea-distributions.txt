@@ -441,6 +441,8 @@ impl alea_distributions::prelude::Wiener7
 pub fn alea_distributions::prelude::Wiener7::gauss_legendre_01(n: usize) -> (alloc::vec::Vec<f64>, alloc::vec::Vec<f64>)
 impl alea_distributions::prelude::Wiener7
 pub fn alea_distributions::prelude::Wiener7::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener7Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>
+impl alea_distributions::prelude::Wiener7
+pub fn alea_distributions::prelude::Wiener7::try_fused_with_error_estimate(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<(alea_distributions::wiener::Wiener7Eval, alea_distributions::wiener::Wiener7ErrorEstimate)>
 pub struct alea_distributions::prelude::Wiener7Params
 impl alea_distributions::prelude::Wiener7Params
 pub const alea_distributions::prelude::Wiener7Params::DIM: usize
@@ -1067,6 +1069,20 @@ impl alea_distributions::prelude::Wiener7
 pub fn alea_distributions::prelude::Wiener7::gauss_legendre_01(n: usize) -> (alloc::vec::Vec<f64>, alloc::vec::Vec<f64>)
 impl alea_distributions::prelude::Wiener7
 pub fn alea_distributions::prelude::Wiener7::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, params: &alea_distributions::prelude::Wiener7Params, rng: &mut R) -> alea_distributions::wiener::Result<alea_distributions::prelude::WienerObservation>
+impl alea_distributions::prelude::Wiener7
+pub fn alea_distributions::prelude::Wiener7::try_fused_with_error_estimate(&self, obs: &alea_distributions::prelude::WienerObservation, params: &alea_distributions::prelude::Wiener7Params, options: alea_distributions::prelude::WienerOptions) -> alea_distributions::wiener::Result<(alea_distributions::wiener::Wiener7Eval, alea_distributions::wiener::Wiener7ErrorEstimate)>
+pub struct alea_distributions::wiener::Wiener7ErrorEstimate
+pub alea_distributions::wiener::Wiener7ErrorEstimate::quadrature_log_prob: f64
+pub alea_distributions::wiener::Wiener7ErrorEstimate::quadrature_scores: [f64; 7]
+pub alea_distributions::wiener::Wiener7ErrorEstimate::series_log_prob: f64
+pub alea_distributions::wiener::Wiener7ErrorEstimate::series_scores: [f64; 7]
+pub alea_distributions::wiener::Wiener7ErrorEstimate::total_log_prob: f64
+pub alea_distributions::wiener::Wiener7ErrorEstimate::total_scores: [f64; 7]
+impl core::clone::Clone for alea_distributions::wiener::Wiener7ErrorEstimate
+pub fn alea_distributions::wiener::Wiener7ErrorEstimate::clone(&self) -> alea_distributions::wiener::Wiener7ErrorEstimate
+impl core::fmt::Debug for alea_distributions::wiener::Wiener7ErrorEstimate
+pub fn alea_distributions::wiener::Wiener7ErrorEstimate::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::wiener::Wiener7ErrorEstimate
 pub struct alea_distributions::wiener::Wiener7Eval
 pub alea_distributions::wiener::Wiener7Eval::grad: alea_distributions::wiener::Wiener7Grad
 pub alea_distributions::wiener::Wiener7Eval::log_prob: f64

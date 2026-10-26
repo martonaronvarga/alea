@@ -50,6 +50,18 @@ impl Wiener7 {
         if hcubature_into(8, bounds, core.opts, &mut val, &mut err, integrand).is_err() {
             return fail_eval_7();
         }
-        Self::from_integrals(val)
+        let Some((log_error, score_errors)) = super::error::ratios(&val, &err) else {
+            return fail_eval_7();
+        };
+        let evaluation = Self::from_integrals(val);
+        if log_error > core.opts.req_rel_error
+            || score_errors
+                .iter()
+                .zip(evaluation.grad_array())
+                .any(|(bound, score)| *bound > core.opts.req_rel_error * score.abs().max(1.0))
+        {
+            return fail_eval_7();
+        }
+        evaluation
     }
 }

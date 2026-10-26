@@ -280,3 +280,20 @@ widths. This avoids subtracting endpoint terms of size `1 / width` to obtain a
 small score. Fixed Gauss–Legendre gradients differentiate the selected rule,
 including at order one. Adaptive integration still provides estimated
 quadrature errors rather than rigorous integration enclosures.
+
+For a Wiener7 error breakdown, use `try_fused_with_error_estimate` with adaptive
+quadrature. It returns the evaluation and separate series, quadrature, and
+combined estimates for the log density and all seven scores. Pointwise series
+envelopes are integrated alongside the density and derivatives. Their numerical
+integration errors are added to the series contribution before forming the
+combined estimate. The density must remain separated from zero under that
+estimate. The method returns an error if the requested combined budget is not
+met. Log-density error uses an absolute tolerance; each score uses the tolerance
+times the larger of one and the absolute score.
+
+This diagnostic method does extra work and is useful for checking demanding
+parameter regimes. It does not provide rigorous continuous cubature enclosures
+or assess roundoff. Fixed quadrature is rejected because it has no embedded
+error estimator. Ordinary adaptive evaluation now also checks the cubature's
+returned component errors in log-density and score units before accepting its
+natural-scale result; otherwise it tries the scaled adaptive path.

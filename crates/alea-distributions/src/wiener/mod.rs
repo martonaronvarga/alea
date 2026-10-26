@@ -55,6 +55,7 @@ pub(super) fn unlikely(value: bool) -> bool {
 mod wiener4;
 mod wiener5;
 mod wiener7;
+pub use wiener7::Wiener7ErrorEstimate;
 
 impl Wiener5Params {
     pub fn to_unconstrained(c: &Self) -> [f64; 5] {

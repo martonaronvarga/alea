@@ -79,6 +79,15 @@ fn bench_single_observation(c: &mut Criterion) {
         });
     });
 
+    c.bench_function("wiener5/single/truncation_report", |b| {
+        b.iter(|| {
+            black_box(
+                Wiener5
+                    .try_fused_with_truncation(black_box(&obs), black_box(&p5), EPS5)
+                    .unwrap(),
+            )
+        });
+    });
     let p7 = wiener7_params();
     c.bench_function("wiener7/single/fused/adaptive", |b| {
         b.iter(|| {
@@ -87,6 +96,19 @@ fn bench_single_observation(c: &mut Criterion) {
         });
     });
 
+    c.bench_function("wiener7/single/error_estimate", |b| {
+        b.iter(|| {
+            black_box(
+                Wiener7
+                    .try_fused_with_error_estimate(
+                        black_box(&obs),
+                        black_box(&p7),
+                        WienerOptions::new(EPS7),
+                    )
+                    .unwrap(),
+            )
+        });
+    });
     let fixed = WienerOptions::new(EPS7)
         .with_inner_precision(EPS5)
         .with_quadrature(Quadrature::FixedGaussLegendre { order: 25 });

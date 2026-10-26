@@ -60,3 +60,36 @@ fn invalid_accuracy_budgets_are_errors() {
         );
     }
 }
+
+#[test]
+fn wiener7_reports_separate_estimated_error_contributions() {
+    use alea_distributions::wiener::{Wiener7, Wiener7Params, WienerOptions};
+    for boundary in [Boundary::Upper, Boundary::Lower] {
+        for (sw, st) in [(0., 0.), (0.2, 0.), (0., 0.1), (0.2, 0.1)] {
+            let obs = WienerObservation { rt: 0.8, boundary };
+            let p = Wiener7Params::with_params(1.2, 0.15, 0.4, 0.7, sw, st, 0.3).unwrap();
+            let (e, r) = Wiener7
+                .try_fused_with_error_estimate(&obs, &p, WienerOptions::new(1e-7))
+                .unwrap();
+            assert!(r.total_log_prob <= 1e-7);
+            assert!(
+                r.total_log_prob >= r.series_log_prob && r.total_log_prob >= r.quadrature_log_prob
+            );
+            for ((total, series), quad) in r
+                .total_scores
+                .iter()
+                .zip(r.series_scores)
+                .zip(r.quadrature_scores)
+            {
+                assert!(*total >= series && *total >= quad);
+            }
+            let reference = Wiener7
+                .try_fused(&obs, &p, WienerOptions::new(1e-11))
+                .unwrap();
+            assert!((e.log_prob - reference.log_prob).abs() < 1e-7);
+            for (a, b) in e.grad_array().into_iter().zip(reference.grad_array()) {
+                assert!((a - b).abs() < 1e-6 * (1. + b.abs()));
+            }
+        }
+    }
+}

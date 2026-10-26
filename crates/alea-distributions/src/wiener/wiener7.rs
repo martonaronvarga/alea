@@ -3,7 +3,9 @@ use super::*;
 mod adaptive;
 #[cfg(test)]
 mod audit;
+mod error;
 mod fixed;
+pub use error::Wiener7ErrorEstimate;
 mod integrals;
 mod scaled;
 
