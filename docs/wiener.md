@@ -347,8 +347,8 @@ silently clamped to zero.
 For Wiener7 with only nondecision-time variability, density-only adaptive
 evaluation can use this interval probability divided by the time width. If
 the difference is too narrow or the series cannot meet its numerical checks,
-it retains cubature. The fused path uses analytic CDF parameter scores and an endpoint density for
-the time-width score, with a separate cancellation check. Fixed
+it retains cubature. The fused path uses analytic CDF parameter scores and an
+endpoint density for the time-width score, with a separate cancellation check. Fixed
 quadrature still evaluates the requested rule. The CDF functions do not yet
 marginalize Gaussian drift or starting-point variability.
 

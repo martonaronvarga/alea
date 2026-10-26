@@ -182,6 +182,44 @@ reference cannot produce a false pass. A rejected result is separated from an
 unresolved enclosure. This is a certificate for the supplied input/result pair,
 not a global proof of all Rust floating-point executions.
 
+## Measured costs
+
+A CPU-pinned comparison on an Intel Core i5-8250U covered 676 parameter
+configurations, scalar and SIMD builds, density and fused-score evaluation,
+and 32-observation batch paths. Three alternating process pairs retained all
+16,656 outcomes. The comparison used source revisions `49b7527` and `7d1f488`,
+with the same compiler within each build pair. Every density and fused output
+in this grid passed pointwise ball-enclosure comparisons at
+`1e-9 * (1 + |reference|)` in both build modes. The old build failed 33 fused
+cases per mode: 32 zero-width scores and one rare-tail score. These results
+describe that finite workload; they are not a promise for every parameter value.
+
+Median scalar old/new timing ratios were:
+
+| Evaluation | Density | Density and scores |
+|---|---:|---:|
+| Wiener4/5 | about 1× | about 1× |
+| Wiener7, ordinary image start averaging | 1.76× | 1.93× |
+| Wiener7, localized image start averaging | 82.6× | 87.9× |
+| Wiener7, spectral start averaging | 23.6× | 25.1× |
+| Wiener7, time averaging | 8.68× | 2.24× |
+| Wiener7, clipped time averaging | 112× | 97.5× |
+| Wiener7, localized joint variability | 12.9× | 13.1× |
+| Wiener7, broad joint variability | 0.89× | 0.31× |
+| Wiener7, clipped joint variability | 0.89× | 0.67× |
+| Wiener7, long-time joint variability | 0.90× | 0.32× |
+
+A ratio below one means slower evaluation. General cubature now integrates
+direct width derivatives and checks estimated errors in every score, increasing
+its cost. Tiny variability widths were roughly 5–12% slower in this grid; rare
+tails had mixed results. Batch evaluation was essentially unchanged.
+
+The old implementation returned an incorrect time-width score at zero width.
+Consequently, fused start-only timings compare historical execution costs,
+rather than two implementations of equally correct complete gradients. SIMD
+builds showed the same broad pattern. The largest gains come from eliminating
+integration dimensions; scalar calls do not automatically gain SIMD throughput.
+
 ## References
 
 - [Navarro and Fuss (2009), density expansions and truncation](https://papers.djnavarro.net/2009_firstpassage.pdf).
