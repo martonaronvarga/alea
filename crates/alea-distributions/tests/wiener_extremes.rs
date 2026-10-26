@@ -144,3 +144,24 @@ fn checked_evaluators_handle_tiny_scales_or_report_numerical_failure() {
         ));
     }
 }
+
+#[test]
+fn reflected_distance_rounded_to_one_does_not_change_support() {
+    let beta = 1e-20;
+    assert_eq!(1. - beta, 1.);
+    let p = Wiener4Params::with_params(1., 0., beta, 0.).unwrap();
+    let e = Wiener4
+        .try_fused(
+            &WienerObservation {
+                rt: 100.,
+                boundary: Boundary::Lower,
+            },
+            &p,
+            WienerOptions::default(),
+        )
+        .unwrap();
+    // Remaining spectral terms are suppressed by exp(-150*pi²).
+    let expected = 2. * std::f64::consts::PI.ln() + beta.ln() - 50. * std::f64::consts::PI.powi(2);
+    assert!((e.log_prob - expected).abs() < 1e-12);
+    assert!((e.grad.beta * beta - 1.).abs() < 1e-12);
+}

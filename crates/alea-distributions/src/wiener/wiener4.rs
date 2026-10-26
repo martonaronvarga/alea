@@ -327,12 +327,8 @@ impl Wiener4 {
             Boundary::Lower => (-params.delta, 1.0 - params.beta, -1.0, -1.0),
         };
 
-        if unlikely(!(0.0 < w_eff && w_eff < 1.0)) {
-            return Err(ProbError::OutOfSupport(
-                "effective starting point must be in (0, 1)".to_string(),
-            ));
-        }
-
+        // Original beta has already been checked. A reflected distance may
+        // round to one while the other distance remains strictly positive.
         let log_a2_inv = -2.0 * a.ln();
         let drift_term = a
             * v_eff
