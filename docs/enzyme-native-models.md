@@ -48,7 +48,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let source = alea::autodiff::codegen::enzyme_source(&model)?;
     let output = std::env::var_os("OUT_DIR").ok_or("Cargo did not provide OUT_DIR")?;
-    std::fs::write(std::path::PathBuf::from(output).join("posterior.rs"), source)?;
+    std::fs::write(
+        std::path::PathBuf::from(output).join("posterior.rs"),
+        source,
+    )?;
     println!("cargo:rerun-if-changed=build.rs");
     Ok(())
 }

@@ -24,13 +24,13 @@ A session selects the kernel with its corresponding checked options:
 use alea::sampling::{HmcOptions, NutsOptions, RwmhOptions};
 use alea::session::Kernel;
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let nuts = Kernel::Nuts(NutsOptions::new(0.2, 8)?);
-let hmc = Kernel::Hmc(HmcOptions::new(0.1, 10)?);
-let metropolis = Kernel::Rwmh(RwmhOptions::new(0.5)?);
-# let _ = (nuts, hmc, metropolis);
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let nuts = Kernel::Nuts(NutsOptions::new(0.2, 8)?);
+    let hmc = Kernel::Hmc(HmcOptions::new(0.1, 10)?);
+    let metropolis = Kernel::Rwmh(RwmhOptions::new(0.5)?);
+    let _ = (nuts, hmc, metropolis);
+    Ok(())
+}
 ```
 
 For NUTS, `0.2` is the initial step size and `8` is the maximum tree depth. A depth
@@ -51,16 +51,16 @@ learns a metric and tunes the step size toward a requested acceptance rate:
 use alea::sampling::adapt::MetricKind;
 use alea::session::Warmup;
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let warmup = Warmup::Covariance {
-    iterations: 1_000,
-    metric: MetricKind::Diagonal,
-    target: 0.8.try_into()?,
-    search: None,
-};
-# let _ = warmup;
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let warmup = Warmup::Covariance {
+        iterations: 1_000,
+        metric: MetricKind::Diagonal,
+        target: 0.8.try_into()?,
+        search: None,
+    };
+    let _ = warmup;
+    Ok(())
+}
 ```
 
 Pass this value to `.warmup(warmup)` on the session builder. Warmup draws are

@@ -9,17 +9,17 @@ layouts handle constrained coordinates and their Jacobians.
 ```rust
 use alea::model::assembly::ModelBuilder;
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let mut builder = ModelBuilder::new();
-let location = builder.real("location")?;
-let squared = builder.multiply(location.expr(), location.expr())?;
-let coefficient = builder.constant(-0.5)?;
-let log_density = builder.multiply(coefficient, squared)?;
-builder.factor(log_density)?;
-let target = builder.compile()?.into_target()?;
-# let _ = target;
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut builder = ModelBuilder::new();
+    let location = builder.real("location")?;
+    let squared = builder.multiply(location.expr(), location.expr())?;
+    let coefficient = builder.constant(-0.5)?;
+    let log_density = builder.multiply(coefficient, squared)?;
+    builder.factor(log_density)?;
+    let target = builder.compile()?.into_target()?;
+    let _ = target;
+    Ok(())
+}
 ```
 
 This builds a standard-normal target, omitting a constant independent of the

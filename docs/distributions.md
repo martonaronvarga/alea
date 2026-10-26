@@ -9,17 +9,20 @@ make the capabilities of each law explicit.
 ```rust
 use alea::distribution::{ContinuousDistribution, Distribution, Sample};
 use alea::distributions::scalar::Normal;
-use rand::{rngs::SmallRng, SeedableRng};
+use rand::{SeedableRng, rngs::SmallRng};
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let law = Normal::new(2.0, 0.5)?;
-let observation = 2.3;
-println!("log density = {}", law.log_prob(&observation)?);
-println!("derivative with respect to the observation = {}", law.event_score(observation)?);
-let mut rng = SmallRng::seed_from_u64(123);
-println!("simulated observation = {}", law.sample(&mut rng)?);
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let law = Normal::new(2.0, 0.5)?;
+    let observation = 2.3;
+    println!("log density = {}", law.log_prob(&observation)?);
+    println!(
+        "derivative with respect to the observation = {}",
+        law.event_score(observation)?
+    );
+    let mut rng = SmallRng::seed_from_u64(123);
+    println!("simulated observation = {}", law.sample(&mut rng)?);
+    Ok(())
+}
 ```
 
 `Normal::new` takes a mean and a standard deviation. Its `log_prob` includes the
@@ -55,13 +58,13 @@ not continuous densities:
 use alea::distribution::Distribution;
 use alea::distributions::scalar::{Bernoulli, Poisson};
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let success = Bernoulli::new(0.7)?;
-assert!((success.log_prob(&true)?.exp() - 0.7).abs() < 1e-12);
-let counts = Poisson::new(3.0)?;
-println!("P(count = 2) = {}", counts.log_prob(&2)?.exp());
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let success = Bernoulli::new(0.7)?;
+    assert!((success.log_prob(&true)?.exp() - 0.7).abs() < 1e-12);
+    let counts = Poisson::new(3.0)?;
+    println!("P(count = 2) = {}", counts.log_prob(&2)?.exp());
+    Ok(())
+}
 ```
 
 There is no derivative with respect to a boolean or count observation. Continuous
@@ -77,15 +80,11 @@ matrix. This example uses independent coordinates with standard deviations 1 and
 use alea::distribution::Distribution;
 use alea::distributions::multivariate::MultivariateNormal;
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let law = MultivariateNormal::new(
-    vec![0.0, 0.0],
-    vec![1.0, 0.0,
-         0.0, 2.0],
-)?;
-println!("log density = {}", law.log_prob(&[0.2, -0.5])?);
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let law = MultivariateNormal::new(vec![0.0, 0.0], vec![1.0, 0.0, 0.0, 2.0])?;
+    println!("log density = {}", law.log_prob(&[0.2, -0.5])?);
+    Ok(())
+}
 ```
 
 Simplex scores are expressed in ambient coordinates; a simplex transform handles

@@ -13,11 +13,11 @@ Here both the population mean and measurement scale are unknown. We use a normal
 prior on the mean and an exponential prior with rate 1 on the scale.
 
 ```rust
+use alea::distributions::modeling::{normal, normal_observation};
 use alea::{
     model::assembly::{AssemblyError, CompiledModel, ModelBuilder},
     target::LogDensityGradient,
 };
-use alea::distributions::modeling::{normal, normal_observation};
 
 fn model(observations: &[f64]) -> Result<CompiledModel, AssemblyError> {
     let mut builder = ModelBuilder::new();
@@ -53,7 +53,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut scratch = vec![0.0; layout.scratch_dimension()];
     layout.constrain(&q, &mut parameters, &mut scratch)?;
     assert_eq!(parameters, [1.0, 1.0]);
-    println!("log posterior = {logp}; mean = {}; scale = {}", parameters[0], parameters[1]);
+    println!(
+        "log posterior = {logp}; mean = {}; scale = {}",
+        parameters[0], parameters[1]
+    );
     Ok(())
 }
 ```
@@ -92,30 +95,30 @@ Use a Bernoulli likelihood in log-odds coordinates to avoid manually taking logs
 of probabilities close to zero or one:
 
 ```rust
-use alea::model::assembly::ModelBuilder;
 use alea::distributions::modeling::{bernoulli_logit, normal};
+use alea::model::assembly::ModelBuilder;
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let mut builder = ModelBuilder::new();
-let intercept = builder.real("intercept")?;
-let slope = builder.real("slope")?;
-let zero = builder.constant(0.0)?;
-let two = builder.constant(2.0)?;
-for parameter in [intercept.expr(), slope.expr()] {
-    let prior = normal(&mut builder, parameter, zero, two)?;
-    builder.factor(prior)?;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut builder = ModelBuilder::new();
+    let intercept = builder.real("intercept")?;
+    let slope = builder.real("slope")?;
+    let zero = builder.constant(0.0)?;
+    let two = builder.constant(2.0)?;
+    for parameter in [intercept.expr(), slope.expr()] {
+        let prior = normal(&mut builder, parameter, zero, two)?;
+        builder.factor(prior)?;
+    }
+    for (x, event) in [(-1.0, false), (0.0, false), (1.0, true), (2.0, true)] {
+        let x = builder.constant(x)?;
+        let effect = builder.multiply(slope.expr(), x)?;
+        let log_odds = builder.add(intercept.expr(), effect)?;
+        let likelihood = bernoulli_logit(&mut builder, event, log_odds)?;
+        builder.factor(likelihood)?;
+    }
+    let model = builder.compile()?;
+    assert_eq!(model.coordinates().len(), 2);
+    Ok(())
 }
-for (x, event) in [(-1.0, false), (0.0, false), (1.0, true), (2.0, true)] {
-    let x = builder.constant(x)?;
-    let effect = builder.multiply(slope.expr(), x)?;
-    let log_odds = builder.add(intercept.expr(), effect)?;
-    let likelihood = bernoulli_logit(&mut builder, event, log_odds)?;
-    builder.factor(likelihood)?;
-}
-let model = builder.compile()?;
-assert_eq!(model.coordinates().len(), 2);
-# Ok(())
-# }
 ```
 
 The observed boolean is data. HMC and NUTS move continuous parameters such as the
@@ -127,25 +130,28 @@ Prediction asks what observations the fitted model would generate. It is separat
 from fitting: draw parameter values from the posterior, then simulate new data.
 
 ```rust
-use alea::{model::prediction::posterior_predict, transform::{ParameterLayout, Transform}};
 use alea::distribution::Sample;
 use alea::distributions::scalar::Normal;
-use rand::{rngs::SmallRng, SeedableRng};
+use alea::{
+    model::prediction::posterior_predict,
+    transform::{ParameterLayout, Transform},
+};
+use rand::{SeedableRng, rngs::SmallRng};
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let layout = ParameterLayout::new(vec![Transform::identity(1)?, Transform::positive(1)?])?;
-// For illustration. In a fit, use the positions collected from your chains.
-let positions = [[1.0, 0.0], [1.2, -0.2], [0.9, 0.1]];
-let mut rng = SmallRng::seed_from_u64(42);
-let predictions = posterior_predict(
-    &layout,
-    positions.iter().map(|q| q.as_slice()),
-    &mut rng,
-    |parameters, rng| Normal::new(parameters[0], parameters[1])?.sample(rng),
-)?;
-assert_eq!(predictions.generated.len(), 3);
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let layout = ParameterLayout::new(vec![Transform::identity(1)?, Transform::positive(1)?])?;
+    // For illustration. In a fit, use the positions collected from your chains.
+    let positions = [[1.0, 0.0], [1.2, -0.2], [0.9, 0.1]];
+    let mut rng = SmallRng::seed_from_u64(42);
+    let predictions = posterior_predict(
+        &layout,
+        positions.iter().map(|q| q.as_slice()),
+        &mut rng,
+        |parameters, rng| Normal::new(parameters[0], parameters[1])?.sample(rng),
+    )?;
+    assert_eq!(predictions.generated.len(), 3);
+    Ok(())
+}
 ```
 
 Use the layout saved from your compiled model in a real analysis. The predictive

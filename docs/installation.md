@@ -49,11 +49,13 @@ when your code supplies its own random-number generator.
 Import the public API through `alea`:
 
 ```rust
-use alea::prelude::*;
-use alea::distributions::scalar::Normal;
-# let law = Normal::new(0.0, 1.0)?;
-# let _ = law;
-# Ok::<(), Box<dyn std::error::Error>>(())
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use alea::distributions::scalar::Normal;
+    use alea::prelude::*;
+    let law = Normal::new(0.0, 1.0)?;
+    let _ = law;
+    Ok::<(), Box<dyn std::error::Error>>(())
+}
 ```
 
 The internal workspace crates do not need to appear in your application's

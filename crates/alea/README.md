@@ -8,17 +8,17 @@ posterior prediction, and checkpoint recovery.
 ```rust
 use alea::prelude::*;
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let kernel = Kernel::Nuts(NutsOptions::new(0.2, 8)?);
-let warmup = Warmup::Covariance {
-    iterations: 1_000,
-    metric: alea::sampling::adapt::MetricKind::Diagonal,
-    target: 0.8.try_into()?,
-    search: None,
-};
-# let _ = (kernel, warmup);
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let kernel = Kernel::Nuts(NutsOptions::new(0.2, 8)?);
+    let warmup = Warmup::Covariance {
+        iterations: 1_000,
+        metric: alea::sampling::adapt::MetricKind::Diagonal,
+        target: 0.8.try_into()?,
+        search: None,
+    };
+    let _ = (kernel, warmup);
+    Ok(())
+}
 ```
 
 See the [user guide](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/README.md)

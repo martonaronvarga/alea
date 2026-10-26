@@ -15,14 +15,17 @@ use alea::distributions::wiener::{
     Boundary, Wiener4, Wiener4Params, WienerObservation, WienerOptions,
 };
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let observation = WienerObservation { rt: 0.8, boundary: Boundary::Upper };
-let parameters = Wiener4Params::with_params(1.2, 0.2, 0.5, 0.7)?;
-let evaluation = Wiener4.try_fused(&observation, &parameters, WienerOptions::default())?;
-println!("log likelihood = {}", evaluation.log_prob);
-println!("drift derivative = {}", evaluation.grad.delta);
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let observation = WienerObservation {
+        rt: 0.8,
+        boundary: Boundary::Upper,
+    };
+    let parameters = Wiener4Params::with_params(1.2, 0.2, 0.5, 0.7)?;
+    let evaluation = Wiener4.try_fused(&observation, &parameters, WienerOptions::default())?;
+    println!("log likelihood = {}", evaluation.log_prob);
+    println!("drift derivative = {}", evaluation.grad.delta);
+    Ok(())
+}
 ```
 
 The log likelihood is for the joint observation of this time and boundary.
@@ -55,26 +58,33 @@ variability parameters can be weakly identified and make inference more expensiv
 its workspace avoids repeated scratch allocation:
 
 ```rust
-use alea::model::ConstrainedModel;
 use alea::distributions::wiener::{
-    BatchStrategy, Boundary, Wiener5, WienerModel,
-    WienerObservation, WienerObservations,
+    BatchStrategy, Boundary, Wiener5, WienerModel, WienerObservation, WienerObservations,
 };
+use alea::model::ConstrainedModel;
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let observations: WienerObservations = vec![
-    WienerObservation { rt: 0.8, boundary: Boundary::Upper },
-    WienerObservation { rt: 1.1, boundary: Boundary::Lower },
-].into();
-let model = WienerModel::new(
-    Wiener5,
-    observations.with_batch_strategy(BatchStrategy::BranchBuckets),
-).with_workspace();
-let mut gradient = [0.0; 5];
-let logp = model.logp_grad(&[1.2, 0.2, 0.5, 0.7, 0.3], &mut gradient)?;
-println!("batch log likelihood = {logp}");
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let observations: WienerObservations = vec![
+        WienerObservation {
+            rt: 0.8,
+            boundary: Boundary::Upper,
+        },
+        WienerObservation {
+            rt: 1.1,
+            boundary: Boundary::Lower,
+        },
+    ]
+    .into();
+    let model = WienerModel::new(
+        Wiener5,
+        observations.with_batch_strategy(BatchStrategy::BranchBuckets),
+    )
+    .with_workspace();
+    let mut gradient = [0.0; 5];
+    let logp = model.logp_grad(&[1.2, 0.2, 0.5, 0.7, 0.3], &mut gradient)?;
+    println!("batch log likelihood = {logp}");
+    Ok(())
+}
 ```
 
 The input order is `alpha, tau, beta, delta, s_delta`. These are constrained model

@@ -10,11 +10,11 @@ sampling uses a random-number generator supplied by the caller.
 use alea::distribution::Distribution;
 use alea::distributions::scalar::Normal;
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let observation_model = Normal::new(0.0, 1.0)?;
-println!("log density = {}", observation_model.log_prob(&0.3)?);
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let observation_model = Normal::new(0.0, 1.0)?;
+    println!("log density = {}", observation_model.log_prob(&0.3)?);
+    Ok(())
+}
 ```
 
 See [distributions](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/distributions.md), [model factors](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/modeling.md),

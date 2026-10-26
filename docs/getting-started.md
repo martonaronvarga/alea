@@ -19,11 +19,11 @@ Follow [Installation](installation.md), then place this complete program in
 `src/main.rs`:
 
 ```rust
+use alea::sampling::{NutsOptions, adapt::MetricKind};
 use alea::target::LogDensityGradient;
-use alea::sampling::{adapt::MetricKind, NutsOptions};
 use alea::{
     ensemble::Execution,
-    session::{storage::Discard, Kernel, SessionBuilder, Warmup},
+    session::{Kernel, SessionBuilder, Warmup, storage::Discard},
 };
 use std::convert::Infallible;
 
@@ -69,7 +69,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     .build()?;
 
     let result = session.run(
-        |_| Ok(MeanModel { observations: vec![1.2, 0.9, 1.4, 1.1] }),
+        |_| {
+            Ok(MeanModel {
+                observations: vec![1.2, 0.9, 1.4, 1.1],
+            })
+        },
         Execution::Sequential,
         &Discard,
     )?;
@@ -80,14 +84,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             eprintln!("Chain {:?}: {failure:?}", chain.chain);
         }
     }
-    if result.chains.iter().any(|chain| chain.failure.is_some() || chain.completed != 1_000) {
-        return Err("Sampling did not complete; inspect the chain outcomes before summarizing".into());
+    if result
+        .chains
+        .iter()
+        .any(|chain| chain.failure.is_some() || chain.completed != 1_000)
+    {
+        return Err(
+            "Sampling did not complete; inspect the chain outcomes before summarizing".into(),
+        );
     }
-    let draws: Vec<f64> = result.chains.iter()
+    let draws: Vec<f64> = result
+        .chains
+        .iter()
         .flat_map(|chain| chain.draws.iter().map(|draw| draw.position[0]))
         .collect();
     if !draws.is_empty() {
-        println!("Posterior mean: {:.3}", draws.iter().sum::<f64>() / draws.len() as f64);
+        println!(
+            "Posterior mean: {:.3}",
+            draws.iter().sum::<f64>() / draws.len() as f64
+        );
     }
     Ok(())
 }

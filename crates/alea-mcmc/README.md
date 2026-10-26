@@ -7,20 +7,20 @@ state after every completed transition. Warmup is explicit and ends before
 retained sampling.
 
 ```rust
-use alea::sampling::{adapt::MetricKind, NutsOptions};
+use alea::sampling::{NutsOptions, adapt::MetricKind};
 use alea::session::{Kernel, Warmup};
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let kernel = Kernel::Nuts(NutsOptions::new(0.2, 8)?);
-let warmup = Warmup::Covariance {
-    iterations: 1_000,
-    metric: MetricKind::Diagonal,
-    target: 0.8.try_into()?,
-    search: None,
-};
-# let _ = (kernel, warmup);
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let kernel = Kernel::Nuts(NutsOptions::new(0.2, 8)?);
+    let warmup = Warmup::Covariance {
+        iterations: 1_000,
+        metric: MetricKind::Diagonal,
+        target: 0.8.try_into()?,
+        search: None,
+    };
+    let _ = (kernel, warmup);
+    Ok(())
+}
 ```
 
 Use these settings with an `alea-runtime` session, or construct a chain directly.

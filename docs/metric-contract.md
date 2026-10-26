@@ -14,19 +14,22 @@ names for the two representations.
 ## Diagonal mass
 
 ```rust
-use alea::math::{buffer::OwnedBuffer, metric::{DiagonalMetric, EuclideanMetric}};
+use alea::math::{
+    buffer::OwnedBuffer,
+    metric::{DiagonalMetric, EuclideanMetric},
+};
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let mass = DiagonalMetric::new(OwnedBuffer::from_fn(2, |i| [4.0, 9.0][i]))?;
-let mut momentum = [0.0; 2];
-mass.sample_momentum(&[1.0, 2.0], &mut momentum)?;
-assert_eq!(momentum, [2.0, 6.0]);
-let mut velocity = [0.0; 2];
-mass.velocity(&momentum, &mut velocity)?;
-assert!((velocity[0] - 0.5).abs() < 1e-12);
-assert!((velocity[1] - 2.0 / 3.0).abs() < 1e-12);
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mass = DiagonalMetric::new(OwnedBuffer::from_fn(2, |i| [4.0, 9.0][i]))?;
+    let mut momentum = [0.0; 2];
+    mass.sample_momentum(&[1.0, 2.0], &mut momentum)?;
+    assert_eq!(momentum, [2.0, 6.0]);
+    let mut velocity = [0.0; 2];
+    mass.velocity(&momentum, &mut velocity)?;
+    assert!((velocity[0] - 0.5).abs() < 1e-12);
+    assert!((velocity[1] - 2.0 / 3.0).abs() < 1e-12);
+    Ok(())
+}
 ```
 
 `sample_momentum` transforms supplied independent standard-normal values. It does
@@ -39,17 +42,20 @@ finite masses and does not silently clamp invalid entries.
 matrix is stored in **column-major** order, with zeros above the diagonal:
 
 ```rust
-use alea::math::{buffer::OwnedBuffer, metric::{CholeskyFactor, DenseMetric, EuclideanMetric}};
+use alea::math::{
+    buffer::OwnedBuffer,
+    metric::{CholeskyFactor, DenseMetric, EuclideanMetric},
+};
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-// L = [[2, 0], [0.5, 3]], stored by column.
-let lower = OwnedBuffer::from_fn(4, |i| [2.0, 0.5, 0.0, 3.0][i]);
-let metric = DenseMetric::new(CholeskyFactor::new_lower(2, lower)?);
-let mut momentum = [0.0; 2];
-metric.sample_momentum(&[1.0, 2.0], &mut momentum)?;
-assert_eq!(momentum, [2.0, 6.5]);
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // L = [[2, 0], [0.5, 3]], stored by column.
+    let lower = OwnedBuffer::from_fn(4, |i| [2.0, 0.5, 0.0, 3.0][i]);
+    let metric = DenseMetric::new(CholeskyFactor::new_lower(2, lower)?);
+    let mut momentum = [0.0; 2];
+    metric.sample_momentum(&[1.0, 2.0], &mut momentum)?;
+    assert_eq!(momentum, [2.0, 6.5]);
+    Ok(())
+}
 ```
 
 The constructor checks the factor; it does not factor an arbitrary covariance

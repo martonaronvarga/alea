@@ -27,28 +27,31 @@ with reassuring numbers.
 independent normal draws, so they illustrate the API rather than a fitted model:
 
 ```rust
+use alea::diagnostics::modern::summarize;
 use alea::distribution::Sample;
 use alea::distributions::scalar::Normal;
-use alea::diagnostics::modern::summarize;
-use rand::{rngs::SmallRng, SeedableRng};
+use rand::{SeedableRng, rngs::SmallRng};
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let normal = Normal::new(0.0, 1.0)?;
-let mut rng = SmallRng::seed_from_u64(42);
-let mut chains = vec![Vec::new(); 4];
-for chain in &mut chains {
-    for _ in 0..1_000 {
-        chain.push(normal.sample(&mut rng)?);
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let normal = Normal::new(0.0, 1.0)?;
+    let mut rng = SmallRng::seed_from_u64(42);
+    let mut chains = vec![Vec::new(); 4];
+    for chain in &mut chains {
+        for _ in 0..1_000 {
+            chain.push(normal.sample(&mut rng)?);
+        }
     }
+    let series: Vec<&[f64]> = chains.iter().map(Vec::as_slice).collect();
+    let summary = summarize(&series)?;
+    println!("mean = {:.3}", summary.mean);
+    println!("R-hat = {:.3}", summary.rhat);
+    println!(
+        "bulk ESS = {:.0}; tail ESS = {:.0}",
+        summary.bulk_ess, summary.tail_ess
+    );
+    println!("Monte Carlo SE of the mean = {:.3}", summary.mcse_mean);
+    Ok(())
 }
-let series: Vec<&[f64]> = chains.iter().map(Vec::as_slice).collect();
-let summary = summarize(&series)?;
-println!("mean = {:.3}", summary.mean);
-println!("R-hat = {:.3}", summary.rhat);
-println!("bulk ESS = {:.0}; tail ESS = {:.0}", summary.bulk_ess, summary.tail_ess);
-println!("Monte Carlo SE of the mean = {:.3}", summary.mcse_mean);
-# Ok(())
-# }
 ```
 
 For a fitted model, extract the same parameter or derived quantity from every

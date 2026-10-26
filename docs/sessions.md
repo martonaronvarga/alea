@@ -11,29 +11,33 @@ standard normal target on two worker threads:
 
 ```rust
 use alea::distributions::Gaussian;
-use alea::sampling::{adapt::MetricKind, NutsOptions};
+use alea::sampling::{NutsOptions, adapt::MetricKind};
 use alea::{
     ensemble::Execution,
-    session::{storage::Discard, Kernel, SessionBuilder, Warmup},
+    session::{Kernel, SessionBuilder, Warmup, storage::Discard},
 };
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build()?;
-let session = SessionBuilder::new("standard-normal-2d-v1", 2, vec![vec![0.0; 2]; 4])
-    .seed([17; 32])
-    .draws(500)
-    .kernel(Kernel::Nuts(NutsOptions::new(0.2, 8)?))
-    .warmup(Warmup::Covariance {
-        iterations: 300,
-        metric: MetricKind::Diagonal,
-        target: 0.8.try_into()?,
-        search: None,
-    })
-    .build()?;
-let result = session.run(|_| Ok(Gaussian::new(2)), Execution::Parallel(&pool), &Discard)?;
-println!("Run status: {:?}", result.status);
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build()?;
+    let session = SessionBuilder::new("standard-normal-2d-v1", 2, vec![vec![0.0; 2]; 4])
+        .seed([17; 32])
+        .draws(500)
+        .kernel(Kernel::Nuts(NutsOptions::new(0.2, 8)?))
+        .warmup(Warmup::Covariance {
+            iterations: 300,
+            metric: MetricKind::Diagonal,
+            target: 0.8.try_into()?,
+            search: None,
+        })
+        .build()?;
+    let result = session.run(
+        |_| Ok(Gaussian::new(2)),
+        Execution::Parallel(&pool),
+        &Discard,
+    )?;
+    println!("Run status: {:?}", result.status);
+    Ok(())
+}
 ```
 
 The factory creates a separate target inside each chain worker. This supports
@@ -70,27 +74,34 @@ and writes the remaining 96 draws to a new file:
 
 ```rust
 use alea::distributions::Gaussian;
-use alea::sampling::{adapt::MetricKind, NutsOptions};
+use alea::sampling::{NutsOptions, adapt::MetricKind};
 use alea::{
     ensemble::Execution,
     session::{
-        storage::{DrawReader, DurableSink, Observer},
         Checkpoint, Kernel, OwnedDraw, SessionBuilder, Warmup,
+        storage::{DrawReader, DurableSink, Observer},
     },
 };
-use std::{fs::File, path::PathBuf};
+use std::fs::File;
 use tokio_util::sync::CancellationToken;
 
 fn settings() -> Result<SessionBuilder, Box<dyn std::error::Error>> {
-    Ok(SessionBuilder::new("normal-1d;data=none;build=1", 1, vec![vec![0.0]])
-        .seed([15; 32])
-        .draws(128)
-        .kernel(Kernel::Nuts(NutsOptions::new(0.1, 6)?)))
+    Ok(
+        SessionBuilder::new("normal-1d;data=none;build=1", 1, vec![vec![0.0]])
+            .seed([15; 32])
+            .draws(128)
+            .kernel(Kernel::Nuts(NutsOptions::new(0.1, 6)?)),
+    )
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let output = PathBuf::from("fit-output");
-#   let output = std::env::temp_dir().join(format!("alea-guide-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_nanos()));
+    let output = std::env::temp_dir().join(format!(
+        "alea-guide-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos()
+    ));
     std::fs::create_dir(&output)?;
     let cancel = CancellationToken::new();
     let session = settings()?
@@ -106,34 +117,47 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         |_| Ok(Gaussian::new(1)),
         Execution::Sequential,
         &Observer(|draw: &OwnedDraw| {
-            if draw.index == 31 { cancel.cancel(); }
+            if draw.index == 31 {
+                cancel.cancel();
+            }
             Ok(())
         }),
     )?;
-    let checkpoint = partial.chains[0].checkpoint.as_ref().ok_or("no checkpoint available")?;
+    let checkpoint = partial.chains[0]
+        .checkpoint
+        .as_ref()
+        .ok_or("no checkpoint available")?;
     checkpoint.write_new(output.join("chain.checkpoint"), 65_536)?;
 
     let checkpoint = Checkpoint::read(output.join("chain.checkpoint"), 65_536)?;
-    let resumed = settings()?.restart(vec![checkpoint]).collect(false).build()?;
+    let resumed = settings()?
+        .restart(vec![checkpoint])
+        .collect(false)
+        .build()?;
     let sink = DurableSink::create_new(
-        output.join("continuation.alea"), resumed.provenance(), 1_000_000,
+        output.join("continuation.alea"),
+        resumed.provenance(),
+        1_000_000,
     )?;
     let result = resumed.run(|_| Ok(Gaussian::new(1)), Execution::Sequential, &sink)?;
     assert_eq!(result.chains[0].completed, 128);
 
     let mut reader = DrawReader::new(File::open(output.join("continuation.alea"))?, 65_536)?;
     let mut count = 0;
-    while reader.next_draw()?.is_some() { count += 1; }
+    while reader.next_draw()?.is_some() {
+        count += 1;
+    }
     assert_eq!(count, 96);
-    println!("Saved {count} continuation draws; status = {:?}", result.status);
-#   drop(reader);
-#   drop(sink);
-#   std::fs::remove_dir_all(output)?;
+    println!(
+        "Saved {count} continuation draws; status = {:?}",
+        result.status
+    );
     Ok(())
 }
 ```
 
-The output directory must not already exist. The example deliberately uses one
+The program saves its files in a new temporary directory. Print `output.display()`
+to find them, or change `output` to a directory of your choice that does not already exist. The example deliberately uses one
 chain to keep the recovery steps short, so a diagnostic warning is expected.
 Use several chains to assess a real fit.
 

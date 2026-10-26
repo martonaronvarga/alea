@@ -7,12 +7,16 @@ interpolation, and numerical helpers. Most applications reach these through the
 samplers; import them directly when selecting a metric or supplying storage.
 
 ```rust
-use alea::math::{buffer::OwnedBuffer, metric::IdentityMetric};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use alea::math::{buffer::OwnedBuffer, metric::IdentityMetric};
 
-let position = OwnedBuffer::from_fn(3, |i| i as f64);
-let metric = IdentityMetric::new(3);
-assert_eq!(position.len(), 3);
-# let _ = metric;
+    let position = OwnedBuffer::from_fn(3, |i| i as f64);
+    let metric = IdentityMetric::new(3);
+    assert_eq!(position.len(), 3);
+    let _ = metric;
+
+    Ok(())
+}
 ```
 
 The default backend uses stable Rust 1.95 or later. Optional `faer`, `openblas`,

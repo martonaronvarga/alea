@@ -9,14 +9,14 @@ collect draws in memory or stream them to a sink.
 ```rust
 use alea::session::SessionBuilder;
 
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-let session = SessionBuilder::new("my-model-v1", 2, vec![vec![0.0; 2]; 4])
-    .seed([17; 32])
-    .draws(1_000)
-    .build()?;
-# let _ = session;
-# Ok(())
-# }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let session = SessionBuilder::new("my-model-v1", 2, vec![vec![0.0; 2]; 4])
+        .seed([17; 32])
+        .draws(1_000)
+        .build()?;
+    let _ = session;
+    Ok(())
+}
 ```
 
 This specifies four chains and uses the default NUTS settings without warmup.
