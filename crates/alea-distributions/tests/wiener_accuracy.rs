@@ -219,3 +219,45 @@ fn cdf_scores_match_independent_continuous_ball_integrals() {
     }
     assert_eq!(count, 24);
 }
+
+#[test]
+fn complete_wiener7_grid_matches_ball_references() {
+    use alea_distributions::wiener::{Wiener7, Wiener7Params, WienerOptions};
+    let mut count = 0;
+    for line in include_str!("support/wiener7_grid_balls.csv")
+        .lines()
+        .skip(1)
+    {
+        let mut fields = line.split(',');
+        let group = fields.next().unwrap();
+        let x: Vec<f64> = fields.map(|s| s.parse().unwrap()).collect();
+        let obs = WienerObservation {
+            rt: x[0],
+            boundary: if x[8] == 1. {
+                Boundary::Lower
+            } else {
+                Boundary::Upper
+            },
+        };
+        let params = Wiener7Params::with_params(x[1], x[2], x[3], x[4], x[6], x[7], x[5]).unwrap();
+        let options = WienerOptions::new(1e-9);
+        let fused = Wiener7.try_fused(&obs, &params, options).unwrap();
+        let density = Wiener7.try_log_prob(&obs, &params, options).unwrap();
+        assert!(
+            (density.log_prob - x[9]).abs() <= x[10] + 1e-9 * (1. + x[9].abs()),
+            "{group} density"
+        );
+        for (i, actual) in std::iter::once(fused.log_prob)
+            .chain(fused.grad_array())
+            .enumerate()
+        {
+            let reference = x[9 + 2 * i];
+            assert!(
+                (actual - reference).abs() <= x[10 + 2 * i] + 1e-9 * (1. + reference.abs()),
+                "row {count}, {group}, component {i}: {actual} vs {reference}"
+            );
+        }
+        count += 1;
+    }
+    assert_eq!(count, 76);
+}

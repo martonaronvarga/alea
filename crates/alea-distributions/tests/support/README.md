@@ -77,3 +77,12 @@ They do not prove a uniform error bound for every production evaluation.
 Statuses distinguish a certificate, a rejected candidate, insufficiently narrow
 enclosures, a nonfinite candidate, invalid inputs and exhausted reference work.
 Ordinary Rust tests consume saved fixtures and need no Python installation.
+
+`generate_wiener7_grid_balls.py` fixes the complete 76-case Wiener7 timing grid
+as regression fixtures. It covers tiny and wide start intervals, spectral and
+image regimes, tiny and clipped time intervals, simultaneous variability, long
+times and rare events. At beta one half it uses the exact boundary/drift
+reflection, including both score sign changes, to avoid repeating equivalent
+integrals. `wiener7_grid_balls.csv` encloses every expected value; Rust checks
+both density-only and fused paths with a declared `1e-9 * (1 + |reference|)`
+allowance. This is a finite-domain regression suite, not a universal guarantee.
