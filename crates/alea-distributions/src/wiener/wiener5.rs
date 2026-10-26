@@ -140,7 +140,10 @@ impl Wiener5 {
         let sv2 = sv * sv;
         let lam = sv2.mul_add(t, 1.0); // 1 + sv²·t   (FMA)
 
-        let one_m_w = 1.0 - w_eff;
+        let one_m_w = match boundary {
+            Boundary::Upper => 1.0 - base.beta,
+            Boundary::Lower => base.beta,
+        };
         let a_one_m_w = a * one_m_w; // a·(1-w)
         let a_one_m_w_sq = a_one_m_w * a_one_m_w; // a²·(1-w)²
 
@@ -154,7 +157,17 @@ impl Wiener5 {
         // -2 ln a  -½ ln lam  +  num/(2 lam)
         let pref = (-2.0_f64).mul_add(a.ln(), -0.5 * lam.ln()) + 0.5 * lam_inv * num;
 
-        let log_eps_eff = (eps.ln() - pref).min(-10.0);
+        let q_eff = match boundary {
+            Boundary::Upper => 1.0 - base.beta,
+            Boundary::Lower => base.beta,
+        };
+        let distance = w_eff.min(q_eff);
+        let mut log_eps_eff = (eps.ln() - pref).min(-10.0);
+        if distance < 1e-5 {
+            // Absolute series tolerance alone does not control a ratio whose
+            // denominator vanishes linearly at a boundary.
+            log_eps_eff += distance.ln();
+        }
 
         Ok(Wiener5Core {
             base: Wiener4Core {
@@ -162,6 +175,7 @@ impl Wiener5 {
                 a,
                 t_prime,
                 w_eff,
+                q_eff,
                 v_eff,
                 pref,
                 log_eps_eff,
@@ -320,7 +334,7 @@ impl Wiener5 {
         let lam_inv = lam.recip();
         let lam_sq_inv = lam_inv * lam_inv; // 1/lam^2
 
-        let one_m_w = 1.0 - w_eff;
+        let one_m_w = base.q_eff;
         let a_one_m_w = a * one_m_w;
         let a_one_m_w_sq = a_one_m_w * a_one_m_w;
 
@@ -353,9 +367,13 @@ impl Wiener5 {
         let dp_dv = dq_dv;
         let dp_dsv = -0.5 * lam_inv * dlam_dsv + dq_dsv;
 
-        let eval = match branch {
-            SeriesBranch::SmallTime => Wiener4::small_branch_fused(t_prime, w_eff, k),
-            SeriesBranch::LargeTime => Wiener4::large_branch_fused(t_prime, w_eff, k),
+        let eval = if base.w_eff.min(base.q_eff) < 1e-5 {
+            series::endpoint_fused(t_prime, w_eff, base.q_eff, k, branch)
+        } else {
+            match branch {
+                SeriesBranch::SmallTime => Wiener4::small_branch_fused(t_prime, w_eff, k),
+                SeriesBranch::LargeTime => Wiener4::large_branch_fused(t_prime, w_eff, k),
+            }
         };
 
         let (log_series, dlog_dtprime, dlog_dw) = match eval {

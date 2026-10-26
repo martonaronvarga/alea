@@ -649,3 +649,99 @@ pub(super) fn large_branch_fused(t_prime: f64, w: f64, k: usize) -> Option<(f64,
 
     Some((log_series, dlog_dtprime, dlog_dw))
 }
+
+/// Endpoint-aware evaluation. Both distances are retained from the caller:
+/// subtracting a reflected coordinate from one can erase its relative precision.
+/// This is a stable finite sum, not a certified bound on score error.
+pub(super) fn endpoint_fused(
+    t: f64,
+    w: f64,
+    q: f64,
+    k: usize,
+    branch: super::SeriesBranch,
+) -> Option<(f64, f64, f64)> {
+    if !(t > 0.0 && t.is_finite() && w > 0.0 && q > 0.0) {
+        return None;
+    }
+    if branch == super::SeriesBranch::LargeTime {
+        let (s, c) = if w < q {
+            let (s, c) = (PI * w).sin_cos();
+            (s, -c)
+        } else {
+            (PI * q).sin_cos()
+        };
+        let (mut sj, mut cj) = (s, c);
+        let b = 0.5 * PI * PI;
+        let (mut raw, mut dt, mut dw) = (0.0, 0.0, 0.0);
+        for j in 1..=k {
+            let jf = usize_to_f64(j);
+            let e = (-(jf * jf - 1.0) * b * t).exp();
+            raw += jf * sj * e;
+            dt -= b * jf * (jf * jf - 1.0) * sj * e;
+            dw -= PI * jf * jf * cj * e;
+            (sj, cj) = (sj.mul_add(c, cj * s), cj.mul_add(c, -sj * s));
+        }
+        return (raw > 0.0).then(|| (PI.ln() - b * t + raw.ln(), -b + dt / raw, dw / raw));
+    }
+
+    let inv_t = t.recip();
+    let (mut raw, mut dt, mut dw) = (0.0, 0.0, 0.0);
+    if w < q {
+        // Pair images around odd integers. The leading positive and negative
+        // images coalesce as w -> 0; expm1 retains their small difference.
+        for j in 0..=k {
+            let jf = usize_to_f64(j);
+            let x = 2.0 * jf + 1.0;
+            let a = 2.0 * jf + q;
+            let b = x + w;
+            let exponent = 2.0 * jf * (jf + q) * inv_t;
+            let e = (-exponent).exp();
+            if e == 0.0 {
+                continue;
+            }
+            let log_ratio = (2.0 * w / a).ln_1p() - 2.0 * x * w * inv_t;
+            let difference = -log_ratio.exp_m1();
+            let ratio = log_ratio.exp();
+            let term = a * e * difference;
+            raw += term;
+            dt += e * a * (exponent * inv_t * difference - ratio * 2.0 * x * w * inv_t * inv_t);
+            dw += e
+                * ((-1.0 + a * 2.0 * jf * inv_t) * difference
+                    - a * ratio * (1.0 / b + 1.0 / a - 2.0 * x * inv_t));
+        }
+    } else {
+        // For q -> 0 pair images around even integers instead. Their net
+        // contribution is O(q); subtracting two exponentials would lose it.
+        raw = q;
+        dw = -1.0;
+        for j in 1..=k {
+            let jf = usize_to_f64(j);
+            let x = 2.0 * jf;
+            let a = x + q;
+            let b = x - q;
+            let exponent = 2.0 * jf * (jf - q) * inv_t;
+            let e = (-exponent).exp();
+            if e == 0.0 {
+                continue;
+            }
+            let log_ratio = (2.0 * q / b).ln_1p() - 2.0 * x * q * inv_t;
+            let difference = log_ratio.exp_m1();
+            let ratio = log_ratio.exp();
+            raw += b * e * difference;
+            dt += b * e * (exponent * inv_t * difference + ratio * 2.0 * x * q * inv_t * inv_t);
+            dw -= e
+                * ((-1.0 + b * x * inv_t) * difference
+                    + b * ratio * (1.0 / a + 1.0 / b - 2.0 * x * inv_t));
+        }
+    }
+    if raw <= 0.0 {
+        return None;
+    }
+    let scale = 0.5 * q * q * inv_t;
+    let value = -0.5 * TAU.ln() - 1.5 * t.ln() - scale + raw.ln();
+    Some((
+        value,
+        -1.5 * inv_t + scale * inv_t + dt / raw,
+        q * inv_t + dw / raw,
+    ))
+}

@@ -87,6 +87,7 @@ pub(in crate::wiener) struct Wiener4Core {
     pub(in crate::wiener) a: f64,
     pub(in crate::wiener) t_prime: f64,
     pub(in crate::wiener) w_eff: f64,
+    pub(in crate::wiener) q_eff: f64,
     pub(in crate::wiener) v_eff: f64,
     pub(in crate::wiener) pref: f64,
     pub(in crate::wiener) log_eps_eff: f64,

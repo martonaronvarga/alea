@@ -113,3 +113,24 @@ approximation; it should be checked against adaptive evaluation on your data.
 Alea does not expose an exact reaction-time random sampler for these models.
 The likelihood and boundary-choice prediction capabilities should not be mistaken
 for a complete generative reaction-time API.
+
+## Boundary-adjacent observations
+
+A valid parameter can still produce an extremely small density. The log density
+can remain finite even when the density itself would underflow. Keep likelihoods
+in log form, and use the checked `try_fused` interface to distinguish numerical
+failure from an observation outside support.
+
+Near either starting-point boundary, Alea retains both endpoint distances and
+pairs image terms before subtracting them. This avoids losing a small distance
+through reflection or cancellation. The near-boundary path also tightens its
+series tolerance because a small denominator amplifies error in a score ratio.
+The ordinary path remains a fused value-and-score evaluation.
+
+The numerical precision option controls series truncation and integration work.
+It is not a certified absolute bound on every log-density derivative. The
+extreme-support regression table independently checks values and all five scores
+at 432 parameter/boundary combinations using high-precision direct series.
+A finite table validates those points; it does not certify interpolation between
+them or all possible tails. Fixed quadrature remains an explicit approximation,
+and adaptive quadrature error estimates are not interval proofs.

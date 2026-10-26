@@ -148,6 +148,9 @@ fn add_wiener4_large_simd4(
     cores: [Wiener4Core; 4],
     k: usize,
 ) -> bool {
+    if cores.iter().any(|c| c.w_eff.min(c.q_eff) < 1e-5) {
+        return false;
+    }
     use std::simd::num::SimdFloat;
     use std::simd::{Simd, StdFloat};
 
@@ -331,16 +334,32 @@ impl Wiener4 {
         }
 
         let log_a2_inv = -2.0 * a.ln();
-        let drift_term = a * v_eff * (1.0 - w_eff);
+        let drift_term = a
+            * v_eff
+            * match boundary {
+                Boundary::Upper => 1.0 - params.beta,
+                Boundary::Lower => params.beta,
+            };
         let diffusion_term = -0.5 * v_eff * v_eff * t;
         let pref = log_a2_inv + drift_term + diffusion_term;
-        let log_eps_eff = (eps.ln() - pref).min(-10.0);
+        let q_eff = match boundary {
+            Boundary::Upper => 1.0 - params.beta,
+            Boundary::Lower => params.beta,
+        };
+        let distance = w_eff.min(q_eff);
+        let mut log_eps_eff = (eps.ln() - pref).min(-10.0);
+        if distance < 1e-5 {
+            // Absolute series tolerance alone does not control a ratio whose
+            // denominator vanishes linearly at a boundary.
+            log_eps_eff += distance.ln();
+        }
 
         Ok(Wiener4Core {
             t,
             a,
             t_prime,
             w_eff,
+            q_eff,
             v_eff,
             pref,
             log_eps_eff,
@@ -477,9 +496,13 @@ impl Wiener4 {
         branch: SeriesBranch,
         k: usize,
     ) -> Wiener4Eval {
-        let eval: Option<(f64, f64, f64)> = match branch {
-            SeriesBranch::SmallTime => Self::small_branch_fused(core.t_prime, core.w_eff, k),
-            SeriesBranch::LargeTime => Self::large_branch_fused(core.t_prime, core.w_eff, k),
+        let eval: Option<(f64, f64, f64)> = if core.w_eff.min(core.q_eff) < 1e-5 {
+            series::endpoint_fused(core.t_prime, core.w_eff, core.q_eff, k, branch)
+        } else {
+            match branch {
+                SeriesBranch::SmallTime => Self::small_branch_fused(core.t_prime, core.w_eff, k),
+                SeriesBranch::LargeTime => Self::large_branch_fused(core.t_prime, core.w_eff, k),
+            }
         };
 
         let (log_series, dlog_dtprime, dlog_dw) = match eval {
@@ -495,10 +518,10 @@ impl Wiener4 {
         let t = core.t;
         let a2 = a * a;
 
-        let dpref_da = -2.0 / a + core.v_eff * (1.0 - core.w_eff);
+        let dpref_da = -2.0 / a + core.v_eff * core.q_eff;
         let dpref_dt = -0.5 * core.v_eff * core.v_eff;
         let dpref_dw = -a * core.v_eff;
-        let dpref_dv = a * (1.0 - core.w_eff) - core.v_eff * t;
+        let dpref_dv = a * core.q_eff - core.v_eff * t;
 
         let dlog_dw_eff = dpref_dw + dlog_dw;
 
