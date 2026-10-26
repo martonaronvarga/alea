@@ -109,6 +109,24 @@ fn bench_single_observation(c: &mut Criterion) {
             )
         });
     });
+    let start_only = Wiener7Params::with_params(1.6, 0.2, 0.45, 0.7, 0.1, 0., 0.).unwrap();
+    for (name, options) in [
+        ("analytic_start", WienerOptions::new(EPS5)),
+        (
+            "start_fixed_gl25",
+            WienerOptions::new(EPS5).with_quadrature(Quadrature::FixedGaussLegendre { order: 25 }),
+        ),
+    ] {
+        c.bench_function(&format!("wiener7/single/{name}"), |b| {
+            b.iter(|| {
+                black_box(
+                    Wiener7
+                        .try_fused(black_box(&obs), black_box(&start_only), options)
+                        .unwrap(),
+                )
+            })
+        });
+    }
     let fixed = WienerOptions::new(EPS7)
         .with_inner_precision(EPS5)
         .with_quadrature(Quadrature::FixedGaussLegendre { order: 25 });

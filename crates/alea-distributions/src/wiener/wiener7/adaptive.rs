@@ -6,6 +6,9 @@ impl Wiener7 {
         core: &Wiener7Core,
         obs: &WienerObservation,
     ) -> Wiener7Eval {
+        if let Some(e) = self.analytic_start(core, obs) {
+            return e;
+        }
         let e = self.eval_fused_adaptive_raw(core, obs);
         if e.log_prob.is_finite()
             && e.log_prob >= f64::MIN_POSITIVE.ln()
@@ -24,6 +27,9 @@ impl Wiener7 {
         core: &Wiener7Core,
         obs: &WienerObservation,
     ) -> f64 {
+        if let Some(e) = self.analytic_start(core, obs) {
+            return e.log_prob.exp();
+        }
         let bounds = Bounds::new(&core.xmin, &core.xmax);
         let mut val = [0.0f64; 1];
         let mut err = [0.0f64; 1];

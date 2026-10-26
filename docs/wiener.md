@@ -297,3 +297,18 @@ or assess roundoff. Fixed quadrature is rejected because it has no embedded
 error estimator. Ordinary adaptive evaluation now also checks the cubature's
 returned component errors in log-density and score units before accepting its
 natural-scale result; otherwise it tries the scaled adaptive path.
+
+When only starting-point variability is active, drift variability is zero, and
+normalized decision time is at least `0.15`, adaptive evaluation can average the
+spectral series analytically. For interval center `m`, width `h`, and
+`c = alpha * drift + i * n * π`, the averaged exponential is
+`exp(c * m) * sinh(c * h / 2) / (c * h / 2)`. Its imaginary part gives the averaged
+sine term. Differentiating the same expression supplies all seven scores. A
+Taylor evaluation of `sinh(z) / z` and its derivative handles narrow intervals.
+Gaussian-moment tail bounds control the integrated density and derivatives.
+
+This path avoids numerical quadrature in its supported region. Large drift
+variation across the interval, unsuccessful truncation checks, and other
+variability configurations retain cubature. An explicitly requested fixed rule
+still evaluates that rule. General Gaussian-drift starting-point marginalization
+is not implemented by this spectral shortcut.

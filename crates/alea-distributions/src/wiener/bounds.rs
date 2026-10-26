@@ -55,7 +55,7 @@ fn integral_scaled(p: usize, c: f64, x: f64) -> Option<f64> {
 }
 
 /// Log spectral moment tail after K, scaled by exp(c), with first omitted n=K+1.
-fn spectral(p: usize, k: usize, c: f64) -> Option<f64> {
+pub(super) fn spectral(p: usize, k: usize, c: f64) -> Option<f64> {
     let n = k as f64 + 1.;
     let ratio_log = p as f64 * (1. / n).ln_1p() - (2. * n + 1.) * c;
     let geometric = if ratio_log < 0. {

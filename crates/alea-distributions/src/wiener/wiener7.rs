@@ -1,6 +1,7 @@
 use super::*;
 
 mod adaptive;
+mod analytic_start;
 #[cfg(test)]
 mod audit;
 mod error;
@@ -123,6 +124,12 @@ impl Wiener7 {
                 grad: NAN_GRAD_7,
             };
         }
+        if let Some(e) = self.analytic_start(&core, obs) {
+            return Wiener7Eval {
+                log_prob: e.log_prob,
+                grad: NAN_GRAD_7,
+            };
+        }
         let density = self.eval_density_adaptive(&core, obs);
         let log_prob = if density.is_normal() && density > 0.0 {
             density.ln()
@@ -153,6 +160,14 @@ impl Wiener7 {
                     log_prob: e.log_prob,
                     grad: NAN_GRAD_7,
                 });
+        }
+        if options.quadrature == Quadrature::Adaptive
+            && let Some(e) = self.analytic_start(&core, obs)
+        {
+            return Ok(Wiener7Eval {
+                log_prob: e.log_prob,
+                grad: NAN_GRAD_7,
+            });
         }
         let density = match options.quadrature {
             Quadrature::Adaptive => self.eval_density_adaptive(&core, obs),
