@@ -3,6 +3,7 @@ use super::*;
 mod adaptive;
 mod analytic_image;
 mod analytic_start;
+mod analytic_time;
 #[cfg(test)]
 mod audit;
 mod error;

@@ -187,3 +187,73 @@ fn cdf_respects_brownian_time_and_drift_scaling() {
         }
     }
 }
+
+#[test]
+fn analytic_cumulative_scores_match_independent_parameter_differences() {
+    for boundary in [Boundary::Upper, Boundary::Lower] {
+        for time in [0.01, 0.1, 0.149, 0.151, 0.5, 3.] {
+            for drift in [-2., 0., 2.] {
+                let params = Wiener4Params::from_array([1.2, 0.1, 0.4, drift]);
+                let obs = WienerObservation {
+                    rt: time + 0.1,
+                    boundary,
+                };
+                let options = WienerOptions::new(1e-11);
+                for tail in [false, true] {
+                    let e = if tail {
+                        Wiener4.try_fused_survival(&obs, &params, options)
+                    } else {
+                        Wiener4.try_fused_cdf(&obs, &params, options)
+                    }
+                    .unwrap();
+                    let value = |p: &Wiener4Params| {
+                        if tail {
+                            Wiener4.try_log_survival(&obs, p, options)
+                        } else {
+                            Wiener4.try_log_cdf(&obs, p, options)
+                        }
+                        .unwrap()
+                    };
+                    assert!((e.log_prob - value(&params)).abs() < 1e-9);
+                    for j in 0..4 {
+                        let step = if j == 1 { 1e-5 * time } else { 1e-5 };
+                        let mut p = params;
+                        let mut m = params;
+                        p[j] += step;
+                        m[j] -= step;
+                        let fd = (value(&p) - value(&m)) / (2. * step);
+                        let actual = e.grad_array()[j];
+                        assert!(
+                            (actual - fd).abs() < 2e-5 * (1. + fd.abs()),
+                            "{boundary:?} t={time} v={drift} tail={tail} j={j}: {actual} vs {fd}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn cumulative_scores_at_infinite_time_are_choice_scores() {
+    let params = Wiener4Params::from_array([1.2, 0.1, 0.4, 0.]);
+    for (boundary, beta, drift) in [
+        (Boundary::Upper, 2.5, 0.72),
+        (Boundary::Lower, -1. / 0.6, -0.48),
+    ] {
+        let e = Wiener4
+            .try_fused_cdf(
+                &WienerObservation {
+                    rt: f64::INFINITY,
+                    boundary,
+                },
+                &params,
+                WienerOptions::default(),
+            )
+            .unwrap();
+        assert_eq!(e.grad.alpha, 0.);
+        assert_eq!(e.grad.tau, 0.);
+        assert!((e.grad.beta - beta).abs() < 1e-14);
+        assert!((e.grad.delta - drift).abs() < 1e-14);
+    }
+}

@@ -1,6 +1,7 @@
 //! Boundary subdistribution functions from integrated image/spectral series.
 //! Truncation tests concern real arithmetic, not floating-point enclosures.
 use super::*;
+mod gradient;
 
 fn log_add(a: f64, b: f64) -> f64 {
     let m = a.max(b);

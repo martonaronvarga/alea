@@ -6,6 +6,9 @@ impl Wiener7 {
         core: &Wiener7Core,
         obs: &WienerObservation,
     ) -> Wiener7Eval {
+        if let Some(e) = self.analytic_time(core, obs) {
+            return e;
+        }
         if let Some(e) = self.analytic_start(core, obs) {
             return e;
         }
