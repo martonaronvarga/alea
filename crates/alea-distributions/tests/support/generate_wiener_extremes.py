@@ -56,7 +56,7 @@ def main():
                      'log_prob', 'g_alpha', 'g_tau', 'g_beta', 'g_delta', 'g_s_delta', 'boundary'])
     for tp in [1e-8, 1e-4, .01, .1, .25, .3, 1., 10., 100.]:
         for w in [1e-15, 1e-12, 1e-8, .999e-5, 1.001e-5, .001, .1, .5, .9, 1-1e-8, 1-1e-12, math.nextafter(1., 0.)]:
-            for v, sv in [(0., 0.), (-30., 5.)]:
+            for v, sv in [(0., 0.), (-30., 0.), (-30., 5.)]:
                 for lower in [False, True]:
                     inputs = [tp, 1., 0., w, v, sv]
                     low = evaluate(inputs, 100, 24, lower)

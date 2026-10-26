@@ -130,7 +130,7 @@ The ordinary path remains a fused value-and-score evaluation.
 The numerical precision option controls series truncation and integration work.
 It is not a certified absolute bound on every log-density derivative. The
 extreme-support regression table independently checks values and all five scores
-at 432 parameter/boundary combinations using high-precision direct series.
+at 648 parameter/boundary combinations using high-precision direct series.
 A finite table validates those points; it does not certify interpolation between
 them or all possible tails. Fixed quadrature remains an explicit approximation,
 and adaptive quadrature error estimates are not interval proofs.
