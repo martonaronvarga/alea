@@ -36,6 +36,7 @@ tools/stan-reference/stantest
 !/docs/diagnostics.md
 !/docs/distributions.md
 !/docs/enzyme-native-models.md
+!/docs/hierarchical-models.md
 !/docs/getting-started.md
 !/docs/installation.md
 !/docs/metric-contract.md

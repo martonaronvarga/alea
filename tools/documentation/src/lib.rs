@@ -37,3 +37,12 @@ pub mod alea_distributions {}
 
 #[doc = include_str!("../../../docs/metric-contract.md")]
 pub mod metric_contract {}
+
+#[doc = include_str!("../../../docs/hierarchical-models.md")]
+pub mod hierarchical_models {}
+
+/// The complete public hierarchical logistic program.
+#[doc = "```rust"]
+#[doc = include_str!("../../../crates/alea/examples/hierarchical_logistic.rs")]
+#[doc = "```"]
+pub mod hierarchical_logistic {}

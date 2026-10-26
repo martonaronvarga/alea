@@ -171,3 +171,6 @@ value-and-derivative callback. Its input expressions and derivative slots have t
 same order. Incorrect custom derivatives can invalidate a fit, so check them
 against finite differences before sampling. [Enzyme code generation](enzyme-native-models.md)
 is also available for compatible models that need compiled automatic derivatives.
+
+For a complete model with shared population parameters and named group effects,
+see [Partial pooling with a hierarchical model](hierarchical-models.md).

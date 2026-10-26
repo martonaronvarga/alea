@@ -13,8 +13,8 @@
   "packages": {
     "alea": {
       "file": "alea.txt",
-      "items": 23,
-      "sha256": "de285b439a1128800c8c234b4c6264fe41de3d4039e237553d13013d86b4bad9"
+      "items": 50,
+      "sha256": "5270b4da89c2bfb0a9ed0966f1d07eb029e6966b7b8ea72578ae468e22cf5255"
     },
     "alea-autodiff": {
       "file": "alea-autodiff.txt",
@@ -104,23 +104,23 @@
   "feature_packages": {
     "alea+distributions": {
       "file": "alea+distributions.txt",
-      "items": 35,
-      "sha256": "2943f00b7c77996bb1731b2f1996c7c8e7c1c2e327270b7781e0a201b176f867"
+      "items": 62,
+      "sha256": "3c7ecbaa74db9ec4a860c0fd891eefede89c03cf713b45ea699336c4bb0d2aa0"
     },
     "alea+autodiff": {
       "file": "alea+autodiff.txt",
-      "items": 24,
-      "sha256": "f8cad03b4cc3622caa564d0a8376db9d729833471b1a539f3a9e274336267b61"
+      "items": 51,
+      "sha256": "e1a0d03c507b2c7a3c3eedb36d6406a79d90ca15b556c409cd22928feaeb1fc2"
     },
     "alea+faer": {
       "file": "alea+faer.txt",
-      "items": 23,
-      "sha256": "de285b439a1128800c8c234b4c6264fe41de3d4039e237553d13013d86b4bad9"
+      "items": 50,
+      "sha256": "5270b4da89c2bfb0a9ed0966f1d07eb029e6966b7b8ea72578ae468e22cf5255"
     },
     "alea+distributions+autodiff+faer": {
       "file": "alea+distributions+autodiff+faer.txt",
-      "items": 36,
-      "sha256": "e1cc6d08249e7ce70996e83aaed6d3d744259896da3567e313a6f7f26e474f5c"
+      "items": 63,
+      "sha256": "74a3f29d682fea010457bbff36b5e6bcf5db1871499526fa8fb7347e354d207f"
     },
     "alea-math+faer": {
       "file": "alea-math+faer.txt",

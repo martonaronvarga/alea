@@ -33,3 +33,11 @@ openblas = ["alea-math/openblas", "alea-mcmc/openblas"]
 simd = ["alea-math/simd", "alea-mcmc/simd", "alea-distributions?/simd"]
 branch-hints = ["distributions", "alea-distributions/branch-hints"]
 std-autodiff = ["autodiff", "alea-autodiff/std-autodiff"]
+
+[dev-dependencies]
+rand.workspace = true
+
+[[example]]
+name = "hierarchical_logistic"
+required-features = ["distributions"]
+test = true

@@ -9,9 +9,18 @@ pub use alea_math as math;
 pub use alea_runtime::{diagnostics, draws, ensemble, monitor, output, run_chain, session};
 
 /// Sampling algorithms, integrators, and warmup.
+///
+/// HMC, NUTS, and RWMH are available in ordinary inference sessions. Other
+/// algorithms have explicit experimental or approximation requirements in their
+/// owning modules; importing a type does not make it eligible for a session.
 pub mod sampling {
     #[doc(inline)]
-    pub use alea_mcmc::*;
+    pub use alea_mcmc::{
+        Hmc, HmcOptions, HmcTransition, LogDensityGradient, MarkovChain, Nuts, NutsOptions,
+        NutsTransition, Rwmh, RwmhOptions, RwmhTransition, adapt, advanced, approximate,
+        atlas_sampler, batch, chees, config, ghmc, hamiltonian, hmc, integrator, mams, nuts,
+        prelude, riemannian, rwmh, walnuts,
+    };
 }
 
 #[cfg(feature = "autodiff")]

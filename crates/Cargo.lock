@@ -49,6 +49,7 @@ dependencies = [
  "alea-math",
  "alea-mcmc",
  "alea-runtime",
+ "rand 0.10.1",
 ]
 
 [[package]]

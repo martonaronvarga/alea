@@ -26,6 +26,7 @@ EXCLUDED = {"target", "__pycache__", ".git", ".agent", ".codex", "AGENTS.md", "S
 DOCS = {
     "README.md", "installation.md", "getting-started.md", "modeling.md",
     "sampling.md", "diagnostics.md", "sessions.md", "distributions.md",
+    "hierarchical-models.md",
     "wiener.md", "troubleshooting.md", "releases.md",
     "enzyme-native-models.md", "metric-contract.md",
 }

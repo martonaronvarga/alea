@@ -12,6 +12,7 @@ fits a normal mean to four observations and explains each part of the program.
 | Install Alea or select a numerical backend | [Installation](installation.md) |
 | Run a complete example | [Your first model](getting-started.md) |
 | Declare parameters, priors, and likelihoods | [Models and constraints](modeling.md) |
+| Fit group effects with partial pooling | [Hierarchical models](hierarchical-models.md) |
 | Choose a sampler and configure warmup | [Sampling](sampling.md) |
 | Interpret R-hat, ESS, and warnings | [Diagnostics](diagnostics.md) |
 | Run chains in parallel or save a checkpoint | [Sessions and recovery](sessions.md) |
