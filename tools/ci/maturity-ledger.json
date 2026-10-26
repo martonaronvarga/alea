@@ -12669,11 +12669,6 @@
     },
     {
       "crate": "alea-math",
-      "item": "pub fn alea_math::numeric::finite_or_neg_inf(x: f64) -> f64",
-      "profile": "validated_utility_reference"
-    },
-    {
-      "crate": "alea-math",
       "item": "pub fn alea_math::numeric::first_nonfinite(values: &[f64]) -> core::option::Option<usize>",
       "profile": "validated_utility_reference",
       "summary": "Checked owned point exchange, finite-value indexing, factored vector energy, or explicit fixed-geometry position turning."
@@ -12685,22 +12680,12 @@
     },
     {
       "crate": "alea-math",
-      "item": "pub fn alea_math::numeric::log_accept_ratio(current: f64, proposal: f64) -> f64",
-      "profile": "validated_utility_reference"
-    },
-    {
-      "crate": "alea-math",
       "item": "pub fn alea_math::numeric::log_sigmoid(x: f64) -> f64",
       "profile": "validated_utility_reference"
     },
     {
       "crate": "alea-math",
       "item": "pub fn alea_math::numeric::logit(p: f64) -> f64",
-      "profile": "validated_utility_reference"
-    },
-    {
-      "crate": "alea-math",
-      "item": "pub fn alea_math::numeric::positive_finite(x: f64) -> f64",
       "profile": "validated_utility_reference"
     },
     {

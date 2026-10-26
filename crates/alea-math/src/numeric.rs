@@ -1,22 +1,14 @@
-#[inline(always)]
-pub fn positive_finite(x: f64) -> f64 {
-    x.max(f64::MIN_POSITIVE)
-}
+//! Scalar numerical functions and explicit nonfinite-value detection.
+//!
+//! Elementary functions follow their floating-point domains: they propagate NaN
+//! and expose boundary infinities rather than converting errors into support
+//! zeros or clamping parameters. Model and target boundaries perform validation.
+#![deny(missing_docs)]
 
-#[inline(always)]
-pub fn finite_or_neg_inf(x: f64) -> f64 {
-    if x.is_finite() { x } else { f64::NEG_INFINITY }
-}
-
-#[inline(always)]
-pub fn log_accept_ratio(current: f64, proposal: f64) -> f64 {
-    if proposal.is_finite() {
-        proposal - current
-    } else {
-        f64::NEG_INFINITY
-    }
-}
-
+/// Logistic function, evaluated without overflowing the exponential.
+///
+/// Infinite inputs give the limiting probabilities zero and one; NaN propagates.
+/// Extreme finite inputs can also round to an endpoint.
 #[inline(always)]
 pub fn sigmoid(theta: f64) -> f64 {
     if theta >= 0.0 {
@@ -28,11 +20,20 @@ pub fn sigmoid(theta: f64) -> f64 {
     }
 }
 
+/// Log odds of a probability in the open unit interval.
+///
+/// Zero and one give negative and positive infinity. Values outside the closed
+/// unit interval, including infinite inputs, give NaN. This is an elementary
+/// function, not a checked probability constructor.
 #[inline(always)]
 pub fn logit(p: f64) -> f64 {
     (p / (1.0 - p)).ln()
 }
 
+/// Evaluates `ln(1 + exp(x))` with tail branches that avoid overflow.
+///
+/// Negative infinity gives zero, positive infinity gives infinity, and NaN
+/// propagates. The tail branches use the corresponding asymptotic expressions.
 #[inline(always)]
 pub fn softplus(x: f64) -> f64 {
     if x > 30.0 {
@@ -44,11 +45,19 @@ pub fn softplus(x: f64) -> f64 {
     }
 }
 
+/// Log logistic probability without first rounding the probability to an endpoint.
+///
+/// Negative infinity gives negative infinity, positive infinity gives zero,
+/// and NaN propagates.
 #[inline(always)]
 pub fn log_sigmoid(x: f64) -> f64 {
     -softplus(-x)
 }
 
+/// Log complementary logistic probability without subtracting a rounded probability.
+///
+/// Negative infinity gives zero, positive infinity gives negative infinity,
+/// and NaN propagates.
 #[inline(always)]
 pub fn log1m_sigmoid(x: f64) -> f64 {
     -softplus(x)

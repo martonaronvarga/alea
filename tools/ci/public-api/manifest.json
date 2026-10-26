@@ -38,8 +38,8 @@
     },
     "alea-math": {
       "file": "alea-math.txt",
-      "items": 637,
-      "sha256": "62901697017bbd58f04f9338c902379621aeda396c31aaa9e215ad6d34e3b55b"
+      "items": 634,
+      "sha256": "bc32452a9262d0d33a0a567a6248e15efa14eb5d830f5f4c1e4c6a436d98af29"
     },
     "alea-mcmc": {
       "file": "alea-mcmc.txt",
@@ -124,8 +124,8 @@
     },
     "alea-math+faer": {
       "file": "alea-math+faer.txt",
-      "items": 655,
-      "sha256": "c80ec98ad79c8e21352fce102d56999f68e5f72f6614c00aeebe8e7b97eb9cbe"
+      "items": 652,
+      "sha256": "096533b6c589670d3802f9b994f20eb598c1c0c5afae9a0cd6a644ffb2921d15"
     },
     "alea-mcmc+faer": {
       "file": "alea-mcmc+faer.txt",

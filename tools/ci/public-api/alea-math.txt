@@ -381,13 +381,10 @@ pub fn alea_math::metric::SparseCholeskyMetric::log_det(&self) -> f64
 pub fn alea_math::metric::SparseCholeskyMetric::sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
 pub fn alea_math::metric::SparseCholeskyMetric::velocity(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
 pub mod alea_math::numeric
-pub fn alea_math::numeric::finite_or_neg_inf(x: f64) -> f64
 pub fn alea_math::numeric::first_nonfinite(values: &[f64]) -> core::option::Option<usize>
 pub fn alea_math::numeric::log1m_sigmoid(x: f64) -> f64
-pub fn alea_math::numeric::log_accept_ratio(current: f64, proposal: f64) -> f64
 pub fn alea_math::numeric::log_sigmoid(x: f64) -> f64
 pub fn alea_math::numeric::logit(p: f64) -> f64
-pub fn alea_math::numeric::positive_finite(x: f64) -> f64
 pub fn alea_math::numeric::sigmoid(theta: f64) -> f64
 pub fn alea_math::numeric::softplus(x: f64) -> f64
 pub mod alea_math::prelude
