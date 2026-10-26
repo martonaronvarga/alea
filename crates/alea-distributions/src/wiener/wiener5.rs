@@ -47,7 +47,7 @@ fn wiener5_bucket(core: Wiener5Core) -> BatchEntry {
     let base = core.base;
     let ks_density = Wiener4::k_s(base.t_prime, base.w_eff, base.log_eps_eff);
     let kl_density = Wiener4::k_l(base.t_prime, base.log_eps_eff);
-    let (bucket, k) = if unlikely(2 * ks_density <= kl_density) {
+    let (bucket, k) = if unlikely(ks_density.saturating_mul(2) <= kl_density) {
         match ks_density {
             2 => (W5_SMALL_K2, 2),
             3 => (W5_SMALL_K3, 3),
@@ -201,7 +201,7 @@ impl Wiener5 {
         let k_large_density = Wiener4::k_l(base.t_prime, base.log_eps_eff);
         let k_small_grad_w = k_small_density;
         let k_large_grad_w = Wiener4::k_l_grad_w(base.t_prime, base.log_eps_eff);
-        let branch = if 2 * k_small_density <= k_large_density {
+        let branch = if k_small_density.saturating_mul(2) <= k_large_density {
             SeriesBranch::SmallTime
         } else {
             SeriesBranch::LargeTime
@@ -253,11 +253,11 @@ impl Wiener5 {
         let eps = options.series_precision();
         let core = self.core(obs, params, eps)?;
         let eval = self.fused_from_core(&core);
-        if likely(eval.log_prob.is_finite()) {
+        if likely(eval.log_prob.is_finite() && eval.grad_array().iter().all(|g| g.is_finite())) {
             Ok(eval)
         } else {
             Err(ProbError::NumericalError(
-                "Wiener5 evaluation produced a non-finite log density".to_string(),
+                "Wiener5 evaluation produced a non-finite log density or score".to_string(),
             ))
         }
     }
@@ -301,7 +301,7 @@ impl Wiener5 {
         let base = core.base;
         let ks_density = Wiener4::k_s(base.t_prime, base.w_eff, base.log_eps_eff);
         let kl_density = Wiener4::k_l(base.t_prime, base.log_eps_eff);
-        let k = if unlikely(2 * ks_density <= kl_density) {
+        let k = if unlikely(ks_density.saturating_mul(2) <= kl_density) {
             (SeriesBranch::SmallTime, ks_density)
         } else {
             (
@@ -385,7 +385,7 @@ impl Wiener5 {
 
         // dt_prime/da = -2 t / a^3
         // dt_prime/dt = 1 / a^2
-        let dlog_da = dp_da + dlog_dtprime * (-2.0 * t / (a2 * a));
+        let dlog_da = dp_da + dlog_dtprime * (-2.0 * t_prime / a);
         let dlog_dt = dp_dt + dlog_dtprime / a2; // = dlog / d(rt-tau)
         let dlog_dw_eff = dp_dw + dlog_dw;
 

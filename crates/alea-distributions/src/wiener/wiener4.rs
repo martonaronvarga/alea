@@ -48,7 +48,7 @@ type BucketedWiener4Core = BatchEntry;
 fn wiener4_bucket(core: Wiener4Core) -> BatchEntry {
     let ks_density = Wiener4::k_s(core.t_prime, core.w_eff, core.log_eps_eff);
     let kl_density = Wiener4::k_l(core.t_prime, core.log_eps_eff);
-    let (bucket, k) = if unlikely(2 * ks_density <= kl_density) {
+    let (bucket, k) = if unlikely(ks_density.saturating_mul(2) <= kl_density) {
         match ks_density {
             2 => (W4_SMALL_K2, 2),
             3 => (W4_SMALL_K3, 3),
@@ -209,7 +209,7 @@ fn add_wiener4_large_simd4(
     let dpref_dv = a * one_m_w - v * t;
     let dlog_dw_eff = dpref_dw + dlog_dw;
 
-    let alpha = dpref_da + dlog_dtprime * (Vf::splat(-2.0) * t / (a2 * a));
+    let alpha = dpref_da + dlog_dtprime * (Vf::splat(-2.0) * t_prime / a);
     let tau = -(dpref_dt + dlog_dtprime / a2);
     let beta = Vf::from_array(cores.map(|c| c.beta_sign)) * dlog_dw_eff;
     let delta = Vf::from_array(cores.map(|c| c.delta_sign)) * dpref_dv;
@@ -380,7 +380,7 @@ impl Wiener4 {
         let k_large_density = Self::k_l(core.t_prime, core.log_eps_eff);
         let k_small_grad_w = k_small_density;
         let k_large_grad_w = Self::k_l_grad_w(core.t_prime, core.log_eps_eff);
-        let branch = if 2 * k_small_density <= k_large_density {
+        let branch = if k_small_density.saturating_mul(2) <= k_large_density {
             SeriesBranch::SmallTime
         } else {
             SeriesBranch::LargeTime
@@ -443,11 +443,11 @@ impl Wiener4 {
         let eps = options.series_precision();
         let core = self.core(obs, params, eps)?;
         let eval = self.fused_from_core(&core);
-        if likely(eval.log_prob.is_finite()) {
+        if likely(eval.log_prob.is_finite() && eval.grad_array().iter().all(|g| g.is_finite())) {
             Ok(eval)
         } else {
             Err(ProbError::NumericalError(
-                "Wiener4 evaluation produced a non-finite log density".to_string(),
+                "Wiener4 evaluation produced a non-finite log density or score".to_string(),
             ))
         }
     }
@@ -478,7 +478,7 @@ impl Wiener4 {
     pub(super) fn fused_from_core(&self, core: &Wiener4Core) -> Wiener4Eval {
         let ks_density = Self::k_s(core.t_prime, core.w_eff, core.log_eps_eff);
         let kl_density = Self::k_l(core.t_prime, core.log_eps_eff);
-        let k = if unlikely(2 * ks_density <= kl_density) {
+        let k = if unlikely(ks_density.saturating_mul(2) <= kl_density) {
             (SeriesBranch::SmallTime, ks_density)
         } else {
             (
@@ -526,7 +526,7 @@ impl Wiener4 {
         let dlog_dw_eff = dpref_dw + dlog_dw;
 
         let grad = Wiener4Grad {
-            alpha: dpref_da + dlog_dtprime * (-2.0 * t / (a2 * a)),
+            alpha: dpref_da + dlog_dtprime * (-2.0 * core.t_prime / a),
             tau: -(dpref_dt + dlog_dtprime / a2),
             beta: core.beta_sign * dlog_dw_eff,
             delta: core.delta_sign * dpref_dv,

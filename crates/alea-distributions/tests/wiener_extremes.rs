@@ -87,3 +87,60 @@ fn reflection_preserves_values_and_score_signs_at_both_endpoints() {
         }
     }
 }
+
+#[test]
+fn enormous_scaled_time_does_not_overflow_the_branch_cost_comparison() {
+    let observation = WienerObservation {
+        rt: 1e300,
+        boundary: Boundary::Upper,
+    };
+    let p = Wiener4Params::with_params(1., 0., 0.5, 0.).unwrap();
+    let e = Wiener4
+        .try_fused(&observation, &p, WienerOptions::default())
+        .unwrap();
+    assert!(e.grad_array().iter().all(|x| x.is_finite()));
+    let expected = std::f64::consts::PI.ln() - 0.5 * std::f64::consts::PI.powi(2) * observation.rt;
+    assert!((e.log_prob - expected).abs() < 1e-14 * expected.abs());
+}
+
+#[test]
+fn checked_evaluators_handle_tiny_scales_or_report_numerical_failure() {
+    for sv in [0., 0.1] {
+        let p = Wiener5Params::with_params(1e-150, 0., 0.5, 0., sv).unwrap();
+        let obs = WienerObservation {
+            rt: 1e-300,
+            boundary: Boundary::Upper,
+        };
+        let e = Wiener5
+            .try_fused(&obs, &p, WienerOptions::default())
+            .unwrap();
+        assert!(e.grad_array().iter().all(|x| x.is_finite()));
+        let unit = Wiener5Params::with_params(1., 0., 0.5, 0., 0.).unwrap();
+        let reference = Wiener5
+            .try_fused(
+                &WienerObservation {
+                    rt: 1.,
+                    boundary: Boundary::Upper,
+                },
+                &unit,
+                WienerOptions::default(),
+            )
+            .unwrap();
+        assert!((e.log_prob - reference.log_prob + 2. * p.to_array()[0].ln()).abs() < 1e-10);
+        assert!((e.grad.alpha * p.to_array()[0] - reference.grad.alpha).abs() < 1e-10);
+        assert!((e.grad.tau * obs.rt - reference.grad.tau).abs() < 1e-10);
+        // Here the true time score is larger than binary64 can represent.
+        let unrepresentable = Wiener5Params::with_params(1e-154, 0., 0.5, 0., sv).unwrap();
+        assert!(matches!(
+            Wiener5.try_fused(
+                &WienerObservation {
+                    rt: 1e-308,
+                    boundary: Boundary::Upper
+                },
+                &unrepresentable,
+                WienerOptions::default()
+            ),
+            Err(ProbError::NumericalError(_))
+        ));
+    }
+}
