@@ -154,6 +154,50 @@ fn bench_single_observation(c: &mut Criterion) {
             )
         })
     });
+    let image_obs = WienerObservation {
+        rt: 0.05,
+        boundary: Boundary::Upper,
+    };
+    let image_params = Wiener7Params::with_params(1., 0., 0.5, 2., 0.1, 0., 0.5).unwrap();
+    for (name, options) in [
+        ("analytic_image", WienerOptions::new(1e-10)),
+        (
+            "image_fixed_gl25",
+            WienerOptions::new(1e-10).with_quadrature(Quadrature::FixedGaussLegendre { order: 25 }),
+        ),
+    ] {
+        c.bench_function(&format!("wiener7/single/{name}"), |b| {
+            b.iter(|| {
+                black_box(
+                    Wiener7
+                        .try_fused(black_box(&image_obs), black_box(&image_params), options)
+                        .unwrap(),
+                )
+            })
+        });
+    }
+    let joint_obs = WienerObservation {
+        rt: 0.01,
+        boundary: Boundary::Upper,
+    };
+    let joint_params = Wiener7Params::with_params(1., 0., 0.5, 2., 0.4, 0.001, 0.5).unwrap();
+    for (name, options) in [
+        ("reduced_time_localized", WienerOptions::new(1e-9)),
+        (
+            "joint_localized_fixed_gl25",
+            WienerOptions::new(1e-9).with_quadrature(Quadrature::FixedGaussLegendre { order: 25 }),
+        ),
+    ] {
+        c.bench_function(&format!("wiener7/single/{name}"), |b| {
+            b.iter(|| {
+                black_box(
+                    Wiener7
+                        .try_fused(black_box(&joint_obs), black_box(&joint_params), options)
+                        .unwrap(),
+                )
+            })
+        });
+    }
     let fixed = WienerOptions::new(EPS7)
         .with_inner_precision(EPS5)
         .with_quadrature(Quadrature::FixedGaussLegendre { order: 25 });

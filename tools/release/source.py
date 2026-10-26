@@ -27,7 +27,7 @@ DOCS = {
     "README.md", "installation.md", "getting-started.md", "modeling.md",
     "sampling.md", "diagnostics.md", "sessions.md", "distributions.md",
     "hierarchical-models.md",
-    "wiener.md", "troubleshooting.md", "releases.md",
+    "wiener.md", "wiener-numerics.md", "troubleshooting.md", "releases.md",
     "enzyme-native-models.md", "metric-contract.md",
 }
 TOOLS = {"ci", "release", "documentation", "downstream-conformance", "compile-fail", "enzyme-conformance"}

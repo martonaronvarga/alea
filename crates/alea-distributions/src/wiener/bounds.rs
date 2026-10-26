@@ -21,7 +21,7 @@ pub(super) struct Tails {
     pub start: f64,
 }
 
-fn add(x: f64, y: f64) -> f64 {
+pub(super) fn add(x: f64, y: f64) -> f64 {
     let m = x.max(y);
     if m == f64::NEG_INFINITY {
         m
@@ -74,7 +74,7 @@ pub(super) fn spectral(p: usize, k: usize, c: f64) -> Option<f64> {
 }
 
 /// Log image moment tail at z,z+2,..., relative to exp(-q²/(2u)).
-fn lattice(p: usize, z: f64, q: f64, u: f64) -> Option<f64> {
+pub(super) fn lattice(p: usize, z: f64, q: f64, u: f64) -> Option<f64> {
     let exponent = (q - z) * (q + z) / (2. * u);
     let ratio_log = p as f64 * (2. / z).ln_1p() - 2. * (z + 1.) / u;
     let geometric = if ratio_log < 0. {

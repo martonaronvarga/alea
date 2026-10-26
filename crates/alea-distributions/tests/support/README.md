@@ -38,3 +38,12 @@ binary64 conversion rules. It uses integrated image terms or spectral tails,
 with geometric remainder bounds, across both boundaries and drift -20 through
 20. Run it with python-flint 0.9.0 installed. These cases include the branch
 switch, very small CDFs and very small boundary tails.
+
+`generate_wiener7_balls.py` adds 48 continuous start-variability integrals,
+enclosing the finite image densities and all seven derivatives with Acb's
+rigorous integrator and adding uniform analytic tail envelopes over the whole
+start interval. The integrands are entire in the integrated coordinate; no
+complex square root or logarithm is applied to that coordinate. The precision
+schedule checks the resulting log-density/score balls, not agreement between
+successive numerical answers. It covers zero time width, including its correct
+one-sided score, and does not cover nested or clipped time integration.

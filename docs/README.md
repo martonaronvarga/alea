@@ -18,6 +18,7 @@ fits a normal mean to four observations and explains each part of the program.
 | Run chains in parallel or save a checkpoint | [Sessions and recovery](sessions.md) |
 | Evaluate or sample from a distribution | [Distributions](distributions.md) |
 | Work with reaction times and choices | [Wiener models](wiener.md) |
+| Understand Wiener numerical accuracy | [Wiener numerical methods](wiener-numerics.md) |
 | Understand a failed or suspicious fit | [Troubleshooting](troubleshooting.md) |
 
 ## How the pieces fit together

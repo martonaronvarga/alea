@@ -10,7 +10,7 @@ fn log_add(a: f64, b: f64) -> f64 {
         m + (-(a - b).abs()).exp().ln_1p()
     }
 }
-fn log_sub(a: f64, b: f64) -> Option<f64> {
+pub(super) fn log_sub(a: f64, b: f64) -> Option<f64> {
     (a > b).then(|| a + (-(-(a - b)).exp_m1()).ln())
 }
 fn numerical() -> ProbError {
@@ -62,7 +62,7 @@ fn log_mills(z: f64) -> f64 {
     }
     -z.ln() + sum.ln()
 }
-fn log_phi(x: f64) -> f64 {
+pub(super) fn log_phi(x: f64) -> f64 {
     if x <= -10. {
         -0.5 * x * x - 0.5 * (2. * PI).ln() + log_mills(-x)
     } else {

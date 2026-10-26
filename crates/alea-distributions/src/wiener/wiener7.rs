@@ -1,6 +1,7 @@
 use super::*;
 
 mod adaptive;
+mod analytic_image;
 mod analytic_start;
 #[cfg(test)]
 mod audit;
@@ -8,6 +9,7 @@ mod error;
 mod fixed;
 pub use error::Wiener7ErrorEstimate;
 mod integrals;
+mod reduced;
 mod scaled;
 
 #[cold]
@@ -146,6 +148,14 @@ impl Wiener7 {
                 grad: NAN_GRAD_7,
             };
         }
+        if Self::prefer_reduced_time(&core, obs)
+            && let Some(e) = self.reduced_time_integral(&core, obs)
+        {
+            return Wiener7Eval {
+                log_prob: e.log_prob,
+                grad: NAN_GRAD_7,
+            };
+        }
         let density = self.eval_density_adaptive(&core, obs);
         let log_prob = if density.is_normal() && density > 0.0 {
             density.ln()
@@ -199,6 +209,15 @@ impl Wiener7 {
         {
             return Ok(Wiener7Eval {
                 log_prob: lp - core.st0.ln(),
+                grad: NAN_GRAD_7,
+            });
+        }
+        if options.quadrature == Quadrature::Adaptive
+            && Self::prefer_reduced_time(&core, obs)
+            && let Some(e) = self.reduced_time_integral(&core, obs)
+        {
+            return Ok(Wiener7Eval {
+                log_prob: e.log_prob,
                 grad: NAN_GRAD_7,
             });
         }

@@ -93,3 +93,37 @@ fn wiener7_reports_separate_estimated_error_contributions() {
         }
     }
 }
+
+#[test]
+fn uniform_start_marginalization_matches_rigorous_continuous_ball_integrals() {
+    use alea_distributions::wiener::{Wiener7, Wiener7Params, WienerOptions};
+    let mut count = 0;
+    for line in include_str!("support/wiener7_balls.csv").lines().skip(1) {
+        let x: Vec<f64> = line.split(',').map(|s| s.parse().unwrap()).collect();
+        let obs = WienerObservation {
+            rt: x[0],
+            boundary: if x[5] == 1. {
+                Boundary::Lower
+            } else {
+                Boundary::Upper
+            },
+        };
+        let p = Wiener7Params::with_params(1., 0., x[1], x[2], x[4], 0., x[3]).unwrap();
+        let e = Wiener7
+            .try_fused(&obs, &p, WienerOptions::new(1e-10))
+            .unwrap();
+        for (i, actual) in std::iter::once(e.log_prob)
+            .chain(e.grad_array())
+            .enumerate()
+        {
+            let reference = x[8 + 2 * i];
+            let radius = x[9 + 2 * i];
+            assert!(
+                (actual - reference).abs() <= radius + 2e-9 * (1. + reference.abs()),
+                "row {count},component {i}: {actual} vs {reference}"
+            );
+        }
+        count += 1;
+    }
+    assert_eq!(count, 48);
+}

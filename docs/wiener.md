@@ -310,8 +310,7 @@ Gaussian-moment tail bounds control the integrated density and derivatives.
 This path avoids numerical quadrature in its supported region. Large drift
 variation across the interval, unsuccessful truncation checks, and other
 variability configurations retain cubature. An explicitly requested fixed rule
-still evaluates that rule. General Gaussian-drift starting-point marginalization
-is not implemented by this spectral shortcut.
+still evaluates that rule. Gaussian drift variability instead uses the image-moment method described below.
 
 ### Cumulative and interval probabilities
 
@@ -351,3 +350,13 @@ the difference is too narrow or the series cannot meet its numerical checks,
 it retains cubature. Scores continue to use differentiated cubature. Fixed
 quadrature still evaluates the requested rule. The CDF functions do not yet
 marginalize Gaussian drift or starting-point variability.
+
+The short-time branch can integrate starting-point variability even when drift
+variability is nonzero. It evaluates four Gaussian moments per image and
+analytically differentiates their combination. A controlled Taylor branch
+handles narrow intervals; a scaled normal-probability formula handles other
+supported cases. Conditioning and truncation checks retain cubature when
+needed. With both uniform widths active, supported start averages reduce
+adaptive integration to one time dimension. Clipped time support retains the
+ordinary evaluator. See [the numerical methods](wiener-numerics.md) for the
+formulas, bounds, and scope of the independent ball-arithmetic checks.

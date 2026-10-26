@@ -9,6 +9,11 @@ impl Wiener7 {
         if let Some(e) = self.analytic_start(core, obs) {
             return e;
         }
+        if Self::prefer_reduced_time(core, obs)
+            && let Some(e) = self.reduced_time_integral(core, obs)
+        {
+            return e;
+        }
         let e = self.eval_fused_adaptive_raw(core, obs);
         if e.log_prob.is_finite()
             && e.log_prob >= f64::MIN_POSITIVE.ln()
@@ -48,7 +53,11 @@ impl Wiener7 {
     }
 
     /// Integrate density and all seven derivatives in one traversal.
-    fn eval_fused_adaptive_raw(&self, core: &Wiener7Core, obs: &WienerObservation) -> Wiener7Eval {
+    pub(super) fn eval_fused_adaptive_raw(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Wiener7Eval {
         let bounds = Bounds::new(&core.xmin, &core.xmax);
         let mut val = [0.; 8];
         let mut err = [0.; 8];

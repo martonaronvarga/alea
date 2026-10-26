@@ -49,8 +49,11 @@ impl Wiener7 {
         core: &Wiener7Core,
         obs: &WienerObservation,
     ) -> Option<Wiener7Eval> {
-        if core.sw <= 0. || core.st0 != 0. || core.sv != 0. {
+        if core.sw <= 0. || core.st0 != 0. {
             return None;
+        }
+        if core.sv > 0. {
+            return self.analytic_image_start(core, obs);
         }
         let params = Wiener4Params::from_array([core.alpha, core.tau0, core.beta0, core.delta]);
         let base = Wiener4.core(obs, &params, core.eps_series).ok()?;
@@ -63,7 +66,10 @@ impl Wiener7 {
             base.v_eff,
         );
         let b = a * v;
-        if u < 0.15 || !u.is_finite() || (b * h / 2.).abs() > 50. {
+        if u < 0.15 {
+            return self.analytic_image_start(core, obs);
+        }
+        if !u.is_finite() || (b * h / 2.).abs() > 50. {
             return None;
         }
         let c1 = 0.5 * PI * PI * u;

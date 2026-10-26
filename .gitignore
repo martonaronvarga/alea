@@ -46,6 +46,7 @@ tools/stan-reference/stantest
 !/docs/sessions.md
 !/docs/troubleshooting.md
 !/docs/wiener.md
+!/docs/wiener-numerics.md
 /tools/*-reference/
 /tools/bench/
 /tools/test_m*.py
