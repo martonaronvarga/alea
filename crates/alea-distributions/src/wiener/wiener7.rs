@@ -3,8 +3,8 @@ use super::*;
 mod adaptive;
 #[cfg(test)]
 mod audit;
-mod endpoints;
 mod fixed;
+mod integrals;
 mod scaled;
 
 #[cold]
@@ -14,16 +14,6 @@ fn fail_eval_7() -> Wiener7Eval {
         log_prob: f64::NEG_INFINITY,
         grad: NAN_GRAD_7,
     }
-}
-
-#[inline]
-fn add_scaled_6(dst: &mut [f64; 6], src: &[f64; 6], scale: f64) {
-    dst[0] += scale * src[0];
-    dst[1] += scale * src[1];
-    dst[2] += scale * src[2];
-    dst[3] += scale * src[3];
-    dst[4] += scale * src[4];
-    dst[5] += scale * src[5];
 }
 
 impl Wiener7 {
@@ -285,14 +275,13 @@ impl Wiener7 {
         }
     }
 
-    /// Helper: Wiener5 density (not log)
+    #[cfg(test)]
     pub(super) fn wiener5_density(
         obs: &WienerObservation,
         params: &Wiener5Params,
         eps: f64,
     ) -> f64 {
-        let lp = Wiener5.log_prob(obs, params, eps).log_prob;
-        if lp.is_finite() { lp.exp() } else { 0.0 }
+        Wiener5.log_prob(obs, params, eps).log_prob.exp()
     }
 }
 

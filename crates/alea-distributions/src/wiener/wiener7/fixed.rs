@@ -26,28 +26,13 @@ impl Wiener7 {
         (lo + width * node, width * weight)
     }
 
-    pub(super) fn fixed_integral_1d<F>(lo: f64, hi: f64, order: usize, mut f: F) -> f64
-    where
-        F: FnMut(f64) -> f64,
-    {
-        let (nodes, weights) = Self::fixed_rule(order);
-        nodes
-            .iter()
-            .zip(weights.iter())
-            .map(|(&node, &weight)| {
-                let (x, scaled_weight) = Self::fixed_interval(node, weight, lo, hi);
-                scaled_weight * f(x)
-            })
-            .sum()
-    }
-
-    pub(in crate::wiener) fn fixed_integral_6(
+    pub(in crate::wiener) fn fixed_integral(
         &self,
         core: &Wiener7Core,
         obs: &WienerObservation,
         order: usize,
-    ) -> [f64; 6] {
-        let mut val = [0.0; 6];
+    ) -> [f64; 8] {
+        let mut val = [0.0; 8];
         let mut x = [0.0; 2];
 
         if core.dim == 1 {
@@ -56,9 +41,11 @@ impl Wiener7 {
                 let (x0, scaled_weight) =
                     Self::fixed_interval(node, weight, core.xmin[0], core.xmax[0]);
                 x[0] = x0;
-                let mut local = [0.0; 6];
+                let mut local = [0.0; 8];
                 Self::wiener7_integrand(core, obs, &x[..1], &mut local);
-                add_scaled_6(&mut val, &local, scaled_weight);
+                for (dst, v) in val.iter_mut().zip(local) {
+                    *dst += scaled_weight * v;
+                }
             }
         } else {
             let (nodes, weights) = Self::fixed_rule(order);
@@ -70,10 +57,10 @@ impl Wiener7 {
                     let (x1, scaled_weight1) =
                         Self::fixed_interval(node1, weight1, core.xmin[1], core.xmax[1]);
                     x[1] = x1;
-                    let mut local = [0.0; 6];
+                    let mut local = [0.0; 8];
                     Self::wiener7_integrand(core, obs, &x, &mut local);
                     let scaled_weight = scaled_weight0 * scaled_weight1;
-                    for i in 0..6 {
+                    for i in 0..8 {
                         val[i] += scaled_weight * local[i];
                     }
                 }
@@ -83,30 +70,6 @@ impl Wiener7 {
         val
     }
 
-    pub(in crate::wiener) fn wiener7_integrand(
-        core: &Wiener7Core,
-        obs: &WienerObservation,
-        x: &[f64],
-        fv: &mut [f64; 6],
-    ) {
-        let (tau, beta) = Self::map_point(core, x);
-        if beta <= 0.0 || beta >= 1.0 {
-            return;
-        }
-
-        let p5 = Wiener5Params::with_params_unchecked(core.alpha, tau, beta, core.delta, core.sv);
-        let fused = Wiener5.fused(obs, &p5, core.eps_series);
-        if fused.log_prob.is_finite() {
-            let dens = fused.log_prob.exp();
-            fv[0] = dens;
-            fv[1] = dens * fused.grad.alpha;
-            fv[2] = dens * fused.grad.tau;
-            fv[3] = dens * fused.grad.beta;
-            fv[4] = dens * fused.grad.delta;
-            fv[5] = dens * fused.grad.s_delta;
-        }
-    }
-
     /// Integrate only the density over the hypercube using fixed Gauss-Legendre nodes.
     #[cfg(test)]
     pub(in crate::wiener) fn eval_density_fixed(
@@ -114,7 +77,7 @@ impl Wiener7 {
         core: &Wiener7Core,
         obs: &WienerObservation,
     ) -> f64 {
-        self.fixed_integral_6(core, obs, Self::FIXED_QUADRATURE_ORDER)[0]
+        self.fixed_integral(core, obs, Self::FIXED_QUADRATURE_ORDER)[0]
     }
 
     pub(in crate::wiener) fn eval_density_fixed_order(
@@ -123,7 +86,7 @@ impl Wiener7 {
         obs: &WienerObservation,
         order: usize,
     ) -> f64 {
-        self.fixed_integral_6(core, obs, order)[0]
+        self.fixed_integral(core, obs, order)[0]
     }
 
     /// Integrate density + 5 inner-parameter gradient components with fixed Gauss-Legendre nodes.
@@ -134,8 +97,8 @@ impl Wiener7 {
         obs: &WienerObservation,
         order: usize,
     ) -> Wiener7Eval {
-        let val = self.fixed_integral_6(core, obs, order);
-        let e = self.eval_fused_from_integrals(core, obs, val, order);
+        let val = self.fixed_integral(core, obs, order);
+        let e = Self::from_integrals(val);
         if e.log_prob.is_finite()
             && e.log_prob >= f64::MIN_POSITIVE.ln()
             && e.grad_array().iter().all(|g| g.is_finite())

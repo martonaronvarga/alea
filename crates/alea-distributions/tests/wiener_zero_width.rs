@@ -50,3 +50,64 @@ fn scaled_tail_retains_the_same_zero_width_limit() {
     assert!(e.log_prob < -745.);
     assert_eq!(e.grad.s_tau, 0.5 * e.grad.tau);
 }
+
+#[test]
+fn shrinking_uniform_widths_avoid_endpoint_subtraction() {
+    let obs = WienerObservation {
+        rt: 0.8,
+        boundary: Boundary::Upper,
+    };
+    for quadrature in [
+        Quadrature::Adaptive,
+        Quadrature::FixedGaussLegendre { order: 1 },
+        Quadrature::FixedGaussLegendre { order: 25 },
+    ] {
+        let options = WienerOptions::new(1e-9)
+            .with_inner_precision(1e-12)
+            .with_quadrature(quadrature);
+        let zero = Wiener7Params::with_params(1.2, 0.15, 0.4, 0.7, 0., 0., 0.3).unwrap();
+        let reference = Wiener7.try_fused(&obs, &zero, options).unwrap();
+        for width in [1e-6, 1e-9, 1e-12, 1e-15] {
+            let p = Wiener7Params::with_params(1.2, 0.15, 0.4, 0.7, width, width, 0.3).unwrap();
+            let e = Wiener7.try_fused(&obs, &p, options).unwrap();
+            assert!((e.log_prob - reference.log_prob).abs() < 5. * width + 1e-12);
+            assert!(
+                e.grad.s_beta.abs() < 10. * width + 1e-12,
+                "{quadrature:?} width={width}: {}",
+                e.grad.s_beta
+            );
+            assert!((e.grad.s_tau - reference.grad.s_tau).abs() < 10. * width + 1e-10);
+        }
+    }
+}
+
+#[test]
+fn width_scores_differentiate_the_selected_fixed_rule() {
+    let obs = WienerObservation {
+        rt: 0.8,
+        boundary: Boundary::Lower,
+    };
+    // A one-point product rule is deliberately inaccurate quadrature, but its
+    // returned gradient must differentiate that same approximation.
+    let options =
+        WienerOptions::new(1e-10).with_quadrature(Quadrature::FixedGaussLegendre { order: 1 });
+    let p = Wiener7Params::with_params(1.2, 0.15, 0.4, 0.7, 0.2, 0.1, 0.3).unwrap();
+    let e = Wiener7.try_fused(&obs, &p, options).unwrap();
+    for (i, g) in [(5, e.grad.s_beta), (6, e.grad.s_tau)] {
+        let h = 1e-5;
+        let mut plus = p.to_array();
+        let mut minus = plus;
+        plus[i] += h;
+        minus[i] -= h;
+        let fd = (Wiener7
+            .try_log_prob(&obs, &Wiener7Params::from_array(plus), options)
+            .unwrap()
+            .log_prob
+            - Wiener7
+                .try_log_prob(&obs, &Wiener7Params::from_array(minus), options)
+                .unwrap()
+                .log_prob)
+            / (2. * h);
+        assert!((g - fd).abs() < 1e-7);
+    }
+}

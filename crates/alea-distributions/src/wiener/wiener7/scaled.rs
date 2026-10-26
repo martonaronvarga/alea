@@ -61,51 +61,18 @@ impl Wiener7 {
                     (0.0, 1.0)
                 };
                 let x = [u0, u1];
-                let (_, beta) = Self::map_point(core, &x);
-                // Form decision time directly to avoid rounding tau up to rt.
-                let time_index = usize::from(core.sw > 0.0);
-                let t = obs.rt
-                    - core.tau0
-                    - if core.st0 > 0.0 {
-                        core.st0 * x[time_index]
-                    } else {
-                        0.0
-                    };
-                if t <= 0.0 {
+                let (lp, scores) = Self::point_log_scores(core, obs, &x)?;
+                if lp == f64::NEG_INFINITY {
                     continue;
                 }
-                let p = Wiener5Params::with_params_unchecked(
-                    core.alpha, 0.0, beta, core.delta, core.sv,
-                );
-                let local_obs = WienerObservation {
-                    rt: t,
-                    boundary: obs.boundary,
-                };
-                let e = Wiener5.fused(&local_obs, &p, core.eps_series);
-                if !e.log_prob.is_finite() || e.grad_array().iter().any(|g| !g.is_finite()) {
-                    return None;
-                }
-                let mut scores = [0.0; 7];
-                scores[..5].copy_from_slice(&e.grad_array());
-                if core.sw > 0.0 {
-                    scores[5] = (u0 - 0.5) * e.grad.beta;
-                }
-                if core.st0 > 0.0 {
-                    scores[6] = x[time_index] * e.grad.tau;
-                } else {
-                    scores[6] = 0.5 * e.grad.tau;
-                }
-                if scores.iter().any(|g| !g.is_finite()) {
-                    return None;
-                }
                 // Keep the volume in log space too, including truncated support.
-                let log_weight = e.log_prob + w0.ln() + w1.ln();
+                let log_weight = lp + w0.ln() + w1.ln();
                 sum.add(log_weight, scores);
-                if e.log_prob > peak {
-                    peak = e.log_prob;
+                if lp > peak {
+                    peak = lp;
                     if core.dim == 2 {
-                        let dw = (hi[0] - lo[0]) * core.sw * e.grad.beta;
-                        let dt = (hi[1] - lo[1]) * core.st0 * e.grad.tau;
+                        let dw = (hi[0] - lo[0]) * core.sw * scores[2];
+                        let dt = (hi[1] - lo[1]) * core.st0 * scores[1];
                         split = usize::from(dt.abs() > dw.abs());
                     }
                 }
