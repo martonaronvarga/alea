@@ -125,3 +125,32 @@ Record the model and data identity, source revision, dependency lock, chain seed
 warmup settings, and predictions alongside the draws. The example's fixed identity
 includes its event and trial counts. Change it when changing the model or data.
 For durable output and restarts, follow [Sessions and recovery](sessions.md).
+
+### Recover the same hierarchical fit
+
+A checkpoint contains the sampler state, not the model or its data. Rebuild the
+same model in the target factory when restarting. For the example above, keep the
+group order, event counts, priors, parameter order, source revision, dependency
+lock, and numerical backend fixed. The sampled coordinates are `mu`, `log_tau`,
+and the three `z` values. Store those coordinates in the draw file; derive `tau`
+and group probabilities after reading it.
+
+Use the cancellation and durable-storage pattern in [Sessions and recovery](sessions.md)
+with this model factory. Cancellation must happen after warmup to produce a frozen
+checkpoint. Save the checkpoint for every chain you intend to resume, preserve
+its logical chain ID, and restart with no warmup. Reusing a checkpoint with changed
+data is a new analysis, not a continuation.
+
+The requested draw count is the absolute end index. If a chain stops after 32
+retained draws and the requested total is 96, recovery produces indices 32 through
+95. Keep the first 32 records and write the remaining 64 to a new segment. Combine
+segments by chain and absolute index, retaining rejected proposals as repeated
+positions. Recalculate diagnostics on the combined chains before using their
+predictions; a continuation's diagnostic summary covers only its new segment.
+
+A downstream regression exercises this process with a two-group noncentered
+logistic model, for both diagonal and dense covariance warmup. It rebuilds the
+model, reads the checkpoint from disk, writes and reads a durable continuation,
+and compares every draw and final checkpoint with an uninterrupted run in the
+same build. This checks recovery mechanics, not posterior convergence or replay
+across different builds and CPUs.
