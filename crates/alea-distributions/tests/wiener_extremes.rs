@@ -26,7 +26,12 @@ fn extreme_support_matches_independent_high_precision_table() {
             .zip(x[6..].iter().copied())
             .enumerate()
         {
-            if !actual.is_finite() || (actual - expected).abs() > 2e-8 * expected.abs().max(1.) {
+            let tolerance = if i == 0 {
+                1e-8 + 64. * f64::EPSILON * expected.abs()
+            } else {
+                2e-9 * expected.abs().max(1.)
+            };
+            if !actual.is_finite() || (actual - expected).abs() > tolerance {
                 failures.push(format!(
                     "row={row} component={i}: {actual} vs {expected} inputs={:?}",
                     &x[..6]
