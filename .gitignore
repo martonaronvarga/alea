@@ -63,3 +63,7 @@ tools/stan-reference/stantest
 AGENTS.md
 /.codex/
 /.swival/
+
+# Historical profiling executables remain local.
+/crates/alea-*/examples/
+/crates/alea-cli/src/bin/bench.rs

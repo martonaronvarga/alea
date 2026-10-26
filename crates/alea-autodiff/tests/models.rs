@@ -1,5 +1,5 @@
 #![cfg_attr(feature = "std-autodiff", feature(autodiff))]
-#[path = "../examples/support/models.rs"]
+#[path = "support/models.rs"]
 mod fixtures;
 use alea_autodiff::{
     autodiff::EnzymeManifoldModel,

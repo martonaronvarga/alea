@@ -12,8 +12,6 @@ cargo run --release --manifest-path crates/Cargo.toml -p alea-cli \
 
 These commands exercise supplied targets and derivative checks. For fitting your
 own data, start with the [Rust user guide](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/getting-started.md).
-The `alea-bench` utility runs source-recorded comparison experiments; its commands
-and report formats are described with the corresponding experiment protocols.
 
 ## License
 

@@ -1,6 +1,6 @@
 use alea_core::target::LogDensityGradient;
 
-#[path = "../examples/support/walnuts_targets.rs"]
+#[path = "support/walnuts_targets.rs"]
 mod walnuts_targets;
 use walnuts_targets::{Kind, Target};
 

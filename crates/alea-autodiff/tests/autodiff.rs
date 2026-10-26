@@ -1,6 +1,6 @@
 #![cfg(feature = "std-autodiff")]
 #![feature(autodiff)]
-#[path = "../examples/support/models.rs"]
+#[path = "support/models.rs"]
 mod models;
 use alea_autodiff::autodiff::EnzymeModel;
 use alea_autodiff::gradient_check::{GradientCheckOptions, check_gradient};

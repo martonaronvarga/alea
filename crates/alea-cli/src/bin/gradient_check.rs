@@ -1,5 +1,5 @@
 #![cfg_attr(feature = "std-autodiff", feature(autodiff))]
-#[path = "../../../alea-autodiff/examples/support/models.rs"]
+#[path = "../../../alea-autodiff/tests/support/models.rs"]
 mod models;
 use alea_autodiff::gradient_check::{GradientCheckOptions, check_gradient};
 use alea_core::model::TransformedTarget;

@@ -1,6 +1,7 @@
 [package]
-name = "alea-cli"
+autoexamples = false
 autobins = false
+name = "alea-cli"
 default-run = "alea"
 version.workspace = true
 edition.workspace = true
@@ -45,8 +46,3 @@ path = "src/bin/gradient_check.rs"
 doc = false
 name = "alea-rwmh"
 path = "src/bin/rwmh.rs"
-
-[[bin]]
-doc = false
-name = "alea-bench"
-path = "src/bin/bench.rs"

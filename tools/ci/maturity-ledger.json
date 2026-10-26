@@ -1177,13 +1177,6 @@
     },
     {
       "crate": "alea-cli",
-      "name": "alea-bench",
-      "path": "src/bin/bench.rs",
-      "profile": "validated_utility_opt_in",
-      "summary": "Manifest-driven isolated experiment service with source/data/policy seals, explicit failed jobs, common diagnostics and immutable promotion reports; pre-release S2."
-    },
-    {
-      "crate": "alea-cli",
       "name": "alea-gradient-check",
       "path": "src/bin/gradient_check.rs",
       "profile": "research_utility",

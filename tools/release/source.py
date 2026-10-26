@@ -40,6 +40,10 @@ def allowed_source_path(relative: PurePosixPath) -> bool:
         return False
     if str(relative) in {"tools/release/observe.py", "tools/release/examples/probe.rs"}:
         return False
+    if str(relative) == "crates/alea-cli/src/bin/bench.rs":
+        return False
+    if len(parts) > 2 and parts[0] == "crates" and parts[2] == "examples" and parts[1] != "alea":
+        return False
     if len(parts) == 1:
         return str(relative) in FILES
     if parts[0] == "docs":

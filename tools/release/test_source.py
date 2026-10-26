@@ -43,7 +43,8 @@ class SourceTests(unittest.TestCase):
                     "docs/benchmarks/report.json", "docs/settled-plan.md",
                     "tools/stan-reference/probe.cpp", "tools/release/observe.py",
                     "tools/release/examples/probe.rs", "crates/alea/design.md",
-                    "crates/alea/tests/data/private.csv"]
+                    "crates/alea/tests/data/private.csv",
+                    "crates/alea-cli/src/bin/bench.rs", "crates/alea-mcmc/examples/hard_nuts.rs"]
         for name in excluded:
             p = self.root / name
             p.parent.mkdir(parents=True, exist_ok=True)
