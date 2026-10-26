@@ -159,3 +159,31 @@ fn interval_probabilities_partition_boundary_mass() {
         );
     }
 }
+
+#[test]
+fn cdf_respects_brownian_time_and_drift_scaling() {
+    for boundary in [Boundary::Upper, Boundary::Lower] {
+        for time in [0.001, 0.1, 0.15, 1., 10.] {
+            for drift in [-5., 0., 5.] {
+                let options = WienerOptions::new(1e-12);
+                let base = Wiener4Params::from_array([1., 0., 0.3, drift]);
+                let reference = WienerObservation { rt: time, boundary };
+                let f = Wiener4.try_log_cdf(&reference, &base, options).unwrap();
+                let h = Wiener4
+                    .try_log_survival(&reference, &base, options)
+                    .unwrap();
+                for alpha in [0.125, 2., 16.] {
+                    let params = Wiener4Params::from_array([alpha, 0., 0.3, drift / alpha]);
+                    let obs = WienerObservation {
+                        rt: time * alpha * alpha,
+                        boundary,
+                    };
+                    let scaled_f = Wiener4.try_log_cdf(&obs, &params, options).unwrap();
+                    let scaled_h = Wiener4.try_log_survival(&obs, &params, options).unwrap();
+                    assert!((scaled_f - f).abs() < 1e-10 * (1. + f.abs()));
+                    assert!((scaled_h - h).abs() < 1e-10 * (1. + h.abs()));
+                }
+            }
+        }
+    }
+}
