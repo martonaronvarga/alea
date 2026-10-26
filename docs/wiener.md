@@ -173,6 +173,8 @@ rejection sampling with alternating-series acceptance tests. It returns a
 numerical error if its limits are exhausted, a comparison remains unresolved,
 or the resulting time cannot be represented. Do not silently discard failed
 simulations and report the remainder as an unconditional predictive sample.
+If a very short decision time rounds away when added to `tau`, the generator
+returns an error rather than a reaction time on the excluded support boundary.
 Floating-point error is not a certified bound on the generated distribution.
 
 For a prior predictive check, draw subject/population parameters from their

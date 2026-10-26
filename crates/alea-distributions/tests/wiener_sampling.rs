@@ -301,3 +301,13 @@ fn invalid_simulation_parameters_are_errors() {
         Err(ProbError::InvalidParameters(_))
     ));
 }
+
+#[test]
+fn unrepresentable_reaction_time_is_a_numerical_error() {
+    let params = Wiener4Params::with_params(1., 1e100, 0.5, 0.).unwrap();
+    let mut rng = SmallRng::seed_from_u64(69001);
+    assert!(matches!(
+        Wiener4.sample(&params, &mut rng),
+        Err(ProbError::NumericalError(_))
+    ));
+}

@@ -316,7 +316,7 @@ fn bench_sampling(c: &mut Criterion) {
     let mut rng = SmallRng::seed_from_u64(73001);
     let mut group = c.benchmark_group("joint_sampling");
     for beta in [1e-8, 0.1, 0.5, 0.9, 1. - 1e-8] {
-        let params = Wiener4Params::with_params(1.2, 0.2, beta, 0.7).unwrap();
+        let params = Wiener4Params::with_params(1.2, 0.0, beta, 0.7).unwrap();
         group.bench_with_input(BenchmarkId::new("wiener4", beta), &params, |b, p| {
             b.iter(|| black_box(Wiener4.sample(black_box(p), &mut rng).unwrap()));
         });
