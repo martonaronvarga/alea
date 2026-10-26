@@ -16,7 +16,7 @@ Add these entries to its `Cargo.toml`:
 
 ```toml
 [dependencies]
-alea = { git = "https://github.com/martonaronvarga/alea", tag = "v0.1.1" }
+alea = { git = "https://github.com/martonaronvarga/alea", rev = "717053a49172a0179b8c759914ea8ac1fc9e8979" }
 ```
 
 The tag pins a specific source version. Keep the generated `Cargo.lock` with your
@@ -38,7 +38,7 @@ for debugging, but its execution time does not represent sampling performance.
 Enable distribution laws and typed likelihood factors on the same dependency:
 
 ```toml
-alea = { git = "https://github.com/martonaronvarga/alea", tag = "v0.1.1", features = ["distributions"] }
+alea = { git = "https://github.com/martonaronvarga/alea", rev = "717053a49172a0179b8c759914ea8ac1fc9e8979", features = ["distributions"] }
 rand = "0.10.1"
 ```
 
@@ -97,7 +97,7 @@ Start with the default build. Add a backend when your workload needs it.
 For example, enable Faer:
 
 ```toml
-alea = { git = "https://github.com/martonaronvarga/alea", tag = "v0.1.1", features = ["faer"] }
+alea = { git = "https://github.com/martonaronvarga/alea", rev = "717053a49172a0179b8c759914ea8ac1fc9e8979", features = ["faer"] }
 ```
 
 The checkout includes pinned Nix environments for optional compilers and native

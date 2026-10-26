@@ -14,7 +14,7 @@ Alea requires Rust 1.95 or later. Add the libraries you need to `Cargo.toml`:
 
 ```toml
 [dependencies]
-alea = { git = "https://github.com/martonaronvarga/alea", tag = "v0.1.1" }
+alea = { git = "https://github.com/martonaronvarga/alea", rev = "717053a49172a0179b8c759914ea8ac1fc9e8979" }
 ```
 
 The default build uses stable Rust. Add `features = ["distributions"]` for
