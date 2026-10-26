@@ -193,7 +193,9 @@ fn add_wiener4_large_simd4(
     let v = Vf::from_array(cores.map(|c| c.v_eff));
     let one_m_w = Vf::splat(1.0) - w_eff;
     let a2 = a * a;
-    let dlog_dtprime = d_t / raw;
+    // The scaled sum factors out exp(-pi² t_prime / 2). Its
+    // log derivative must be restored, as in the scalar large-time kernel.
+    let dlog_dtprime = d_t / raw - half_pi2_v;
     let dlog_dw = d_w / raw;
     let log_series = Vf::splat(super::LN_PI) - half_pi2_t + raw.ln();
     let log_prob = pref + log_series;

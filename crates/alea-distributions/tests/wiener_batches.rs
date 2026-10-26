@@ -106,3 +106,38 @@ fn reused_workspace_and_cached_models_allocate_nothing_and_recover_after_failure
     });
     assert_eq!(measurement.count_total, 0, "{measurement:?}");
 }
+
+#[test]
+fn full_large_time_buckets_preserve_time_and_boundary_scores() {
+    // Four entries per bucket are required to execute the optional SIMD kernel.
+    // Mixed one-off observations can exercise only its scalar remainder path.
+    let params = Wiener4Params::with_params(1.5, 0.2, 0.4, 0.3).unwrap();
+    for rt in [1.0, 1.1, 1.2] {
+        for boundary in [Boundary::Upper, Boundary::Lower] {
+            let observation = WienerObservation { rt, boundary };
+            let counts = Wiener4.branch_counts(&observation, &params, 1e-12).unwrap();
+            assert_eq!(counts.branch, SeriesBranch::LargeTime);
+            assert!((4..=6).contains(&counts.k_large_used));
+            let data = vec![observation; 9]; // Two vector groups and a scalar tail.
+            let direct = WienerModel::new(
+                Wiener4,
+                WienerObservations::from(data.clone()).with_batch_strategy(BatchStrategy::Direct),
+            );
+            let bucket = WienerModel::new(
+                Wiener4,
+                WienerObservations::from(data).with_batch_strategy(BatchStrategy::BranchBuckets),
+            );
+            let mut expected = [0.; 4];
+            let mut actual = [0.; 4];
+            let ld = direct.batch_value_gradient(&params, &mut expected);
+            let lb = bucket.batch_value_gradient(&params, &mut actual);
+            for (coordinate, (a, b)) in expected.into_iter().zip(actual).enumerate() {
+                assert!(
+                    (a - b).abs() < 1e-10 * (1. + a.abs()),
+                    "rt={rt} boundary={boundary:?} coordinate={coordinate}: scalar={a}, bucket={b}"
+                );
+            }
+            assert!((ld - lb).abs() < 1e-10 * (1. + ld.abs()));
+        }
+    }
+}
