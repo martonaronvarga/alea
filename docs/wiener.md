@@ -191,3 +191,33 @@ Simulation tests cover choice probabilities, joint time tails, mean decision
 times, and drift calibration with an independently derived conjugate posterior.
 These are bounded checks, not calibration of every hierarchical model or of all
 seven parameters jointly.
+
+## Check a drift fit independently
+
+For Wiener4 with fixed `alpha`, `beta`, and `tau`, the drift-dependent part of
+the likelihood has a particularly useful form:
+
+\[
+p(\text{observations}\mid\delta)\;\propto\;
+\exp\!\left(\delta D-\tfrac12\delta^2 T\right).
+\]
+
+Here `T` is the sum of decision times `rt - tau`. Each upper-boundary observation
+adds `alpha * (1 - beta)` to `D`; each lower-boundary observation adds
+`-alpha * beta`. With a normal drift prior of mean `m` and variance `s²`, the
+posterior variance is `1 / (1/s² + T)` and its mean is that variance times
+`m/s² + D`.
+
+This gives an independent way to check simulation and inference without treating
+another Monte Carlo run as exact truth. A normal hierarchy of subject drifts also
+has a multivariate normal posterior when its population scale and the other
+Wiener parameters are fixed. The downstream workflow test uses this case: it
+generates two subjects' joint observations, fits a noncentered hierarchy with
+four NUTS chains, checks parameter and subject-drift diagnostics against analytic
+posterior means, and generates predictions for existing and new subjects.
+
+The simplification does not apply unchanged when estimating the other Wiener
+parameters or adding drift variability. Those models still need their own
+identifiability, posterior recovery, and predictive checks. In particular, a
+successful drift-only calibration does not establish recovery of all seven
+parameters together.
