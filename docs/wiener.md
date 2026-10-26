@@ -347,7 +347,8 @@ silently clamped to zero.
 For Wiener7 with only nondecision-time variability, density-only adaptive
 evaluation can use this interval probability divided by the time width. If
 the difference is too narrow or the series cannot meet its numerical checks,
-it retains cubature. Scores continue to use differentiated cubature. Fixed
+it retains cubature. The fused path uses analytic CDF parameter scores and an endpoint density for
+the time-width score, with a separate cancellation check. Fixed
 quadrature still evaluates the requested rule. The CDF functions do not yet
 marginalize Gaussian drift or starting-point variability.
 
@@ -360,3 +361,17 @@ needed. With both uniform widths active, supported start averages reduce
 adaptive integration to one time dimension. Clipped time support retains the
 ordinary evaluator. See [the numerical methods](wiener-numerics.md) for the
 formulas, bounds, and scope of the independent ball-arithmetic checks.
+
+`try_fused_cdf`, `try_fused_survival`, and `try_fused_interval` return the log
+probability and analytic parameter scores in ordinary Wiener4 order. The
+infinite-time CDF gives the choice probability and its scores. A zero CDF or
+zero boundary tail has no finite log score and returns a support error.
+
+For a rigorous check of a specific numerical result, the optional source tool
+`tests/support/wiener7_reference.py` encloses the mathematical density and all
+seven scores, increases ball precision when needed, and compares the exact
+binary64 candidate with those enclosures. It reports certified, rejected, or
+unresolved; reference work exhaustion is explicit. This pointwise certificate
+covers all numerical error sources together, including floating-point and
+special-function evaluation. It is not a global error theorem for every Rust
+execution. Ordinary library evaluation does not invoke Python or ball arithmetic.

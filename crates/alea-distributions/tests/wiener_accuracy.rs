@@ -127,3 +127,95 @@ fn uniform_start_marginalization_matches_rigorous_continuous_ball_integrals() {
     }
     assert_eq!(count, 48);
 }
+
+#[test]
+fn nested_and_clipped_variability_match_rigorous_ball_integrals() {
+    use alea_distributions::wiener::{Wiener7, Wiener7Params, WienerOptions};
+    let mut count = 0;
+    for line in include_str!("support/wiener7_nested_balls.csv")
+        .lines()
+        .skip(1)
+    {
+        let x: Vec<f64> = line.split(',').map(|s| s.parse().unwrap()).collect();
+        let obs = WienerObservation {
+            rt: x[0],
+            boundary: if x[8] == 1. {
+                Boundary::Lower
+            } else {
+                Boundary::Upper
+            },
+        };
+        let p = Wiener7Params::with_params(x[1], x[2], x[3], x[4], x[6], x[7], x[5]).unwrap();
+        let e = Wiener7
+            .try_fused(&obs, &p, WienerOptions::new(1e-9))
+            .unwrap();
+        for (i, value) in std::iter::once(e.log_prob)
+            .chain(e.grad_array())
+            .enumerate()
+        {
+            let reference = x[11 + 2 * i];
+            let radius = x[12 + 2 * i];
+            assert!(
+                (value - reference).abs() <= radius + 1e-9 * (1. + reference.abs()),
+                "row {count},component {i}: {value} vs {reference}"
+            );
+        }
+        if x[5] == 0. && x[6] == 0. && x[7] == x[0] - x[2] {
+            let base = Wiener4Params::from_array([x[1], x[2], x[3], x[4]]);
+            let cdf = Wiener4
+                .try_fused_cdf(&obs, &base, WienerOptions::new(1e-11))
+                .unwrap();
+            assert!((cdf.log_prob - (x[11] + x[7].ln())).abs() < 1e-10);
+            for (i, value) in cdf.grad_array().iter().enumerate() {
+                assert!((*value - x[13 + 2 * i]).abs() < 1e-9 * (1. + value.abs()));
+            }
+        }
+        count += 1;
+    }
+    assert_eq!(count, 8);
+}
+
+#[test]
+fn cdf_scores_match_independent_continuous_ball_integrals() {
+    use alea_distributions::wiener::WienerOptions;
+    let mut count = 0;
+    for line in include_str!("support/wiener_cdf_gradient_balls.csv")
+        .lines()
+        .skip(1)
+    {
+        let x: Vec<f64> = line.split(',').map(|s| s.parse().unwrap()).collect();
+        let obs = WienerObservation {
+            rt: x[0],
+            boundary: if x[3] == 1. {
+                Boundary::Lower
+            } else {
+                Boundary::Upper
+            },
+        };
+        let p = Wiener4Params::from_array([1., 0., x[1], x[2]]);
+        let result = Wiener4.try_fused_cdf(&obs, &p, WienerOptions::new(1e-10));
+        // The opposite-boundary short-time CDF loses its entire image
+        // difference. Its checked API must reject that conditioning limit.
+        if matches!(count, 0 | 2) {
+            assert!(matches!(
+                result,
+                Err(alea_distributions::wiener::ProbError::NumericalError(_))
+            ));
+            count += 1;
+            continue;
+        }
+        let e = result.unwrap_or_else(|error| panic!("row {count}: {error}"));
+        for (i, actual) in std::iter::once(e.log_prob)
+            .chain(e.grad_array())
+            .enumerate()
+        {
+            let reference = x[5 + 2 * i];
+            assert!(
+                (actual - reference).abs() <= x[6 + 2 * i] + 1e-9 * (1. + reference.abs()),
+                "row {count}, component {i}: {actual} vs {reference}"
+            );
+        }
+        count += 1;
+    }
+    assert_eq!(count, 24);
+}

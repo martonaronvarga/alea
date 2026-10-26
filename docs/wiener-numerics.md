@@ -136,7 +136,18 @@ p_7(y)=\frac{F_b(y-\tau_0)-F_b(y-\tau_0-h)}{h}.
 
 Alea chooses a well-separated CDF or boundary-tail difference, tightening the
 inner budget before subtraction. Narrow differences retain density cubature.
-Scores still use differentiation under the unit-cube integral.
+The fused path differentiates the integrated image/spectral formulas. The width
+score is the lower endpoint density divided by interval mass, minus `1/h`.
+Independent subtraction checks and tighter inner budgets retain cubature if
+probability or width-score cancellation cannot meet the requested budget.
+Almost constant start intervals (`s_beta <= 1e-6`) use numerical integration;
+time widths below `1e-5` times decision time skip CDF subtraction. These are
+measured cost policies, not mathematical accuracy thresholds.
+
+The checked CDF-score API can return a numerical-conditioning error for very
+small opposite-boundary probabilities near an absorbing endpoint. The continuous
+reference suite retains these cases explicitly. A finite CDF is not a promise
+that its log score can be computed at the same tolerance.
 
 The time interval starts at `tau_0`, rather than being centered there. Its
 right width score at zero is therefore half the location score. A symmetric
@@ -155,10 +166,21 @@ The independent Python fixtures use Arb/Acb ball arithmetic. They add analytic
 remainders to enclosed finite series or continuous integrals and increase
 precision until the resulting log-density and score balls are sufficiently
 narrow. They certify their own enclosures. Tests compare Rust results with a
-separate floating-point allowance. The continuous Wiener7 oracle currently
-covers start variability at zero time width; it does not certify nested or
-clipped time integration. Production evaluation remains `f64` and does not
-promise an interval enclosure of its arithmetic.
+separate floating-point allowance. The continuous Wiener7 oracle also integrates
+nested time/start variability.
+For clipped support it removes a time-zero slab and bounds its full density
+and derivative contribution with Gaussian envelopes. The monotonicity condition
+`delta / a² <= q_min² / 8` controls every `t^(-r) exp(-a² q² / (2t))` factor
+through `r = 7/2`. Complex square roots check analyticity on integration boxes.
+A failed reference work or precision budget is explicit.
+
+The pointwise audit compares a supplied binary64 result, treated as an exact
+real vector, with these enclosures. Its error bounds include truncation,
+quadrature, rounding and elementary-function error together. Certification
+uses the lower bound on the permitted relative tolerance, so uncertainty in the
+reference cannot produce a false pass. A rejected result is separated from an
+unresolved enclosure. This is a certificate for the supplied input/result pair,
+not a global proof of all Rust floating-point executions.
 
 ## References
 

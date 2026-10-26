@@ -47,3 +47,33 @@ complex square root or logarithm is applied to that coordinate. The precision
 schedule checks the resulting log-density/score balls, not agreement between
 successive numerical answers. It covers zero time width, including its correct
 one-sided score, and does not cover nested or clipped time integration.
+
+`generate_wiener7_nested_balls.py` adds eight independent nested and clipped
+variability integrals. The reusable `wiener7_reference.py` encloses all eight
+outputs, bounds omitted images over the integration rectangle, and bounds the
+removed positive-time slab when the support is clipped at zero. Complex square
+roots propagate the integrator's analyticity flag. A common logarithmic scale
+keeps rare-event integrals representable. Work and precision limits return an
+explicit failure rather than a certificate.
+
+`generate_wiener_cdf_gradient_balls.py` generates 24 CDF/score enclosures by
+integrating the density and its derivatives continuously. It includes extreme
+starts and both drift signs. This provides a different calculation from the
+production integrated-image CDF formulas.
+
+The optional reference can audit an actual binary64 result pointwise:
+
+```sh
+python crates/alea-distributions/tests/support/wiener7_reference.py \
+  '{"params":[0.03,1,0,0.5,2,0,0,0.03,false],"candidate":[0,0,0,0,0,0,0,0]}'
+python crates/alea-distributions/tests/support/test_wiener_reference.py
+```
+
+Supply the actual log-density followed by the seven scores in `candidate`.
+The deliberately incorrect example is rejected. Successful comparisons bound
+all numerical error at that input, including production rounding, without
+assuming that standard-library elementary functions are correctly rounded.
+They do not prove a uniform error bound for every production evaluation.
+Statuses distinguish a certificate, a rejected candidate, insufficiently narrow
+enclosures, a nonfinite candidate, invalid inputs and exhausted reference work.
+Ordinary Rust tests consume saved fixtures and need no Python installation.
