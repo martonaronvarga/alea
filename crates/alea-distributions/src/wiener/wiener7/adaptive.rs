@@ -154,7 +154,7 @@ impl Wiener7 {
 
         // s_tau gradient
         if core.st0 == 0.0 {
-            grad[6] = 0.0;
+            grad[6] = 0.5 * grad[1];
         } else {
             let t0plus = core.tau0 + core.st0;
             if obs.rt - t0plus <= 0.0 {

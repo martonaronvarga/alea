@@ -92,6 +92,8 @@ impl Wiener7 {
                 }
                 if core.st0 > 0.0 {
                     scores[6] = x[time_index] * e.grad.tau;
+                } else {
+                    scores[6] = 0.5 * e.grad.tau;
                 }
                 if scores.iter().any(|g| !g.is_finite()) {
                     return None;

@@ -221,3 +221,11 @@ parameters or adding drift variability. Those models still need their own
 identifiability, posterior recovery, and predictive checks. In particular, a
 successful drift-only calibration does not establish recovery of all seven
 parameters together.
+
+## Derivatives at zero variability
+
+The uniform non-decision interval extends from `tau` to `tau + s_tau`. Its
+right-hand log-likelihood derivative at `s_tau = 0` is half the `tau` derivative,
+which is generally nonzero. In contrast, the starting-point interval is symmetric
+around `beta`, so its width derivative is zero at `s_beta = 0`. Widths are
+constrained to be nonnegative; these are one-sided derivatives on their boundary.

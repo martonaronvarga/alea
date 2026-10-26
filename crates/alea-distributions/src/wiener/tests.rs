@@ -666,10 +666,9 @@ fn wiener7_delegates_to_wiener5_when_no_variability() {
     assert_ulps_eq!(grad7[2], grad5.beta, epsilon = 1e-6);
     assert_ulps_eq!(grad7[3], grad5.delta, epsilon = 1e-6);
     assert_ulps_eq!(grad7[4], grad5.s_delta, epsilon = 1e-6);
-    // sw, st0 gradients must be NaN or 0 (here 0 because no variability)
-    // strict ≈ 0?
+    // Symmetric start width has zero derivative; one-sided time width does not.
     assert!(grad7[5].abs() < 1e-12);
-    assert!(grad7[6].abs() < 1e-12);
+    assert_eq!(grad7[6], 0.5 * grad5.tau);
 }
 
 #[test]
@@ -1020,7 +1019,14 @@ fn wiener7_matches_stan_reference_values() {
         assert_relative_eq!(grad[3], true_grad_v[i], epsilon = tolerance_grad);
         assert_relative_eq!(grad[4], true_grad_sv[i], epsilon = tolerance_grad);
         assert_relative_eq!(grad[5], true_grad_sw[i], epsilon = tolerance_grad);
-        assert_relative_eq!(grad[6], true_grad_st0[i], epsilon = tolerance_grad);
+        if st0_vec[i] == 0.0 {
+            // Retain the upstream zero as a failed control, not a correct
+            // one-sided derivative. The independent limit regression checks it.
+            assert_eq!(true_grad_st0[i], 0.0);
+            assert_relative_eq!(grad[6], 0.5 * true_grad_t0[i], epsilon = tolerance_grad);
+        } else {
+            assert_relative_eq!(grad[6], true_grad_st0[i], epsilon = tolerance_grad);
+        }
     }
 }
 

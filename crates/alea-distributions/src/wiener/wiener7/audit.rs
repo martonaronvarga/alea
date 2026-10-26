@@ -44,7 +44,7 @@ impl Wiener7 {
             grad[2] = e.grad.beta;
             grad[3] = e.grad.delta;
             grad[4] = e.grad.s_delta;
-            // sw & st0 remain 0
+            grad[6] = 0.5 * grad[1]; // right derivative of U(tau,tau+width)
             return (e.log_prob, grad);
         }
 
@@ -190,7 +190,7 @@ impl Wiener7 {
 
         // gradient for s_tau
         if st0 == 0.0 {
-            grad[6] = 0.0;
+            grad[6] = 0.5 * grad[1];
         } else {
             let t0plus = tau0 + st0;
             if obs.rt - t0plus <= 0.0 {

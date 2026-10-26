@@ -212,7 +212,7 @@ impl Wiener7 {
                     delta: e.grad.delta,
                     s_delta: e.grad.s_delta,
                     s_beta: 0.0,
-                    s_tau: 0.0,
+                    s_tau: 0.5 * e.grad.tau,
                 },
             }
         } else {
@@ -255,7 +255,7 @@ impl Wiener7 {
                     delta: e.grad.delta,
                     s_delta: e.grad.s_delta,
                     s_beta: 0.0,
-                    s_tau: 0.0,
+                    s_tau: 0.5 * e.grad.tau,
                 },
             };
         }
