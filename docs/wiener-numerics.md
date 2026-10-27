@@ -239,6 +239,48 @@ rather than two implementations of equally correct complete gradients. SIMD
 builds showed the same broad pattern. The largest gains come from eliminating
 integration dimensions; scalar calls do not automatically gain SIMD throughput.
 
+## Complete model fits
+
+Kernel timings do not establish inference performance. A complete-fit comparison
+used the public `alea` modeling and session APIs on the HDDM Cavanagh dataset
+(source commit `19feaa9849619931d306094b48d9803ef9c8d0bd`), retaining all 2,019
+unstimulated trials from 14 participants and both responses. Single-participant
+Wiener7 fits used all 148 unstimulated trials from participant zero.
+
+The baseline was `49b7527`; the revised integration was `9001222`, with the richer
+hierarchical workload in `c4e8392`. Four parallel chains ran on an Intel i5-8250U.
+Each pair used identical priors, observations, seeds, tolerances and inference
+settings. The study retained 22 fit attempts, including original settings and
+separately recorded follow-ups; 12 passed the numerical and diagnostic gate.
+Failed fits have no quality-adjusted efficiency score.
+
+| Paired workload | Baseline | Revised | Inference diagnostics |
+|---|---:|---:|---|
+| Subject-drift Wiener4 hierarchy, 20 parameters | 49.0 s | 49.8 s | Both pass |
+| Subject-drift Wiener5 hierarchy, 21 parameters | 44.7 s | 45.8 s | Both pass |
+| Subject drift, boundary and time hierarchy, 50 parameters | 126.8 s | 128.3 s | Both pass |
+| Time-only Wiener7, 6 parameters | One chain failed | 42.9 s | Revised passes |
+| Full Wiener7, 8 parameters | 227.7 s | Warmup failed | Revised fails |
+| Simulated Wiener4 hierarchy, 14 parameters | 9.4 s | 9.2 s | Both pass |
+| Simulated full Wiener7, 8 parameters | 635.5 s | Warmup failed | Revised fails |
+
+These are descriptive single-seed measurements, not an external-engine ranking.
+Budgets differ between workloads: paired settings and all outcomes are retained
+in the benchmark artifacts. Qualified Wiener4/5 pairs have identical draws;
+small timing differences do not demonstrate acceleration. The 50-parameter
+hierarchy has maximum R-hat 1.003 and minimum bulk ESS 1,551 over 6,000 draws.
+The revised full Wiener7 path still encounters numerical limits during warmup,
+including after covariance-window changes. Its kernel gains therefore do not
+justify a general modeling-performance claim.
+
+Numerical convergence also differs from model adequacy. Several observed RT
+quantiles fall outside replicated intervals even in the richer empirical
+hierarchy. These simplified models do not reproduce the original EEG/DBS
+analysis. Inspect predictions and model assumptions before interpreting effects.
+The [benchmark executable](../tools/wiener-modeling/README.md) documents the
+models, priors, data schema, diagnostics and repeatable commands. Raw datasets
+and research run artifacts are kept outside source releases.
+
 ## References
 
 - [Navarro and Fuss (2009), density expansions and truncation](https://papers.djnavarro.net/2009_firstpassage.pdf).
