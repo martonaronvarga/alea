@@ -520,3 +520,33 @@ precision: it starts at `goal/4096`, decreases on escalation, and never falls
 below the working-precision allowance. This only allocates work. Success still
 requires the resulting rigorous output enclosures to satisfy the requested
 width; agreement between successive point estimates cannot grant a certificate.
+
+The optional ball reference can also average each finite image analytically
+over the start interval. It uses complex Gaussian moments, with bounded
+exponential expansions near zero and at a steep endpoint, or error-function
+primitives elsewhere. For the endpoint expansion it integrates each monomial
+over the finite interval exactly:
+
+\[
+\int_0^1 y^m e^{-Ly}\,dy
+=\frac{{}_1F_1(m+1;m+2;-L)}{m+1}.
+\]
+
+For complex coefficients with `Re(A) >= 0` and `Re(L) > 0`, the remainder is
+bounded by `|A|^N (2N+m)! / (N! Re(L)^(2N+m+1))`. Continuous Acb integrals,
+including complex decision times, independently check these start averages.
+The outer time integral and its omitted time-zero slab remain enclosed.
+
+For positive time width `h`, the reference obtains time derivatives from the
+two continuous boundary densities. If `T = rt - tau`, `L = max(0,T-h)` and
+`I = integral_L^T g(t) dt / h`, then
+
+\[
+\partial_\tau I=\frac{g(L)-g(T)}h,\qquad
+\partial_h I=\frac{g(L)-I}h.
+\]
+
+The zero-time density vanishes for the admitted interior start interval.
+Ball arithmetic propagates cancellation in these expressions, while independent
+saved integrals check the resulting scores. These alternatives help the
+reference evaluator; they do not change production accuracy guarantees.

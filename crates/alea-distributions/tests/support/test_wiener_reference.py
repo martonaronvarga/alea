@@ -52,4 +52,29 @@ class CombinedImages(unittest.TestCase):
                 expected=reference+[reference[3]*arb('.25')*(1 if lower else -1),reference[2]*arb('.75')]
                 for x,y in zip(actual,expected):self.assertTrue(abs(x-y)<arb('1e-20')*(1+abs(y)))
 
+class BoundaryFluxReference(unittest.TestCase):
+    def test_time_flux_reference_overlaps_independent_saved_integrals(self):
+        import csv
+        from pathlib import Path
+        from wiener7_reference import evaluate
+        with Path(__file__).with_name('wiener7_nested_balls.csv').open() as stream:rows=list(csv.reader(stream))
+        x=list(map(float,rows[3]))
+        values,_=evaluate(x[:8]+[bool(x[8])],goal='1e-12',max_precision=96)
+        for i,value in enumerate(values):self.assertTrue(value.overlaps(arb(x[11+2*i],x[12+2*i])))
+
+class AnalyticStartReference(unittest.TestCase):
+    def test_start_antiderivative_enclosures_overlap_direct_complex_integrals(self):
+        from flint import acb
+        from wiener7_reference import point
+        from wiener7_start_reference import start_point
+        ctx.prec=160
+        for time,sd,width in [(.03,.5,.1),(.285,350.,.63),(.001,350.,.63),(.03+.003j,.5,.1)]:
+            a,v,m,s,h=map(arb,[1.6,.5,.34,sd,width]);t=acb(time)
+            for lower in [False,True]:
+                for component in range(8):
+                    actual=start_point(t,m,h,a,v,s,lower,2,False,component,arb('.5'))
+                    def f(x,analytic):return point(t,acb(m)+h*x,a,v,s,x,arb('.5'),lower,2,analytic,component)
+                    expected=acb.integral(f,arb('-.5'),arb('.5'),abs_tol=arb('1e-24'),rel_tol=arb('1e-22'),eval_limit=4000)
+                    self.assertTrue(actual.is_finite() and expected.is_finite() and actual.overlaps(expected),(time,lower,component))
+
 if __name__=='__main__':unittest.main()

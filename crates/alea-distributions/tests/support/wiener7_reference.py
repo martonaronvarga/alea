@@ -74,7 +74,7 @@ def envelopes(a,v,s,qlo,qhi,tlo,thi,k,all_images=False):
     return [density,pa*density+2*u/a*time,tau,beta,pv*density,ps*density,beta/2,tau]
 
 
-def evaluate(params,goal='1e-18',max_precision=768):
+def evaluate(params,goal='1e-18',max_precision=768,analytic_start=False):
     """params=[rt,a,tau,beta,delta,sd,start_width,time_width,lower]."""
     source=list(params)
     if len(source) != 9 or not all(math.isfinite(float(x)) for x in source[:8]) or source[2] < 0:
@@ -115,12 +115,19 @@ def evaluate(params,goal='1e-18',max_precision=768):
             tol=max(arb(2)**(-precision+24),arb(goal)/arb(4096)**(precision//96))
             values=[]
             for component in range(8):
+                if st>0 and component in (2,7):
+                    values.append(None)
+                    continue
                 def outer(z,analytic):
                     t=acb(thi)-st*z if st>0 else acb(thi)
                     def inner(x,inner_analytic):
                         zz=z if st>0 else arb('0.5')
                         return normalizer*point(t,acb(q)+h*x,a,v,s,x,zz,lower,k,analytic or inner_analytic,component)
                     if h==0:return inner(acb(0),analytic)
+                    if analytic_start:
+                        from wiener7_start_reference import start_point
+                        zz=z if st>0 else arb('0.5')
+                        return normalizer*start_point(t,q,h,a,v,s,lower,k,analytic,component,zz)
                     return acb.integral(inner,arb('-0.5'),arb('0.5'),rel_tol=tol,abs_tol=tol,eval_limit=4000)
                 if st>0:
                     # Geometric positive-time panels avoid analyticity disks
@@ -134,10 +141,25 @@ def evaluate(params,goal='1e-18',max_precision=768):
                 else:value=outer(acb(0),False)
                 error=tails[component]*(zhi if st>0 else 1)+slab[component]
                 values.append(value.real+arb(0,(error*normalizer).upper()))
+            if st>0:
+                # Differentiate the exact continuous time interval. This avoids
+                # asking the integrator to resolve nearly cancelling time scores.
+                faces=[]
+                for face_time in [thi-st,thi]:
+                    if face_time<=0:
+                        faces.append(arb(0))
+                        continue
+                    def face_integrand(x,analytic):
+                        return normalizer*point(acb(face_time),acb(q)+h*x,a,v,s,x,arb(0),lower,k,analytic,0)
+                    value=face_integrand(acb(0),False) if h==0 else acb.integral(face_integrand,arb('-.5'),arb('.5'),rel_tol=tol,abs_tol=tol,eval_limit=4000)
+                    error=envelopes(a,v,s,q-h/2,q+h/2,face_time,face_time,k)[0]*normalizer
+                    faces.append((value.real+arb(0,error.upper()))/st)
+                values[2]=faces[0]-faces[1]
+                values[7]=faces[0]-values[0]/st
             if values[0]>0:
                 result=[values[0].log()+log_scale]+[x/values[0] for x in values[1:]]
                 if all(x.is_finite() and x.rad()<arb(goal)*(1+abs(x.mid())) for x in result):
-                    return result,{'precision':precision,'quadrature_tolerance':str(tol),'terms':k,'clipped':clipped,'cutoff':str(cutoff),'slab_upper':[str(x.upper()) for x in slab]}
+                    return result,{'precision':precision,'start_integration':'analytic Gaussian moments' if analytic_start else 'continuous Acb quadrature','quadrature_tolerance':str(tol),'terms':k,'clipped':clipped,'cutoff':str(cutoff),'slab_upper':[str(x.upper()) for x in slab]}
     raise ArithmeticError('reference work/precision budget exhausted')
 
 
