@@ -380,3 +380,37 @@ The face evaluations have their own bounded work; any failure remains explicit.
 Fixed quadrature continues to differentiate its chosen finite rule directly.
 The eight difficult-input regressions also pass at tolerance `1e-9` with this
 reduction. This estimated quadrature contract still excludes floating-point error.
+
+## Paired short-time CDF images near the opposite boundary
+
+Let `J(x)` denote the integrated Gaussian image, `G = phi(x/sqrt(t)) exp(-v²t/2)`,
+and `D = exp(vx) Phi(-v sqrt(t)-x/sqrt(t)) - exp(-vx) Phi(v sqrt(t)-x/sqrt(t))`.
+For an opposite-boundary distance `w`, pair images about `x = a(2k+1)` with
+`h = aw`. Taylor's theorem gives
+
+\[
+J(x-h)-J(x+h)=-2hJ'(x)+R,\qquad
+|R|\le h^3\sup_{[x-h,x+h]}|J^{(3)}|/3.
+\]
+
+The identities
+
+\[
+J'=vD-2G/\sqrt t,\quad
+J''=v^2J+2xG/t^{3/2},\quad
+J'_{v}=D+vxJ,\quad
+J'_{t}=(1-x^2/t)G/t^{3/2}
+\]
+
+provide density and parameter derivatives without subtracting nearby values.
+The separation derivative applies the same symmetric remainder to `x J'(x)`;
+its third derivative is `3J^(3)+xJ^(4)`. The starting-point derivative is a
+symmetric sum of `J'`, with error at most `a h² sup|J^(3)|`. Time and drift
+remainders follow by differentiating `J_t` and `J_v` three times in `x`.
+The implementation bounds these derivatives using the left-endpoint values
+of positive decreasing `J` and `G`, and the largest polynomial coefficients
+on the interval. It adds these remainders to the omitted-image tails before
+checking log-density and score errors. Floating-point error remains separate.
+
+All 24 independent continuous CDF-score reference cases now return finite
+accurate results, including the two opposite-boundary cases formerly rejected.

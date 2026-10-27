@@ -194,16 +194,6 @@ fn cdf_scores_match_independent_continuous_ball_integrals() {
         };
         let p = Wiener4Params::from_array([1., 0., x[1], x[2]]);
         let result = Wiener4.try_fused_cdf(&obs, &p, WienerOptions::new(1e-10));
-        // The opposite-boundary short-time CDF loses its entire image
-        // difference. Its checked API must reject that conditioning limit.
-        if matches!(count, 0 | 2) {
-            assert!(matches!(
-                result,
-                Err(alea_distributions::wiener::ProbError::NumericalError(_))
-            ));
-            count += 1;
-            continue;
-        }
         let e = result.unwrap_or_else(|error| panic!("row {count}: {error}"));
         for (i, actual) in std::iter::once(e.log_prob)
             .chain(e.grad_array())

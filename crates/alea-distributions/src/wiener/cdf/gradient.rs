@@ -104,24 +104,112 @@ fn log_moment(p: usize, x: f64, step: f64, t: f64) -> Option<f64> {
     let ratio = p as f64 * (step / x).ln_1p() - step * (2. * x + step) / (2. * t);
     (ratio < 0.).then(|| p as f64 * x.ln() - x * x / (2. * t) - (-ratio.exp_m1()).ln())
 }
-fn short(t: f64, a: f64, v: f64, q: f64, qsign: f64, vsign: f64, eps: f64) -> Option<Wiener4Eval> {
+/// J(x-h)-J(x+h)=-2h J'(x)+R, |R|<=h³ sup|J^(3)|/3.
+#[allow(clippy::too_many_arguments)]
+fn endpoint_pair(
+    x: f64,
+    h: f64,
+    t: f64,
+    a: f64,
+    v: f64,
+    q: f64,
+    qs: f64,
+    vs: f64,
+    scale: f64,
+) -> Option<([f64; 5], [f64; 5])> {
+    let (j, jx, jv, g) = image(x, t, v);
+    let js = (j - scale).exp();
+    let gs = (g - scale).exp();
+    let root = t.sqrt();
+    let tp = t * root;
+    let dx = jx * js;
+    let dxx = v * v * js + 2. * x * gs / tp;
+    let dxv = js * (jv / x + v * x);
+    let dxt = (1. - x * x / t) * gs / tp;
+    let density = -2. * h * dx;
+    let value = [
+        density,
+        v * q * density - 2. * h / a * (dx + x * dxx),
+        2. * h * dxt,
+        qs * (a * v * density + 2. * a * dx),
+        vs * (a * q * density - 2. * h * dxv),
+    ];
+    let left = x - h;
+    let right = x + h;
+    let (j, _, _, g) = image(left, t, v);
+    let js = (j - scale).exp();
+    let gs = (g - scale).exp();
+    let m1 = v.abs() * js + 2. * gs / root;
+    let m2 = v * v * js + 2. * right * gs / tp;
+    let m3 = v * v * m1 + 2. * gs / tp * (1. + right * right / t);
+    let m4 = v * v * m2 + 2. * gs / tp * (3. * right / t + right.powi(3) / (t * t));
+    let mt = gs / tp * (3. / t + 6. * right * right / (t * t) + right.powi(4) / t.powi(3));
+    let mv = 2. * v.abs() * m1
+        + v * v * (1. + v.abs() * right) * js
+        + 2. * v.abs() * gs / root * (1. + right * right / t);
+    let r = h.powi(3) / 3.;
+    let density_error = r * m3;
+    let error = [
+        density_error,
+        (v * q).abs() * density_error + r / a * (3. * m3 + right * m4),
+        r * mt,
+        (a * v).abs() * density_error + a * h * h * m3,
+        (a * q).abs() * density_error + r * mv,
+    ];
+    value
+        .iter()
+        .chain(&error)
+        .all(|x| x.is_finite())
+        .then_some((value, error))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn short(
+    t: f64,
+    a: f64,
+    v: f64,
+    w: f64,
+    q: f64,
+    qsign: f64,
+    vsign: f64,
+    eps: f64,
+) -> Option<Wiener4Eval> {
     let scale = image(a * q, t, v).0;
     let mut raw = [0.; 5];
+    let mut paired_errors = [0.; 5];
     for k in 0..128 {
-        for (distance, sign, dxq) in [
-            (q + 2. * k as f64, 1., a),
-            (2. * k as f64 + 2. - q, -1., -a),
-        ] {
-            let x = a * distance;
-            let (j, jx, jv, g) = image(x, t, v);
-            let weight = sign * (j - scale).exp();
-            raw[0] += weight;
-            raw[1] += weight * (v * q + jx * distance);
-            raw[2] -= sign * (x.ln() + g - 1.5 * t.ln() - scale).exp();
-            raw[3] += qsign * weight * (a * v + jx * dxq);
-            raw[4] += vsign * weight * (a * q + jv);
+        if w < 1e-7 {
+            let (value, error) = endpoint_pair(
+                a * (2. * k as f64 + 1.),
+                a * w,
+                t,
+                a,
+                v,
+                q,
+                qsign,
+                vsign,
+                scale,
+            )?;
+            for i in 0..5 {
+                raw[i] += value[i];
+                paired_errors[i] += error[i];
+            }
+        } else {
+            for (distance, sign, dxq) in [
+                (q + 2. * k as f64, 1., a),
+                (2. * k as f64 + 2. - q, -1., -a),
+            ] {
+                let x = a * distance;
+                let (j, jx, jv, g) = image(x, t, v);
+                let weight = sign * (j - scale).exp();
+                raw[0] += weight;
+                raw[1] += weight * (v * q + jx * distance);
+                raw[2] -= sign * (x.ln() + g - 1.5 * t.ln() - scale).exp();
+                raw[3] += qsign * weight * (a * v + jx * dxq);
+                raw[4] += vsign * weight * (a * q + jv);
+            }
         }
-        if raw[0] <= 1e-5 {
+        if raw[0] <= 0. || (w >= 1e-7 && raw[0] <= 1e-5) {
             continue;
         }
         let next = 2. * (k + 1) as f64;
@@ -158,6 +246,9 @@ fn short(t: f64, a: f64, v: f64, q: f64, qsign: f64, vsign: f64, eps: f64) -> Op
         // Both omitted image lattices must be past their monotone regime.
         if a * (q + next) <= v.abs() * t || a * (next + 2. - q) <= v.abs() * t {
             continue;
+        }
+        for i in 0..5 {
+            tails[i] += paired_errors[i];
         }
         if valid && meets(&raw, &tails, eps) {
             return combine(a * v * q + scale, raw);
@@ -277,6 +368,7 @@ impl Wiener4 {
                 t,
                 params.alpha,
                 v,
+                w,
                 q,
                 qs,
                 vs,
