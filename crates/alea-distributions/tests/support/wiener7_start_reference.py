@@ -5,7 +5,7 @@ The outer time integral remains independent Acb quadrature. No f64 library
 error model is assumed. This is an optional reference path, not production Rust.
 """
 import math
-from flint import arb,acb,ctx
+from flint import arb,acb,acb_series,ctx
 
 COEFFICIENTS=[[1],[arb('.5'),-1],[arb('.25'),-1,1],[arb('.125'),arb('-.75'),arb('1.5'),-1]]
 
@@ -22,17 +22,17 @@ def moments(t,a,v,s,m,h,j,analytic):
     def phase(q):return -2*a*a*j*(j+q)/t-(a*q-v*t)**2/(2*t*lam)
     radius=(abs(az)/4+abs(bz)/2).upper()
     if radius<=4:
-        n=8 if radius<arb('.001') else 16 if radius<arb('.03') else 32 if radius<=1 else 64
-        # Increase the polynomial depth with requested arithmetic precision.
-        if ctx.prec>=192:n*=2
-        poly=[acb(1)];out=[acb(0) for _ in range(4)]
-        for k in range(n):
-            for r in range(4):
-                out[r]+=sum((c/(2**(q+r)*(q+r+1)) for q,c in enumerate(poly) if (q+r)%2==0),acb(0))
-            nxt=[acb(0) for _ in range(len(poly)+2)]
-            for q,c in enumerate(poly):nxt[q+1]+=c*bz/(k+1);nxt[q+2]-=c*az/(k+1)
-            poly=nxt
-        error=radius.exp()*radius**n/math.factorial(n)
+        # Cauchy's coefficient bound on |z|=1 controls the omitted power
+        # series uniformly on |z|<=1/2. FLINT computes the polynomial in C,
+        # avoiding nested Python polynomial products at every quadrature node.
+        n=ctx.prec+48
+        previous_cap=ctx.cap
+        try:
+            ctx.cap=n
+            poly=acb_series([0,bz,-az],prec=n).exp()
+        finally:ctx.cap=previous_cap
+        out=[sum((poly[q]/(2**(q+r)*(q+r+1)) for q in range(n) if (q+r)%2==0),acb(0)) for r in range(4)]
+        error=(abs(az)+abs(bz)).exp()*arb(2)**(1-n)
         scale=phase(m).exp()
         return [scale*widen(x,error/(2**r*(r+1))) for r,x in enumerate(out)]
     sign=1 if bz.real>=0 else -1

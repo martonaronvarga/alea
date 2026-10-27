@@ -537,6 +537,14 @@ bounded by `|A|^N (2N+m)! / (N! Re(L)^(2N+m+1))`. Continuous Acb integrals,
 including complex decision times, independently check these start averages.
 The outer time integral and its omitted time-zero slab remain enclosed.
 
+For a moderate exponent, FLINT evaluates the start moment's power series as a
+single polynomial. On the complex circle `|z|=1`, the exponential
+`exp(-Az²+Bz)` has modulus at most `exp(|A|+|B|)`. Cauchy's coefficient bound
+therefore limits its remainder after degree `N-1`, uniformly on `|z|<=1/2`, to
+`exp(|A|+|B|) 2^(1-N)`. This bound is added to each integrated moment. Computing
+the polynomial in FLINT avoids repeated Python polynomial products at every
+quadrature node without replacing the enclosure check by a heuristic.
+
 For positive time width `h`, the reference obtains time derivatives from the
 two continuous boundary densities. If `T = rt - tau`, `L = max(0,T-h)` and
 `I = integral_L^T g(t) dt / h`, then
