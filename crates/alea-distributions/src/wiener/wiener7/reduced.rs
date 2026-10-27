@@ -133,7 +133,7 @@ mod tests {
             let p = Wiener7Params::with_params(1., 0., 0.5, 2., h, time_width, 0.5).unwrap();
             let core = Wiener7.core(&obs, &p, 1e-9).unwrap();
             let full = || {
-                let e = Wiener7.eval_fused_adaptive_raw(&core, &obs);
+                let e = Wiener7.integrate_fused_adaptive(&core, &obs);
                 if e.log_prob.is_finite()
                     && e.log_prob >= f64::MIN_POSITIVE.ln()
                     && e.grad_array().iter().all(|x| x.is_finite())

@@ -154,6 +154,20 @@ right width score at zero is therefore half the location score. A symmetric
 start interval has a zero width score at zero. Direct differentiation under
 the fixed unit cube avoids unstable endpoint expressions containing `1/h`.
 
+## Adaptive integration of density and scores
+
+The fused Wiener7 integrator subtracts a common log scale before exponentiating.
+It also scales each derivative by the larger of one and its midpoint score
+magnitude. Individual absolute and relative cubature tolerances then control
+small derivatives independently of large ones. A vector L2 stopping test alone
+can hide an inaccurate starting-width derivative behind a large time derivative.
+
+The integral and its error estimates are transformed back together. The final
+log-density and score-ratio checks remain authoritative; normalization does not
+weaken them. If the scaled integrand overflows or the estimates cannot meet the
+budget, the bounded locally scaled fallback remains available. These are
+quadrature error estimates, not interval certificates.
+
 ## What the error reports establish
 
 Wiener4/5 reports describe analytic series truncation in real arithmetic.
