@@ -1,0 +1,14 @@
+[package]
+name = "alea-wiener-modeling-benchmark"
+version = "0.0.0"
+edition = "2024"
+publish = false
+[workspace]
+[dependencies]
+alea = { path = "../../crates/alea", features = ["distributions"] }
+rand = "0.10.1"
+rayon = "1.11"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+[profile.release]
+lto = "fat"
