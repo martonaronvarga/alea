@@ -162,6 +162,11 @@ magnitude. Individual absolute and relative cubature tolerances then control
 small derivatives independently of large ones. A vector L2 stopping test alone
 can hide an inaccurate starting-width derivative behind a large time derivative.
 
+If the midpoint overestimates a score, one bounded retry recalibrates the scales
+from the first integral. This matters when the time interval nearly meets zero
+support. On clipped time support the width score is exactly `-1 / s_tau`;
+adaptive integration uses that identity instead of a redundant derivative
+integral. Fixed quadrature retains its selected-rule derivative.
 The integral and its error estimates are transformed back together. The final
 log-density and score-ratio checks remain authoritative; normalization does not
 weaken them. If the scaled integrand overflows or the estimates cannot meet the

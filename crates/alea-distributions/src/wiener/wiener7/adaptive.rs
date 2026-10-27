@@ -68,7 +68,45 @@ impl Wiener7 {
         let Some((log_scale, center_scores)) = Self::point_log_scores(core, obs, &center) else {
             return fail_eval_7();
         };
-        let norms = center_scores.map(|score| score.abs().max(1.0));
+        let mut norms = center_scores.map(|score| score.abs().max(1.0));
+        if core.st0 >= obs.rt - core.tau0 {
+            norms[6] = core.st0.recip().max(1.0);
+        }
+        let mut log_scale = log_scale;
+        let volume: f64 = (0..core.dim).map(|i| core.xmax[i] - core.xmin[i]).product();
+        for _ in 0..2 {
+            let Some((value, error)) =
+                Self::normalized_adaptive_integrals(core, obs, log_scale, norms)
+            else {
+                return fail_eval_7();
+            };
+            if let Some(mut evaluation) =
+                Self::checked_adaptive_integrals(value, error, core.opts.req_rel_error)
+            {
+                evaluation.log_prob += log_scale;
+                return evaluation;
+            }
+            // The midpoint can overestimate a score, particularly on clipped
+            // support. Recalibrate once from the computed integrals instead of
+            // weakening the final ratio budget or repeatedly splitting boxes.
+            if value[0] <= 0. || value.iter().any(|x| !x.is_finite()) {
+                return fail_eval_7();
+            }
+            norms = std::array::from_fn(|i| (value[i + 1] / value[0]).abs().max(1.0));
+            log_scale += value[0].ln() - volume.ln();
+            if !log_scale.is_finite() || norms.iter().any(|x| !x.is_finite()) {
+                return fail_eval_7();
+            }
+        }
+        fail_eval_7()
+    }
+
+    fn normalized_adaptive_integrals(
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        log_scale: f64,
+        norms: [f64; 7],
+    ) -> Option<([f64; 8], [f64; 8])> {
         let mut options = core.opts;
         // L2 convergence can hide a small inaccurate derivative behind a large
         // one. Normalize the component budgets and use individual errors, with
@@ -87,33 +125,34 @@ impl Wiener7 {
             let weight = (log_prob - log_scale).exp();
             fv[0] = weight;
             for i in 0..7 {
-                fv[i + 1] = weight * (scores[i] / norms[i]);
+                // With clipped time support, all width dependence is the 1/h
+                // normalization. Its exact score avoids integrating a redundant
+                // cancellation-prone numerator. Fixed rules keep their own VJP.
+                let score = if i == 6 && core.st0 >= obs.rt - core.tau0 {
+                    -core.st0.recip()
+                } else {
+                    scores[i]
+                };
+                fv[i + 1] = weight * (score / norms[i]);
             }
             i32::from(fv.iter().any(|x| !x.is_finite()))
         };
-        if hcubature_into(
+        let status = hcubature_into(
             8,
             Bounds::new(&core.xmin, &core.xmax),
             options,
             &mut val,
             &mut err,
             integrand,
-        )
-        .is_err()
-        {
-            return fail_eval_7();
+        );
+        if status.is_err() {
+            return None;
         }
         for i in 0..7 {
             val[i + 1] *= norms[i];
             err[i + 1] *= norms[i];
         }
-        let Some(mut evaluation) =
-            Self::checked_adaptive_integrals(val, err, core.opts.req_rel_error)
-        else {
-            return fail_eval_7();
-        };
-        evaluation.log_prob += log_scale;
-        evaluation
+        Some((val, err))
     }
 
     fn checked_adaptive_integrals(
@@ -141,6 +180,30 @@ mod empirical_proposals {
     #[test]
     fn ordinary_empirical_proposals_retain_finite_score_evaluations() {
         for (rt, p) in [
+            (
+                0.704,
+                [
+                    2.3254985123722394,
+                    0.41074121365474864,
+                    0.4761674299360394,
+                    0.4484408464571903,
+                    0.10646057881334611,
+                    0.3966025657516752,
+                    0.3302707130314663,
+                ],
+            ),
+            (
+                0.704,
+                [
+                    2.398052699270559,
+                    0.3803916734713987,
+                    0.4157714820093295,
+                    0.8121975854983636,
+                    0.4141555857963852,
+                    0.3461095632914799,
+                    0.32261889897350393,
+                ],
+            ),
             (
                 0.704,
                 [
@@ -198,14 +261,52 @@ mod empirical_proposals {
                 Wiener7Params::with_params(p[0], p[1], p[2], p[3], p[5], p[6], p[4]).unwrap();
             let options = WienerOptions::new(1e-6);
             let result = Wiener7.try_fused(&event, &parameters, options).unwrap();
-            let reference = Wiener7
-                .try_fused(
-                    &event,
-                    &parameters,
-                    WienerOptions::new(1e-12)
-                        .with_quadrature(Quadrature::FixedGaussLegendre { order: 25 }),
+            // Independent composite product rule. A single GL25 time panel is
+            // insufficient near the clipped time-zero face in these cases.
+            let mut parts = Vec::new();
+            let panels = 8;
+            for i in 0..panels {
+                let tau = p[1] + p[6] * i as f64 / panels as f64;
+                if tau >= rt {
+                    continue;
+                }
+                let sub = Wiener7Params::with_params(
+                    p[0],
+                    tau,
+                    p[2],
+                    p[3],
+                    p[5],
+                    p[6] / panels as f64,
+                    p[4],
                 )
                 .unwrap();
+                let mut value = Wiener7
+                    .try_fused(
+                        &event,
+                        &sub,
+                        WienerOptions::new(1e-12)
+                            .with_quadrature(Quadrature::FixedGaussLegendre { order: 25 }),
+                    )
+                    .unwrap();
+                value.grad.s_tau = (i as f64 * value.grad.tau + value.grad.s_tau) / panels as f64;
+                parts.push(value);
+            }
+            let scale = parts
+                .iter()
+                .map(|e| e.log_prob)
+                .fold(f64::NEG_INFINITY, f64::max);
+            let mut total = [0.; 8];
+            for part in parts {
+                let weight = (part.log_prob - scale).exp();
+                total[0] += weight;
+                for (value, score) in total[1..].iter_mut().zip(part.grad_array()) {
+                    *value += weight * score;
+                }
+            }
+            let reference = Wiener7Eval {
+                log_prob: scale + (total[0] / panels as f64).ln(),
+                grad: Wiener7Grad::from_array(std::array::from_fn(|i| total[i + 1] / total[0])),
+            };
             for (actual, expected) in std::iter::once(result.log_prob)
                 .chain(result.grad_array())
                 .zip(std::iter::once(reference.log_prob).chain(reference.grad_array()))
