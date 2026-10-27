@@ -2,6 +2,33 @@
 use super::*;
 
 impl Wiener7 {
+    /// Positive-time integrand after analytic uniform-start averaging. No
+    /// complex analyticity assumption is made at the clipped time-zero face.
+    pub(super) fn averaged_time_log_scores(
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        x: f64,
+    ) -> Option<(f64, [f64; 7])> {
+        let t = obs.rt - core.tau0 - core.st0 * x;
+        if t <= 0. {
+            return Some((f64::NEG_INFINITY, [0.; 7]));
+        }
+        let mut point = core.clone();
+        point.tau0 = 0.;
+        point.st0 = 0.;
+        point.dim = 1;
+        point.xmin = [0.; 2];
+        point.xmax = [1.; 2];
+        point.eps_series = point.eps_series.min(0.05 * core.opts.req_rel_error);
+        let event = WienerObservation {
+            rt: t,
+            boundary: obs.boundary,
+        };
+        let value = Wiener7.analytic_start(&point, &event)?;
+        let mut scores = value.grad_array();
+        scores[6] = x * scores[1];
+        Some((value.log_prob, scores))
+    }
     /// Avoid the measured regression for broad, nearly linear start intervals.
     /// This is a conservative cost policy, not a universal latency guarantee.
     pub(super) fn prefer_reduced_time(core: &Wiener7Core, obs: &WienerObservation) -> bool {

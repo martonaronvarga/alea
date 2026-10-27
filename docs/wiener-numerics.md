@@ -452,3 +452,24 @@ exponentials and fixed-count specializations produce deviations from the affine
 model, particularly above six terms. The ordinary fast evaluator retains its
 precision convention; a certified truncation request remains an explicit API
 choice with additional planning cost.
+
+## Reducing clipped intervals after an ordinary integration failure
+
+Analytic start averaging also applies at every strictly positive decision time
+inside a clipped time interval. The rare-path evaluator can therefore integrate
+`g(T-hz)` over `0 <= z <= min(1,T/h)` in one dimension, using the same locally
+scaled GL7/GL15 refinement. It tries this reduction when the start antiderivative
+is available at the upper time face. Every quadrature node must independently
+meet the inner moment and series budgets; an unavailable or inaccurate inner
+result returns to the two-dimensional fallback. Inner tolerances use at most
+five percent of the outer relative tolerance.
+
+No analytic continuation through time zero is needed: the quadrature nodes are
+interior, and the boundary density is zero for a strictly interior start interval.
+Boundary-flux identities supply the time scores. This is especially helpful for
+small start widths far from the selected response: direct integration otherwise
+subtracts large positive and negative start-width derivative contributions.
+The first failure found by the full Atlasz replay is retained as a regression:
+`a=0.7, tau=1e-6, rt=2e-6, beta=0.25, v=30, sd=0.01, sw=1e-8, st=0.2`.
+It now returns finite density and scores at tolerance `1e-8`. Quadrature
+uncertainties remain estimates, with the same bounded-work failure semantics.
