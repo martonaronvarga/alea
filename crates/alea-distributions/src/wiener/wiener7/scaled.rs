@@ -83,18 +83,64 @@ impl Wiener7 {
         (sum.scale.is_finite() && sum.value[0] > 0.0).then_some((sum, split))
     }
 
+    fn use_time_fluxes(core: &Wiener7Core, obs: &WienerObservation) -> bool {
+        // Nearby faces lose digits in both a difference and a width division.
+        // Direct unit-cube derivatives remain stable in that narrow limit.
+        core.st0 / (obs.rt - core.tau0) >= (32. * f64::EPSILON / core.opts.req_rel_error).sqrt()
+    }
+
+    /// Integrate the two start-averaged time faces once. All fluxes remain in
+    /// log scale, including densities below the normal binary64 range.
+    fn time_faces(&self, core: &Wiener7Core, obs: &WienerObservation) -> Option<[f64; 2]> {
+        let mut point = core.clone();
+        point.tau0 = 0.;
+        point.st0 = 0.;
+        point.dim = usize::from(core.sw > 0.);
+        point.xmin = [0.; 2];
+        point.xmax = [1.; 2];
+        point.opts.req_rel_error *= 0.01;
+        point.eps_series = point.eps_series.min(point.opts.req_rel_error);
+        let max_time = obs.rt - core.tau0;
+        let mut faces = [f64::NEG_INFINITY; 2];
+        for (log, t) in faces.iter_mut().zip([max_time - core.st0, max_time]) {
+            if t <= 0. {
+                continue;
+            }
+            let event = WienerObservation {
+                rt: t,
+                boundary: obs.boundary,
+            };
+            let lp = if point.dim == 0 {
+                Self::point_log_scores(&point, &event, &[0.5; 2])?.0
+            } else {
+                self.analytic_start(&point, &event)
+                    .unwrap_or_else(|| self.scaled_integral(&point, &event, false))
+                    .log_prob
+            };
+            if !lp.is_finite() {
+                return None;
+            }
+            *log = lp - core.st0.ln();
+        }
+        Some(faces)
+    }
+
     fn scaled_region(
         core: &Wiener7Core,
         obs: &WienerObservation,
         lo: [f64; 2],
         hi: [f64; 2],
+        gradients: bool,
     ) -> Option<Region> {
         let rule = |first, second| {
             let (mut sum, split) = Self::scaled_rule(core, obs, lo, hi, first, second)?;
-            // Once the time interval is clipped, the full integral depends on
-            // its width only through the uniform normalization 1/st0.
-            if core.st0 >= obs.rt - core.tau0 {
-                sum.value[7] = -sum.value[0] / core.st0;
+            if !gradients {
+                sum.value[1..].fill(0.);
+            }
+            // Time derivatives are obtained from the full boundary fluxes.
+            if gradients && Self::use_time_fluxes(core, obs) {
+                sum.value[2] = 0.;
+                sum.value[7] = 0.;
             }
             Some((sum, split))
         };
@@ -160,7 +206,24 @@ impl Wiener7 {
         core: &Wiener7Core,
         obs: &WienerObservation,
     ) -> Wiener7Eval {
-        let Some(first) = Self::scaled_region(core, obs, core.xmin, core.xmax) else {
+        self.scaled_integral(core, obs, true)
+    }
+
+    fn scaled_integral(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        gradients: bool,
+    ) -> Wiener7Eval {
+        let faces = if gradients && Self::use_time_fluxes(core, obs) {
+            let Some(faces) = self.time_faces(core, obs) else {
+                return fail_eval_7();
+            };
+            Some(faces)
+        } else {
+            None
+        };
+        let Some(first) = Self::scaled_region(core, obs, core.xmin, core.xmax, gradients) else {
             return fail_eval_7();
         };
         let mut regions = vec![first];
@@ -187,6 +250,17 @@ impl Wiener7 {
                     total[i] += factor * r.sum.value[i];
                     error[i] += factor * r.error[i];
                 }
+            }
+            if let Some(faces) = faces {
+                let face = faces.map(|lp| (lp - scale).exp());
+                let time = usize::from(core.sw > 0.);
+                let budget = 0.01 * tolerance;
+                total[2] = face[0] - face[1];
+                error[2] = budget * (face[0] + face[1]);
+                total[7] =
+                    core.xmax[time] * face[0] - core.xmin[time] * face[1] - total[0] / core.st0;
+                error[7] = budget * (core.xmax[time] * face[0] + core.xmin[time] * face[1])
+                    + error[0] / core.st0;
             }
             let density = total[0];
             let margin = density - error[0];
@@ -230,10 +304,10 @@ impl Wiener7 {
             left_hi[d] = middle;
             let mut right_lo = old.lo;
             right_lo[d] = middle;
-            let Some(left) = Self::scaled_region(core, obs, old.lo, left_hi) else {
+            let Some(left) = Self::scaled_region(core, obs, old.lo, left_hi, gradients) else {
                 return fail_eval_7();
             };
-            let Some(right) = Self::scaled_region(core, obs, right_lo, old.hi) else {
+            let Some(right) = Self::scaled_region(core, obs, right_lo, old.hi, gradients) else {
                 return fail_eval_7();
             };
             regions[index] = left;
@@ -365,7 +439,7 @@ mod tests {
             };
             let parameters =
                 Wiener7Params::with_params(p[0], p[1], p[2], p[3], p[5], p[6], p[4]).unwrap();
-            let result = Wiener7.try_fused(&observation, &parameters, WienerOptions::new(1e-6));
+            let result = Wiener7.try_fused(&observation, &parameters, WienerOptions::new(1e-9));
             assert!(result.is_ok(), "{parameters:?}: {result:?}");
             let result = result.unwrap();
             let core = Wiener7.core(&observation, &parameters, 1e-13).unwrap();
@@ -395,7 +469,7 @@ mod tests {
                 .zip(expected)
             {
                 assert!(
-                    (a - b).abs() <= 1e-6 * b.abs().max(1.),
+                    (a - b).abs() <= 1e-9 * b.abs().max(1.),
                     "{parameters:?}: {a} vs {b}"
                 );
             }

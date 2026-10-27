@@ -242,7 +242,9 @@ fn complete_wiener7_grid_matches_ball_references() {
         let params = Wiener7Params::with_params(x[1], x[2], x[3], x[4], x[6], x[7], x[5]).unwrap();
         let options = WienerOptions::new(1e-9);
         let fused = Wiener7.try_fused(&obs, &params, options).unwrap();
-        let density = Wiener7.try_log_prob(&obs, &params, options).unwrap();
+        let density = Wiener7
+            .try_log_prob(&obs, &params, options)
+            .unwrap_or_else(|e| panic!("{group}: {params:?}, {obs:?}: {e}"));
         assert!(
             (density.log_prob - x[9]).abs() <= x[10] + 1e-9 * (1. + x[9].abs()),
             "{group} density"

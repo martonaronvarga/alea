@@ -353,3 +353,30 @@ This avoids an envelope growing as `exp(a²q²s²/2)`. On a clipped time slab,
 The oracle uses the sufficient condition
 `t(1+s²t)/a² <= q_min²/8`, including all derivative powers through `r = 7/2`.
 These are analytic envelopes; Arb rounds the reference calculations outward.
+
+## Time derivatives as boundary fluxes
+
+Write `T = rt - tau`, `h = s_tau`, `L = max(0, T-h)`, and let `g(t)`
+already average over trial starting points and Gaussian drift. Then
+
+\[
+I=\frac1h\int_L^T g(t)\,dt,\qquad
+\partial_\tau I=\frac{g(L)-g(T)}h,
+\]
+
+where `g(0)=0` because the starting interval remains strictly inside the
+absorbing boundaries. If `z_max = min(1,T/h)`, integration by parts also gives
+
+\[
+\partial_h I=\frac{z_{\max}g(L)-I}{h}.
+\]
+
+Consequently, the clipped-width score is exactly `-1/h`. These identities avoid
+integrating time derivatives whose large positive and negative contributions
+nearly cancel. The adaptive scaled path evaluates the two start-averaged faces
+once at one hundredth of the outer tolerance, and propagates their estimated
+uncertainty along with the density estimate into the final score-ratio checks.
+The face evaluations have their own bounded work; any failure remains explicit.
+Fixed quadrature continues to differentiate its chosen finite rule directly.
+The eight difficult-input regressions also pass at tolerance `1e-9` with this
+reduction. This estimated quadrature contract still excludes floating-point error.
