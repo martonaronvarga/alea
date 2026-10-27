@@ -91,7 +91,8 @@ reports outside Git and release packages.
 
 The optional `target_acceptance` and `initial_step` settings default to 0.9 and
 0.05. `step_search: true` enables bounded reasonable-step search with an initial
-step supplied by the caller; `maximum_step` defaults to 0.1 for this explicit
-search profile. A conservative follow-up can use initial step 0.001 and target
+step supplied by the caller; `maximum_step` defaults to the library search limit of one million. A smaller
+explicit bound must still allow the search to bracket its acceptance target;
+otherwise it returns a search-exhaustion error. A conservative follow-up can use initial step 0.001 and target
 acceptance 0.95. Record such follow-ups separately from the original run, rather
 than replacing failed or diagnostically inadequate outcomes.

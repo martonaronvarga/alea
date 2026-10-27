@@ -370,7 +370,7 @@ fn fit(c: &Config, data: &[Trial], out: &Path) -> Result<(), AnyError> {
             search: if c.step_search {
                 Some(SearchOptions::new(
                     1e-8,
-                    c.maximum_step.unwrap_or(0.1),
+                    c.maximum_step.unwrap_or(1e6),
                     80,
                     0.8,
                 )?)
