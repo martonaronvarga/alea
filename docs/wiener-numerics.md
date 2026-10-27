@@ -87,7 +87,7 @@ through order three supply the integrated density and all seven parameter
 derivatives.
 
 For narrow intervals, the evaluator integrates an exponential Taylor polynomial
-and carries the uniform remainder `exp(R) R^20 / 20!` into each moment's error.
+and carries the uniform remainder `exp(R) R^N / N!` (`N = 8` for `R <= 0.01`, otherwise 20) into each moment's error.
 Here `R` bounds the absolute exponent throughout the interval. Otherwise it
 uses a scaled normal interval probability followed by Gaussian moment
 recurrences. Poorly conditioned recurrences return to cubature.
@@ -140,7 +140,7 @@ The fused path differentiates the integrated image/spectral formulas. The width
 score is the lower endpoint density divided by interval mass, minus `1/h`.
 Independent subtraction checks and tighter inner budgets retain cubature if
 probability or width-score cancellation cannot meet the requested budget.
-Almost constant start intervals (`s_beta <= 1e-6`) use numerical integration;
+Almost constant start intervals use the bounded moment expansion when available;
 time widths below `1e-5` times decision time skip CDF subtraction. These are
 measured cost policies, not mathematical accuracy thresholds.
 
@@ -414,3 +414,14 @@ checking log-density and score errors. Floating-point error remains separate.
 
 All 24 independent continuous CDF-score reference cases now return finite
 accurate results, including the two opposite-boundary cases formerly rejected.
+
+
+The narrow-start branch uses the same integrated Gaussian moments as wider
+intervals. It integrates the exponential polynomial exactly and propagates its
+uniform remainder through every parameter derivative before accepting a result.
+This supplies a controlled small-width evaluation without estimating a fourth
+derivative of the complete likelihood or subtracting endpoints of size `1/h`.
+Eight terms suffice in the small exponent-radius regime; failure to meet the
+error budget still returns to numerical integration. This replaces the earlier
+width-only exclusion, which discarded an accurate analytic result solely because
+its interval was narrow.

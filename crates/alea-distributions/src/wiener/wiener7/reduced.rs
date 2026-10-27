@@ -125,7 +125,13 @@ mod tests {
     fn compare_analytic_and_full_adaptive_work() {
         use std::hint::black_box;
         use std::time::Instant;
-        for (t, h, time_width) in [(0.05, 0.1, 0.), (0.05, 0.1, 0.005), (0.01, 0.4, 0.001)] {
+        for (t, h, time_width) in [
+            (0.05, 1e-8, 0.),
+            (0.1, 1e-8, 0.),
+            (0.05, 0.1, 0.),
+            (0.05, 0.1, 0.005),
+            (0.01, 0.4, 0.001),
+        ] {
             let obs = WienerObservation {
                 rt: t,
                 boundary: Boundary::Upper,

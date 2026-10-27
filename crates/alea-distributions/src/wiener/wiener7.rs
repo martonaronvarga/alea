@@ -127,8 +127,8 @@ impl Wiener7 {
                 grad: NAN_GRAD_7,
             };
         }
-        // Numerical integration is cheaper for almost constant start intervals.
-        if core.sw > 1e-6
+        // The bounded moment expansion also handles almost constant intervals.
+        if core.sw > 0.
             && let Some(e) = self.analytic_start(&core, obs)
         {
             return Wiener7Eval {
@@ -193,7 +193,7 @@ impl Wiener7 {
                 });
         }
         if options.quadrature == Quadrature::Adaptive
-            && core.sw > 1e-6
+            && core.sw > 0.
             && let Some(e) = self.analytic_start(&core, obs)
         {
             return Ok(Wiener7Eval {

@@ -9,8 +9,8 @@ impl Wiener7 {
         if let Some(e) = self.analytic_time(core, obs) {
             return e;
         }
-        // Numerical integration is cheaper for almost constant start intervals.
-        if core.sw > 1e-6
+        // The bounded moment expansion also handles almost constant intervals.
+        if core.sw > 0.
             && let Some(e) = self.analytic_start(core, obs)
         {
             return e;
@@ -35,8 +35,8 @@ impl Wiener7 {
         core: &Wiener7Core,
         obs: &WienerObservation,
     ) -> f64 {
-        // Numerical integration is cheaper for almost constant start intervals.
-        if core.sw > 1e-6
+        // The bounded moment expansion also handles almost constant intervals.
+        if core.sw > 0.
             && let Some(e) = self.analytic_start(core, obs)
         {
             return e.log_prob.exp();

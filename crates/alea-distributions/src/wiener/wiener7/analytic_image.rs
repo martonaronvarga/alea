@@ -16,11 +16,15 @@ fn gaussian_moments(a: f64, b: f64) -> Option<([f64; 4], [f64; 4], f64)> {
                 0.
             }
         });
+        // Small widths need fewer terms. The same explicit remainder is
+        // propagated to every score, so this is not an unbounded asymptotic
+        // shortcut: the caller still verifies the requested ratio budget.
+        let terms = if radius <= 0.01 { 8 } else { 20 };
         let mut polynomial = [0.; 41];
         polynomial[0] = 1.;
         let mut sums = [0.; 4];
         let mut factorial = 1.;
-        for n in 0..20 {
+        for n in 0..terms {
             for (r, sum) in sums.iter_mut().enumerate() {
                 for (j, c) in polynomial[..=2 * n].iter().enumerate() {
                     *sum += c * monomials[j + r];
@@ -34,7 +38,7 @@ fn gaussian_moments(a: f64, b: f64) -> Option<([f64; 4], [f64; 4], f64)> {
             polynomial = next;
             factorial *= (n + 1) as f64;
         }
-        let remainder = radius.exp() * radius.powi(20) / factorial;
+        let remainder = radius.exp() * radius.powi(terms as i32) / factorial;
         return Some((
             sums,
             std::array::from_fn(|r| remainder / (2_f64.powi(r as i32) * (r + 1) as f64)),
