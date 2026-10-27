@@ -8,7 +8,7 @@ use std::{
     collections::BTreeMap,
     error::Error,
     fs::{self, OpenOptions},
-    io::{BufWriter, Write},
+    io::{BufRead, BufReader, BufWriter, Write},
     path::Path,
     time::Instant,
 };
@@ -130,8 +130,45 @@ fn new_file(path: &Path) -> std::io::Result<BufWriter<std::fs::File>> {
         .open(path)
         .map(BufWriter::new)
 }
+fn replay(input: &Path, output: &Path) -> Result<(), Box<dyn Error>> {
+    let input = BufReader::new(std::fs::File::open(input)?);
+    let mut output = new_file(output)?;
+    let mut counts = BTreeMap::<String, usize>::new();
+    for line in input.lines() {
+        let row: serde_json::Value = serde_json::from_str(&line?)?;
+        let case: Case = serde_json::from_value(row["case"].clone())?;
+        let index = row["index"].as_u64().ok_or("missing input index")?;
+        let kind = row["kind"].as_str().ok_or("missing evaluation kind")?;
+        let fused = match kind {
+            "density" => false,
+            "fused" => true,
+            _ => return Err("unknown evaluation kind".into()),
+        };
+        let result = match evaluate(case, fused) {
+            Ok((lp, scores)) => {
+                *counts.entry("finite".into()).or_default() += 1;
+                json!({"index":index,"case":case,"kind":kind,"status":"finite","log_prob":lp,"scores":scores})
+            }
+            Err(error) => {
+                *counts.entry("error".into()).or_default() += 1;
+                json!({"index":index,"case":case,"kind":kind,"status":"error","error":error})
+            }
+        };
+        writeln!(output, "{result}")?;
+    }
+    output.flush()?;
+    println!(
+        "{}",
+        json!({"counts":counts,"scope":"replay of supplied inputs only"})
+    );
+    Ok(())
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = std::env::args().collect();
+    if args.len() == 4 && args[1] == "replay" {
+        return replay(Path::new(&args[2]), Path::new(&args[3]));
+    }
     if args.len() != 6 {
         return Err("usage: alea-wiener-validation smoke|full SHARD SHARDS LIMIT OUTPUT_DIRECTORY (LIMIT=0: all)".into());
     }

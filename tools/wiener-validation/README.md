@@ -60,3 +60,14 @@ python -m unittest discover -s tools/wiener-validation -p test_report.py
 Missing shards produce an incomplete verdict. Duplicate shards, inconsistent
 counts, and missing failure records are rejected. A finite-output pass is kept
 separate from numerical accuracy validation.
+
+To evaluate retained failures once each against another implementation revision:
+
+```sh
+tools/wiener-validation/target/release/alea-wiener-validation \
+  replay /path/to/failures.jsonl /tmp/replayed-failures.jsonl
+```
+
+Replay preserves the input index, parameters and evaluation kind, and records
+both successful values and errors. Its denominator is the supplied records;
+it must not be described as a new complete support sweep.
