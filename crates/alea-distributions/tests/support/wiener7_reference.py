@@ -40,18 +40,23 @@ def envelopes(a,v,s,qlo,qhi,tlo,thi,k,all_images=False):
     """Bounds each numerator over all q,t in the closed positive rectangle.
 
     For the clipped slab [0,thi], all_images=True is valid only when
-    thi/a² <= qlo²/8. Gaussian t^-r exp(-a²d²/(2t)) is then increasing for
+    thi*(1+s²*thi)/a² <= qlo²/8. Gaussian t^-r exp(-a²qlo²/(2t*(1+s²t))) is then increasing for
     every exponent r<=7/2 used here. This also bounds the infinite image tails.
     """
     u=thi/(a*a)
+    # Keep the drift-variance cancellation before bounding. For image d=q+2j,
+    # -a²d²/(2t)+a²q²s²/(2lambda)
+    # =-a²(d²-q²)/(2t)-a²q²/(2t*lambda).
+    # Every noncentral image has d²>=q²; the central image is handled separately.
+    lam=1+s*s*thi
+    shift=(qhi*qhi/(2*u)-qlo*qlo/(2*u*lam)).exp()
     if all_images:
-        if not u<=qlo*qlo/8:raise ArithmeticError('unproved time-zero monotonicity')
-        moments=[qhi**p*(-qlo*qlo/(2*u)).exp()+moment(p,2+qlo,arb(2),1/(2*u))+moment(p,2-qhi,arb(2),1/(2*u)) for p in range(4)]
+        if not u*lam<=qlo*qlo/8:raise ArithmeticError('unproved time-zero monotonicity')
+        moments=[qhi**p*(-qlo*qlo/(2*u*lam)).exp()+shift*(moment(p,2+qlo,arb(2),1/(2*u))+moment(p,2-qhi,arb(2),1/(2*u))) for p in range(4)]
         tlo=thi
     else:
-        moments=[moment(p,2*(k+1)+qlo,arb(2),1/(2*u))+moment(p,2*(k+1)-qhi,arb(2),1/(2*u)) for p in range(4)]
-    # Discarding -v²t/(2lambda) and lambda>=1 gives a uniform drift prefactor.
-    scale=(a*abs(v)*qhi+a*a*qhi*qhi*s*s/2).exp()*a/(2*arb.pi()).sqrt()/tlo**arb('1.5')
+        moments=[shift*(moment(p,2*(k+1)+qlo,arb(2),1/(2*u))+moment(p,2*(k+1)-qhi,arb(2),1/(2*u))) for p in range(4)]
+    scale=(a*abs(v)*qhi).exp()*a/(2*arb.pi()).sqrt()/tlo**arb('1.5')
     density=scale*moments[1]
     time=scale*(moments[3]/(2*(tlo/(a*a))**2)+3*moments[1]/(2*tlo/(a*a)))
     start=scale*(moments[0]+moments[2]/(tlo/(a*a)))
@@ -89,7 +94,8 @@ def evaluate(params,goal='1e-18',max_precision=768):
         log_scale=max(probes);normalizer=(-log_scale).exp()
         cutoff=arb(0);slab=[arb(0)]*8
         if clipped:
-            cutoff=min((thi/16).lower(),(a*a*(q-h/2)**2/16).lower())
+            c=a*a*(q-h/2)**2/16
+            cutoff=min((thi/16).lower(),(c/(1+s*c.sqrt())).lower())
             for _ in range(64):
                 slab=[e*cutoff/st for e in envelopes(a,v,s,q-h/2,q+h/2,cutoff,cutoff,0,True)]
                 if max((e*normalizer).upper() for e in slab)<arb(goal)**2:break

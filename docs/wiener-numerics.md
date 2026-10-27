@@ -305,3 +305,51 @@ including clipped time support and drift standard deviation near 349, are
 regression cases at tolerance `1e-6`. An independent composite GL25 calculation
 uses geometric decision-time panels to resolve the near-zero boundary layer.
 Passing these cases does not establish accuracy at tighter tolerances.
+
+## Large drift variability in the image representation
+
+Let `lambda = 1 + s²t`, `r = aq - vt`, `u = t/a²`, and let `S(u,w)` be
+the image sum scaled by its central Gaussian. Combining the central Gaussian
+with the analytically marginalized drift gives
+
+\[
+\log p=\log a-\tfrac12\log(2\pi)-\tfrac32\log t
+-\tfrac12\log\lambda-\frac{r^2}{2t\lambda}+\log S.
+\]
+
+Evaluating the two exponentials separately loses precision when drift variance
+is large. Their time derivatives can cancel even more severely. With
+`E = r²/(2t lambda)`, `h = r/(t lambda)`, `U = S_u/S` and `W = S_w/S`,
+the combined derivatives in effective upper-boundary coordinates are
+
+\[
+\begin{aligned}
+\ell_a &= a^{-1}-qh-2uU/a,\\
+\ell_\tau &= 3/(2t)+s^2/(2\lambda)-vh
+-E(t^{-1}+s^2/\lambda)-U/a^2,\\
+\ell_w &= ah+W,\\
+\ell_v &= r/\lambda,\\
+\ell_s &= st(2E-1)/\lambda.
+\end{aligned}
+\]
+
+Reflection applies the usual starting-point and drift signs. The implementation
+uses this form for image evaluation when `lambda > 2`, keeping the existing
+endpoint rearrangement near either boundary. Twenty-four independent Arb
+fixtures cover both responses, times from `1e-8` to `0.03`, and drift standard
+deviations from 350 to one million.
+
+The independent Wiener7 oracle retains the same cancellation in its envelopes.
+For image distance `d = q + 2k`,
+
+\[
+-\frac{a^2d^2}{2t}+\frac{a^2q^2s^2}{2\lambda}
+=-\frac{a^2(d^2-q^2)}{2t}-\frac{a^2q^2}{2t\lambda}.
+\]
+
+For every noncentral image, `d² >= q²`. The central image is bounded separately.
+This avoids an envelope growing as `exp(a²q²s²/2)`. On a clipped time slab,
+`t^(-r) exp(-b/(t(1+s²t)))` is increasing if `t(1+s²t) <= b/r`.
+The oracle uses the sufficient condition
+`t(1+s²t)/a² <= q_min²/8`, including all derivative powers through `r = 7/2`.
+These are analytic envelopes; Arb rounds the reference calculations outward.

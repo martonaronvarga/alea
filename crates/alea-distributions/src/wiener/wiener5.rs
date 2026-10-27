@@ -334,6 +334,36 @@ impl Wiener5 {
         let lam_inv = lam.recip();
         let lam_sq_inv = lam_inv * lam_inv; // 1/lam^2
 
+        if branch == SeriesBranch::SmallTime && lam > 2. && base.w_eff.min(base.q_eff) >= 1e-5 {
+            // Combine the leading image and the drift marginal before taking
+            // derivatives. Their separate O(1/t²) scores can cancel almost
+            // completely when the between-trial drift variance is large.
+            let Some((raw, time, start)) = series::small_time_scaled_accum(t_prime, w_eff, k)
+            else {
+                return fail_eval_5();
+            };
+            if raw <= 0. {
+                return fail_eval_5();
+            }
+            let residual = (a * base.q_eff) - v_eff * t;
+            let slope = residual / t * lam_inv;
+            let exponent = 0.5 * residual * slope;
+            let log_prob =
+                a.ln() - 0.5 * (2. * PI).ln() - 1.5 * t.ln() - 0.5 * lam.ln() - exponent + raw.ln();
+            let time_correction = time / raw;
+            let grad = Wiener5Grad {
+                alpha: 1. / a - base.q_eff * slope - (2. * t_prime / a) * time_correction,
+                tau: 1.5 / t + 0.5 * sv2 * lam_inv
+                    - v_eff * slope
+                    - exponent * (1. / t + sv2 * lam_inv)
+                    - time_correction / a2,
+                beta: beta_sign * (a * slope + start / raw),
+                delta: delta_sign * residual * lam_inv,
+                s_delta: sv * t * lam_inv * (2. * exponent - 1.),
+            };
+            return Wiener5Eval { log_prob, grad };
+        }
+
         let one_m_w = base.q_eff;
         let a_one_m_w = a * one_m_w;
         let a_one_m_w_sq = a_one_m_w * a_one_m_w;

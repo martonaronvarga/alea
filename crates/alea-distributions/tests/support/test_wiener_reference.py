@@ -19,4 +19,21 @@ class Certificate(unittest.TestCase):
         with self.assertRaises(ValueError):certify([arb(1)]*8,[1.]*8,absolute='nan')
     def test_missing_enclosure_is_invalid(self):
         with self.assertRaises(ValueError):certify([], [1.]*8)
+
+class VarianceCancellationEnvelope(unittest.TestCase):
+    def test_large_drift_variance_slab_bounds_density_and_derivatives(self):
+        from flint import acb
+        from wiener7_reference import envelopes,point
+        ctx.prec=160
+        a,v,s=map(arb,[1.6,.5,350.])
+        qlo,qhi=map(arb,['.02','.67'])
+        c=a*a*qlo*qlo/16
+        cutoff=c/(1+s*c.sqrt())
+        bound=envelopes(a,v,s,qlo,qhi,cutoff,cutoff,0,True)
+        for q in [qlo,(qlo+qhi)/2,qhi]:
+            for t in [cutoff/4,cutoff/2,cutoff]:
+                for component in range(8):
+                    value=point(acb(t),acb(q),a,v,s,arb('.5'),arb(1),True,8,False,component).real
+                    self.assertTrue(abs(value)<=bound[component],(q,t,component,value,bound[component]))
+
 if __name__=='__main__':unittest.main()

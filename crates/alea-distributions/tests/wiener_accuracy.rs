@@ -261,3 +261,39 @@ fn complete_wiener7_grid_matches_ball_references() {
     }
     assert_eq!(count, 76);
 }
+
+#[test]
+fn large_drift_variance_retains_density_and_score_precision() {
+    use alea_distributions::wiener::WienerOptions;
+    let mut count = 0;
+    for line in include_str!("support/wiener_variance_balls.csv")
+        .lines()
+        .skip(1)
+    {
+        let x: Vec<f64> = line.split(',').map(|x| x.parse().unwrap()).collect();
+        let event = WienerObservation {
+            rt: x[0],
+            boundary: if x[6] == 1. {
+                Boundary::Lower
+            } else {
+                Boundary::Upper
+            },
+        };
+        let params = Wiener5Params::from_array([x[1], x[2], x[3], x[4], x[5]]);
+        let result = Wiener5
+            .try_fused(&event, &params, WienerOptions::new(1e-12))
+            .unwrap();
+        for (i, value) in std::iter::once(result.log_prob)
+            .chain(result.grad_array())
+            .enumerate()
+        {
+            let reference = x[9 + 2 * i];
+            assert!(
+                (value - reference).abs() <= x[10 + 2 * i] + 2e-12 * reference.abs().max(1.),
+                "row {count},component {i}: {value} vs {reference}"
+            );
+        }
+        count += 1;
+    }
+    assert_eq!(count, 24);
+}
