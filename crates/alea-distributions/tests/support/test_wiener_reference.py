@@ -36,4 +36,20 @@ class VarianceCancellationEnvelope(unittest.TestCase):
                     value=point(acb(t),acb(q),a,v,s,arb('.5'),arb(1),True,8,False,component).real
                     self.assertTrue(abs(value)<=bound[component],(q,t,component,value,bound[component]))
 
+class CombinedImages(unittest.TestCase):
+    def test_combined_images_match_independent_uncombined_wiener5_series(self):
+        from flint import acb
+        from wiener7_reference import point
+        from generate_wiener_balls import evaluate
+        for lower in [False,True]:
+            for t in [1e-5,.001,.03]:
+                reference,_,_=evaluate(t,1.6,0.,.3,.5,350.,lower)
+                a,beta,v,sd,time=map(arb,[1.6,.3,.5,350.,t])
+                q=beta if lower else 1-beta
+                effective_v=-v if lower else v
+                values=[point(acb(time),acb(q),a,effective_v,sd,arb('.25'),arb('.75'),lower,8,False,i).real for i in range(8)]
+                actual=[values[0].log()]+[x/values[0] for x in values[1:]]
+                expected=reference+[reference[3]*arb('.25')*(1 if lower else -1),reference[2]*arb('.75')]
+                for x,y in zip(actual,expected):self.assertTrue(abs(x-y)<arb('1e-20')*(1+abs(y)))
+
 if __name__=='__main__':unittest.main()

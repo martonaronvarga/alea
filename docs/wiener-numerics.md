@@ -511,3 +511,12 @@ This form handles steep intervals without subtracting Gaussian tail
 probabilities or using unstable upward moment recurrences. Twelve independent
 Acb continuous integrals cover both endpoint signs, curvature up to `1e12`,
 and linear coefficients up to `3e12`.
+
+The independent ball reference combines the image Gaussian and drift marginal
+before evaluating either density or derivatives. A separate test compares this
+form with the original independently enclosed Wiener5 dual series at large
+drift variance. Reference quadrature tolerance tightens along with arithmetic
+precision: it starts at `goal/4096`, decreases on escalation, and never falls
+below the working-precision allowance. This only allocates work. Success still
+requires the resulting rigorous output enclosures to satisfy the requested
+width; agreement between successive point estimates cannot grant a certificate.

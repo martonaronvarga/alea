@@ -16,22 +16,25 @@ from generate_wiener_balls import moment
 def point(t,q,a,v,s,x,z,lower,k,analytic,component):
     lam=1+s*s*t
     pref=a/(2*arb.pi()).sqrt()/t/t.sqrt(analytic=analytic)/lam.sqrt(analytic=analytic)
-    n=-v*v*t+2*a*v*q+a*a*q*q*s*s
     out=acb(0)
     for j in range(-k,k+1):
         d=q+2*j
-        e=(-a*a*d*d/(2*t)+n/(2*lam)).exp()*pref
+        gap=4*j*(j+q)
+        residual=a*q-v*t
+        slope=residual/(t*lam)
+        energy=residual*slope/2
+        e=(-a*a*gap/(2*t)-energy).exp()*pref
         f=d*e
         if component==0:value=f
-        elif component==1:value=f*(1/a-a*d*d/t+(v*q+a*q*q*s*s)/lam)
+        elif component==1:value=f*(1/a-a*gap/t-q*slope)
         elif component in (2,7):
-            dt=f*(-3/(2*t)-s*s/(2*lam)+a*a*d*d/(2*t*t)+(-v*v*lam-n*s*s)/(2*lam*lam))
+            dt=f*(-3/(2*t)-s*s/(2*lam)+a*a*gap/(2*t*t)+v*slope+energy*(1/t+s*s/lam))
             value=-dt if component==2 else -z*dt
         elif component in (3,6):
-            dq=e*(1+d*(-a*a*d/t+(a*v+a*a*q*s*s)/lam))
+            dq=e*(1+d*(-2*a*a*j/t-a*slope))
             value=(1 if lower else -1)*dq if component==3 else x*dq
         elif component==4:value=(-1 if lower else 1)*f*(-v*t+a*q)/lam
-        else:value=f*(-s*t/lam+a*a*q*q*s/lam-n*s*t/(lam*lam))
+        else:value=f*s*t/lam*(2*energy-1)
         out+=value
     return out
 
@@ -107,7 +110,9 @@ def evaluate(params,goal='1e-18',max_precision=768):
                 tails=envelopes(a,v,s,q-h/2,q+h/2,tmin,thi,k)
             except (ArithmeticError,ValueError):continue
             zhi=min(arb(1),(thi-tmin)/st) if st>0 else arb(0)
-            tol=arb(2)**(-precision+24)
+            # Increase arithmetic and integration accuracy together. The final
+            # enclosure-width check, not this work heuristic, grants success.
+            tol=max(arb(2)**(-precision+24),arb(goal)/arb(4096)**(precision//96))
             values=[]
             for component in range(8):
                 def outer(z,analytic):
@@ -132,7 +137,7 @@ def evaluate(params,goal='1e-18',max_precision=768):
             if values[0]>0:
                 result=[values[0].log()+log_scale]+[x/values[0] for x in values[1:]]
                 if all(x.is_finite() and x.rad()<arb(goal)*(1+abs(x.mid())) for x in result):
-                    return result,{'precision':precision,'terms':k,'clipped':clipped,'cutoff':str(cutoff),'slab_upper':[str(x.upper()) for x in slab]}
+                    return result,{'precision':precision,'quadrature_tolerance':str(tol),'terms':k,'clipped':clipped,'cutoff':str(cutoff),'slab_upper':[str(x.upper()) for x in slab]}
     raise ArithmeticError('reference work/precision budget exhausted')
 
 
