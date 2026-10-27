@@ -68,6 +68,22 @@ fn candidate(
     None
 }
 
+// Relative fused-work units fitted to CPU-pinned scalar/nightly measurements.
+// Both point evaluators use the same scalar finite sums in SIMD builds; vector
+// batch kernels do not call this planner. Positive affine costs make pruning
+// safe: no larger term count can have a lower predicted cost.
+fn branch_cost_parameters(branch: SeriesBranch) -> (usize, usize) {
+    match branch {
+        SeriesBranch::SmallTime => (5, if cfg!(feature = "simd") { 5 } else { 6 }),
+        SeriesBranch::LargeTime => (if cfg!(feature = "simd") { 7 } else { 9 }, 3),
+    }
+}
+
+fn branch_cost(branch: SeriesBranch, terms: usize) -> usize {
+    let (base, slope) = branch_cost_parameters(branch);
+    base.saturating_add(slope.saturating_mul(terms))
+}
+
 fn plan(core: &Wiener4Core, tolerance: f64) -> Result<Plan> {
     if !tolerance.is_finite() || tolerance <= 0. {
         return Err(ProbError::InvalidParameters(
@@ -87,24 +103,14 @@ fn plan(core: &Wiener4Core, tolerance: f64) -> Result<Plan> {
         SeriesBranch::SmallTime
     };
     let first = candidate(core, preferred, 128, tolerance);
-    // Two image exponentials versus one spectral harmonic is an explicit work
-    // estimate, not a claim about measured latency or a floating-point proof.
-    let cost = |p: &Plan| {
-        p.terms
-            .saturating_mul(if p.branch == SeriesBranch::SmallTime {
-                2
-            } else {
-                1
-            })
-    };
-    let cap = first.as_ref().map_or(128, |p| {
-        cost(p)
-            / (if other == SeriesBranch::SmallTime {
-                2
-            } else {
-                1
-            })
-    });
+    let cost = |p: &Plan| branch_cost(p.branch, p.terms);
+    let cap = first
+        .as_ref()
+        .map_or(128, |p| {
+            let (base, slope) = branch_cost_parameters(other);
+            cost(p).saturating_sub(base) / slope
+        })
+        .min(128);
     let second = candidate(core, other, cap, tolerance);
     match (first, second) {
         (Some(a), Some(b)) => Ok(if cost(&b) < cost(&a) { b } else { a }),
@@ -171,5 +177,65 @@ impl Wiener5 {
             ));
         }
         Ok((e, report(&core.base, &p)))
+    }
+}
+
+#[cfg(test)]
+mod calibration {
+    use super::*;
+    #[test]
+    #[ignore = "CPU-pinned release timing calibration, not a CI assertion"]
+    fn fused_branch_costs() {
+        use std::{hint::black_box, time::Instant};
+        for k in [1, 2, 3, 4, 6, 8, 12, 16] {
+            for branch in [SeriesBranch::SmallTime, SeriesBranch::LargeTime] {
+                let mut samples = Vec::new();
+                for _ in 0..11 {
+                    let start = Instant::now();
+                    for i in 0..10000 {
+                        let w = black_box([0.2, 0.3, 0.5, 0.7][i % 4]);
+                        let u = black_box(0.15);
+                        black_box(match branch {
+                            SeriesBranch::SmallTime => {
+                                series::small_branch_fused(u, w, black_box(k))
+                            }
+                            SeriesBranch::LargeTime => {
+                                series::large_branch_fused(u, w, black_box(k))
+                            }
+                        });
+                    }
+                    samples.push(start.elapsed().as_nanos() as f64 / 10000.);
+                }
+                samples.sort_by(f64::total_cmp);
+                eprintln!("branch_calibration,{branch:?},{k},{}", samples[5]);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod planning_tests {
+    use super::*;
+    #[test]
+    fn selected_common_count_minimizes_predicted_fused_cost() {
+        for u in [0.001, 0.03, 0.1, 0.15, 0.3, 1., 10.] {
+            for beta in [1e-8, 0.1, 0.5, 0.9, 1. - 1e-8] {
+                let obs = WienerObservation {
+                    rt: u,
+                    boundary: Boundary::Upper,
+                };
+                let params = Wiener4Params::from_array([1., 0., beta, 0.7]);
+                let core = Wiener4.core(&obs, &params, 1e-9).unwrap();
+                let chosen = plan(&core, 1e-9).unwrap();
+                for branch in [SeriesBranch::SmallTime, SeriesBranch::LargeTime] {
+                    if let Some(other) = candidate(&core, branch, 128, 1e-9) {
+                        assert!(
+                            branch_cost(chosen.branch, chosen.terms)
+                                <= branch_cost(other.branch, other.terms)
+                        );
+                    }
+                }
+            }
+        }
     }
 }

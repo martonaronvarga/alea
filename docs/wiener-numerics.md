@@ -425,3 +425,30 @@ Eight terms suffice in the small exponent-radius regime; failure to meet the
 error budget still returns to numerical integration. This replaces the earlier
 width-only exclusion, which discarded an accurate analytic result solely because
 its interval was narrow.
+
+## Cost of componentwise truncation planning
+
+The optional W4/5 truncation-controlled evaluator first finds a common term
+count satisfying every requested log-density and score bound in each series.
+It chooses the smaller predicted fused cost. The prediction is an affine model
+`C(K) = b + mK`, calibrated with CPU-pinned finite-sum measurements at normalized
+time 0.15, starts 0.2, 0.3, 0.5 and 0.7, and term counts one through six.
+Eleven batches of 10,000 evaluations supplied median costs on an i5-8250U.
+Least-squares fits, normalized to three units per spectral term and rounded,
+give image/spectral `(b,m)` pairs `(5,6)/(9,3)` for the stable scalar build and
+`(5,5)/(7,3)` for the nightly SIMD build. Point evaluation itself uses scalar
+finite sums in both builds; vector batch kernels do not use this planner.
+
+Positive slopes make the search pruning valid. After obtaining a certified
+candidate of predicted cost `C`, the other branch needs only counts
+`K <= floor((C-b_other)/m_other)`, bounded by the 128-term work limit. Counts
+with greater predicted cost cannot win. A regression compares this pruned
+selection with unpruned searches across both representations.
+
+This replaces the former two-image-terms-to-one-harmonic work heuristic in the
+optional evaluator. It minimizes the calibrated estimate among candidates
+meeting the truncation bounds, not wall time on every processor. Subnormal
+exponentials and fixed-count specializations produce deviations from the affine
+model, particularly above six terms. The ordinary fast evaluator retains its
+precision convention; a certified truncation request remains an explicit API
+choice with additional planning cost.
