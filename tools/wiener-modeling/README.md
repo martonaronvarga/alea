@@ -96,3 +96,12 @@ explicit bound must still allow the search to bracket its acceptance target;
 otherwise it returns a search-exhaustion error. A conservative follow-up can use initial step 0.001 and target
 acceptance 0.95. Record such follow-ups separately from the original run, rather
 than replacing failed or diagnostically inadequate outcomes.
+
+`subject_scales: true`, together with `hierarchy: true`, adds noncentered subject
+variation in log separation and the logit of nondecision time. Each subject's
+nondecision time is bounded by that subject's minimum observed RT. The added
+log-scale SD priors are `Normal(log(0.3), 0.5)` for separation and
+`Normal(log(0.5), 0.5)` for nondecision logits; subject effects are standard Normal.
+The summaries distinguish the population median separation, population time
+fraction, and each subject's physical parameters. This gives a richer empirical
+workload than a model that permits only subject drift to vary.

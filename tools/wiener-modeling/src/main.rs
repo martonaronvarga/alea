@@ -40,6 +40,8 @@ struct Config {
     data: String,
     family: u8,
     hierarchy: bool,
+    #[serde(default)]
+    subject_scales: bool,
     time_only: bool,
     precision: f64,
     warmup: usize,
@@ -132,7 +134,24 @@ fn prior_layout(c: &Config, minimum: f64, subjects: usize) -> Vec<(String, f64, 
             p.push((format!("subject_z_{i}"), 0., 1.));
         }
     }
+    if c.subject_scales {
+        p.push(("log_alpha_subject_sd".into(), 0.3_f64.ln(), 0.5));
+        for i in 0..subjects {
+            p.push((format!("alpha_z_{i}"), 0., 1.));
+        }
+        p.push(("log_tau_subject_sd".into(), 0.5_f64.ln(), 0.5));
+        for i in 0..subjects {
+            p.push((format!("tau_z_{i}"), 0., 1.));
+        }
+    }
     p
+}
+fn subject_minima(data: &[Trial], subjects: usize) -> Vec<f64> {
+    let mut values = vec![f64::INFINITY; subjects];
+    for row in data {
+        values[row.subject] = values[row.subject].min(row.observation.rt);
+    }
+    values
 }
 fn build(c: &Config, data: &[Trial]) -> Result<CompiledModel, AssemblyError> {
     let mut b = ModelBuilder::new();
@@ -189,6 +208,26 @@ fn build(c: &Config, data: &[Trial]) -> Result<CompiledModel, AssemblyError> {
             *drift = b.add(q[3], deviation)?;
         }
     }
+    next += if c.hierarchy { subjects } else { 0 };
+    let mut separations = vec![alpha; subjects];
+    let mut delays = vec![tau; subjects];
+    if c.subject_scales {
+        let sigma = b.exp(q[next])?;
+        next += 1;
+        for (i, value) in separations.iter_mut().enumerate() {
+            let delta = b.multiply(sigma, q[next + i])?;
+            let log = b.add(q[0], delta)?;
+            *value = b.exp(log)?;
+        }
+        next += subjects;
+        let sigma = b.exp(q[next])?;
+        next += 1;
+        for (i, minimum) in subject_minima(data, subjects).into_iter().enumerate() {
+            let delta = b.multiply(sigma, q[next + i])?;
+            let logit = b.add(q[1], delta)?;
+            delays[i] = logistic(&mut b, logit, minimum)?;
+        }
+    }
     let options = WienerOptions::new(c.precision);
     for trial in data {
         let condition = b.constant(trial.condition)?;
@@ -196,41 +235,52 @@ fn build(c: &Config, data: &[Trial]) -> Result<CompiledModel, AssemblyError> {
         let drift = b.add(drifts[trial.subject], effect)?;
         let event = trial.observation;
         let family = c.family;
-        let likelihood = b.custom(&[alpha, tau, beta, drift, sd, width, st], move |x, g| {
-            g.fill(0.);
-            let result: Result<f64, ProbError> = match family {
-                4 => Wiener4
-                    .try_fused(
-                        &event,
-                        &Wiener4Params::from_array([x[0], x[1], x[2], x[3]]),
-                        options,
-                    )
-                    .map(|e| {
-                        g[..4].copy_from_slice(&e.grad_array());
-                        e.log_prob
-                    }),
-                5 => Wiener5
-                    .try_fused(
-                        &event,
-                        &Wiener5Params::from_array([x[0], x[1], x[2], x[3], x[4]]),
-                        options,
-                    )
-                    .map(|e| {
-                        g[..5].copy_from_slice(&e.grad_array());
-                        e.log_prob
-                    }),
-                _ => Wiener7Params::with_params(x[0], x[1], x[2], x[3], x[5], x[6], x[4])
-                    .and_then(|p| Wiener7.try_fused(&event, &p, options))
-                    .map(|e| {
-                        g.copy_from_slice(&e.grad_array());
-                        e.log_prob
-                    }),
-            };
-            result.map_err(|e| {
-                eprintln!("failed_likelihood event={event:?} parameters={x:?} error={e:?}");
-                AssemblyError::Factor(Box::new(e))
-            })
-        })?;
+        let likelihood = b.custom(
+            &[
+                separations[trial.subject],
+                delays[trial.subject],
+                beta,
+                drift,
+                sd,
+                width,
+                st,
+            ],
+            move |x, g| {
+                g.fill(0.);
+                let result: Result<f64, ProbError> = match family {
+                    4 => Wiener4
+                        .try_fused(
+                            &event,
+                            &Wiener4Params::from_array([x[0], x[1], x[2], x[3]]),
+                            options,
+                        )
+                        .map(|e| {
+                            g[..4].copy_from_slice(&e.grad_array());
+                            e.log_prob
+                        }),
+                    5 => Wiener5
+                        .try_fused(
+                            &event,
+                            &Wiener5Params::from_array([x[0], x[1], x[2], x[3], x[4]]),
+                            options,
+                        )
+                        .map(|e| {
+                            g[..5].copy_from_slice(&e.grad_array());
+                            e.log_prob
+                        }),
+                    _ => Wiener7Params::with_params(x[0], x[1], x[2], x[3], x[5], x[6], x[4])
+                        .and_then(|p| Wiener7.try_fused(&event, &p, options))
+                        .map(|e| {
+                            g.copy_from_slice(&e.grad_array());
+                            e.log_prob
+                        }),
+                };
+                result.map_err(|e| {
+                    eprintln!("failed_likelihood event={event:?} parameters={x:?} error={e:?}");
+                    AssemblyError::Factor(Box::new(e))
+                })
+            },
+        )?;
         b.factor(likelihood)?;
     }
     b.compile()
@@ -256,7 +306,7 @@ impl LogDensityGradient for Counted {
     }
 }
 /// Deterministic physical estimands, including the modeled condition contrast.
-fn physical(c: &Config, q: &[f64], minimum: f64, subjects: usize) -> Vec<f64> {
+fn physical(c: &Config, q: &[f64], minimum: f64, subjects: usize, minima: &[f64]) -> Vec<f64> {
     let mut v = vec![
         q[0].exp(),
         minimum * sigmoid(q[1]),
@@ -296,6 +346,19 @@ fn physical(c: &Config, q: &[f64], minimum: f64, subjects: usize) -> Vec<f64> {
             v.push(q[3] + scale * q[next + i]);
         }
     }
+    next += if c.hierarchy { subjects } else { 0 };
+    if c.subject_scales {
+        v[1] = sigmoid(q[1]);
+        let scale = q[next].exp();
+        next += 1;
+        v.push(scale);
+        v.extend((0..subjects).map(|i| (q[0] + scale * q[next + i]).exp()));
+        next += subjects;
+        let scale = q[next].exp();
+        next += 1;
+        v.push(scale);
+        v.extend((0..subjects).map(|i| minima[i] * sigmoid(q[1] + scale * q[next + i])));
+    }
     v
 }
 #[derive(Serialize)]
@@ -323,6 +386,7 @@ fn fit(c: &Config, data: &[Trial], out: &Path) -> Result<(), AnyError> {
         .map(|x| x.observation.rt)
         .fold(f64::INFINITY, f64::min);
     let subjects = 1 + data.iter().map(|x| x.subject).max().unwrap();
+    let minima = subject_minima(data, subjects);
     let layout = prior_layout(c, minimum, subjects);
     let dimension = layout.len();
     let starts: Vec<Vec<_>> = (0..4)
@@ -449,6 +513,14 @@ fn fit(c: &Config, data: &[Trial], out: &Path) -> Result<(), AnyError> {
         names.push("subject_sd".into());
         names.extend((0..subjects).map(|i| format!("subject_drift_{i}")));
     }
+    if c.subject_scales {
+        names[0] = "population_median_alpha".into();
+        names[1] = "population_tau_fraction".into();
+        names.push("alpha_subject_sd".into());
+        names.extend((0..subjects).map(|i| format!("subject_alpha_{i}")));
+        names.push("tau_subject_sd".into());
+        names.extend((0..subjects).map(|i| format!("subject_tau_{i}")));
+    }
     let mut summaries = Vec::new();
     let mut checks = true;
     for (i, name) in names.into_iter().enumerate() {
@@ -458,7 +530,7 @@ fn fit(c: &Config, data: &[Trial], out: &Path) -> Result<(), AnyError> {
             .map(|c| {
                 c.draws
                     .iter()
-                    .map(|d| physical(config, &d.position, minimum, subjects)[i])
+                    .map(|d| physical(config, &d.position, minimum, subjects, &minima)[i])
                     .collect()
             })
             .collect();
@@ -529,6 +601,7 @@ fn evaluate(
         .map(|x| x.observation.rt)
         .fold(f64::INFINITY, f64::min);
     let subjects = 1 + data.iter().map(|x| x.subject).max().unwrap();
+    let minima = subject_minima(data, subjects);
     let mut evaluations = Vec::new();
     for q in positions {
         if q.len() != target.dimension() || q.iter().any(|x| !x.is_finite()) {
@@ -537,7 +610,7 @@ fn evaluate(
         let mut gradient = vec![0.; target.dimension()];
         let start = Instant::now();
         let lp = target.logp_grad(q, &mut gradient)?;
-        evaluations.push(serde_json::json!({"position":q,"logp":lp,"gradient":gradient,"seconds":start.elapsed().as_secs_f64(),"physical":physical(c,q,minimum,subjects)}));
+        evaluations.push(serde_json::json!({"position":q,"logp":lp,"gradient":gradient,"seconds":start.elapsed().as_secs_f64(),"physical":physical(c,q,minimum,subjects,&minima)}));
     }
     Ok(serde_json::json!({"setup_seconds":setup_seconds,"evaluations":evaluations}))
 }
@@ -551,10 +624,11 @@ fn predict(
         .map(|x| x.observation.rt)
         .fold(f64::INFINITY, f64::min);
     let subjects = 1 + data.iter().map(|x| x.subject).max().unwrap();
+    let minima = subject_minima(data, subjects);
     let mut rng = SmallRng::seed_from_u64(2026102703);
     let mut reports = Vec::new();
     for (replicate, q) in positions.iter().enumerate() {
-        let p = physical(c, q, minimum, subjects);
+        let p = physical(c, q, minimum, subjects, &minima);
         let mut outcomes = [Vec::new(), Vec::new()];
         for trial in data {
             let drift = if c.hierarchy {
@@ -562,9 +636,20 @@ fn predict(
             } else {
                 p[3]
             };
+            let offset = 9 + subjects;
+            let a = if c.subject_scales {
+                p[offset + 1 + trial.subject]
+            } else {
+                p[0]
+            };
+            let tau = if c.subject_scales {
+                p[offset + subjects + 2 + trial.subject]
+            } else {
+                p[1]
+            };
             let parameters = Wiener7Params::with_params(
-                p[0],
-                p[1],
+                a,
+                tau,
                 p[2],
                 drift + p[4] * trial.condition,
                 p[6],
@@ -637,6 +722,9 @@ fn main() -> Result<(), AnyError> {
     }
     let c: Config = serde_json::from_str(&fs::read_to_string(&args[2])?)?;
     let data = load(&c.data)?;
+    if c.subject_scales && !c.hierarchy {
+        return Err("subject_scales requires a hierarchy".into());
+    }
     if data.is_empty()
         || data.iter().any(|x| {
             !x.observation.rt.is_finite() || x.observation.rt <= 0. || !x.condition.is_finite()
@@ -678,17 +766,19 @@ mod tests {
                 },
             })
             .collect();
-        for (family, time_only, hierarchy) in [
-            (4, false, true),
-            (5, false, true),
-            (7, true, false),
-            (7, false, false),
+        for (family, time_only, hierarchy, subject_scales) in [
+            (4, false, true, false),
+            (4, false, true, true),
+            (5, false, true, false),
+            (7, true, false, false),
+            (7, false, false, false),
         ] {
             let c = Config {
                 name: "test".into(),
                 data: String::new(),
                 family,
                 hierarchy,
+                subject_scales,
                 time_only,
                 precision: 1e-8,
                 warmup: 100,
