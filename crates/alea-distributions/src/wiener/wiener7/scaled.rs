@@ -46,17 +46,19 @@ impl Wiener7 {
         lo: [f64; 2],
         hi: [f64; 2],
         order: usize,
+        second_order: usize,
     ) -> Option<(Sum, usize)> {
         let (nodes, weights) = Self::fixed_rule(order);
+        let (second_nodes, second_weights) = Self::fixed_rule(second_order);
         let mut sum = Sum::new();
         let mut peak = f64::NEG_INFINITY;
         let mut split = 0;
         for (&node0, &weight0) in nodes.iter().zip(weights) {
             let (u0, w0) = Self::fixed_interval(node0, weight0, lo[0], hi[0]);
-            let second = if core.dim == 2 { nodes.len() } else { 1 };
+            let second = if core.dim == 2 { second_nodes.len() } else { 1 };
             for j in 0..second {
                 let (u1, w1) = if core.dim == 2 {
-                    Self::fixed_interval(nodes[j], weights[j], lo[1], hi[1])
+                    Self::fixed_interval(second_nodes[j], second_weights[j], lo[1], hi[1])
                 } else {
                     (0.0, 1.0)
                 };
@@ -87,10 +89,42 @@ impl Wiener7 {
         lo: [f64; 2],
         hi: [f64; 2],
     ) -> Option<Region> {
-        let (sum, split) = Self::scaled_rule(core, obs, lo, hi, 15)?;
-        let (low, _) = Self::scaled_rule(core, obs, lo, hi, 7)?;
+        let rule = |first, second| {
+            let (mut sum, split) = Self::scaled_rule(core, obs, lo, hi, first, second)?;
+            // Once the time interval is clipped, the full integral depends on
+            // its width only through the uniform normalization 1/st0.
+            if core.st0 >= obs.rt - core.tau0 {
+                sum.value[7] = -sum.value[0] / core.st0;
+            }
+            Some((sum, split))
+        };
+        let (sum, mut split) = rule(15, 15)?;
+        let (low, _) = rule(7, 7)?;
         let factor = (low.scale - sum.scale).exp();
-        let error = std::array::from_fn(|i| (sum.value[i] - factor * low.value[i]).abs());
+        let mut error = std::array::from_fn(|i| (sum.value[i] - factor * low.value[i]).abs());
+        if core.dim == 2 {
+            // Mixed rules isolate the error in each coordinate. The peak slope
+            // alone need not detect curvature in a derivative numerator.
+            let (low_start, _) = rule(7, 15)?;
+            let (low_time, _) = rule(15, 7)?;
+            let factors = [
+                (low_start.scale - sum.scale).exp(),
+                (low_time.scale - sum.scale).exp(),
+            ];
+            let mut priority = [0_f64; 2];
+            for (i, component_error) in error.iter_mut().enumerate() {
+                let differences = [
+                    (sum.value[i] - factors[0] * low_start.value[i]).abs(),
+                    (sum.value[i] - factors[1] * low_time.value[i]).abs(),
+                ];
+                *component_error = component_error.max(differences[0] + differences[1]);
+                let norm = sum.value[i].abs().max(sum.value[0]);
+                for d in 0..2 {
+                    priority[d] = priority[d].max(differences[d] / norm);
+                }
+            }
+            split = usize::from(priority[1] > priority[0]);
+        }
         if error.iter().any(|e| !e.is_finite()) {
             return None;
         }
@@ -109,7 +143,7 @@ impl Wiener7 {
         obs: &WienerObservation,
         order: usize,
     ) -> Wiener7Eval {
-        match Self::scaled_rule(core, obs, core.xmin, core.xmax, order) {
+        match Self::scaled_rule(core, obs, core.xmin, core.xmax, order, order) {
             Some((s, _)) => Wiener7Eval {
                 log_prob: s.scale + s.value[0].ln(),
                 grad: Wiener7Grad::from_array(std::array::from_fn(|i| s.value[i + 1] / s.value[0])),
@@ -131,7 +165,7 @@ impl Wiener7 {
         };
         let mut regions = vec![first];
         let per_region = if core.dim == 2 {
-            15 * 15 + 7 * 7
+            15 * 15 + 7 * 7 + 2 * 7 * 15
         } else {
             15 + 7
         };
@@ -205,6 +239,171 @@ impl Wiener7 {
             regions[index] = left;
             regions.push(right);
             evaluations += 2 * per_region;
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wide_start_and_clipped_time_proposals_are_evaluable() {
+        for (rt, lower, p) in [
+            (
+                0.469,
+                false,
+                [
+                    2.4749736829675593,
+                    0.16668455332354118,
+                    0.4689899247129888,
+                    0.6389540258904112,
+                    1.0066854590943801,
+                    0.7799458999413749,
+                    0.34291442859487303,
+                ],
+            ),
+            (
+                0.675,
+                true,
+                [
+                    1.3379729514065335,
+                    0.4604482709501249,
+                    0.48721932677946567,
+                    0.6890406129269979,
+                    0.017193277147217887,
+                    0.7909296417576759,
+                    0.3746925547442049,
+                ],
+            ),
+            (
+                0.675,
+                true,
+                [
+                    1.5779382816950356,
+                    0.3892536621148969,
+                    0.3415871894921585,
+                    0.5005374649192191,
+                    349.4261431791342,
+                    0.6348044548085039,
+                    0.3751468294604952,
+                ],
+            ),
+            (
+                0.675,
+                true,
+                [
+                    1.184370251981865,
+                    0.3238302317741533,
+                    0.19842378532536026,
+                    2.014406521010839,
+                    0.9636510388824948,
+                    0.2652004524018589,
+                    0.3619964232523812,
+                ],
+            ),
+            (
+                0.4184013856731187,
+                false,
+                [
+                    1.5178881986936503,
+                    0.2485551790941962,
+                    0.6164806090045881,
+                    1.2061561742322793,
+                    1.2615614023185378,
+                    0.4513465885975576,
+                    0.1704964522307809,
+                ],
+            ),
+            (
+                0.3807531142811618,
+                false,
+                [
+                    1.4218349687873668,
+                    0.2630065224865575,
+                    0.5287900854310247,
+                    0.6889164658022419,
+                    0.13240361346377336,
+                    0.6492779888742992,
+                    0.11596088802520918,
+                ],
+            ),
+            (
+                0.36303379407076364,
+                false,
+                [
+                    1.4166544003274433,
+                    0.2877173417664885,
+                    0.5443025249813934,
+                    0.6323720847103405,
+                    0.25203635546122377,
+                    0.6581086385541228,
+                    0.08915750638575942,
+                ],
+            ),
+            (
+                0.41124039843703153,
+                false,
+                [
+                    1.346855690424418,
+                    0.2411090185689389,
+                    0.5340249572171718,
+                    0.8143655551175284,
+                    0.648245807686055,
+                    0.6034460819045603,
+                    0.2018628898840445,
+                ],
+            ),
+        ] {
+            let observation = WienerObservation {
+                rt,
+                boundary: if lower {
+                    Boundary::Lower
+                } else {
+                    Boundary::Upper
+                },
+            };
+            let parameters =
+                Wiener7Params::with_params(p[0], p[1], p[2], p[3], p[5], p[6], p[4]).unwrap();
+            let result = Wiener7.try_fused(&observation, &parameters, WienerOptions::new(1e-6));
+            assert!(result.is_ok(), "{parameters:?}: {result:?}");
+            let result = result.unwrap();
+            let core = Wiener7.core(&observation, &parameters, 1e-13).unwrap();
+            // Independently composite GL25: no adaptive splitting decisions.
+            let mut reference = Sum::new();
+            let panels = 8;
+            let max_time = rt - p[1];
+            let mut time = (max_time - p[6]).max(max_time * 1e-14);
+            while time < max_time {
+                let end = (2. * time).min(max_time);
+                for i in 0..panels {
+                    let lo = [i as f64 / panels as f64, (max_time - end) / p[6]];
+                    let hi = [(i + 1) as f64 / panels as f64, (max_time - time) / p[6]];
+                    let (part, _) =
+                        Wiener7::scaled_rule(&core, &observation, lo, hi, 25, 25).unwrap();
+                    reference.add(
+                        part.scale + part.value[0].ln(),
+                        std::array::from_fn(|k| part.value[k + 1] / part.value[0]),
+                    );
+                }
+                time = end;
+            }
+            let expected = std::iter::once(reference.scale + reference.value[0].ln())
+                .chain((1..8).map(|i| reference.value[i] / reference.value[0]));
+            for (a, b) in std::iter::once(result.log_prob)
+                .chain(result.grad_array())
+                .zip(expected)
+            {
+                assert!(
+                    (a - b).abs() <= 1e-6 * b.abs().max(1.),
+                    "{parameters:?}: {a} vs {b}"
+                );
+            }
+            eprintln!(
+                "proposal_reference rt={rt} lower={lower} p={p:?} lp={} scores={:?}",
+                result.log_prob,
+                result.grad_array()
+            );
         }
     }
 }

@@ -288,3 +288,20 @@ and research run artifacts are kept outside source releases.
 - [Gondan, Blurton and Kesselmeier (2014), improved series evaluation](https://doi.org/10.1016/j.jmp.2014.05.002).
 - [Hartmann and Klauer (2021), partial derivatives and error bounds](https://doi.org/10.1016/j.jmp.2021.102550).
 - [Python-FLINT documentation](https://fredrikj.net/python-flint/arb.html), including rigorous real and complex ball arithmetic.
+
+## Directional refinement on difficult variability intervals
+
+The locally scaled fallback compares GL15×GL15 with GL7×GL7 and both mixed
+rules GL7×GL15 and GL15×GL7. For component `j`, let `H_j` be the high-order
+integral and `M_d,j` the mixed rule lowered in direction `d`. The region error
+estimate is the larger of the full low-order discrepancy and
+`|H_j-M_0,j| + |H_j-M_1,j|`. Refinement chooses the direction with the largest
+component discrepancy normalized by `max(|H_j|, H_0)`. This follows derivative
+curvature as well as density curvature; the slope at the density peak alone
+can choose the wrong direction. These discrepancies remain error estimates.
+
+The work limit counts all four rules. Eight previously failing valid inputs,
+including clipped time support and drift standard deviation near 349, are
+regression cases at tolerance `1e-6`. An independent composite GL25 calculation
+uses geometric decision-time panels to resolve the near-zero boundary layer.
+Passing these cases does not establish accuracy at tighter tolerances.
