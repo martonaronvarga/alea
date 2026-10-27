@@ -45,6 +45,9 @@ fn gaussian_moments(a: f64, b: f64) -> Option<([f64; 4], [f64; 4], f64)> {
             0.,
         ));
     }
+    if let Some(moments) = super::gaussian_tail::moments(a, b) {
+        return Some(moments);
+    }
     if a < 0.5 || !a.is_finite() || !b.is_finite() {
         return None;
     }

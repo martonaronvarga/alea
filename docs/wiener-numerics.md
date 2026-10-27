@@ -473,3 +473,41 @@ The first failure found by the full Atlasz replay is retained as a regression:
 `a=0.7, tau=1e-6, rt=2e-6, beta=0.25, v=30, sd=0.01, sw=1e-8, st=0.2`.
 It now returns finite density and scores at tolerance `1e-8`. Quadrature
 uncertainties remain estimates, with the same bounded-work failure semantics.
+
+## Endpoint expansion for steep Gaussian intervals
+
+For the normalized start coordinate `z in [-1/2,1/2]`, consider
+`exp(-A z²+Bz)` with `A >= 0`. If `L = |B|-A > 0`, its peak lies at an
+endpoint. Substituting `z = sign(B)(1/2-y)` gives
+
+\[
+-Az^2+Bz=-A/4+|B|/2-Ly-Ay^2,\qquad 0\le y\le1.
+\]
+
+Expand only `exp(-Ay²)`, and integrate the resulting polynomial against
+`exp(-Ly)` over the positive half-line. Its monomial integrals are
+`m!/L^(m+1)`. After `N` terms, Taylor's theorem for a negative real exponent
+bounds the remainder by
+
+\[
+\frac{A^N}{N!}\int_0^\infty y^{2N+m}e^{-Ly}\,dy
+=\frac{A^N(2N+m)!}{N!L^{2N+m+1}}.
+\]
+
+For moment `r`, expand `(1/2-y)^r` and use the absolute polynomial coefficients
+in the remainder bound. Extending the interval beyond one contributes at most
+
+\[
+\frac{e^{-L}}L\sum_{j=0}^r {r\choose j}(3/2)^{r-j}\frac{j!}{L^j}.
+\]
+
+The evaluator tries up to 32 terms when `L >= 40` and `A/L² <= 0.0025`, retaining
+the result with the smallest explicit remainder. Compensated summation is used
+for the alternating expansion. The final likelihood and score checks receive
+both the expansion remainder and the removed-tail bound. This remains a
+real-arithmetic bound; floating-point error is separate.
+
+This form handles steep intervals without subtracting Gaussian tail
+probabilities or using unstable upward moment recurrences. Twelve independent
+Acb continuous integrals cover both endpoint signs, curvature up to `1e12`,
+and linear coefficients up to `3e12`.

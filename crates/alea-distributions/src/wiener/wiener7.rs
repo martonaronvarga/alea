@@ -8,6 +8,7 @@ mod analytic_time;
 mod audit;
 mod error;
 mod fixed;
+mod gaussian_tail;
 pub use error::Wiener7ErrorEstimate;
 mod integrals;
 mod reduced;
