@@ -74,9 +74,9 @@ impl Wiener7 {
         }
         let mut log_scale = log_scale;
         let volume: f64 = (0..core.dim).map(|i| core.xmax[i] - core.xmin[i]).product();
-        for _ in 0..2 {
+        for attempt in 0..2 {
             let Some((value, error)) =
-                Self::normalized_adaptive_integrals(core, obs, log_scale, norms)
+                Self::normalized_adaptive_integrals(core, obs, log_scale, norms, attempt + 1)
             else {
                 return fail_eval_7();
             };
@@ -106,8 +106,10 @@ impl Wiener7 {
         obs: &WienerObservation,
         log_scale: f64,
         norms: [f64; 7],
+        work_multiplier: usize,
     ) -> Option<([f64; 8], [f64; 8])> {
         let mut options = core.opts;
+        options.max_eval = options.max_eval.saturating_mul(work_multiplier);
         // L2 convergence can hide a small inaccurate derivative behind a large
         // one. Normalize the component budgets and use individual errors, with
         // room for both numerator and denominator uncertainty in a score ratio.
@@ -180,6 +182,54 @@ mod empirical_proposals {
     #[test]
     fn ordinary_empirical_proposals_retain_finite_score_evaluations() {
         for (rt, p) in [
+            (
+                0.704,
+                [
+                    2.5617827402056976,
+                    0.3980884179105071,
+                    0.46827887157650716,
+                    0.415936314741221,
+                    0.8496832712663716,
+                    0.44462996670765725,
+                    0.3132678856005957,
+                ],
+            ),
+            (
+                0.675,
+                [
+                    2.7092215216795865,
+                    0.34113462875931877,
+                    0.4593233880286724,
+                    0.16511852804671434,
+                    0.39073595979686093,
+                    0.46861182956553266,
+                    0.3127338429722869,
+                ],
+            ),
+            (
+                0.704,
+                [
+                    2.5789358778334295,
+                    0.3700726595378969,
+                    0.4715404030069702,
+                    0.3766483392727203,
+                    0.43404478856973366,
+                    0.4197814597726233,
+                    0.331465448123216,
+                ],
+            ),
+            (
+                0.704,
+                [
+                    2.3631483212357374,
+                    0.4126305678625373,
+                    0.4425027031386802,
+                    0.6382142920468534,
+                    0.3644814966730689,
+                    0.40576635202778055,
+                    0.31378337174968796,
+                ],
+            ),
             (
                 0.704,
                 [
