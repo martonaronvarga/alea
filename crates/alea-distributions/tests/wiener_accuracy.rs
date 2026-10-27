@@ -5,6 +5,42 @@ use alea_distributions::wiener::{
 };
 
 #[test]
+fn clipped_boundary_fluxes_match_independent_integrated_cdf_balls() {
+    use alea_distributions::wiener::{Wiener7, Wiener7Params, WienerOptions};
+    let mut count = 0;
+    for line in include_str!("support/wiener7_flux_balls.csv")
+        .lines()
+        .skip(1)
+    {
+        let x: Vec<f64> = line.split(',').map(|s| s.parse().unwrap()).collect();
+        let event = WienerObservation {
+            rt: x[0],
+            boundary: if x[7] == 1. {
+                Boundary::Lower
+            } else {
+                Boundary::Upper
+            },
+        };
+        let p = Wiener7Params::with_params(x[1], x[2], x[3], x[4], x[5], x[6], 0.).unwrap();
+        let evaluation = Wiener7
+            .try_fused(&event, &p, WienerOptions::new(1e-8))
+            .unwrap();
+        for (i, actual) in std::iter::once(evaluation.log_prob)
+            .chain(evaluation.grad_array())
+            .enumerate()
+        {
+            let reference = x[8 + 2 * i];
+            assert!(
+                (actual - reference).abs() <= x[9 + 2 * i] + 1e-8 * reference.abs().max(1.),
+                "row {count}, component {i}: {actual} vs {reference}"
+            );
+        }
+        count += 1;
+    }
+    assert_eq!(count, 6);
+}
+
+#[test]
 fn componentwise_evaluations_match_independent_ball_enclosures() {
     let mut count = 0;
     for line in include_str!("support/wiener_balls.csv").lines().skip(1) {

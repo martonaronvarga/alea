@@ -550,3 +550,38 @@ The zero-time density vanishes for the admitted interior start interval.
 Ball arithmetic propagates cancellation in these expressions, while independent
 saved integrals check the resulting scores. These alternatives help the
 reference evaluator; they do not change production accuracy guarantees.
+
+## Start faces and Brownian scaling in the adaptive fallback
+
+For a start interval of width `w`, let `H_-` and `H_+` be the time-averaged
+likelihoods at its two ends, and let `I` be the likelihood averaged over both
+intervals. Differentiating the continuous uniform average gives
+
+\[
+\partial_\beta I=\frac{H_+-H_-}{w},\qquad
+\partial_w I=\frac{(H_++H_-)/2-I}{w}.
+\]
+
+The rare adaptive fallback can integrate these one-dimensional faces instead
+of cancelling large positive and negative start derivatives inside a sharp
+time peak. Face tolerances scale with `w`; their errors and the central density
+error are propagated through the width division. Region refinement also accounts
+for this amplification. Very narrow widths keep the unit-cube or moment
+derivatives, and an unavailable face calculation retains the direct integration.
+
+The cumulative probability with Gaussian drift variability satisfies
+`F(T,a,v,s) = F(T/a²,1,av,as)`. For a time interval `[L,T]`, with face densities
+`g(L)` and `g(T)` and width `h`, differentiation therefore gives
+
+\[
+a\,\partial_a I=
+\frac{2[Lg(L)-Tg(T)]}{h}
++v\,\partial_v I+s\,\partial_s I.
+\]
+
+This identity removes another cancelling integral. It applies to both response
+boundaries and to clipped intervals, where `L=0` and `g(L)=0`. The final score
+checks include the errors of both faces and both drift derivatives. Six
+independent ball fixtures obtain the clipped probability and scores by averaging
+spectral CDFs over the start interval, without time quadrature. As elsewhere,
+adaptive quadrature discrepancies remain estimates rather than certified bounds.

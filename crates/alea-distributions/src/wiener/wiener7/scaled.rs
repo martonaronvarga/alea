@@ -135,6 +135,53 @@ impl Wiener7 {
         Some(faces)
     }
 
+    fn start_face_budget(core: &Wiener7Core) -> Option<f64> {
+        // Endpoint subtraction is unsuitable for a vanishing start width.
+        // Leave that limit to the direct unit-cube derivative or moments.
+        let budget = 0.01 * core.opts.req_rel_error * core.sw.min(1.);
+        (core.sw > 0. && core.st0 > 0. && budget >= 64. * f64::EPSILON).then_some(budget)
+    }
+
+    /// Time-averaged densities at the two start faces, divided by start width.
+    fn start_faces(&self, core: &Wiener7Core, obs: &WienerObservation) -> Option<[f64; 2]> {
+        let budget = Self::start_face_budget(core)?;
+        let mut point = core.clone();
+        point.sw = 0.;
+        point.dim = 1;
+        point.xmin = [0.; 2];
+        point.xmax = [core.xmax[1], 1.];
+        point.opts.req_rel_error = budget;
+        point.eps_series = point.eps_series.min(budget);
+        let mut faces = [0.; 2];
+        for (log, beta) in faces
+            .iter_mut()
+            .zip([core.beta0 - core.sw / 2., core.beta0 + core.sw / 2.])
+        {
+            point.beta0 = beta;
+            let lp = if point.sv == 0. {
+                let base = Wiener4Params::from_array([point.alpha, point.tau0, beta, point.delta]);
+                Wiener4
+                    .try_log_interval_prob(
+                        obs.rt - point.st0,
+                        obs.rt,
+                        obs.boundary,
+                        &base,
+                        WienerOptions::new(budget),
+                    )
+                    .ok()
+                    .map(|value| value - point.st0.ln())
+            } else {
+                None
+            }
+            .unwrap_or_else(|| self.scaled_integral(&point, obs, false, false).log_prob);
+            if !lp.is_finite() {
+                return None;
+            }
+            *log = lp - core.sw.ln();
+        }
+        Some(faces)
+    }
+
     fn scaled_region(
         core: &Wiener7Core,
         obs: &WienerObservation,
@@ -142,6 +189,7 @@ impl Wiener7 {
         hi: [f64; 2],
         gradients: bool,
         reduce_start: bool,
+        start_fluxes: bool,
     ) -> Option<Region> {
         let rule = |first, second| {
             let (mut sum, split) =
@@ -151,8 +199,13 @@ impl Wiener7 {
             }
             // Time derivatives are obtained from the full boundary fluxes.
             if gradients && Self::use_time_fluxes(core, obs) {
+                sum.value[1] = 0.;
                 sum.value[2] = 0.;
                 sum.value[7] = 0.;
+            }
+            if start_fluxes {
+                sum.value[3] = 0.;
+                sum.value[6] = 0.;
             }
             Some((sum, split))
         };
@@ -176,7 +229,11 @@ impl Wiener7 {
                     (sum.value[i] - factors[1] * low_time.value[i]).abs(),
                 ];
                 *component_error = component_error.max(differences[0] + differences[1]);
-                let norm = sum.value[i].abs().max(sum.value[0]);
+                let norm = if i == 0 && start_fluxes {
+                    sum.value[0] * core.sw.min(1.)
+                } else {
+                    sum.value[i].abs().max(sum.value[0])
+                };
                 for d in 0..2 {
                     priority[d] = priority[d].max(differences[d] / norm);
                 }
@@ -234,6 +291,11 @@ impl Wiener7 {
         gradients: bool,
         reduce_start: bool,
     ) -> Wiener7Eval {
+        let start_faces = if gradients && Self::start_face_budget(core).is_some() {
+            self.start_faces(core, obs)
+        } else {
+            None
+        };
         let faces = if gradients && Self::use_time_fluxes(core, obs) {
             let Some(faces) = self.time_faces(core, obs) else {
                 return fail_eval_7();
@@ -247,7 +309,15 @@ impl Wiener7 {
         } else {
             (core.xmin, core.xmax)
         };
-        let Some(first) = Self::scaled_region(core, obs, lo, hi, gradients, reduce_start) else {
+        let Some(first) = Self::scaled_region(
+            core,
+            obs,
+            lo,
+            hi,
+            gradients,
+            reduce_start,
+            start_faces.is_some(),
+        ) else {
             return fail_eval_7();
         };
         let mut regions = vec![first];
@@ -285,6 +355,27 @@ impl Wiener7 {
                     core.xmax[time] * face[0] - core.xmin[time] * face[1] - total[0] / core.st0;
                 error[7] = budget * (core.xmax[time] * face[0] + core.xmin[time] * face[1])
                     + error[0] / core.st0;
+                let upper = obs.rt - core.tau0;
+                let lower = (upper - core.st0).max(0.);
+                // F(T,a,v,s)=F(T/a²,1,av,as). Apply this scale identity
+                // to the two time limits instead of cancelling alpha scores
+                // inside a sharply peaked first-passage density.
+                total[1] = (2. * (lower * face[0] - upper * face[1])
+                    + core.delta * total[4]
+                    + core.sv * total[5])
+                    / core.alpha;
+                error[1] = (2. * budget * (lower * face[0] + upper * face[1])
+                    + core.delta.abs() * error[4]
+                    + core.sv * error[5])
+                    / core.alpha;
+            }
+            if let Some(faces) = start_faces {
+                let face = faces.map(|lp| (lp - scale).exp());
+                let budget = Self::start_face_budget(core).expect("start faces have a budget");
+                total[3] = face[1] - face[0];
+                error[3] = budget * (face[0] + face[1]);
+                total[6] = 0.5 * (face[0] + face[1]) - total[0] / core.sw;
+                error[6] = 0.5 * budget * (face[0] + face[1]) + error[0] / core.sw;
             }
             let density = total[0];
             let margin = density - error[0];
@@ -312,7 +403,14 @@ impl Wiener7 {
                 .map(|(i, r)| {
                     let weight = (r.sum.scale - scale).exp();
                     let priority = (0..8)
-                        .map(|k| weight * r.error[k] / total[k].abs().max(density))
+                        .map(|k| {
+                            let norm = if k == 0 && start_faces.is_some() {
+                                density * core.sw.min(1.)
+                            } else {
+                                total[k].abs().max(density)
+                            };
+                            weight * r.error[k] / norm
+                        })
                         .fold(0.0, f64::max);
                     (i, priority)
                 })
@@ -328,14 +426,26 @@ impl Wiener7 {
             left_hi[d] = middle;
             let mut right_lo = old.lo;
             right_lo[d] = middle;
-            let Some(left) =
-                Self::scaled_region(core, obs, old.lo, left_hi, gradients, reduce_start)
-            else {
+            let Some(left) = Self::scaled_region(
+                core,
+                obs,
+                old.lo,
+                left_hi,
+                gradients,
+                reduce_start,
+                start_faces.is_some(),
+            ) else {
                 return fail_eval_7();
             };
-            let Some(right) =
-                Self::scaled_region(core, obs, right_lo, old.hi, gradients, reduce_start)
-            else {
+            let Some(right) = Self::scaled_region(
+                core,
+                obs,
+                right_lo,
+                old.hi,
+                gradients,
+                reduce_start,
+                start_faces.is_some(),
+            ) else {
                 return fail_eval_7();
             };
             regions[index] = left;
@@ -513,6 +623,16 @@ mod tests {
 #[cfg(test)]
 mod atlasz_replay {
     use super::*;
+    #[test]
+    fn selected_boundary_clipped_time() {
+        let event = WienerObservation {
+            rt: 0.01,
+            boundary: Boundary::Upper,
+        };
+        let p = Wiener7Params::with_params(0.1, 0., 0.999, 30., 0.001, 0.2, 0.).unwrap();
+        let result = Wiener7.try_fused(&event, &p, WienerOptions::new(1e-8));
+        assert!(result.is_ok(), "{result:?}");
+    }
     #[test]
     fn clipped_opposite_boundary_retains_finite_density_and_scores() {
         let event = WienerObservation {
