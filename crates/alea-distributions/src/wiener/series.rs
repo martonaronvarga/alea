@@ -807,7 +807,7 @@ fn endpoint_density(t: f64, w: f64, q: f64, k: usize, branch: super::SeriesBranc
 }
 
 /// Log density of the normalized zero-drift law, without score accumulation.
-#[inline]
+#[inline(always)]
 pub(super) fn log_density(
     t: f64,
     w: f64,

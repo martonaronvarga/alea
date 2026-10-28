@@ -294,7 +294,7 @@ impl Wiener4 {
         self.core_from_parts(obs.rt, obs.boundary, params, eps)
     }
 
-    #[inline]
+    #[inline(always)]
     fn core_from_parts(
         &self,
         rt: f64,
@@ -497,7 +497,7 @@ impl Wiener4 {
         Self::density_from_core(&core, branch, terms)
     }
 
-    #[inline]
+    #[inline(always)]
     pub(super) fn density_branch(core: &Wiener4Core) -> (SeriesBranch, usize) {
         let small = Self::k_s(core.t_prime, core.w_eff, core.log_eps_eff);
         let large = Self::k_l(core.t_prime, core.log_eps_eff);

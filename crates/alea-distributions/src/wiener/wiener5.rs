@@ -96,7 +96,7 @@ impl Wiener5 {
         self.core_from_parts(obs.rt, obs.boundary, params, eps)
     }
 
-    #[inline]
+    #[inline(always)]
     fn core_from_parts(
         &self,
         rt: f64,
