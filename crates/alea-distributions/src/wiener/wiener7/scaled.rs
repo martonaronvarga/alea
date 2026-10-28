@@ -139,7 +139,13 @@ impl Wiener7 {
     fn use_time_fluxes(core: &Wiener7Core, obs: &WienerObservation) -> bool {
         // Nearby faces lose digits in both a difference and a width division.
         // Direct unit-cube derivatives remain stable in that narrow limit.
-        core.st0 / (obs.rt - core.tau0) >= (32. * f64::EPSILON / core.opts.req_rel_error).sqrt()
+        Self::time_face_budget(core) >= 64. * f64::EPSILON
+            && core.st0 / (obs.rt - core.tau0)
+                >= (32. * f64::EPSILON / core.opts.req_rel_error).sqrt()
+    }
+
+    fn time_face_budget(core: &Wiener7Core) -> f64 {
+        0.01 * core.opts.req_rel_error * core.st0.min(1.)
     }
 
     /// Integrate the two start-averaged time faces once. All fluxes remain in
@@ -151,7 +157,7 @@ impl Wiener7 {
         point.dim = usize::from(core.sw > 0.);
         point.xmin = [0.; 2];
         point.xmax = [1.; 2];
-        point.opts.req_rel_error *= 0.01;
+        point.opts.req_rel_error = Self::time_face_budget(core);
         point.eps_series = point.eps_series.min(point.opts.req_rel_error);
         let max_time = obs.rt - core.tau0;
         let mut faces = [f64::NEG_INFINITY; 2];
@@ -244,7 +250,6 @@ impl Wiener7 {
             }
             // Time derivatives are obtained from the full boundary fluxes.
             if gradients && reduction != Reduction::Time && Self::use_time_fluxes(core, obs) {
-                sum.value[1] = 0.;
                 sum.value[2] = 0.;
                 sum.value[7] = 0.;
             }
@@ -419,10 +424,11 @@ impl Wiener7 {
                     error[i] += factor * r.error[i];
                 }
             }
+            let mut alpha_fluxes = false;
             if let Some(faces) = faces {
                 let face = faces.map(|lp| (lp - scale).exp());
                 let time = usize::from(core.sw > 0.);
-                let budget = 0.01 * tolerance;
+                let budget = Self::time_face_budget(core);
                 total[2] = face[0] - face[1];
                 error[2] = budget * (face[0] + face[1]);
                 total[7] =
@@ -434,14 +440,22 @@ impl Wiener7 {
                 // F(T,a,v,s)=F(T/a²,1,av,as). Apply this scale identity
                 // to the two time limits instead of cancelling alpha scores
                 // inside a sharply peaked first-passage density.
-                total[1] = (2. * (lower * face[0] - upper * face[1])
+                let alpha = (2. * (lower * face[0] - upper * face[1])
                     + core.delta * total[4]
                     + core.sv * total[5])
                     / core.alpha;
-                error[1] = (2. * budget * (lower * face[0] + upper * face[1])
+                let alpha_error = (2. * budget * (lower * face[0] + upper * face[1])
                     + core.delta.abs() * error[4]
                     + core.sv * error[5])
                     / core.alpha;
+                // Scaling can itself cancel large drift and face terms. Keep
+                // the directly integrated derivative when its estimate is
+                // better, rather than imposing an unattainable face budget.
+                if alpha_error < error[1] {
+                    total[1] = alpha;
+                    error[1] = alpha_error;
+                    alpha_fluxes = true;
+                }
             }
             if let Some(faces) = start_faces {
                 let face = faces.map(|lp| (lp - scale).exp());
@@ -478,6 +492,9 @@ impl Wiener7 {
                     let weight = (r.sum.scale - scale).exp();
                     let priority = (0..8)
                         .map(|k| {
+                            if k == 1 && alpha_fluxes {
+                                return 0.;
+                            }
                             let norm = if k == 0 && start_faces.is_some() {
                                 density * core.sw.min(1.)
                             } else {
@@ -698,6 +715,39 @@ mod tests {
 #[cfg(test)]
 mod atlasz_replay {
     use super::*;
+    #[test]
+    fn time_faces_meet_width_scaled_score_budgets() {
+        let mut count = 0;
+        for line in include_str!("../../../tests/support/wiener7_face_balls.csv")
+            .lines()
+            .skip(1)
+        {
+            let x: Vec<f64> = line.split(',').map(|s| s.parse().unwrap()).collect();
+            let obs = WienerObservation {
+                rt: x[0],
+                boundary: if x[8] == 1. {
+                    Boundary::Lower
+                } else {
+                    Boundary::Upper
+                },
+            };
+            let p = Wiener7Params::with_params(x[1], x[2], x[3], x[4], x[6], x[7], x[5]).unwrap();
+            let core = Wiener7.core(&obs, &p, 1e-8).unwrap();
+            let e = Wiener7.scaled_adaptive(&core, &obs);
+            for (i, actual) in std::iter::once(e.log_prob)
+                .chain(e.grad_array())
+                .enumerate()
+            {
+                let reference = x[9 + 2 * i];
+                assert!(
+                    (actual - reference).abs() <= x[10 + 2 * i] + 1e-8 * reference.abs().max(1.),
+                    "row {count}, component {i}: {actual} vs {reference}"
+                );
+            }
+            count += 1;
+        }
+        assert_eq!(count, 13);
+    }
     #[test]
     fn density_fallback_does_not_require_score_convergence() {
         for (tau, drift, sd) in [(0., 1., 1e-8), (0.05, -1., 1.)] {

@@ -604,6 +604,16 @@ independent ball fixtures obtain the clipped probability and scores by averaging
 spectral CDFs over the start interval, without time quadrature. As elsewhere,
 adaptive quadrature discrepancies remain estimates rather than certified bounds.
 
+The time-face precision also scales with the time width. Without that scaling,
+division by a small width can prevent the score error check from converging,
+even after arbitrarily fine interior quadrature. If the required face precision
+falls below the floating-point allowance, direct unit-cube derivatives remain
+available. The scale identity can itself cancel large drift and face terms, so
+the evaluator retains the directly integrated boundary-separation derivative
+and chooses the estimate with the smaller propagated error. Thirteen additional
+independent fixtures check narrow time widths and a large-drift interval where
+unconditionally using the scale identity makes the old face budget unattainable.
+
 ## Exact time averaging with Gaussian drift variability
 
 Gaussian drift variability does not require an extra numerical integral in the
