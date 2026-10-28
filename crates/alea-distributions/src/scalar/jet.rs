@@ -35,6 +35,26 @@ impl<const N: usize> Jet<N> {
     pub fn abs(self) -> Self {
         self.map(self.v.abs(), self.v.signum())
     }
+    pub fn sqrt(self) -> Self {
+        let v = self.v.sqrt();
+        self.map(v, 0.5 / v)
+    }
+    pub fn hypot(self, other: Self) -> Self {
+        let v = self.v.hypot(other.v);
+        Self {
+            v,
+            d: std::array::from_fn(|i| (self.v / v) * self.d[i] + (other.v / v) * other.d[i]),
+        }
+    }
+    pub fn log_k1_scaled(self) -> Self {
+        let k1 = spec_math::cephes64::k1e(self.v);
+        let slope = if self.v > 1e8 {
+            -0.5 / self.v - 0.375 / self.v / self.v
+        } else {
+            1.0 - spec_math::cephes64::k0e(self.v) / k1 - self.v.recip()
+        };
+        self.map(k1.ln(), slope)
+    }
     pub fn cos(self) -> Self {
         self.map(self.v.cos(), -self.v.sin())
     }

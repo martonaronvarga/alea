@@ -105,6 +105,7 @@ dependencies = [
  "once_cell",
  "pprof",
  "rand 0.10.1",
+ "spec_math",
  "statrs",
  "thiserror 2.0.18",
 ]
@@ -1962,6 +1963,12 @@ name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
+
+[[package]]
+name = "spec_math"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02ef091d4e8b981dbaa4cc17789d00b53d5d2c001ae689f14e6093f30c529036"
 
 [[package]]
 name = "spin"

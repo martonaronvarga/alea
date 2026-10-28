@@ -31,6 +31,7 @@ tokio-util = { version = "0.7", features = ["rt"] }
 arc-swap = "1"
 rustfft = "6"
 statrs = { version = "0.18", default-features = false }
+spec_math = "0.1.6"
 thiserror = "2.0.18"
 tracing = "0.1.44"
 approx = "0.5.1"

@@ -210,3 +210,34 @@ fn von_mises_normalizer_matches_80_digit_bessel_reference() {
         close(s[1], concentration_score, 1e-14);
     }
 }
+
+#[test]
+fn normal_inverse_gaussian_density_scores_and_mixture_sampling() {
+    scores(
+        NormalInverseGaussian::new(2.0, 0.4, 0.2, 1.3).unwrap(),
+        &[2.0, 0.4, 0.2, 1.3],
+        0.7,
+        |p| NormalInverseGaussian::new(p[0], p[1], p[2], p[3]).unwrap(),
+    );
+    // Independent mpmath 80-digit Bessel K evaluations, including scaled-function tails.
+    for (p, x, expected) in [
+        ([2.0, 0.4, 0.2, 1.3], -30.0, -75.40546476222145155337),
+        ([2.0, 0.4, 0.2, 1.3], 0.7, -0.7294127950436785371776),
+        ([2.0, 0.4, 0.2, 1.3], 30.0, -50.58617029415230835982),
+        ([1000.0, 1.0, 0.0, 1.0], 0.0, 2.534813918825247654304),
+        ([1e-8, 0.0, 0.0, 1.0], 0.0, -1.144729875849401125974),
+    ] {
+        close(
+            NormalInverseGaussian::new(p[0], p[1], p[2], p[3])
+                .unwrap()
+                .log_prob(&x)
+                .unwrap(),
+            expected,
+            2e-13,
+        );
+    }
+    let law = NormalInverseGaussian::new(2.0, 0.4, 0.2, 1.3).unwrap();
+    close(integral(&law, -30.0, 30.0, 100000), 1.0, 1e-10);
+    generated_mean(law, 0.2 + 1.3 * 0.4 / (4.0_f64 - 0.16).sqrt(), 0.012);
+    assert!(NormalInverseGaussian::new(1.0, 1.0, 0.0, 1.0).is_err());
+}

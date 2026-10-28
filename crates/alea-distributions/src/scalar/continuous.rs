@@ -17,6 +17,7 @@ enum Kind {
     Gumbel,
     SkewNormal,
     ExpModNormal,
+    NormalInverseGaussian,
     Weibull,
     Frechet,
     Pareto,
@@ -136,6 +137,13 @@ impl Kernel {
                 } else {
                     c.ln() - c * (x - a) + 0.5 * c * c * b * b + v.log_phi()
                 }
+            }
+            Kind::NormalInverseGaussian => {
+                let z = x - c;
+                let gamma = (a - b.abs()).sqrt() * (a + b.abs()).sqrt();
+                let r = d.hypot(z);
+                let exponent = -d * b * (b / (a + gamma)) + b * z - a * z * (z / (r + d));
+                a.ln() + d.ln() - PI.ln() + exponent + (a * r).log_k1_scaled() - r.ln()
             }
             Kind::Weibull => {
                 let z = x / b;
@@ -279,6 +287,15 @@ impl Kernel {
                 a + b * (delta * standard_normal(rng).abs() + standard_normal(rng) / c.hypot(1.0))
             }
             Kind::ExpModNormal => a + b * standard_normal(rng) - u.ln() / c,
+            Kind::NormalInverseGaussian => {
+                let gamma = (a - b.abs()).sqrt() * (a + b.abs()).sqrt();
+                let w = Kernel {
+                    kind: Kind::InverseGaussian,
+                    p: [d / gamma, d * d, 0.0, 0.0],
+                }
+                .draw(rng)?;
+                c + b * w + w.sqrt() * standard_normal(rng)
+            }
             Kind::Weibull => b * ((-u.ln()).ln() / a).exp(),
             Kind::Frechet => a + b * (-(-u.ln()).ln() / c).exp(),
             Kind::Pareto => a * (-u.ln() / b).exp(),
@@ -698,6 +715,35 @@ impl VonMises {
         Ok(Self(Kernel {
             kind: Kind::VonMises,
             p: [(mean + PI).rem_euclid(TAU) - PI, concentration, 0.0, 0.0],
+        }))
+    }
+}
+
+family!(
+    NormalInverseGaussian,
+    NormalInverseGaussian,
+    Real,
+    4,
+    "Normal-inverse-Gaussian. Score order: alpha, beta, location, delta. Requires alpha>|beta| and delta>0. Uses exponentially scaled Bessel K functions."
+);
+impl NormalInverseGaussian {
+    /// # Errors
+    /// Requires finite alpha>|beta|, finite location and positive finite delta.
+    pub fn new(alpha: f64, beta: f64, location: f64, delta: f64) -> Result<Self, E> {
+        positive(alpha, "alpha")?;
+        finite(beta, "beta")?;
+        finite(location, "location")?;
+        positive(delta, "delta")?;
+        if alpha <= beta.abs() {
+            return Err(E::Parameter("alpha must exceed abs(beta)"));
+        }
+        let gamma = (alpha - beta.abs()).sqrt() * (alpha + beta.abs()).sqrt();
+        if !gamma.is_finite() {
+            return Err(E::Numerical);
+        }
+        Ok(Self(Kernel {
+            kind: Kind::NormalInverseGaussian,
+            p: [alpha, beta, location, delta],
         }))
     }
 }
