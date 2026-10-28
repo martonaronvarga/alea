@@ -259,7 +259,13 @@ impl Kernel {
                     - (b - a).ln()
             }
             Kind::VonMises => {
-                let (scaled, ratio) = bessel_i0(b.v);
+                let i0 = spec_math::cephes64::i0e(b.v);
+                let scaled = i0.ln();
+                let ratio = if N == 0 {
+                    0.0
+                } else {
+                    spec_math::cephes64::i1e(b.v) / i0
+                };
                 let normalizer = Jet {
                     v: scaled,
                     d: b.d.map(|v| v * (ratio - 1.0)),
@@ -425,43 +431,6 @@ impl Kernel {
         } else {
             Err(E::Numerical)
         }
-    }
-}
-// log(exp(-k) I0(k)) and I1/I0. Positive series below 50; asymptotic expansion above.
-fn bessel_i0(k: f64) -> (f64, f64) {
-    if k < 50.0 {
-        let mut term = 1.0;
-        let mut sum = 1.0;
-        let mut derivative = 0.0;
-        for n in 1..512 {
-            term *= k * k / (4.0 * (n * n) as f64);
-            sum += term;
-            derivative += 2.0 * n as f64 * term;
-            if term <= sum * f64::EPSILON {
-                break;
-            }
-        }
-        (
-            sum.ln() - k,
-            if k == 0.0 {
-                0.0
-            } else {
-                derivative / (k * sum)
-            },
-        )
-    } else {
-        let expansion = |mu: f64| {
-            let mut t = 1.0;
-            let mut s = 1.0;
-            for j in 1..=16 {
-                t *= -((mu - ((2 * j - 1) * (2 * j - 1)) as f64) / (8.0 * k * j as f64));
-                s += t;
-            }
-            s
-        };
-        let s0 = expansion(0.0);
-        let s1 = expansion(4.0);
-        (-0.5 * (TAU * k).ln() + s0.ln(), s1 / s0)
     }
 }
 fn von_mises_draw<R: Rng + ?Sized>(mu: f64, k: f64, rng: &mut R) -> Result<f64, E> {

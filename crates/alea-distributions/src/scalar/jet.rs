@@ -71,12 +71,7 @@ impl<const N: usize> Jet<N> {
     }
     pub fn softplus(self) -> Self {
         let v = self.v.max(0.0) + (-self.v.abs()).exp().ln_1p();
-        let slope = if self.v >= 0.0 {
-            1.0 / (1.0 + (-self.v).exp())
-        } else {
-            let e = self.v.exp();
-            e / (1.0 + e)
-        };
+        let slope = alea_math::numeric::sigmoid(self.v);
         self.map(v, slope)
     }
     /// log Phi(x), including its Mills-ratio derivative in the negative tail.

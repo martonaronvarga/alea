@@ -66,3 +66,27 @@ fn vector_observations_and_parameter_shape_failures_are_checked()
     assert!(t.logp_grad(&[0.0], &mut g).is_err());
     Ok(())
 }
+
+#[test]
+fn bernoulli_model_scores_preserve_representable_complementary_tails()
+-> Result<(), Box<dyn std::error::Error>> {
+    use alea::distributions::modeling::bernoulli_logit;
+    for event in [false, true] {
+        let mut b = ModelBuilder::new();
+        let eta = b.real("eta")?;
+        let node = bernoulli_logit(&mut b, event, eta.expr())?;
+        b.factor(node)?;
+        let target = b.compile()?.into_target()?;
+        for z in [-100.0, -40.0, 0.0, 40.0, 100.0] {
+            let mut gradient = [0.0];
+            let value = target.logp_grad(&[z], &mut gradient)?;
+            let law = BernoulliLogit::new(z)?;
+            let mut reference = [0.0];
+            law.parameter_score(&event, &mut reference)?;
+            assert_eq!(value, law.log_prob(&event)?);
+            assert_eq!(gradient, reference);
+            assert_ne!(gradient[0], 0.0);
+        }
+    }
+    Ok(())
+}

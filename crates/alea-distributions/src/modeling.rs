@@ -117,12 +117,13 @@ pub fn bernoulli_logit(builder: &mut ModelBuilder, event: bool, logit: Expr) -> 
     };
     builder.custom_with_primal(&[logit], primal, move |x, g| {
         let z = x[0];
-        let p = if z >= 0.0 {
-            1.0 / (1.0 + (-z).exp())
+        // Use the complementary tail directly: 1-sigmoid(z) rounds to zero
+        // for large positive logits even when the analytic score is representable.
+        g[0] = if event {
+            alea_math::numeric::sigmoid(-z)
         } else {
-            z.exp() / (1.0 + z.exp())
+            -alea_math::numeric::sigmoid(z)
         };
-        g[0] = f64::from(event) - p;
         Bernoulli::logit_log_prob(z, event).map_err(error)
     })
 }

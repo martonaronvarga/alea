@@ -3,16 +3,9 @@ use super::{Bernoulli, Binomial, Poisson, finite, score, uniform};
 use alea_core::distribution::{
     Distribution, DistributionError as E, EventShape, ParameterScore, Sample, Support,
 };
+use alea_math::numeric::sigmoid;
 use rand::Rng;
 use statrs::function::gamma::ln_gamma;
-fn sigmoid(x: f64) -> f64 {
-    if x >= 0.0 {
-        1.0 / (1.0 + (-x).exp())
-    } else {
-        let e = x.exp();
-        e / (1.0 + e)
-    }
-}
 fn softplus(x: f64) -> f64 {
     x.max(0.0) + (-x.abs()).exp().ln_1p()
 }

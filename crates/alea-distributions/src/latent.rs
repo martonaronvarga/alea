@@ -184,24 +184,13 @@ impl AffineLatentWienerMap {
         coeffs[0] + coeffs[1] * c + coeffs[2] * m
     }
 
-    #[inline]
-    fn sigmoid(x: f64) -> f64 {
-        if x >= 0.0 {
-            let e = (-x).exp();
-            1.0 / (1.0 + e)
-        } else {
-            let e = x.exp();
-            e / (1.0 + e)
-        }
-    }
-
     /// Map one latent frame to one Wiener parameter tuple.
     #[inline]
     pub fn map_frame(&self, frame: LatentFrame) -> Wiener4Params {
         Wiener4Params {
             alpha: Self::dot(&self.alpha, frame.c, frame.m).exp(),
             tau: Self::dot(&self.tau, frame.c, frame.m).exp(),
-            beta: Self::sigmoid(Self::dot(&self.beta, frame.c, frame.m)),
+            beta: alea_math::numeric::sigmoid(Self::dot(&self.beta, frame.c, frame.m)),
             delta: Self::dot(&self.delta, frame.c, frame.m),
         }
     }
@@ -229,7 +218,7 @@ impl AffineLatentWienerMap {
             let m = latent.m[i];
             out_alpha[i] = Self::dot(&self.alpha, c, m).exp();
             out_tau[i] = Self::dot(&self.tau, c, m).exp();
-            out_beta[i] = Self::sigmoid(Self::dot(&self.beta, c, m));
+            out_beta[i] = alea_math::numeric::sigmoid(Self::dot(&self.beta, c, m));
             out_delta[i] = Self::dot(&self.delta, c, m);
         }
         true
