@@ -8,6 +8,10 @@ use rand::{Rng, RngExt};
 use statrs::function::gamma::{digamma, ln_gamma};
 use std::f64::consts::{PI, TAU};
 
+mod continuous;
+mod jet;
+pub use continuous::*;
+
 const LN_TAU: f64 = 1.8378770664093453;
 pub(crate) fn positive(x: f64, name: &'static str) -> Result<f64, E> {
     if x.is_finite() && x > 0.0 {

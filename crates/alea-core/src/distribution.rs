@@ -23,10 +23,20 @@ pub enum Support {
     Positive,
     UnitInterval,
     Count,
-    Finite { outcomes: usize },
+    Finite {
+        outcomes: usize,
+    },
     RealVector,
     Simplex,
     CorrelationCholesky,
+    /// A finite interval in the real line (bounds belong to the law).
+    Interval,
+    /// A half-line with a law-specific finite lower endpoint.
+    LowerBounded,
+    /// Angles in radians on one period, with respect to arc length.
+    Circle,
+    /// Symmetric positive-definite matrices, with respect to their free entries.
+    PositiveDefinite,
 }
 
 /// Checked construction/evaluation/sampling failure, distinct from support zero.
