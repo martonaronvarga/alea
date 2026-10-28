@@ -7,11 +7,7 @@ use alea_math::buffer::OwnedBuffer;
 
 /// Semantically pure, fixed-dimensional log density in unconstrained coordinates.
 /// The mathematical target and its dimension must remain fixed while borrowed.
-pub trait LogDensity {
-    /// Original model or backend error retained by checked evaluation.
-    type Error: std::error::Error + 'static;
-    /// Number of coordinates in each retained state.
-    fn dimension(&self) -> usize;
+pub trait LogDensity: crate::target::TargetSpace {
     /// Returns the log density. Domain/backend failures retain their concrete type.
     fn logp(&self, position: &[f64]) -> Result<f64, Self::Error>;
 }

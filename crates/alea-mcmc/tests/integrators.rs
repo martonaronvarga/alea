@@ -10,11 +10,13 @@ use std::{cell::Cell, convert::Infallible};
 struct Normal {
     calls: Cell<usize>,
 }
-impl LogDensityGradient for Normal {
+impl alea_core::target::TargetSpace for Normal {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensityGradient for Normal {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         self.calls.set(self.calls.get() + 1);
         g[0] = -q[0];

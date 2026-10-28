@@ -10,11 +10,13 @@ struct Target {
     calls: Cell<usize>,
     mode: Cell<u8>,
 }
-impl LogDensity for Target {
+impl alea_core::target::TargetSpace for Target {
     type Error = std::io::Error;
     fn dimension(&self) -> usize {
         self.dimension.get()
     }
+}
+impl LogDensity for Target {
     fn logp(&self, q: &[f64]) -> Result<f64, Self::Error> {
         self.calls.set(self.calls.get() + 1);
         match self.mode.get() {

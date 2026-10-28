@@ -2,7 +2,7 @@
 
 use std::error::Error;
 
-use alea_core::capability::HessianVector;
+use alea_core::capability::PotentialHessianVector;
 use alea_math::buffer::OwnedBuffer;
 use rand::Rng;
 
@@ -95,18 +95,18 @@ impl<E: Error + 'static> From<WarmupError<E>> for JointWarmupError<E> {
 
 pub type JointWarmupResult<'a, T> = Result<
     (Hmc<'a, T, WarmupMetric, TwoStage>, JointWarmupReport),
-    JointWarmupError<<T as alea_core::target::LogDensityGradient>::Error>,
+    JointWarmupError<<T as alea_core::target::TargetSpace>::Error>,
 >;
 
 /// Owning joint controller; it deliberately does not implement `MarkovChain`.
 #[derive(Debug)]
 #[must_use = "joint warmup must finish before retained sampling"]
-pub struct JointHmcWarmup<'a, T: HessianVector + ?Sized> {
+pub struct JointHmcWarmup<'a, T: PotentialHessianVector + ?Sized> {
     inner: HmcWarmup<'a, T, TwoStage>,
     options: JointWarmupOptions,
 }
 
-impl<'a, T: HessianVector + ?Sized> JointHmcWarmup<'a, T> {
+impl<'a, T: PotentialHessianVector + ?Sized> JointHmcWarmup<'a, T> {
     pub fn new(
         target: &'a T,
         position: OwnedBuffer,

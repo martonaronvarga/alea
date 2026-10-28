@@ -1,7 +1,7 @@
 #![cfg_attr(feature = "std-autodiff", feature(autodiff))]
 #[path = "../../../tools/downstream-conformance/src/modeling.rs"]
 mod downstream;
-use alea_core::target::LogDensityGradient;
+use alea_core::target::{LogDensityGradient, TargetSpace};
 use alea_distributions::wiener::{Boundary, WienerObservation};
 #[cfg(feature = "std-autodiff")]
 use std::autodiff::autodiff_reverse;

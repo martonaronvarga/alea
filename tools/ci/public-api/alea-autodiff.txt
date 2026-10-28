@@ -11,17 +11,18 @@ pub fn alea_autodiff::autodiff::AutodiffError::fmt(&self, f: &mut core::fmt::For
 impl core::fmt::Display for alea_autodiff::autodiff::AutodiffError
 pub fn alea_autodiff::autodiff::AutodiffError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_autodiff::autodiff::AutodiffError
-pub struct alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>
-impl<F, H, D> alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>
-pub fn alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>::new(dimension: usize, gradient: F, hvp: H, tensors: D) -> Self
-impl<F, H, D> alea_core::capability::HessianVector for alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
-pub fn alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>::potential_hvp(&self, position: &[f64], vector: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>
-impl<F, H, D> alea_core::capability::PotentialHessianDerivative for alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
-pub fn alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>::potential_hessian_and_derivatives(&self, position: &[f64], hessian: &mut [f64], derivatives: &mut [f64]) -> core::result::Result<(), Self::Error>
-impl<F, H, D> alea_core::target::LogDensityGradient for alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
-pub type alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>::Error = alea_autodiff::autodiff::AutodiffError
-pub fn alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>::dimension(&self) -> usize
-pub fn alea_autodiff::autodiff::EnzymeManifoldModel<F, H, D>::logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
+pub struct alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>
+impl<F, H, D> alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>
+pub fn alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::new(dimension: usize, gradient: F, hvp: H, tensors: D) -> Self
+impl<F, H, D> alea_core::capability::PotentialHessianDerivative for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
+pub fn alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::potential_hessian_and_derivatives(&self, position: &[f64], hessian: &mut [f64], derivatives: &mut [f64]) -> core::result::Result<(), Self::Error>
+impl<F, H, D> alea_core::capability::PotentialHessianVector for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
+pub fn alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::potential_hvp(&self, position: &[f64], vector: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>
+impl<F, H, D> alea_core::target::LogDensityGradient for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
+pub fn alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl<F, H, D> alea_core::target::TargetSpace for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
+pub type alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::Error = alea_autodiff::autodiff::AutodiffError
+pub fn alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::dimension(&self) -> usize
 pub struct alea_autodiff::autodiff::EnzymeModel<F>
 impl<F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64> alea_autodiff::autodiff::EnzymeModel<F>
 pub fn alea_autodiff::autodiff::EnzymeModel<F>::new(dimension: usize, derivative: F) -> Self
@@ -74,4 +75,4 @@ impl alea_autodiff::gradient_check::GradientReport
 pub fn alea_autodiff::gradient_check::GradientReport::passed(&self) -> bool
 impl core::fmt::Debug for alea_autodiff::gradient_check::GradientReport
 pub fn alea_autodiff::gradient_check::GradientReport::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-pub fn alea_autodiff::gradient_check::check_gradient<T: alea_core::target::LogDensityGradient + ?core::marker::Sized>(target: &T, position: &[f64], options: alea_autodiff::gradient_check::GradientCheckOptions) -> core::result::Result<alea_autodiff::gradient_check::GradientReport, alea_autodiff::gradient_check::GradientCheckError<<T as alea_core::target::LogDensityGradient>::Error>>
+pub fn alea_autodiff::gradient_check::check_gradient<T: alea_core::target::LogDensityGradient + ?core::marker::Sized>(target: &T, position: &[f64], options: alea_autodiff::gradient_check::GradientCheckOptions) -> core::result::Result<alea_autodiff::gradient_check::GradientReport, alea_autodiff::gradient_check::GradientCheckError<<T as alea_core::target::TargetSpace>::Error>>

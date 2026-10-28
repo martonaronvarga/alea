@@ -10,6 +10,15 @@ use std::error::Error;
 
 use thiserror::Error;
 
+/// Shared coordinate and error contract for a fixed mathematical target.
+/// Primal and fused evaluation are independent capabilities on this space.
+pub trait TargetSpace {
+    /// Original model/backend error, retained without type erasure.
+    type Error: Error + 'static;
+    /// Number of unconstrained coordinates, fixed while the target is borrowed.
+    fn dimension(&self) -> usize;
+}
+
 /// A semantically pure fused log-density/gradient in unconstrained coordinates.
 ///
 /// The dimension and mathematical target must remain fixed while borrowed by a
@@ -20,13 +29,7 @@ use thiserror::Error;
 ///
 /// [`evaluate`] checks dimensions, finite inputs, and complete finite outputs.
 /// The raw method is available to adapters; callers must honor its dimensions.
-pub trait LogDensityGradient {
-    /// The original model/backend error, retained rather than formatted or boxed.
-    type Error: Error + 'static;
-
-    /// Number of unconstrained coordinates (constant for this target).
-    fn dimension(&self) -> usize;
-
+pub trait LogDensityGradient: TargetSpace {
     /// Writes the full gradient and returns the log density in one evaluation.
     ///
     /// # Errors
@@ -177,11 +180,11 @@ impl EvaluationWorkspace {
 /// # Examples
 /// ```
 /// use alea::math::buffer::OwnedBuffer;
-/// use alea::distributions::Gaussian;
+/// use alea::distributions::StandardNormalTarget;
 /// use alea::target::{
 ///     EvaluationWorkspace, PointState,
 /// };
-/// let target = Gaussian::new(2);
+/// let target = StandardNormalTarget::new(2);
 /// let mut point = PointState::new(&target, OwnedBuffer::from_fn(2, |_| 0.0))?;
 /// let mut scratch = EvaluationWorkspace::new(2);
 /// point.try_update(&[1.0, 2.0], &mut scratch)?;
@@ -193,9 +196,9 @@ impl EvaluationWorkspace {
 /// Cached coordinates cannot be independently mutated:
 /// ```compile_fail
 /// # use alea::math::buffer::OwnedBuffer;
-/// use alea::distributions::Gaussian;
+/// use alea::distributions::StandardNormalTarget;
 /// use alea::target::{PointState};
-/// let target = Gaussian::new(1);
+/// let target = StandardNormalTarget::new(1);
 /// let mut point = PointState::new(&target, OwnedBuffer::new(1)).unwrap();
 /// point.position()[0] = 7.0;
 /// ```

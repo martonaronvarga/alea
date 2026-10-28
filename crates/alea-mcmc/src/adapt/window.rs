@@ -291,13 +291,13 @@ pub struct HmcWarmupReport {
 /// Successful warmup returns a fixed kernel and its warmup-only counters.
 pub type HmcWarmupResult<'a, T, I = Leapfrog> = Result<
     (Hmc<'a, T, WarmupMetric, I>, HmcWarmupReport),
-    WarmupError<<T as LogDensityGradient>::Error>,
+    WarmupError<<T as alea_core::target::TargetSpace>::Error>,
 >;
 
 /// A controlled warmup either freezes a complete chain or cancels without one.
 pub type ControlledHmcWarmupResult<'a, T, I = Leapfrog> = Result<
     Option<(Hmc<'a, T, WarmupMetric, I>, HmcWarmupReport)>,
-    WarmupError<<T as LogDensityGradient>::Error>,
+    WarmupError<<T as alea_core::target::TargetSpace>::Error>,
 >;
 
 /// Owning, non-sampling warmup controller. Only successful completion returns a
@@ -306,11 +306,11 @@ pub type ControlledHmcWarmupResult<'a, T, I = Leapfrog> = Result<
 /// Metric construction allocates at slow-window boundaries only.
 ///
 /// ```
-/// use alea::distributions::Gaussian;
+/// use alea::distributions::StandardNormalTarget;
 /// use alea::math::buffer::OwnedBuffer;
 /// use alea::sampling::{HmcOptions, adapt::{HmcWarmup, WarmupOptions}};
 /// use rand::{SeedableRng, rngs::SmallRng};
-/// let target = Gaussian::new(2);
+/// let target = StandardNormalTarget::new(2);
 /// let warmup = HmcWarmup::new(&target, OwnedBuffer::new(2),
 ///     HmcOptions::new(0.1, 5)?, WarmupOptions::new(200))?;
 /// let mut rng = SmallRng::seed_from_u64(7);

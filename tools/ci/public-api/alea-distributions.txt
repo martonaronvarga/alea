@@ -75,16 +75,15 @@ impl alea_distributions::gaussian::StandardNormalTarget
 pub fn alea_distributions::gaussian::StandardNormalTarget::new(dimension: usize) -> Self
 impl alea_core::capability::BatchLogDensityGradient for alea_distributions::gaussian::StandardNormalTarget
 pub fn alea_distributions::gaussian::StandardNormalTarget::batch_logp_grad(&self, shape: alea_core::capability::BatchShape, positions: &[f64], gradients: &mut [f64], results: &mut [alea_core::capability::BatchLane<Self::Error>])
-impl alea_core::capability::HessianVector for alea_distributions::gaussian::StandardNormalTarget
+impl alea_core::capability::PotentialHessianVector for alea_distributions::gaussian::StandardNormalTarget
 pub fn alea_distributions::gaussian::StandardNormalTarget::potential_hvp(&self, q: &[f64], vector: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>
 impl alea_core::density::LogDensity for alea_distributions::gaussian::StandardNormalTarget
-pub type alea_distributions::gaussian::StandardNormalTarget::Error = alea_core::target::DimensionError
-pub fn alea_distributions::gaussian::StandardNormalTarget::dimension(&self) -> usize
 pub fn alea_distributions::gaussian::StandardNormalTarget::logp(&self, q: &[f64]) -> core::result::Result<f64, Self::Error>
 impl alea_core::target::LogDensityGradient for alea_distributions::gaussian::StandardNormalTarget
+pub fn alea_distributions::gaussian::StandardNormalTarget::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::target::TargetSpace for alea_distributions::gaussian::StandardNormalTarget
 pub type alea_distributions::gaussian::StandardNormalTarget::Error = alea_core::target::DimensionError
 pub fn alea_distributions::gaussian::StandardNormalTarget::dimension(&self) -> usize
-pub fn alea_distributions::gaussian::StandardNormalTarget::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
 impl core::clone::Clone for alea_distributions::gaussian::StandardNormalTarget
 pub fn alea_distributions::gaussian::StandardNormalTarget::clone(&self) -> alea_distributions::gaussian::StandardNormalTarget
 impl core::fmt::Debug for alea_distributions::gaussian::StandardNormalTarget
@@ -1886,16 +1885,15 @@ impl alea_distributions::gaussian::StandardNormalTarget
 pub fn alea_distributions::gaussian::StandardNormalTarget::new(dimension: usize) -> Self
 impl alea_core::capability::BatchLogDensityGradient for alea_distributions::gaussian::StandardNormalTarget
 pub fn alea_distributions::gaussian::StandardNormalTarget::batch_logp_grad(&self, shape: alea_core::capability::BatchShape, positions: &[f64], gradients: &mut [f64], results: &mut [alea_core::capability::BatchLane<Self::Error>])
-impl alea_core::capability::HessianVector for alea_distributions::gaussian::StandardNormalTarget
+impl alea_core::capability::PotentialHessianVector for alea_distributions::gaussian::StandardNormalTarget
 pub fn alea_distributions::gaussian::StandardNormalTarget::potential_hvp(&self, q: &[f64], vector: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>
 impl alea_core::density::LogDensity for alea_distributions::gaussian::StandardNormalTarget
-pub type alea_distributions::gaussian::StandardNormalTarget::Error = alea_core::target::DimensionError
-pub fn alea_distributions::gaussian::StandardNormalTarget::dimension(&self) -> usize
 pub fn alea_distributions::gaussian::StandardNormalTarget::logp(&self, q: &[f64]) -> core::result::Result<f64, Self::Error>
 impl alea_core::target::LogDensityGradient for alea_distributions::gaussian::StandardNormalTarget
+pub fn alea_distributions::gaussian::StandardNormalTarget::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::target::TargetSpace for alea_distributions::gaussian::StandardNormalTarget
 pub type alea_distributions::gaussian::StandardNormalTarget::Error = alea_core::target::DimensionError
 pub fn alea_distributions::gaussian::StandardNormalTarget::dimension(&self) -> usize
-pub fn alea_distributions::gaussian::StandardNormalTarget::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
 impl core::clone::Clone for alea_distributions::gaussian::StandardNormalTarget
 pub fn alea_distributions::gaussian::StandardNormalTarget::clone(&self) -> alea_distributions::gaussian::StandardNormalTarget
 impl core::fmt::Debug for alea_distributions::gaussian::StandardNormalTarget
@@ -4402,16 +4400,15 @@ impl alea_distributions::gaussian::StandardNormalTarget
 pub fn alea_distributions::gaussian::StandardNormalTarget::new(dimension: usize) -> Self
 impl alea_core::capability::BatchLogDensityGradient for alea_distributions::gaussian::StandardNormalTarget
 pub fn alea_distributions::gaussian::StandardNormalTarget::batch_logp_grad(&self, shape: alea_core::capability::BatchShape, positions: &[f64], gradients: &mut [f64], results: &mut [alea_core::capability::BatchLane<Self::Error>])
-impl alea_core::capability::HessianVector for alea_distributions::gaussian::StandardNormalTarget
+impl alea_core::capability::PotentialHessianVector for alea_distributions::gaussian::StandardNormalTarget
 pub fn alea_distributions::gaussian::StandardNormalTarget::potential_hvp(&self, q: &[f64], vector: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>
 impl alea_core::density::LogDensity for alea_distributions::gaussian::StandardNormalTarget
-pub type alea_distributions::gaussian::StandardNormalTarget::Error = alea_core::target::DimensionError
-pub fn alea_distributions::gaussian::StandardNormalTarget::dimension(&self) -> usize
 pub fn alea_distributions::gaussian::StandardNormalTarget::logp(&self, q: &[f64]) -> core::result::Result<f64, Self::Error>
 impl alea_core::target::LogDensityGradient for alea_distributions::gaussian::StandardNormalTarget
+pub fn alea_distributions::gaussian::StandardNormalTarget::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::target::TargetSpace for alea_distributions::gaussian::StandardNormalTarget
 pub type alea_distributions::gaussian::StandardNormalTarget::Error = alea_core::target::DimensionError
 pub fn alea_distributions::gaussian::StandardNormalTarget::dimension(&self) -> usize
-pub fn alea_distributions::gaussian::StandardNormalTarget::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
 impl core::clone::Clone for alea_distributions::gaussian::StandardNormalTarget
 pub fn alea_distributions::gaussian::StandardNormalTarget::clone(&self) -> alea_distributions::gaussian::StandardNormalTarget
 impl core::fmt::Debug for alea_distributions::gaussian::StandardNormalTarget

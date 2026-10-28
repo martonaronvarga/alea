@@ -28,11 +28,13 @@ impl Target {
         }
     }
 }
-impl LogDensityGradient for Target {
+impl alea_core::target::TargetSpace for Target {
     type Error = ModelError;
     fn dimension(&self) -> usize {
         self.dim.get()
     }
+}
+impl LogDensityGradient for Target {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, ModelError> {
         self.calls.set(self.calls.get() + 1);
         match self.mode.get() {

@@ -81,13 +81,13 @@ impl Target {
     }
 }
 
-impl LogDensityGradient for Target {
+impl alea_core::target::TargetSpace for Target {
     type Error = Infallible;
-
     fn dimension(&self) -> usize {
         self.kind.dimension()
     }
-
+}
+impl LogDensityGradient for Target {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         self.calls.set(self.calls.get() + 1);
         if matches!(self.kind, Kind::Funnel) {

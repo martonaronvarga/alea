@@ -10,13 +10,13 @@ impl StandardNormalTarget {
     }
 }
 
-impl LogDensityGradient for StandardNormalTarget {
+impl alea::target::TargetSpace for StandardNormalTarget {
     type Error = DimensionError;
-
     fn dimension(&self) -> usize {
         self.dimension
     }
-
+}
+impl LogDensityGradient for StandardNormalTarget {
     fn logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         if position.len() != self.dimension || gradient.len() != self.dimension {
             return Err(DimensionError {

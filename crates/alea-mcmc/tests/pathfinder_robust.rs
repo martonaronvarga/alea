@@ -8,11 +8,13 @@ use std::{cell::Cell, convert::Infallible};
 struct Supported {
     calls: Cell<usize>,
 }
-impl LogDensityGradient for Supported {
+impl alea_core::target::TargetSpace for Supported {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensityGradient for Supported {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         self.calls.set(self.calls.get() + 1);
         if q[0] <= 0. {
@@ -62,11 +64,13 @@ fn support_zero_paths_and_proposals_are_visible_and_backtracking_survives() {
 #[error("backend failed")]
 struct Fault;
 struct Broken;
-impl LogDensityGradient for Broken {
+impl alea_core::target::TargetSpace for Broken {
     type Error = Fault;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensityGradient for Broken {
     fn logp_grad(&self, _: &[f64], _: &mut [f64]) -> Result<f64, Fault> {
         Err(Fault)
     }
@@ -92,11 +96,13 @@ fn robust_mode_does_not_hide_concrete_backend_errors() {
 }
 
 struct Sharp;
-impl LogDensityGradient for Sharp {
+impl alea_core::target::TargetSpace for Sharp {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensityGradient for Sharp {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         g[0] = 1e10 * (3. - q[0]);
         Ok(-0.5e10 * (q[0] - 3.).powi(2))
@@ -125,11 +131,13 @@ fn first_lbfgs_trial_is_scaled_before_curvature_exists() {
 }
 
 struct OneInvalidPath;
-impl LogDensityGradient for OneInvalidPath {
+impl alea_core::target::TargetSpace for OneInvalidPath {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensityGradient for OneInvalidPath {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         if q[0] == -99. {
             g[0] = f64::NAN;

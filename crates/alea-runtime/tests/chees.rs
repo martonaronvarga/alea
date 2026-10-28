@@ -81,11 +81,13 @@ fn shared_warmup_is_bitwise_scheduler_deterministic_and_freezes() {
 }
 
 struct ScaledGaussian;
-impl alea_core::target::LogDensityGradient for ScaledGaussian {
+impl alea_core::target::TargetSpace for ScaledGaussian {
     type Error = std::convert::Infallible;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl alea_core::target::LogDensityGradient for ScaledGaussian {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         let z = [(q[0] - 3.) / 20., (q[1] + 2.) / 0.05];
         g[0] = -z[0] / 20.;
@@ -97,11 +99,13 @@ impl alea_core::target::LogDensityGradient for ScaledGaussian {
 struct LockedTransport<'a>(
     std::sync::Mutex<alea_core::transport::FrozenTransportTarget<'a, ScaledGaussian>>,
 );
-impl alea_core::target::LogDensityGradient for LockedTransport<'_> {
+impl alea_core::target::TargetSpace for LockedTransport<'_> {
     type Error = alea_core::transport::FrozenTransportError<std::convert::Infallible>;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl alea_core::target::LogDensityGradient for LockedTransport<'_> {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         self.0.lock().unwrap().logp_grad(q, g)
     }

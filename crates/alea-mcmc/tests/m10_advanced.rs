@@ -3,7 +3,7 @@ use std::convert::Infallible;
 use alea_core::{
     capability::{
         BatchLane, BatchLayout, BatchLogDensityGradient, BatchShape, GaussianResidual,
-        HessianVector, SplitLogDensityGradient, copy_batch_layout,
+        PotentialHessianVector, SplitLogDensityGradient, copy_batch_layout,
     },
     target::LogDensityGradient,
 };
@@ -38,11 +38,13 @@ impl Quadratic {
     }
 }
 
-impl LogDensityGradient for Quadratic {
+impl alea_core::target::TargetSpace for Quadratic {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for Quadratic {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         let mut potential = 0.0;
         for i in 0..2 {
@@ -54,7 +56,7 @@ impl LogDensityGradient for Quadratic {
     }
 }
 
-impl HessianVector for Quadratic {
+impl PotentialHessianVector for Quadratic {
     fn potential_hvp(
         &self,
         _: &[f64],

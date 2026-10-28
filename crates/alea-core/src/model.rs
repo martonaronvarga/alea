@@ -1,6 +1,7 @@
 //! Constrained model boundary with chain-local, aligned, reusable scratch.
 #![forbid(unsafe_code)]
 
+use crate::target::TargetSpace;
 use alea_math::buffer::OwnedBuffer;
 
 pub mod assembly;
@@ -65,11 +66,13 @@ pub enum ModelError<E: Error + 'static> {
 }
 
 struct ModelView<'a, M>(&'a M);
-impl<M: ConstrainedModel> LogDensityGradient for ModelView<'_, M> {
+impl<M: ConstrainedModel> crate::target::TargetSpace for ModelView<'_, M> {
     type Error = M::Error;
     fn dimension(&self) -> usize {
         self.0.dimension()
     }
+}
+impl<M: ConstrainedModel> LogDensityGradient for ModelView<'_, M> {
     fn logp_grad(&self, x: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         self.0.logp_grad(x, g)
     }
@@ -116,11 +119,13 @@ impl<M: ConstrainedModel> TransformedTarget<M> {
         &self.model
     }
 }
-impl<M: ConstrainedModel> LogDensityGradient for TransformedTarget<M> {
+impl<M: ConstrainedModel> crate::target::TargetSpace for TransformedTarget<M> {
     type Error = ModelError<M::Error>;
     fn dimension(&self) -> usize {
         self.layout.unconstrained_dimension()
     }
+}
+impl<M: ConstrainedModel> LogDensityGradient for TransformedTarget<M> {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         if q.len() != self.dimension()
             || g.len() != self.dimension()

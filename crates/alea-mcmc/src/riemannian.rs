@@ -1195,11 +1195,13 @@ mod tests {
     use std::convert::Infallible;
 
     struct Normal;
-    impl LogDensityGradient for Normal {
+    impl alea_core::target::TargetSpace for Normal {
         type Error = Infallible;
         fn dimension(&self) -> usize {
             1
         }
+    }
+    impl LogDensityGradient for Normal {
         fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
             gradient[0] = -q[0];
             Ok(-0.5 * q[0] * q[0])

@@ -212,11 +212,11 @@ pub enum HmcError<E: Error + 'static> {
 /// # Examples
 /// ```
 /// use alea::math::buffer::OwnedBuffer;
-/// use alea::distributions::Gaussian;
+/// use alea::distributions::StandardNormalTarget;
 /// use alea::math::metric::IdentityMetric;
 /// use rand::{rngs::SmallRng, SeedableRng};
 /// use alea::sampling::{Hmc, HmcOptions};
-/// let target = Gaussian::new(2);
+/// let target = StandardNormalTarget::new(2);
 /// let mut chain = Hmc::new(&target, OwnedBuffer::new(2),
 ///     IdentityMetric::new(2), HmcOptions::new(0.1, 8)?)?;
 /// let info = chain.step(&mut SmallRng::seed_from_u64(42))?;

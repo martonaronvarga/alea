@@ -35,11 +35,13 @@ impl SamplingTarget {
         }
     }
 }
-impl LogDensityGradient for SamplingTarget {
+impl alea_core::target::TargetSpace for SamplingTarget {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for SamplingTarget {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         match self {
             Self::Reference(target) => target.logp_grad(q, g),
@@ -89,11 +91,13 @@ struct Counted {
     target: SamplingTarget,
     calls: Cell<usize>,
 }
-impl LogDensityGradient for Counted {
+impl alea_core::target::TargetSpace for Counted {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         self.target.dimension()
     }
+}
+impl LogDensityGradient for Counted {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         self.calls.set(self.calls.get() + 1);
         self.target.logp_grad(q, g)

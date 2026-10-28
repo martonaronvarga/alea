@@ -92,11 +92,13 @@ fn bench_step_no_density(c: &mut Criterion) {
     let dim = 256;
 
     struct Dummy;
-    impl LogDensity for Dummy {
+    impl alea_core::target::TargetSpace for Dummy {
         type Error = std::convert::Infallible;
         fn dimension(&self) -> usize {
             256
         }
+    }
+    impl LogDensity for Dummy {
         #[inline(always)]
         fn logp(&self, _: &[f64]) -> Result<f64, Self::Error> {
             Ok(0.0)

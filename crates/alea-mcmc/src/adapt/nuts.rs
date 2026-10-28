@@ -94,12 +94,12 @@ pub struct NutsWarmupObservation<'a> {
 /// A complete frozen NUTS chain and its warmup report.
 pub type NutsWarmupResult<'a, T, I = Leapfrog> = Result<
     (Nuts<'a, T, WarmupMetric, I>, NutsWarmupReport),
-    NutsWarmupError<<T as LogDensityGradient>::Error>,
+    NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>,
 >;
 /// Cancellation discards the controller without publishing a sampling chain.
 pub type ControlledNutsWarmupResult<'a, T, I = Leapfrog> = Result<
     Option<(Nuts<'a, T, WarmupMetric, I>, NutsWarmupReport)>,
-    NutsWarmupError<<T as LogDensityGradient>::Error>,
+    NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>,
 >;
 
 /// Bounded one-macrostep search with fresh momentum at the same live point.

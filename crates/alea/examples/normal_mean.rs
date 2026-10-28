@@ -11,13 +11,13 @@ struct MeanModel {
     observations: Vec<f64>,
 }
 
-impl LogDensityGradient for MeanModel {
+impl alea::target::TargetSpace for MeanModel {
     type Error = Infallible;
-
     fn dimension(&self) -> usize {
         1
     }
-
+}
+impl LogDensityGradient for MeanModel {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         let mean = q[0];
         let mut logp = -0.5 * (mean / 2.0).powi(2);

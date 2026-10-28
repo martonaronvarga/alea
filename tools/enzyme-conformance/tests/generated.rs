@@ -1,7 +1,7 @@
 #[path = "../models.rs"]
 mod models;
 use alea::{
-    capability::{HessianVector, PotentialHessianDerivative},
+    capability::{PotentialHessianDerivative, PotentialHessianVector},
     target::LogDensityGradient,
 };
 use alea_enzyme_conformance as generated;

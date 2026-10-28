@@ -18,11 +18,13 @@ struct Target {
     mode: Cell<u8>,
     dimension: Cell<usize>,
 }
-impl LogDensity for Target {
+impl alea_core::target::TargetSpace for Target {
     type Error = Failure;
     fn dimension(&self) -> usize {
         self.dimension.get()
     }
+}
+impl LogDensity for Target {
     fn logp(&self, q: &[f64]) -> Result<f64, Failure> {
         match self.mode.get() {
             1 => {

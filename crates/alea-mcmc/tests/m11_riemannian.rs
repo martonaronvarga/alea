@@ -2,7 +2,8 @@ use std::convert::Infallible;
 
 use alea_core::{
     capability::{
-        HessianVector, PositionMetric, PotentialHessianDerivative, evaluate_position_metric,
+        PositionMetric, PotentialHessianDerivative, PotentialHessianVector,
+        evaluate_position_metric,
     },
     target::LogDensityGradient,
 };
@@ -40,11 +41,13 @@ impl PositionMetric for IdentityPositionMetric {
 struct StandardNormalTarget {
     dimension: usize,
 }
-impl LogDensityGradient for StandardNormalTarget {
+impl alea_core::target::TargetSpace for StandardNormalTarget {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         self.dimension
     }
+}
+impl LogDensityGradient for StandardNormalTarget {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         let mut squared = 0.0;
         for (gradient, value) in gradient.iter_mut().zip(q) {
@@ -60,11 +63,13 @@ struct LogisticPosterior {
     trials: f64,
     prior_precision: f64,
 }
-impl LogDensityGradient for LogisticPosterior {
+impl alea_core::target::TargetSpace for LogisticPosterior {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensityGradient for LogisticPosterior {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         let probability = if q[0] >= 0.0 {
             1.0 / (1.0 + (-q[0]).exp())
@@ -85,11 +90,13 @@ impl LogDensityGradient for LogisticPosterior {
 }
 
 struct Funnel;
-impl LogDensityGradient for Funnel {
+impl alea_core::target::TargetSpace for Funnel {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for Funnel {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         let exponential = q[0].exp();
         gradient[0] = -q[0] / 9.0 + 0.5 - 0.5 * q[1] * q[1] * exponential;
@@ -97,7 +104,7 @@ impl LogDensityGradient for Funnel {
         Ok(-q[0] * q[0] / 18.0 + 0.5 * q[0] - 0.5 * q[1] * q[1] * exponential)
     }
 }
-impl HessianVector for Funnel {
+impl PotentialHessianVector for Funnel {
     fn potential_hvp(
         &self,
         q: &[f64],

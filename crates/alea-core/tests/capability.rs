@@ -8,18 +8,20 @@ use std::{
 struct Target {
     partial: bool,
 }
-impl LogDensityGradient for Target {
+impl alea_core::target::TargetSpace for Target {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for Target {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         g[0] = -q[0];
         g[1] = -4.0 * q[1];
         Ok(-0.5 * (q[0] * q[0] + 4.0 * q[1] * q[1]))
     }
 }
-impl HessianVector for Target {
+impl PotentialHessianVector for Target {
     fn potential_hvp(&self, _: &[f64], v: &[f64], o: &mut [f64]) -> Result<(), Infallible> {
         o[0] = v[0];
         if !self.partial {
@@ -166,16 +168,18 @@ impl FaultTarget {
         }
     }
 }
-impl LogDensityGradient for FaultTarget {
+impl alea_core::target::TargetSpace for FaultTarget {
     type Error = BackendFailure;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for FaultTarget {
     fn logp_grad(&self, _: &[f64], _: &mut [f64]) -> Result<f64, Self::Error> {
         panic!("optional capability must not fall back to scalar evaluation")
     }
 }
-impl HessianVector for FaultTarget {
+impl PotentialHessianVector for FaultTarget {
     fn potential_hvp(&self, _: &[f64], v: &[f64], out: &mut [f64]) -> Result<(), Self::Error> {
         self.calls.set(self.calls.get() + 1);
         out[0] = v[0];

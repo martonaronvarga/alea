@@ -83,7 +83,7 @@ positions back to parameter units before plotting or reporting them.
 | `builder.real("mean")` | Any finite real | The parameter itself |
 | `builder.positive("scale")` | Positive | Logarithm |
 | `builder.unit_interval("probability")` | Between 0 and 1 | Log odds |
-| `builder.vector(..., transform)` | Depends on the transform | Transform-specific coordinates |
+| `builder.vector::<alea::model::assembly::DynamicDomain>(..., transform)` | Depends on the transform | Transform-specific coordinates |
 
 Simplex and correlation transforms change dimension. A simplex with three
 probabilities has two unconstrained coordinates. Do not assume that a stored

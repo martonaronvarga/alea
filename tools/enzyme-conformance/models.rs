@@ -73,7 +73,13 @@ pub fn transformed(transform: Transform) -> Result<CompiledModel, AssemblyError>
         .map(|i| i.to_string())
         .collect();
     let names: Vec<_> = names.iter().map(String::as_str).collect();
-    let x = b.vector("x", "coordinates", &names, "x", transform)?;
+    let x = b.vector::<alea::model::assembly::DynamicDomain>(
+        "x",
+        "coordinates",
+        &names,
+        "x",
+        transform,
+    )?;
     let half = b.constant(-0.5)?;
     for &x in x.expressions() {
         let square = b.multiply(x, x)?;

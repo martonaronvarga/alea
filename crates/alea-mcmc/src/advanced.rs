@@ -9,8 +9,9 @@ use std::{error::Error, num::NonZeroUsize};
 
 use alea_core::{
     capability::{
-        GaussianResidual, HessianVector, HvpError, SplitForceError, SplitLogDensityGradient,
-        evaluate_cheap_score, evaluate_expensive_score, evaluate_hvp, evaluate_residual_score,
+        GaussianResidual, HvpError, PotentialHessianVector, SplitForceError,
+        SplitLogDensityGradient, evaluate_cheap_score, evaluate_expensive_score, evaluate_hvp,
+        evaluate_residual_score,
     },
     target::{EvaluationError, EvaluationWorkspace, LogDensityGradient, PointState},
 };
@@ -658,7 +659,7 @@ pub enum ForceGradientMode {
 
 /// Metropolis-corrected fourth-order force-gradient HMC.
 #[derive(Debug)]
-pub struct ForceGradientHmc<'a, T: HessianVector + ?Sized, M> {
+pub struct ForceGradientHmc<'a, T: PotentialHessianVector + ?Sized, M> {
     point: PointState<'a, T>,
     workspace: Workspace<'a, T>,
     metric: M,
@@ -666,7 +667,7 @@ pub struct ForceGradientHmc<'a, T: HessianVector + ?Sized, M> {
     mode: ForceGradientMode,
 }
 
-impl<'a, T: HessianVector + ?Sized, M: EuclideanMetric> ForceGradientHmc<'a, T, M> {
+impl<'a, T: PotentialHessianVector + ?Sized, M: EuclideanMetric> ForceGradientHmc<'a, T, M> {
     pub fn new(
         target: &'a T,
         position: OwnedBuffer,
@@ -846,7 +847,9 @@ impl<'a, T: HessianVector + ?Sized, M: EuclideanMetric> ForceGradientHmc<'a, T, 
     }
 }
 
-impl<T: HessianVector + ?Sized, M: EuclideanMetric> MarkovChain for ForceGradientHmc<'_, T, M> {
+impl<T: PotentialHessianVector + ?Sized, M: EuclideanMetric> MarkovChain
+    for ForceGradientHmc<'_, T, M>
+{
     type Error = AdvancedHmcError<T::Error>;
     type Transition = AdvancedHmcTransition;
     fn position(&self) -> &[f64] {
@@ -863,17 +866,19 @@ mod tests {
     use std::convert::Infallible;
 
     struct Normal;
-    impl LogDensityGradient for Normal {
+    impl alea_core::target::TargetSpace for Normal {
         type Error = Infallible;
         fn dimension(&self) -> usize {
             1
         }
+    }
+    impl LogDensityGradient for Normal {
         fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
             gradient[0] = -q[0];
             Ok(-0.5 * q[0] * q[0])
         }
     }
-    impl HessianVector for Normal {
+    impl PotentialHessianVector for Normal {
         fn potential_hvp(
             &self,
             _: &[f64],

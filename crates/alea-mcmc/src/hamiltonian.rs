@@ -703,11 +703,13 @@ mod tests {
         fault: Cell<u8>,
         calls: Cell<usize>,
     }
-    impl LogDensityGradient for Target {
+    impl alea_core::target::TargetSpace for Target {
         type Error = Failure;
         fn dimension(&self) -> usize {
             1
         }
+    }
+    impl LogDensityGradient for Target {
         fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
             self.calls.set(self.calls.get() + 1);
             match self.fault.get() {

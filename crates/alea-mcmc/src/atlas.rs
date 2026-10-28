@@ -5,7 +5,7 @@
 //! HMC kernel.
 
 use alea_core::{
-    capability::{HessianVector, HvpError, evaluate_hvp},
+    capability::{HvpError, PotentialHessianVector, evaluate_hvp},
     target::PointState,
 };
 use alea_math::buffer::OwnedBuffer;
@@ -90,7 +90,7 @@ pub enum CurvatureProbeError<E: std::error::Error + 'static> {
 /// # Errors
 /// Rejects mismatched/empty geometry and propagates checked metric/HVP failures.
 pub(crate) fn probe_metric_curvature<
-    T: HessianVector + ?Sized,
+    T: PotentialHessianVector + ?Sized,
     M: EuclideanMetric,
     R: Rng + ?Sized,
 >(

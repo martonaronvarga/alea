@@ -25,13 +25,58 @@ pub enum Positive {}
 /// Unit interval parameter marker, lowered with the logit transform.
 #[derive(Debug, Clone, Copy)]
 pub enum UnitInterval {}
+mod domain_sealed {
+    pub trait Sealed {}
+}
+/// Domain marker accepted by a structured parameter chart.
+/// Implementations are sealed so a domain cannot silently accept another chart.
+pub trait VectorDomain: domain_sealed::Sealed {
+    fn accepts(transform: Transform) -> bool;
+}
+macro_rules! domains {
+    ($($marker:ident => $domain:ident),* $(,)?) => {$(
+        /// Structured parameter domain, validated against its chart at construction.
+        #[derive(Debug, Clone, Copy)]
+        pub enum $marker {}
+        impl domain_sealed::Sealed for $marker {}
+        impl VectorDomain for $marker {
+            fn accepts(transform: Transform) -> bool { transform.domain() == crate::transform::TransformDomain::$domain }
+        }
+    )*};
+}
+impl domain_sealed::Sealed for Real {}
+impl VectorDomain for Real {
+    fn accepts(transform: Transform) -> bool {
+        transform.domain() == crate::transform::TransformDomain::Real
+    }
+}
+domains!(Simplex => Simplex, UnitSphere => UnitSphere, Ordered => Ordered,
+    PositiveOrdered => PositiveOrdered, CholeskyCovariance => CholeskyCovariance,
+    CholeskyCorrelation => CholeskyCorrelation, PositiveDefinite => PositiveDefinite,
+    Correlation => Correlation);
+/// Explicitly runtime-selected domain. Its validated chart retains the domain
+/// metadata; use a concrete marker when the model's domain is known statically.
+#[derive(Debug, Clone, Copy)]
+pub enum DynamicDomain {}
+impl domain_sealed::Sealed for DynamicDomain {}
+impl VectorDomain for DynamicDomain {
+    fn accepts(_: Transform) -> bool {
+        true
+    }
+}
 /// A constrained vector or matrix parameter with one transform block.
 #[derive(Debug, Clone)]
 #[must_use]
-pub struct VectorParameter {
+pub struct VectorParameter<S: VectorDomain> {
+    marker: PhantomData<S>,
+    transform: Transform,
     expressions: Vec<Expr>,
 }
-impl VectorParameter {
+impl<S: VectorDomain> VectorParameter<S> {
+    /// The validated chart, including runtime dimensions and geometric domain.
+    pub fn transform(&self) -> Transform {
+        self.transform
+    }
     pub fn expressions(&self) -> &[Expr] {
         &self.expressions
     }
@@ -211,14 +256,17 @@ impl ModelBuilder {
     /// matrix diagonals. A simplex therefore receives one Jacobian, not one per entry.
     /// # Errors
     /// Rejects dimension mismatch, empty/duplicate names or coordinate labels.
-    pub fn vector(
+    pub fn vector<S: VectorDomain>(
         &mut self,
         name: &str,
         dimension: &str,
         labels: &[&str],
         block: &str,
         transform: Transform,
-    ) -> Result<VectorParameter, AssemblyError> {
+    ) -> Result<VectorParameter<S>, AssemblyError> {
+        if !S::accepts(transform) {
+            return Err(AssemblyError::Shape);
+        }
         if name.is_empty() || labels.len() != transform.constrained_dimension() || labels.is_empty()
         {
             return Err(AssemblyError::Shape);
@@ -246,7 +294,11 @@ impl ModelBuilder {
             expressions.push(self.push(Op::Parameter(slot)));
         }
         self.transforms.push(transform);
-        Ok(VectorParameter { expressions })
+        Ok(VectorParameter {
+            expressions,
+            transform,
+            marker: PhantomData,
+        })
     }
     /// Names a coordinate and geometry block without changing numerical storage.
     /// # Errors

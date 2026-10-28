@@ -60,7 +60,7 @@ fn __hvp(q: &[f64; DIMENSION], v: &[f64; DIMENSION], h: &mut [f64; DIMENSION]) -
 }
 
 pub fn target() -> impl ::alea::capability::PotentialHessianDerivative<Error = ::alea::autodiff::autodiff::AutodiffError> {
-    ::alea::autodiff::autodiff::EnzymeManifoldModel::new(
+    ::alea::autodiff::autodiff::EnzymeHigherOrderTarget::new(
         DIMENSION,
         |q: &[f64], g: &mut [f64], seed: f64| {
             let q = q.try_into().expect("validated position");

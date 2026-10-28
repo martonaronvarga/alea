@@ -1,5 +1,6 @@
 //! Frozen, measure-correct target reparameterization.
 
+use crate::target::TargetSpace;
 use std::{cell::RefCell, error::Error};
 
 use alea_math::{
@@ -91,13 +92,13 @@ impl<'a, T: LogDensityGradient + ?Sized> FrozenTransportTarget<'a, T> {
     }
 }
 
-impl<T: LogDensityGradient + ?Sized> LogDensityGradient for FrozenTransportTarget<'_, T> {
+impl<T: LogDensityGradient + ?Sized> crate::target::TargetSpace for FrozenTransportTarget<'_, T> {
     type Error = FrozenTransportError<T::Error>;
-
     fn dimension(&self) -> usize {
         self.map.dimension()
     }
-
+}
+impl<T: LogDensityGradient + ?Sized> LogDensityGradient for FrozenTransportTarget<'_, T> {
     fn logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         if position.len() != self.dimension()
             || gradient.len() != self.dimension()

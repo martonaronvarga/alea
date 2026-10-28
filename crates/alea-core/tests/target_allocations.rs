@@ -15,13 +15,13 @@ struct OutsideSupport;
 
 struct Target(Cell<bool>);
 
-impl LogDensityGradient for Target {
+impl alea_core::target::TargetSpace for Target {
     type Error = OutsideSupport;
-
     fn dimension(&self) -> usize {
         4
     }
-
+}
+impl LogDensityGradient for Target {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         if self.0.get() {
             return Err(OutsideSupport);

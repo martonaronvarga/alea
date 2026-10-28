@@ -88,11 +88,13 @@ fn warmup_consumes_learning_and_retained_draws_cannot_change_map() {
 }
 
 struct ShiftedGaussian;
-impl LogDensityGradient for ShiftedGaussian {
+impl alea_core::target::TargetSpace for ShiftedGaussian {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for ShiftedGaussian {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Infallible> {
         let x = q[0] - 2.0;
         let y = q[1] + 1.0;
@@ -142,11 +144,13 @@ fn multipath_pathfinder_is_deterministic_calibrated_and_costed() {
 struct PlannedFailure;
 
 struct FailingTarget(Cell<usize>);
-impl LogDensityGradient for FailingTarget {
+impl alea_core::target::TargetSpace for FailingTarget {
     type Error = PlannedFailure;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensityGradient for FailingTarget {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, PlannedFailure> {
         let call = self.0.get() + 1;
         self.0.set(call);
@@ -220,11 +224,13 @@ fn exact_frozen_transport_preserves_target_measure() {
 }
 
 struct HalfNormal;
-impl LogDensityGradient for HalfNormal {
+impl alea_core::target::TargetSpace for HalfNormal {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for HalfNormal {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         if q[0] <= 0. {
             return Ok(f64::NEG_INFINITY);

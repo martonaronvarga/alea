@@ -17,11 +17,13 @@ struct Target {
     mode: Cell<u8>,
     calls: Cell<usize>,
 }
-impl LogDensityGradient for Target {
+impl alea_core::target::TargetSpace for Target {
     type Error = Backend;
     fn dimension(&self) -> usize {
         3
     }
+}
+impl LogDensityGradient for Target {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Backend> {
         self.calls.set(self.calls.get() + 1);
         for (g, q) in g.iter_mut().zip(q) {

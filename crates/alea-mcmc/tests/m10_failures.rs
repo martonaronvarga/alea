@@ -6,7 +6,7 @@ use std::{
 use alea_core::{
     capability::{
         BatchLane, BatchLayout, BatchLogDensityGradient, BatchShape, GaussianResidual,
-        HessianVector, SplitLogDensityGradient,
+        PotentialHessianVector, SplitLogDensityGradient,
     },
     target::LogDensityGradient,
 };
@@ -41,11 +41,13 @@ struct Target {
     fault: Cell<Fault>,
 }
 
-impl LogDensityGradient for Target {
+impl alea_core::target::TargetSpace for Target {
     type Error = Failure;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for Target {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         if self.fault.get() == Fault::Panic {
             panic!("injected target panic");
@@ -97,7 +99,7 @@ impl GaussianResidual for Target {
     }
 }
 
-impl HessianVector for Target {
+impl PotentialHessianVector for Target {
     fn potential_hvp(
         &self,
         _: &[f64],

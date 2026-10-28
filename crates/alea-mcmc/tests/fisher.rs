@@ -253,11 +253,13 @@ fn fisher_low_rank_and_omf_recover_correlated_gaussian_moments() {
     use alea_core::target::LogDensityGradient;
     use alea_mcmc::integrator::TwoStage;
     struct Correlated;
-    impl LogDensityGradient for Correlated {
+    impl alea_core::target::TargetSpace for Correlated {
         type Error = std::convert::Infallible;
         fn dimension(&self) -> usize {
             2
         }
+    }
+    impl LogDensityGradient for Correlated {
         fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
             g[0] = -50.5 * q[0] + 49.5 * q[1];
             g[1] = 49.5 * q[0] - 50.5 * q[1];

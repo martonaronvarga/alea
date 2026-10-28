@@ -500,11 +500,11 @@ fn merge<const POSITION: bool, T: LogDensityGradient + ?Sized, R: Rng + ?Sized>(
 ///
 /// # Examples
 /// ```
-/// use alea::distributions::Gaussian;
+/// use alea::distributions::StandardNormalTarget;
 /// use alea::math::{buffer::OwnedBuffer, metric::IdentityMetric};
 /// use alea::sampling::{Nuts, NutsOptions};
 /// use rand::{SeedableRng, rngs::SmallRng};
-/// let target = Gaussian::new(2);
+/// let target = StandardNormalTarget::new(2);
 /// let mut chain = Nuts::new(&target, OwnedBuffer::new(2),
 ///     IdentityMetric::new(2), NutsOptions::new(0.2, 8)?)?;
 /// let info = chain.step(&mut SmallRng::seed_from_u64(42))?;

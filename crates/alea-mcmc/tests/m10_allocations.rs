@@ -5,7 +5,7 @@ use std::{convert::Infallible, hint::black_box};
 use alea_core::{
     capability::{
         BatchLane, BatchLayout, BatchLogDensityGradient, BatchShape, GaussianResidual,
-        HessianVector, SplitLogDensityGradient,
+        PotentialHessianVector, SplitLogDensityGradient,
     },
     target::LogDensityGradient,
 };
@@ -20,11 +20,13 @@ use alea_mcmc::{
 use rand::{SeedableRng, rngs::SmallRng};
 
 struct Normal;
-impl LogDensityGradient for Normal {
+impl alea_core::target::TargetSpace for Normal {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         4
     }
+}
+impl LogDensityGradient for Normal {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         let mut squared = 0.0;
         for (gradient, q) in gradient.iter_mut().zip(q) {
@@ -34,7 +36,7 @@ impl LogDensityGradient for Normal {
         Ok(-0.5 * squared)
     }
 }
-impl HessianVector for Normal {
+impl PotentialHessianVector for Normal {
     fn potential_hvp(
         &self,
         _: &[f64],

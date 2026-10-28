@@ -33,11 +33,13 @@ impl Target {
         [x, y, x * x, y * y, x * y]
     }
 }
-impl LogDensityGradient for Target {
+impl alea_core::target::TargetSpace for Target {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for Target {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         let lp = match self {
             Self::Correlated => {

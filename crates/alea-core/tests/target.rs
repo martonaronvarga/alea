@@ -38,13 +38,13 @@ impl Target {
     }
 }
 
-impl LogDensityGradient for Target {
+impl alea_core::target::TargetSpace for Target {
     type Error = ModelFailure;
-
     fn dimension(&self) -> usize {
         self.dimension.get()
     }
-
+}
+impl LogDensityGradient for Target {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         self.calls.set(self.calls.get() + 1);
         // Dirty some scratch even on failure to test that it is never committed.

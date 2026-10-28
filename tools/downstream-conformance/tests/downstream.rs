@@ -14,13 +14,13 @@ use tokio_util::sync::CancellationToken;
 
 struct ExternalTarget;
 
-impl LogDensityGradient for ExternalTarget {
+impl alea::target::TargetSpace for ExternalTarget {
     type Error = std::convert::Infallible;
-
     fn dimension(&self) -> usize {
         2
     }
-
+}
+impl LogDensityGradient for ExternalTarget {
     fn logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         for (output, &value) in gradient.iter_mut().zip(position) {
             *output = -value;

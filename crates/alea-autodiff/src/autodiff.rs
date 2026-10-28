@@ -8,7 +8,7 @@
 #![forbid(unsafe_code)]
 
 use alea_core::{
-    capability::{HessianVector, PotentialHessianDerivative},
+    capability::{PotentialHessianDerivative, PotentialHessianVector},
     model::ConstrainedModel,
     target::LogDensityGradient,
 };
@@ -65,14 +65,14 @@ impl<F: Fn(&[f64], &mut [f64], f64) -> f64> ConstrainedModel for EnzymeModel<F> 
 /// Hessian plus its row-major coordinate-derivative blocks.
 /// [`crate::codegen::enzyme_source`] generates all three callbacks from a typed
 /// native model, including unconstrained transforms and their Jacobians.
-pub struct EnzymeManifoldModel<F, H, D> {
+pub struct EnzymeHigherOrderTarget<F, H, D> {
     dimension: usize,
     gradient: F,
     hvp: H,
     tensors: D,
 }
 
-impl<F, H, D> EnzymeManifoldModel<F, H, D> {
+impl<F, H, D> EnzymeHigherOrderTarget<F, H, D> {
     /// Binds generated derivative callbacks without allocation or type erasure.
     pub fn new(dimension: usize, gradient: F, hvp: H, tensors: D) -> Self {
         Self {
@@ -84,18 +84,23 @@ impl<F, H, D> EnzymeManifoldModel<F, H, D> {
     }
 }
 
-impl<F, H, D> LogDensityGradient for EnzymeManifoldModel<F, H, D>
+impl<F, H, D> alea_core::target::TargetSpace for EnzymeHigherOrderTarget<F, H, D>
 where
     F: Fn(&[f64], &mut [f64], f64) -> f64,
     H: Fn(&[f64], &[f64], &mut [f64]),
     D: Fn(&[f64], &mut [f64], &mut [f64]),
 {
     type Error = AutodiffError;
-
     fn dimension(&self) -> usize {
         self.dimension
     }
-
+}
+impl<F, H, D> LogDensityGradient for EnzymeHigherOrderTarget<F, H, D>
+where
+    F: Fn(&[f64], &mut [f64], f64) -> f64,
+    H: Fn(&[f64], &[f64], &mut [f64]),
+    D: Fn(&[f64], &mut [f64], &mut [f64]),
+{
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         if q.len() != self.dimension || gradient.len() != self.dimension {
             return Err(AutodiffError::Dimension);
@@ -112,7 +117,7 @@ where
     }
 }
 
-impl<F, H, D> HessianVector for EnzymeManifoldModel<F, H, D>
+impl<F, H, D> PotentialHessianVector for EnzymeHigherOrderTarget<F, H, D>
 where
     F: Fn(&[f64], &mut [f64], f64) -> f64,
     H: Fn(&[f64], &[f64], &mut [f64]),
@@ -146,7 +151,7 @@ where
     }
 }
 
-impl<F, H, D> PotentialHessianDerivative for EnzymeManifoldModel<F, H, D>
+impl<F, H, D> PotentialHessianDerivative for EnzymeHigherOrderTarget<F, H, D>
 where
     F: Fn(&[f64], &mut [f64], f64) -> f64,
     H: Fn(&[f64], &[f64], &mut [f64]),

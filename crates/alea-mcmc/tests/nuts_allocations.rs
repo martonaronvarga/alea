@@ -5,11 +5,13 @@ use alea_mcmc::{Nuts, NutsOptions, nuts::NutsTermination};
 use rand::{SeedableRng, rngs::SmallRng};
 use std::{convert::Infallible, hint::black_box};
 struct Flat(usize);
-impl LogDensityGradient for Flat {
+impl alea_core::target::TargetSpace for Flat {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         self.0
     }
+}
+impl LogDensityGradient for Flat {
     fn logp_grad(&self, _: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         g.fill(0.0);
         Ok(0.0)

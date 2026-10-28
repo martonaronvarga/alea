@@ -15,11 +15,13 @@ struct Normal {
     scale: f64,
     calls: Cell<usize>,
 }
-impl LogDensityGradient for Normal {
+impl alea_core::target::TargetSpace for Normal {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensityGradient for Normal {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         self.calls.set(self.calls.get() + 1);
         let z = (q[0] - self.mean) / self.scale;
@@ -392,11 +394,13 @@ fn native_warmup_preserves_concrete_backend_errors() {
     #[error("probe backend failure")]
     struct Fault;
     struct Failing(Cell<usize>);
-    impl LogDensityGradient for Failing {
+    impl alea_core::target::TargetSpace for Failing {
         type Error = Fault;
         fn dimension(&self) -> usize {
             1
         }
+    }
+    impl LogDensityGradient for Failing {
         fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Fault> {
             self.0.set(self.0.get() + 1);
             g[0] = -q[0];

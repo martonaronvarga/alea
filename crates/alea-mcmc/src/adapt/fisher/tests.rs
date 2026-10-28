@@ -46,11 +46,13 @@ fn weighted_moments_do_not_reset_at_window_switch_and_stop_at_freeze() {
     })
     .unwrap();
 }
-impl LogDensityGradient for CountedGaussian {
+impl alea_core::target::TargetSpace for CountedGaussian {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for CountedGaussian {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         self.calls.set(self.calls.get() + 1);
         g[0] = -5.5 * q[0] + 4.5 * q[1];
@@ -402,11 +404,13 @@ struct FailingGaussian {
     inner: CountedGaussian,
     fail: Cell<bool>,
 }
-impl LogDensityGradient for FailingGaussian {
+impl alea_core::target::TargetSpace for FailingGaussian {
     type Error = ModelFailure;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for FailingGaussian {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         if self.fail.get() {
             g[0] = 123.0; // Failed scratch must never become an observation.
@@ -485,11 +489,13 @@ struct ScaledGaussian {
     precision: f64,
     calls: Cell<usize>,
 }
-impl LogDensityGradient for ScaledGaussian {
+impl alea_core::target::TargetSpace for ScaledGaussian {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensityGradient for ScaledGaussian {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         self.calls.set(self.calls.get() + 1);
         g[0] = -self.precision * q[0];

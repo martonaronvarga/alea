@@ -88,7 +88,7 @@ pub struct MclmcWarmupReport {
 /// Frozen approximate chain and explicit error-variance adaptation diagnostics.
 pub type MclmcWarmupResult<'a, T> = Result<
     (ApproximateMclmc<'a, T>, MclmcWarmupReport),
-    StaticWarmupError<MamsError<<T as LogDensityGradient>::Error>>,
+    StaticWarmupError<MamsError<<T as alea_core::target::TargetSpace>::Error>>,
 >;
 
 /// Adapt an explicitly approximate chain without introducing an MH correction.

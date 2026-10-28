@@ -8,7 +8,7 @@ use alea_core::{
 fn a_zero_dimensional_chart_cannot_generate_a_sampler_target() {
     let mut b = ModelBuilder::new();
     let x = b
-        .vector(
+        .vector::<alea_core::model::assembly::Simplex>(
             "x",
             "simplex",
             &["only"],

@@ -290,11 +290,13 @@ struct Counted {
     counter: Arc<AtomicU64>,
     errors: Arc<AtomicU64>,
 }
-impl LogDensityGradient for Counted {
+impl alea::target::TargetSpace for Counted {
     type Error = ModelError<AssemblyError>;
     fn dimension(&self) -> usize {
         self.inner.dimension()
     }
+}
+impl LogDensityGradient for Counted {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         self.counter.fetch_add(1, Ordering::Relaxed);
         let r = self.inner.logp_grad(q, g);

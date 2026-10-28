@@ -395,7 +395,7 @@ pub enum FisherWarmupError<E: Error + 'static> {
 }
 pub type FisherWarmupResult<'a, T, I = Leapfrog> = Result<
     (Hmc<'a, T, LowRankDiagonalMetric, I>, HmcWarmupReport),
-    FisherWarmupError<<T as LogDensityGradient>::Error>,
+    FisherWarmupError<<T as alea_core::target::TargetSpace>::Error>,
 >;
 
 /// Owning warmup controller; consuming `run` returns a frozen ordinary HMC chain.

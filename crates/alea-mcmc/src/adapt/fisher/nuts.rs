@@ -32,7 +32,7 @@ impl<E: Error + 'static> From<NutsError<E>> for FisherNutsWarmupError<E> {
 /// Frozen experimental metric and native NUTS kernel, without adaptation state.
 pub type FisherNutsWarmupResult<'a, T, I = Leapfrog> = Result<
     (Nuts<'a, T, LowRankDiagonalMetric, I>, NutsWarmupReport),
-    FisherNutsWarmupError<<T as LogDensityGradient>::Error>,
+    FisherNutsWarmupError<<T as alea_core::target::TargetSpace>::Error>,
 >;
 
 /// Owning Fisher warmup using tree-mean acceptance and paired live NUTS states.

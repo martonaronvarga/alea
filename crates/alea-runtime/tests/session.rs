@@ -26,11 +26,13 @@ use tokio_util::sync::CancellationToken;
 struct Normal {
     dimension: usize,
 }
-impl LogDensityGradient for Normal {
+impl alea_core::target::TargetSpace for Normal {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         self.dimension
     }
+}
+impl LogDensityGradient for Normal {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         for (g, q) in g.iter_mut().zip(q) {
             *g = -*q;
@@ -39,10 +41,6 @@ impl LogDensityGradient for Normal {
     }
 }
 impl LogDensity for Normal {
-    type Error = Infallible;
-    fn dimension(&self) -> usize {
-        self.dimension
-    }
     fn logp(&self, q: &[f64]) -> Result<f64, Infallible> {
         Ok(-0.5 * q.iter().map(|x| x * x).sum::<f64>())
     }
@@ -83,11 +81,13 @@ fn rwmh() -> Kernel {
 #[test]
 fn nuts_session_native_warmup_reaches_a_narrow_posterior_from_distant_starts() {
     struct Narrow;
-    impl LogDensityGradient for Narrow {
+    impl alea_core::target::TargetSpace for Narrow {
         type Error = Infallible;
         fn dimension(&self) -> usize {
             1
         }
+    }
+    impl LogDensityGradient for Narrow {
         fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
             let z = (q[0] - 1.) / 0.001;
             g[0] = -z / 0.001;
@@ -453,11 +453,13 @@ struct Faulty {
     panic: bool,
     cancel: Option<CancellationToken>,
 }
-impl LogDensityGradient for Faulty {
+impl alea_core::target::TargetSpace for Faulty {
     type Error = Fault;
     fn dimension(&self) -> usize {
         3
     }
+}
+impl LogDensityGradient for Faulty {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Fault> {
         let count = self.calls.get();
         self.calls.set(count + 1);
@@ -793,11 +795,13 @@ fn restart_refuses_changed_target_cache_ids_kernel_shape_or_seed() {
             .is_err()
     );
     struct Changed;
-    impl LogDensityGradient for Changed {
+    impl alea_core::target::TargetSpace for Changed {
         type Error = Infallible;
         fn dimension(&self) -> usize {
             3
         }
+    }
+    impl LogDensityGradient for Changed {
         fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
             Normal { dimension: 3 }.logp_grad(q, g).map(|v| v + 1.0)
         }
@@ -1050,20 +1054,18 @@ fn sink_finalization_panic_is_an_outcome_after_every_worker_has_joined() {
 #[test]
 fn nonfinite_initial_evaluations_are_numerical_while_factory_errors_remain_backend_failures() {
     struct Nonfinite;
-    impl LogDensity for Nonfinite {
+    impl alea_core::target::TargetSpace for Nonfinite {
         type Error = Fault;
         fn dimension(&self) -> usize {
             3
         }
+    }
+    impl LogDensity for Nonfinite {
         fn logp(&self, _: &[f64]) -> Result<f64, Fault> {
             Ok(f64::NAN)
         }
     }
     impl LogDensityGradient for Nonfinite {
-        type Error = Fault;
-        fn dimension(&self) -> usize {
-            3
-        }
         fn logp_grad(&self, _: &[f64], g: &mut [f64]) -> Result<f64, Fault> {
             g.fill(0.0);
             Ok(f64::NAN)

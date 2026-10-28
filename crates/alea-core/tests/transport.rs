@@ -9,11 +9,13 @@ use alea_math::{affine::LowRankAffineMap, buffer::OwnedBuffer};
 struct Never;
 
 struct StandardNormalTarget;
-impl LogDensityGradient for StandardNormalTarget {
+impl alea_core::target::TargetSpace for StandardNormalTarget {
     type Error = Never;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for StandardNormalTarget {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Never> {
         gradient[0] = -q[0] / 4.0;
         gradient[1] = -q[1];
@@ -68,11 +70,13 @@ fn frozen_evaluation_reuses_storage() {
 }
 
 struct PositiveSupport;
-impl LogDensityGradient for PositiveSupport {
+impl alea_core::target::TargetSpace for PositiveSupport {
     type Error = Never;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for PositiveSupport {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Never> {
         if q[0] <= 0. {
             return Ok(f64::NEG_INFINITY);
@@ -105,11 +109,13 @@ fn affine_support_zero_remains_raw_zero_and_never_a_valid_cached_point() {
 }
 
 struct IncompleteScore;
-impl LogDensityGradient for IncompleteScore {
+impl alea_core::target::TargetSpace for IncompleteScore {
     type Error = Never;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for IncompleteScore {
     fn logp_grad(&self, _: &[f64], g: &mut [f64]) -> Result<f64, Never> {
         g[0] = 0.;
         Ok(0.)
@@ -127,11 +133,13 @@ fn support_zero_recovery_does_not_hide_invalid_finite_point_scores() {
 }
 
 struct BrokenTarget;
-impl LogDensityGradient for BrokenTarget {
+impl alea_core::target::TargetSpace for BrokenTarget {
     type Error = Never;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for BrokenTarget {
     fn logp_grad(&self, _: &[f64], _: &mut [f64]) -> Result<f64, Never> {
         Err(Never)
     }
@@ -150,11 +158,13 @@ fn transported_backend_errors_retain_the_concrete_source_type() {
 }
 
 struct NumericalOutput(f64);
-impl LogDensityGradient for NumericalOutput {
+impl alea_core::target::TargetSpace for NumericalOutput {
     type Error = Never;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for NumericalOutput {
     fn logp_grad(&self, _: &[f64], g: &mut [f64]) -> Result<f64, Never> {
         g.fill(0.);
         Ok(self.0)

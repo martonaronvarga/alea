@@ -13,7 +13,7 @@ const N: usize = 8;
 
 fn model(noncentered: bool) -> Result<CompiledModel, AssemblyError> {
     let mut b = ModelBuilder::new();
-    let effects = b.vector(
+    let effects = b.vector::<alea::model::assembly::Real>(
         if noncentered { "z" } else { "theta" },
         "school",
         &["1", "2", "3", "4", "5", "6", "7", "8"],

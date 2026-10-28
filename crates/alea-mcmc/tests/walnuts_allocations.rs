@@ -10,13 +10,13 @@ use std::{convert::Infallible, hint::black_box};
 
 struct Flat;
 
-impl LogDensityGradient for Flat {
+impl alea_core::target::TargetSpace for Flat {
     type Error = Infallible;
-
     fn dimension(&self) -> usize {
         7
     }
-
+}
+impl LogDensityGradient for Flat {
     fn logp_grad(&self, _: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         gradient.fill(0.0);
         Ok(0.0)

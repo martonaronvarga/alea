@@ -13,11 +13,13 @@ use rand::{SeedableRng, rngs::SmallRng};
 use std::convert::Infallible;
 
 struct Rotated;
-impl LogDensityGradient for Rotated {
+impl alea_core::target::TargetSpace for Rotated {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for Rotated {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         let x = (0.8 * q[0] + 0.6 * q[1]) / 0.1;
         let y = -0.6 * q[0] + 0.8 * q[1];

@@ -29,7 +29,7 @@ fn model() -> Result<CompiledModel, AssemblyError> {
     let log_tau = b.real("log_tau")?;
     b.annotate(&mu, "population", "location", "population")?;
     b.annotate(&log_tau, "population", "log_scale", "population")?;
-    let z = b.vector(
+    let z = b.vector::<alea::model::assembly::Real>(
         "z",
         "group",
         &["a", "b", "c"],

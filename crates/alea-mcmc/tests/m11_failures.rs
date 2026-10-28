@@ -27,13 +27,13 @@ struct Target<'a> {
     fault: &'a Cell<Fault>,
 }
 
-impl LogDensityGradient for Target<'_> {
+impl alea_core::target::TargetSpace for Target<'_> {
     type Error = Failure;
-
     fn dimension(&self) -> usize {
         2
     }
-
+}
+impl LogDensityGradient for Target<'_> {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         match self.fault.get() {
             Fault::Target => return Err(Failure),

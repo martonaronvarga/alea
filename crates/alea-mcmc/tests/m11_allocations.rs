@@ -8,11 +8,13 @@ use alea_mcmc::riemannian::{ExactnessPendingRmhmc, RmhmcOptions};
 use rand::{SeedableRng, rngs::SmallRng};
 
 struct Normal;
-impl LogDensityGradient for Normal {
+impl alea_core::target::TargetSpace for Normal {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         4
     }
+}
+impl LogDensityGradient for Normal {
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         let mut squared = 0.0;
         for (gradient, value) in gradient.iter_mut().zip(q) {

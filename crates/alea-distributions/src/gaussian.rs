@@ -12,11 +12,13 @@ impl StandardNormalTarget {
     }
 }
 
-impl alea_core::density::LogDensity for StandardNormalTarget {
+impl alea_core::target::TargetSpace for StandardNormalTarget {
     type Error = DimensionError;
     fn dimension(&self) -> usize {
         self.dimension
     }
+}
+impl alea_core::density::LogDensity for StandardNormalTarget {
     fn logp(&self, q: &[f64]) -> Result<f64, Self::Error> {
         if q.len() != self.dimension {
             return Err(DimensionError {
@@ -30,12 +32,6 @@ impl alea_core::density::LogDensity for StandardNormalTarget {
 }
 
 impl LogDensityGradient for StandardNormalTarget {
-    type Error = DimensionError;
-
-    fn dimension(&self) -> usize {
-        self.dimension
-    }
-
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         if q.len() != self.dimension || g.len() != self.dimension {
             return Err(DimensionError {
@@ -53,7 +49,7 @@ impl LogDensityGradient for StandardNormalTarget {
     }
 }
 
-impl alea_core::capability::HessianVector for StandardNormalTarget {
+impl alea_core::capability::PotentialHessianVector for StandardNormalTarget {
     fn potential_hvp(
         &self,
         q: &[f64],

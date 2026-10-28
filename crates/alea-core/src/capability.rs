@@ -5,7 +5,7 @@ use std::error::Error;
 /// Optional Hessian-vector product of **potential** `U = -log pi`.
 /// Implementations overwrite all output entries on success, reuse caller storage,
 /// and obey the same semantic purity contract as `LogDensityGradient`.
-pub trait HessianVector: LogDensityGradient {
+pub trait PotentialHessianVector: LogDensityGradient {
     fn potential_hvp(
         &self,
         position: &[f64],
@@ -30,7 +30,7 @@ pub enum HvpError<E: Error + 'static> {
 /// error or unwinding, discard output contents; this wrapper is not a cache.
 /// # Errors
 /// Returns shape, input, missing/non-finite output or original model errors.
-pub fn evaluate_hvp<T: HessianVector + ?Sized>(
+pub fn evaluate_hvp<T: PotentialHessianVector + ?Sized>(
     target: &T,
     q: &[f64],
     v: &[f64],
@@ -73,7 +73,7 @@ pub fn evaluate_hvp<T: HessianVector + ?Sized>(
 /// begins at `k * dimension * dimension` and contains `dH/dq_k`. This
 /// capability is intentionally explicit: a Hessian-vector product alone cannot
 /// recover the third derivatives required by a general SoftAbs metric.
-pub trait PotentialHessianDerivative: HessianVector {
+pub trait PotentialHessianDerivative: PotentialHessianVector {
     /// Writes the potential Hessian and all of its coordinate derivatives.
     ///
     /// # Errors

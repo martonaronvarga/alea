@@ -39,11 +39,13 @@ impl Target {
     }
 }
 
-impl LogDensityGradient for Target {
+impl alea_core::target::TargetSpace for Target {
     type Error = Failure;
     fn dimension(&self) -> usize {
         self.dimension.get()
     }
+}
+impl LogDensityGradient for Target {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         self.calls.set(self.calls.get() + 1);
         if self.calls.get() == self.fail_at.get() {
@@ -327,11 +329,13 @@ fn finite_energy_divergence_and_ordinary_rejection_are_distinct() {
 }
 
 struct Correlated;
-impl LogDensityGradient for Correlated {
+impl alea_core::target::TargetSpace for Correlated {
     type Error = std::convert::Infallible;
     fn dimension(&self) -> usize {
         2
     }
+}
+impl LogDensityGradient for Correlated {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         g[0] = -1.25 * q[0] + 0.75 * q[1];
         g[1] = 0.75 * q[0] - 1.25 * q[1];

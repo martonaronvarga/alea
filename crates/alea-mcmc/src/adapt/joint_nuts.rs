@@ -10,7 +10,7 @@ use crate::{
     integrator::{AdvancedIntegratorError, CurvatureBound, TwoStage, select_saia_two_stage},
     nuts::{NutsError, NutsTermination},
 };
-use alea_core::{capability::HessianVector, target::LogDensityGradient};
+use alea_core::capability::PotentialHessianVector;
 use alea_math::buffer::OwnedBuffer;
 use rand::Rng;
 use std::error::Error;
@@ -76,18 +76,18 @@ pub struct JointNutsWarmupReport {
 /// A completely frozen native NUTS chain and adaptation report.
 pub type JointNutsWarmupResult<'a, T> = Result<
     (Nuts<'a, T, WarmupMetric, TwoStage>, JointNutsWarmupReport),
-    JointNutsWarmupError<<T as LogDensityGradient>::Error>,
+    JointNutsWarmupError<<T as alea_core::target::TargetSpace>::Error>,
 >;
 
 /// Owning warmup; coefficients change only initially and at slow-window ends.
 /// Final fast adaptation therefore tunes the actual retained integrator.
 #[derive(Debug)]
 #[must_use = "joint warmup must finish before retained sampling"]
-pub struct JointNutsWarmup<'a, T: HessianVector + ?Sized> {
+pub struct JointNutsWarmup<'a, T: PotentialHessianVector + ?Sized> {
     inner: NutsWarmup<'a, T, TwoStage>,
     options: JointWarmupOptions,
 }
-impl<'a, T: HessianVector + ?Sized> JointNutsWarmup<'a, T> {
+impl<'a, T: PotentialHessianVector + ?Sized> JointNutsWarmup<'a, T> {
     /// Construct with identity initial geometry and OMF two-stage dynamics.
     /// # Errors
     /// Returns typed target, options or storage errors.

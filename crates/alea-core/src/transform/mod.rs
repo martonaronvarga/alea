@@ -37,6 +37,35 @@ enum Kind {
     },
 }
 
+/// Geometric domain reached by a parameter chart; independent of storage shape.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TransformDomain {
+    /// Unconstrained Cartesian coordinates.
+    Real,
+    /// Coordinates above finite lower bounds.
+    LowerBounded,
+    /// Coordinates below finite upper bounds.
+    UpperBounded,
+    /// Coordinates in an open finite interval.
+    Interval,
+    /// Strictly increasing coordinates.
+    Ordered,
+    /// Positive strictly increasing coordinates.
+    PositiveOrdered,
+    /// Positive coordinates summing to one.
+    Simplex,
+    /// Unit vector with surface measure.
+    UnitSphere,
+    /// Lower triangular factor with positive diagonal.
+    CholeskyCovariance,
+    /// Lower triangular factor with positive diagonal and unit row norms.
+    CholeskyCorrelation,
+    /// Symmetric positive definite matrix.
+    PositiveDefinite,
+    /// Positive definite correlation matrix.
+    Correlation,
+}
+
 /// A validated transform shape. Construction is cheap and performs no allocation.
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[must_use = "a validated transform has no effect unless it is retained or applied"]
@@ -465,5 +494,41 @@ impl Transform {
             }
         }
         output_finite(gq)
+    }
+}
+
+impl Transform {
+    /// Domain reached by this chart, separate from its ambient representation.
+    pub fn domain(&self) -> TransformDomain {
+        match self.kind {
+            Kind::Identity => TransformDomain::Real,
+            Kind::Lower(_) => TransformDomain::LowerBounded,
+            Kind::Upper(_) => TransformDomain::UpperBounded,
+            Kind::Interval { .. } => TransformDomain::Interval,
+            Kind::Ordered { positive: false } => TransformDomain::Ordered,
+            Kind::Ordered { positive: true } => TransformDomain::PositiveOrdered,
+            Kind::Simplex => TransformDomain::Simplex,
+            Kind::UnitVector => TransformDomain::UnitSphere,
+            Kind::Matrix {
+                correlation: false,
+                covariance: false,
+                ..
+            } => TransformDomain::CholeskyCovariance,
+            Kind::Matrix {
+                correlation: true,
+                covariance: false,
+                ..
+            } => TransformDomain::CholeskyCorrelation,
+            Kind::Matrix {
+                correlation: false,
+                covariance: true,
+                ..
+            } => TransformDomain::PositiveDefinite,
+            Kind::Matrix {
+                correlation: true,
+                covariance: true,
+                ..
+            } => TransformDomain::Correlation,
+        }
     }
 }

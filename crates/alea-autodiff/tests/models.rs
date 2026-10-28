@@ -2,10 +2,10 @@
 #[path = "support/models.rs"]
 mod fixtures;
 use alea_autodiff::{
-    autodiff::EnzymeManifoldModel,
+    autodiff::EnzymeHigherOrderTarget,
     gradient_check::{GradientCheckOptions, check_gradient},
 };
-use alea_core::capability::{HessianVector, PotentialHessianDerivative};
+use alea_core::capability::{PotentialHessianDerivative, PotentialHessianVector};
 use alea_core::model::{AnalyticModel, ConstrainedModel, TransformedTarget};
 use alea_core::target::{LogDensityGradient, evaluate};
 use alea_core::transform::{ParameterLayout, Transform};
@@ -148,7 +148,7 @@ fn diagnostics_reject_bad_configuration_and_detect_bad_gradients() {
 
 #[test]
 fn manifold_adapter_preserves_analytic_higher_order_operations() {
-    let model = EnzymeManifoldModel::new(
+    let model = EnzymeHigherOrderTarget::new(
         2,
         |q: &[f64], gradient: &mut [f64], _: f64| {
             gradient[0] -= q[0];

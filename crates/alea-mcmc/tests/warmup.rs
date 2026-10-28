@@ -184,11 +184,13 @@ struct BackendError;
 struct Failing {
     fail: Cell<bool>,
 }
-impl LogDensityGradient for Failing {
+impl alea_core::target::TargetSpace for Failing {
     type Error = BackendError;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensityGradient for Failing {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, BackendError> {
         g[0] = -q[0];
         if self.fail.get() {
@@ -199,11 +201,13 @@ impl LogDensityGradient for Failing {
     }
 }
 struct Flat;
-impl LogDensityGradient for Flat {
+impl alea_core::target::TargetSpace for Flat {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensityGradient for Flat {
     fn logp_grad(&self, _: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         g[0] = 0.0;
         Ok(0.0)
@@ -349,11 +353,13 @@ fn online_updates_search_and_frozen_sampling_allocate_nothing() {
 }
 
 struct OriginOnly;
-impl LogDensityGradient for OriginOnly {
+impl alea_core::target::TargetSpace for OriginOnly {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensityGradient for OriginOnly {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         g[0] = 0.0;
         Ok(if q[0] == 0.0 { 0.0 } else { f64::NEG_INFINITY })

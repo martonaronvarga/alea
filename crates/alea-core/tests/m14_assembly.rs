@@ -4,7 +4,7 @@ use alea_core::{
         assembly::{AssemblyError, ModelBuilder},
         prediction::{NamedOutput, PredictiveOrigin, posterior_predict, prior_predict},
     },
-    target::LogDensityGradient,
+    target::{LogDensityGradient, TargetSpace},
     transform::Transform,
 };
 use alea_distributions::modeling;
@@ -91,7 +91,7 @@ fn foreign_handles_and_invalid_or_incomplete_factors_are_rejected() {
 fn vector_transform_uses_one_simplex_jacobian_and_preserves_coordinates() {
     let mut b = ModelBuilder::new();
     let p = b
-        .vector(
+        .vector::<alea_core::model::assembly::Simplex>(
             "p",
             "category",
             &["a", "b", "c"],
@@ -157,7 +157,7 @@ fn correlation_and_dirichlet_priors_pull_back_through_their_declared_measure() {
         let mut builder = ModelBuilder::new();
         if correlation {
             let p = builder
-                .vector(
+                .vector::<alea_core::model::assembly::CholeskyCorrelation>(
                     "L",
                     "matrix",
                     &["00", "01", "02", "10", "11", "12", "20", "21", "22"],
@@ -175,7 +175,7 @@ fn correlation_and_dirichlet_priors_pull_back_through_their_declared_measure() {
             builder.factor(factor).unwrap();
         } else {
             let p = builder
-                .vector(
+                .vector::<alea_core::model::assembly::Simplex>(
                     "p",
                     "category",
                     &["a", "b", "c"],
@@ -241,4 +241,48 @@ fn all_three_downstream_models_evaluate_without_allocations() {
         });
         assert_eq!(allocation.count_total, 0);
     }
+}
+
+#[test]
+fn structured_handles_reject_wrong_domains_before_mutating_builder() {
+    use alea_core::model::assembly::{Real, Simplex, VectorParameter};
+    let mut builder = ModelBuilder::new();
+    let result = builder.vector::<Simplex>(
+        "p",
+        "category",
+        &["a", "b"],
+        "p",
+        Transform::identity(2).unwrap(),
+    );
+    assert!(matches!(result, Err(AssemblyError::Shape)));
+    let real: VectorParameter<Real> = builder
+        .vector::<Real>(
+            "p",
+            "category",
+            &["a", "b"],
+            "p",
+            Transform::identity(2).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(real.transform().unconstrained_dimension(), 2);
+    let simplex: VectorParameter<Simplex> = builder
+        .vector::<Simplex>(
+            "q",
+            "category",
+            &["a", "b"],
+            "q",
+            Transform::simplex(2).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(simplex.transform().unconstrained_dimension(), 1);
+    assert_eq!(simplex.transform().constrained_dimension(), 2);
+    builder.factor(real.expressions()[0]).unwrap();
+    assert_eq!(
+        builder
+            .compile()
+            .unwrap()
+            .layout()
+            .unconstrained_dimension(),
+        3
+    );
 }

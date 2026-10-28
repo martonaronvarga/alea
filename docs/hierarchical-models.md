@@ -154,3 +154,11 @@ model, reads the checkpoint from disk, writes and reads a durable continuation,
 and compares every draw and final checkpoint with an uninterrupted run in the
 same build. This checks recovery mechanics, not posterior convergence or replay
 across different builds and CPUs.
+
+Structured parameter handles retain a domain marker, such as
+`VectorParameter<Real>` or `VectorParameter<Simplex>`. Select that marker with
+`builder.vector::<Real>(...)` or `builder.vector::<Simplex>(...)`; construction
+checks that the supplied transform reaches the requested domain before changing
+the builder. The handle's `transform()` retains ambient and free dimensions.
+For a chart selected at runtime, use the explicit `DynamicDomain` marker and
+inspect that validated transform rather than assuming a static domain.

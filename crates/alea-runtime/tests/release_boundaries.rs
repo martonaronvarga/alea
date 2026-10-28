@@ -15,11 +15,13 @@ use std::{
 };
 
 struct Normal;
-impl LogDensity for Normal {
+impl alea_core::target::TargetSpace for Normal {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         1
     }
+}
+impl LogDensity for Normal {
     fn logp(&self, q: &[f64]) -> Result<f64, Self::Error> {
         Ok(-0.5 * q[0] * q[0])
     }

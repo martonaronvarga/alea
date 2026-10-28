@@ -11,7 +11,7 @@ use crate::{
     hamiltonian::{Divergence, PhaseError, PhaseState, PhaseWorkspace, SignedStep},
 };
 use alea_core::{
-    capability::{HessianVector, HvpError, evaluate_hvp},
+    capability::{HvpError, PotentialHessianVector, evaluate_hvp},
     target::{EvaluationError, PointState},
 };
 use alea_math::{
@@ -169,7 +169,7 @@ impl Curvature {
             second: OwnedBuffer::new(d),
         }
     }
-    fn mean<T: HessianVector + ?Sized, M: EuclideanMetric>(
+    fn mean<T: PotentialHessianVector + ?Sized, M: EuclideanMetric>(
         &mut self,
         point: &PointState<'_, T>,
         metric: &M,
@@ -250,7 +250,7 @@ fn norm(x: &[f64]) -> f64 {
 
 /// Full bounded ATLAS research chain. Adaptation controllers never enter it.
 #[derive(Debug)]
-pub struct Atlas<'a, T: HessianVector + ?Sized, M: EuclideanMetric> {
+pub struct Atlas<'a, T: PotentialHessianVector + ?Sized, M: EuclideanMetric> {
     point: PointState<'a, T>,
     metric: M,
     options: AtlasOptions,
@@ -287,7 +287,7 @@ impl<R: Rng + ?Sized> ProposalChoices for RandomChoices<'_, R> {
     }
 }
 
-impl<'a, T: HessianVector + ?Sized, M: EuclideanMetric> Atlas<'a, T, M> {
+impl<'a, T: PotentialHessianVector + ?Sized, M: EuclideanMetric> Atlas<'a, T, M> {
     /// Consume a frozen leapfrog HMC cache and an empirical trajectory distribution.
     /// Repeated lengths encode empirical probability mass. No target call/RNG use.
     /// # Errors
@@ -529,7 +529,7 @@ impl<'a, T: HessianVector + ?Sized, M: EuclideanMetric> Atlas<'a, T, M> {
         Ok(result)
     }
 }
-impl<T: HessianVector + ?Sized, M: EuclideanMetric> MarkovChain for Atlas<'_, T, M> {
+impl<T: PotentialHessianVector + ?Sized, M: EuclideanMetric> MarkovChain for Atlas<'_, T, M> {
     type Error = AtlasError<T::Error>;
     type Transition = AtlasTransition;
     fn position(&self) -> &[f64] {
@@ -582,7 +582,7 @@ fn energy<'a, T: alea_core::target::LogDensityGradient + ?Sized, M: EuclideanMet
 ) -> Result<f64, AtlasError<T::Error>> {
     Ok(workspace.start_from_phase(phase, metric)?.energy()?)
 }
-fn trace<'a, T: HessianVector + ?Sized, M: EuclideanMetric>(
+fn trace<'a, T: PotentialHessianVector + ?Sized, M: EuclideanMetric>(
     origin: &PhaseState<'a, T>,
     metric: &M,
     options: AtlasOptions,
@@ -628,7 +628,7 @@ fn trace<'a, T: HessianVector + ?Sized, M: EuclideanMetric>(
     }
     Ok(history.len())
 }
-fn fixed<'a, T: HessianVector + ?Sized, M: EuclideanMetric>(
+fn fixed<'a, T: PotentialHessianVector + ?Sized, M: EuclideanMetric>(
     origin: &PhaseState<'a, T>,
     metric: &M,
     step: f64,
@@ -656,7 +656,7 @@ fn fixed<'a, T: HessianVector + ?Sized, M: EuclideanMetric>(
 /// Finite ATLAS trajectory learning after geometry/step warmup has finished.
 #[derive(Debug)]
 #[must_use = "consume warmup before retaining draws"]
-pub struct AtlasWarmup<'a, T: HessianVector + ?Sized, M: EuclideanMetric> {
+pub struct AtlasWarmup<'a, T: PotentialHessianVector + ?Sized, M: EuclideanMetric> {
     chain: Atlas<'a, T, M>,
     iterations: usize,
 }
@@ -681,9 +681,9 @@ pub struct AtlasWarmupReport {
 /// Frozen full ATLAS and finite trajectory learning costs.
 pub type AtlasWarmupResult<'a, T, M> = Result<
     (Atlas<'a, T, M>, AtlasWarmupReport),
-    AtlasError<<T as alea_core::target::LogDensityGradient>::Error>,
+    AtlasError<<T as alea_core::target::TargetSpace>::Error>,
 >;
-impl<'a, T: HessianVector + ?Sized, M: EuclideanMetric> AtlasWarmup<'a, T, M> {
+impl<'a, T: PotentialHessianVector + ?Sized, M: EuclideanMetric> AtlasWarmup<'a, T, M> {
     /// Start from frozen NUTS/HMC geometry, with a provisional length8 (or budget).
     /// # Errors
     /// Same resource/shape failures as [`Atlas::from_hmc`].
@@ -778,17 +778,19 @@ mod tests {
         assert!((log_reject(-1e-15) - 1e-15_f64.ln()).abs() < 1e-13);
     }
     struct Harmonic;
-    impl alea_core::target::LogDensityGradient for Harmonic {
+    impl alea_core::target::TargetSpace for Harmonic {
         type Error = std::convert::Infallible;
         fn dimension(&self) -> usize {
             1
         }
+    }
+    impl alea_core::target::LogDensityGradient for Harmonic {
         fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
             g[0] = -q[0];
             Ok(-0.5 * q[0] * q[0])
         }
     }
-    impl HessianVector for Harmonic {
+    impl PotentialHessianVector for Harmonic {
         fn potential_hvp(&self, _: &[f64], v: &[f64], out: &mut [f64]) -> Result<(), Self::Error> {
             out[0] = v[0];
             Ok(())

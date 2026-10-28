@@ -40,11 +40,13 @@ impl Target {
         Self { dimension, shape }
     }
 }
-impl LogDensityGradient for Target {
+impl alea_core::target::TargetSpace for Target {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         self.dimension
     }
+}
+impl LogDensityGradient for Target {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
         let coupling = match self.shape {
             Shape::Isotropic => 0.0,
@@ -68,11 +70,13 @@ pub struct Counted<T> {
     pub target: T,
     pub calls: Cell<usize>,
 }
-impl<T: LogDensityGradient> LogDensityGradient for Counted<T> {
+impl<T: LogDensityGradient> alea_core::target::TargetSpace for Counted<T> {
     type Error = T::Error;
     fn dimension(&self) -> usize {
         self.target.dimension()
     }
+}
+impl<T: LogDensityGradient> LogDensityGradient for Counted<T> {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, T::Error> {
         self.calls.set(self.calls.get().checked_add(1).unwrap());
         self.target.logp_grad(q, g)
