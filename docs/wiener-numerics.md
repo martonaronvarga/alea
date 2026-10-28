@@ -679,7 +679,7 @@ time derivative is the boundary density, which has the stated endpoint bound.
 Two CDF values now remove time quadrature with positive Gaussian drift
 variability. The implementation checks interval subtraction and score-error
 propagation before accepting the result. Its image implementation is restricted
-to `T/a² < 128`; unsupported or poorly conditioned evaluations retain numerical
+to `T/a² < 512`; unsupported or poorly conditioned evaluations retain numerical
 quadrature. Adaptive evaluation can instead integrate only over the starting
 point, evaluating the exact time average at each node. It first retains the
 existing Gaussian-start reduction when that supported path is preferred. Fixed
@@ -738,10 +738,10 @@ drifts and drift variabilities, and both narrow and wide start intervals.
 
 The integrated-image tail proof does not require short normalized times. It
 requires the explicitly checked omitted-distance monotonicity condition above.
-The implementation therefore permits normalized times below 128 while retaining
-the 64-pair work limit and density/derivative cancellation checks. This matters
+The implementation therefore permits normalized times below 512 while retaining
+a 128-pair work limit and density/derivative cancellation checks. This matters
 when a time-variability interval reaches zero: integrating a sharply concentrated
 starting-point derivative numerically can lose digits even when its integrated
-CDF derivative is well conditioned. Another 24 continuous ball-arithmetic cases
-cover normalized times 10, 50 and 100, narrow and broad start intervals, both
+CDF derivative is well conditioned. Another 32 continuous ball-arithmetic cases
+cover normalized times 10, 50, 100 and 300, narrow and broad start intervals, both
 responses, and small or substantial Gaussian drift variability.

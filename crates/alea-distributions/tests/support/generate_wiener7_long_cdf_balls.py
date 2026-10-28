@@ -13,7 +13,7 @@ def main():
         writer.writerow(['rt','a','tau','beta','v','sd','sw','st','lower'] +
                         [f'{v}_{s}' for v in ['log','a','tau','beta','v','sd','sw','st']
                          for s in ['mid','radius']])
-        for t in [.1, .5, 1.]:
+        for t in [.1, .5, 1., 3.]:
             for beta, drift, sd, sw in [(.999,-3.,1e-8,0.),(.999,30.,.01,0.),
                                         (.999,1.,1e-8,.001),(.5,-3.,5.,.1)]:
                 for lower in [False,True]:

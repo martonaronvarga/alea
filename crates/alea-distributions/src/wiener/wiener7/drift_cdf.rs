@@ -90,7 +90,7 @@ pub(super) fn evaluate(t: f64, core: &Wiener7Core, boundary: Boundary, eps: f64)
     // The integrated-image tail proof only needs the omitted-distance
     // monotonicity check below, not the density branch crossover. Bound
     // planning work in long time; conditioning checks still gate every result.
-    if t <= 0. || !t.is_finite() || t / (core.alpha * core.alpha) >= 128. {
+    if t <= 0. || !t.is_finite() || t / (core.alpha * core.alpha) >= 512. {
         return None;
     }
     let p = Wiener5Params::from_array([core.alpha, 0., core.beta0, core.delta, core.sv]);
@@ -103,7 +103,7 @@ pub(super) fn evaluate(t: f64, core: &Wiener7Core, boundary: Boundary, eps: f64)
     let mut correction = [0.; 6];
     let mut absolute = 0.;
     let mut absolute_derivatives = [0.; 5];
-    for k in 0..=64 {
+    for k in 0..=128 {
         for j in [-(k as f64), k as f64]
             .into_iter()
             .take(if k == 0 { 1 } else { 2 })

@@ -118,7 +118,7 @@ def evaluate(params,goal='1e-14',max_precision=384,progress=None):
         q=beta if lower else 1-beta
         hi=rt-tau;lo=max(arb(0),hi-st)
         if not hi>0 or not q-h/2>0 or not q+h/2<1:raise ValueError('invalid support')
-        for k in [0,1,2,4,8,16,32,64]:
+        for k in [0,1,2,4,8,16,32,64,128]:
             try:
                 high_error=tails(hi,a,v,s,q-h/2,q+h/2,k)
                 low_error=tails(lo,a,v,s,q-h/2,q+h/2,k) if lo>0 else [arb(0)]*7
