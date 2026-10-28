@@ -411,9 +411,10 @@ impl Wiener4 {
         params: &Wiener4Params,
         eps: f64,
     ) -> Wiener4Eval {
-        let mut eval = self.fused(obs, params, eps);
-        eval.grad = Wiener4Grad::default(); // or NAN – keep existing behaviour
-        eval
+        Wiener4Eval {
+            log_prob: self.density_from_parts(obs.rt, obs.boundary, params, eps),
+            grad: NAN_GRAD_4,
+        }
     }
 
     #[inline]
@@ -423,9 +424,20 @@ impl Wiener4 {
         params: &Wiener4Params,
         options: WienerOptions,
     ) -> Result<Wiener4Eval> {
-        let mut eval = self.try_fused(obs, params, options)?;
-        eval.grad = Wiener4Grad::default();
-        Ok(eval)
+        let options = options.validate()?;
+        let core = self.core(obs, params, options.series_precision())?;
+        let (branch, terms) = Self::density_branch(&core);
+        let log_prob = Self::density_from_core(&core, branch, terms);
+        if likely(log_prob.is_finite()) {
+            Ok(Wiener4Eval {
+                log_prob,
+                grad: NAN_GRAD_4,
+            })
+        } else {
+            Err(ProbError::NumericalError(
+                "Wiener4 evaluation produced a non-finite log density".into(),
+            ))
+        }
     }
 
     #[inline]
@@ -468,6 +480,44 @@ impl Wiener4 {
             }
         };
         self.fused_from_core(&core)
+    }
+
+    #[inline]
+    pub(super) fn density_from_parts(
+        &self,
+        rt: f64,
+        boundary: Boundary,
+        params: &Wiener4Params,
+        eps: f64,
+    ) -> f64 {
+        let Ok(core) = self.core_from_parts(rt, boundary, params, eps) else {
+            return f64::NEG_INFINITY;
+        };
+        let (branch, terms) = Self::density_branch(&core);
+        Self::density_from_core(&core, branch, terms)
+    }
+
+    #[inline]
+    pub(super) fn density_branch(core: &Wiener4Core) -> (SeriesBranch, usize) {
+        let small = Self::k_s(core.t_prime, core.w_eff, core.log_eps_eff);
+        let large = Self::k_l(core.t_prime, core.log_eps_eff);
+        if small.saturating_mul(2) <= large {
+            (SeriesBranch::SmallTime, small)
+        } else {
+            // Near an endpoint the sine tail has an n² envelope as well.
+            // Retain the conservative harmonic floor used by the fused path;
+            // omitting scores must not weaken log-density tail accuracy.
+            (
+                SeriesBranch::LargeTime,
+                large.max(Self::k_l_grad_w(core.t_prime, core.log_eps_eff)),
+            )
+        }
+    }
+
+    #[inline]
+    pub(super) fn density_from_core(core: &Wiener4Core, branch: SeriesBranch, terms: usize) -> f64 {
+        series::log_density(core.t_prime, core.w_eff, core.q_eff, terms, branch)
+            .map_or(f64::NEG_INFINITY, |value| core.pref + value)
     }
 
     #[inline]

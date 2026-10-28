@@ -225,9 +225,10 @@ impl Wiener5 {
         params: &Wiener5Params,
         eps: f64,
     ) -> Wiener5Eval {
-        let mut eval = self.fused(obs, params, eps);
-        eval.grad = NAN_GRAD_5;
-        eval
+        Wiener5Eval {
+            log_prob: self.density_from_parts(obs.rt, obs.boundary, params, eps),
+            grad: NAN_GRAD_5,
+        }
     }
 
     #[inline]
@@ -237,9 +238,27 @@ impl Wiener5 {
         params: &Wiener5Params,
         options: WienerOptions,
     ) -> Result<Wiener5Eval> {
-        let mut eval = self.try_fused(obs, params, options)?;
-        eval.grad = Wiener5Grad::default();
-        Ok(eval)
+        let options = options.validate()?;
+        if params.s_delta == 0. {
+            return Wiener4
+                .try_log_prob(obs, &params.base, options)
+                .map(|eval| Wiener5Eval {
+                    log_prob: eval.log_prob,
+                    grad: NAN_GRAD_5,
+                });
+        }
+        let core = self.core(obs, params, options.series_precision())?;
+        let log_prob = Self::density_from_core(&core);
+        if likely(log_prob.is_finite()) {
+            Ok(Wiener5Eval {
+                log_prob,
+                grad: NAN_GRAD_5,
+            })
+        } else {
+            Err(ProbError::NumericalError(
+                "Wiener5 evaluation produced a non-finite log density".into(),
+            ))
+        }
     }
 
     #[inline]
@@ -294,6 +313,47 @@ impl Wiener5 {
             Err(_) => return fail_eval_5(),
         };
         self.fused_from_core(&core)
+    }
+
+    #[inline]
+    pub(super) fn density_from_parts(
+        &self,
+        rt: f64,
+        boundary: Boundary,
+        params: &Wiener5Params,
+        eps: f64,
+    ) -> f64 {
+        if params.s_delta == 0. {
+            return Wiener4.density_from_parts(rt, boundary, &params.base, eps);
+        }
+        let Ok(core) = self.core_from_parts(rt, boundary, params, eps) else {
+            return f64::NEG_INFINITY;
+        };
+        Self::density_from_core(&core)
+    }
+
+    #[inline]
+    fn density_from_core(core: &Wiener5Core) -> f64 {
+        let base = &core.base;
+        let (branch, terms) = Wiener4::density_branch(base);
+        if branch == SeriesBranch::SmallTime && core.lam > 2. && base.w_eff.min(base.q_eff) >= 1e-5
+        {
+            let Some(raw) = series::small_time_series_raw(base.t_prime, base.w_eff, terms) else {
+                return f64::NEG_INFINITY;
+            };
+            if unlikely(raw <= 0.) {
+                return f64::NEG_INFINITY;
+            }
+            let residual = base.a * base.q_eff - base.v_eff * base.t;
+            let exponent = 0.5 * residual * (residual / base.t * core.lam.recip());
+            return base.a.ln()
+                - 0.5 * (2. * PI).ln()
+                - 1.5 * base.t.ln()
+                - 0.5 * core.lam.ln()
+                - exponent
+                + raw.ln();
+        }
+        Wiener4::density_from_core(base, branch, terms)
     }
 
     #[inline]

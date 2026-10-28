@@ -487,6 +487,11 @@ pub(super) fn large_time_log_series(t_prime: f64, w: f64, k: usize) -> Option<f6
 
 #[inline]
 pub(super) fn large_time_scaled_accum(t_prime: f64, w: f64, k: usize) -> Option<(f64, f64, f64)> {
+    large_time_accum::<true>(t_prime, w, k)
+}
+
+#[inline]
+fn large_time_accum<const SCORES: bool>(t_prime: f64, w: f64, k: usize) -> Option<(f64, f64, f64)> {
     if super::unlikely(
         !t_prime.is_finite() || !w.is_finite() || t_prime <= 0.0 || !(0.0..1.0).contains(&w),
     ) {
@@ -498,15 +503,19 @@ pub(super) fn large_time_scaled_accum(t_prime: f64, w: f64, k: usize) -> Option<
     }
 
     match k {
-        4 => large_time_scaled_accum_fixed::<4>(t_prime, w),
-        5 => large_time_scaled_accum_fixed::<5>(t_prime, w),
-        6 => large_time_scaled_accum_fixed::<6>(t_prime, w),
-        _ => large_time_scaled_accum_loop(t_prime, w, k),
+        4 => large_time_scaled_accum_fixed::<4, SCORES>(t_prime, w),
+        5 => large_time_scaled_accum_fixed::<5, SCORES>(t_prime, w),
+        6 => large_time_scaled_accum_fixed::<6, SCORES>(t_prime, w),
+        _ => large_time_scaled_accum_loop::<SCORES>(t_prime, w, k),
     }
 }
 
 #[inline]
-fn large_time_scaled_accum_loop(t_prime: f64, w: f64, k: usize) -> Option<(f64, f64, f64)> {
+fn large_time_scaled_accum_loop<const SCORES: bool>(
+    t_prime: f64,
+    w: f64,
+    k: usize,
+) -> Option<(f64, f64, f64)> {
     let theta = PI * (1.0 - w);
     let (mut s_j, mut c_j) = theta.sin_cos();
     let (sin_theta, cos_theta) = (s_j, c_j);
@@ -529,23 +538,25 @@ fn large_time_scaled_accum_loop(t_prime: f64, w: f64, k: usize) -> Option<(f64, 
         let e = (-delta).exp();
 
         let term = jf * s_j * e;
-        let term_dt = -half_pi2 * jf * (jj - 1.0) * s_j * e;
-        let term_dw = -jj * PI * c_j * e;
 
         let y = term - c_sum;
         let t = sum + y;
         c_sum = (t - sum) - y;
         sum = t;
 
-        let y = term_dt - c_dt;
-        let t = d_t + y;
-        c_dt = (t - d_t) - y;
-        d_t = t;
+        if SCORES {
+            let term_dt = -half_pi2 * jf * (jj - 1.0) * s_j * e;
+            let term_dw = -jj * PI * c_j * e;
+            let y = term_dt - c_dt;
+            let t = d_t + y;
+            c_dt = (t - d_t) - y;
+            d_t = t;
 
-        let y = term_dw - c_dw;
-        let t = d_w + y;
-        c_dw = (t - d_w) - y;
-        d_w = t;
+            let y = term_dw - c_dw;
+            let t = d_w + y;
+            c_dw = (t - d_w) - y;
+            d_w = t;
+        }
 
         if j != k {
             let next_s = s_j.mul_add(cos_theta, c_j * sin_theta);
@@ -555,7 +566,7 @@ fn large_time_scaled_accum_loop(t_prime: f64, w: f64, k: usize) -> Option<(f64, 
         }
     }
 
-    if sum.is_finite() && d_t.is_finite() && d_w.is_finite() {
+    if sum.is_finite() && (!SCORES || (d_t.is_finite() && d_w.is_finite())) {
         Some((sum, d_t, d_w))
     } else {
         None
@@ -563,7 +574,10 @@ fn large_time_scaled_accum_loop(t_prime: f64, w: f64, k: usize) -> Option<(f64, 
 }
 
 #[inline]
-fn large_time_scaled_accum_fixed<const K: usize>(t_prime: f64, w: f64) -> Option<(f64, f64, f64)> {
+fn large_time_scaled_accum_fixed<const K: usize, const SCORES: bool>(
+    t_prime: f64,
+    w: f64,
+) -> Option<(f64, f64, f64)> {
     let theta = PI * (1.0 - w);
     let (mut s_j, mut c_j) = theta.sin_cos();
     let (sin_theta, cos_theta) = (s_j, c_j);
@@ -585,23 +599,25 @@ fn large_time_scaled_accum_fixed<const K: usize>(t_prime: f64, w: f64) -> Option
         let e = (-((jj - 1.0) * half_pi2_t)).exp();
 
         let term = jf * s_j * e;
-        let term_dt = -half_pi2 * jf * (jj - 1.0) * s_j * e;
-        let term_dw = -jj * PI * c_j * e;
 
         let y = term - c_sum;
         let t = sum + y;
         c_sum = (t - sum) - y;
         sum = t;
 
-        let y = term_dt - c_dt;
-        let t = d_t + y;
-        c_dt = (t - d_t) - y;
-        d_t = t;
+        if SCORES {
+            let term_dt = -half_pi2 * jf * (jj - 1.0) * s_j * e;
+            let term_dw = -jj * PI * c_j * e;
+            let y = term_dt - c_dt;
+            let t = d_t + y;
+            c_dt = (t - d_t) - y;
+            d_t = t;
 
-        let y = term_dw - c_dw;
-        let t = d_w + y;
-        c_dw = (t - d_w) - y;
-        d_w = t;
+            let y = term_dw - c_dw;
+            let t = d_w + y;
+            c_dw = (t - d_w) - y;
+            d_w = t;
+        }
 
         let next_s = s_j.mul_add(cos_theta, c_j * sin_theta);
         let next_c = c_j.mul_add(cos_theta, -s_j * sin_theta);
@@ -610,7 +626,7 @@ fn large_time_scaled_accum_fixed<const K: usize>(t_prime: f64, w: f64) -> Option
         j += 1;
     }
 
-    if sum.is_finite() && d_t.is_finite() && d_w.is_finite() {
+    if sum.is_finite() && (!SCORES || (d_t.is_finite() && d_w.is_finite())) {
         Some((sum, d_t, d_w))
     } else {
         None
@@ -655,7 +671,7 @@ pub(super) fn large_branch_fused(t_prime: f64, w: f64, k: usize) -> Option<(f64,
 /// This is a stable finite sum, not a certified bound on score error.
 #[cold]
 #[inline(never)]
-pub(super) fn endpoint_fused(
+fn endpoint_components<const SCORES: bool>(
     t: f64,
     w: f64,
     q: f64,
@@ -679,11 +695,19 @@ pub(super) fn endpoint_fused(
             let jf = usize_to_f64(j);
             let e = (-(jf * jf - 1.0) * b * t).exp();
             raw += jf * sj * e;
-            dt -= b * jf * (jf * jf - 1.0) * sj * e;
-            dw -= PI * jf * jf * cj * e;
+            if SCORES {
+                dt -= b * jf * (jf * jf - 1.0) * sj * e;
+                dw -= PI * jf * jf * cj * e;
+            }
             (sj, cj) = (sj.mul_add(c, cj * s), cj.mul_add(c, -sj * s));
         }
-        return (raw > 0.0).then(|| (PI.ln() - b * t + raw.ln(), -b + dt / raw, dw / raw));
+        return (raw > 0.0).then(|| {
+            (
+                PI.ln() - b * t + raw.ln(),
+                if SCORES { -b + dt / raw } else { 0. },
+                if SCORES { dw / raw } else { 0. },
+            )
+        });
     }
 
     let inv_t = t.recip();
@@ -706,10 +730,12 @@ pub(super) fn endpoint_fused(
             let ratio = log_ratio.exp();
             let term = a * e * difference;
             raw += term;
-            dt += e * a * (exponent * inv_t * difference - ratio * 2.0 * x * w * inv_t * inv_t);
-            dw += e
-                * ((-1.0 + a * 2.0 * jf * inv_t) * difference
-                    - a * ratio * (1.0 / b + 1.0 / a - 2.0 * x * inv_t));
+            if SCORES {
+                dt += e * a * (exponent * inv_t * difference - ratio * 2.0 * x * w * inv_t * inv_t);
+                dw += e
+                    * ((-1.0 + a * 2.0 * jf * inv_t) * difference
+                        - a * ratio * (1.0 / b + 1.0 / a - 2.0 * x * inv_t));
+            }
         }
     } else {
         // For q -> 0 pair images around even integers instead. Their net
@@ -730,10 +756,12 @@ pub(super) fn endpoint_fused(
             let difference = log_ratio.exp_m1();
             let ratio = log_ratio.exp();
             raw += b * e * difference;
-            dt += b * e * (exponent * inv_t * difference + ratio * 2.0 * x * q * inv_t * inv_t);
-            dw -= e
-                * ((-1.0 + b * x * inv_t) * difference
-                    + b * ratio * (1.0 / a + 1.0 / b - 2.0 * x * inv_t));
+            if SCORES {
+                dt += b * e * (exponent * inv_t * difference + ratio * 2.0 * x * q * inv_t * inv_t);
+                dw -= e
+                    * ((-1.0 + b * x * inv_t) * difference
+                        + b * ratio * (1.0 / a + 1.0 / b - 2.0 * x * inv_t));
+            }
         }
     }
     if raw <= 0.0 {
@@ -743,7 +771,47 @@ pub(super) fn endpoint_fused(
     let value = -0.5 * TAU.ln() - 1.5 * t.ln() - scale + raw.ln();
     Some((
         value,
-        -1.5 * inv_t + scale * inv_t + dt / raw,
-        q * inv_t + dw / raw,
+        if SCORES {
+            -1.5 * inv_t + scale * inv_t + dt / raw
+        } else {
+            0.
+        },
+        if SCORES { q * inv_t + dw / raw } else { 0. },
     ))
+}
+
+#[cold]
+#[inline(never)]
+pub(super) fn endpoint_fused(
+    t: f64,
+    w: f64,
+    q: f64,
+    k: usize,
+    branch: super::SeriesBranch,
+) -> Option<(f64, f64, f64)> {
+    endpoint_components::<true>(t, w, q, k, branch)
+}
+
+/// Log density of the normalized zero-drift law, without score accumulation.
+#[inline]
+pub(super) fn log_density(
+    t: f64,
+    w: f64,
+    q: f64,
+    k: usize,
+    branch: super::SeriesBranch,
+) -> Option<f64> {
+    if super::unlikely(w.min(q) < 1e-5) {
+        return endpoint_components::<false>(t, w, q, k, branch).map(|x| x.0);
+    }
+    match branch {
+        super::SeriesBranch::SmallTime => {
+            let raw = small_time_series_raw(t, w, k)?;
+            (raw > 0.).then(|| -0.5 * TAU.ln() - 1.5 * t.ln() - 0.5 * q * q / t + raw.ln())
+        }
+        super::SeriesBranch::LargeTime => {
+            let (raw, _, _) = large_time_accum::<false>(t, w, k)?;
+            (raw > 0.).then(|| PI.ln() - 0.5 * PI * PI * t + raw.ln())
+        }
+    }
 }
