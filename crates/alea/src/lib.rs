@@ -43,11 +43,6 @@ pub mod prelude {
     #[cfg(feature = "distributions")]
     #[doc(inline)]
     pub use alea_distributions::prelude::*;
-    #[cfg(feature = "distributions")]
-    #[doc(inline)]
-    pub use alea_distributions::scalar::{
-        Bernoulli, Beta, Binomial, Exponential, Gamma, LogNormal, Normal, Poisson, StudentT,
-    };
     #[doc(inline)]
     pub use alea_math::prelude::*;
     #[doc(inline)]

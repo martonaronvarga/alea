@@ -248,3 +248,76 @@ fn ordered_models_normalize_and_have_cutpoint_scores() {
         close(s[i], (a - c) / (2.0 * h), 1e-7);
     }
 }
+
+#[test]
+fn degenerate_counts_and_signed_integer_sampling() {
+    let p = Poisson::new(0.0).unwrap();
+    let mut rng = SmallRng::seed_from_u64(99);
+    assert_eq!(p.log_prob(&0).unwrap(), 0.0);
+    assert_eq!(p.log_prob(&1).unwrap(), f64::NEG_INFINITY);
+    assert_eq!(p.sample(&mut rng).unwrap(), 0);
+    let mut s = [0.0];
+    p.parameter_score(&0, &mut s).unwrap();
+    assert_eq!(s, [-1.0]);
+    for (n, prob, k, gradient) in [(0, 0.0, 0, 0.0), (10, 0.0, 0, -10.0), (10, 1.0, 10, 10.0)] {
+        let b = Binomial::new(n, prob).unwrap();
+        b.parameter_score(&k, &mut s).unwrap();
+        assert_eq!(s, [gradient]);
+    }
+    for (lo, hi) in [
+        (-5, 3),
+        (i64::MIN, i64::MAX),
+        (i64::MIN, i64::MIN),
+        (i64::MAX - 10, i64::MAX),
+    ] {
+        let law = DiscreteUniform::new(lo, hi).unwrap();
+        for _ in 0..100 {
+            let k = law.sample(&mut rng).unwrap();
+            assert!((lo..=hi).contains(&k));
+        }
+    }
+}
+
+#[test]
+fn regression_links_remain_stable_at_extreme_predictors() {
+    for eta in [-1000.0, -40.0, -1.2, 0.0, 1.3, 40.0, 1000.0] {
+        let b = BernoulliLogit::new(eta).unwrap();
+        let d = BinomialLogit::new(7, eta).unwrap();
+        close(
+            b.log_prob(&true).unwrap().exp() + b.log_prob(&false).unwrap().exp(),
+            1.0,
+            1e-14,
+        );
+        close(sum(&d, 7), 1.0, 1e-13);
+        let mut s = [0.0];
+        b.parameter_score(&true, &mut s).unwrap();
+        if eta == 40.0 {
+            assert!(s[0] > 0.0);
+        }
+        let h = 1e-3;
+        d.parameter_score(&3, &mut s).unwrap();
+        let fd = (BinomialLogit::new(7, eta + h)
+            .unwrap()
+            .log_prob(&3)
+            .unwrap()
+            - BinomialLogit::new(7, eta - h)
+                .unwrap()
+                .log_prob(&3)
+                .unwrap())
+            / (2.0 * h);
+        close(s[0], fd, 1e-7);
+    }
+    for eta in [-20.0, -1.0, 0.0, 3.0] {
+        let p = PoissonLog::new(eta).unwrap();
+        for k in [0, 1, 5] {
+            close(
+                p.log_prob(&k).unwrap(),
+                Poisson::new(eta.exp()).unwrap().log_prob(&k).unwrap(),
+                1e-13,
+            );
+            let mut s = [0.0];
+            p.parameter_score(&k, &mut s).unwrap();
+            close(s[0], k as f64 - eta.exp(), 1e-14);
+        }
+    }
+}

@@ -41,6 +41,8 @@ pub enum Support {
     Interval,
     /// A half-line with a law-specific finite lower endpoint.
     LowerBounded,
+    /// Support endpoints depend on the law's parameters.
+    ParameterDependent,
     /// Angles in radians on one period, with respect to arc length.
     Circle,
     /// Symmetric positive-definite matrices, with respect to their free entries.

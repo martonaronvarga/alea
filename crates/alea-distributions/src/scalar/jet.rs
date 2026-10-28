@@ -46,6 +46,14 @@ impl<const N: usize> Jet<N> {
             d: std::array::from_fn(|i| (self.v / v) * self.d[i] + (other.v / v) * other.d[i]),
         }
     }
+    pub fn log_abs_difference(self, other: Self) -> Self {
+        if (self.v - other.v).is_finite() {
+            (self - other).abs().ln()
+        } else {
+            let scale = self.v.abs().max(other.v.abs());
+            (self / scale - other / scale).abs().ln() + scale.ln()
+        }
+    }
     pub fn log_k1_scaled(self) -> Self {
         let k1 = spec_math::cephes64::k1e(self.v);
         let slope = if self.v > 1e8 {

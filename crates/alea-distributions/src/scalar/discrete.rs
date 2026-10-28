@@ -374,7 +374,19 @@ impl Sample for DiscreteUniform {
     type Draw = i64;
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Result<i64, E> {
         use rand::RngExt;
-        Ok(rng.random_range(self.lower..=self.upper))
+        let width = (self.upper as i128 - self.lower as i128 + 1) as u128;
+        if width == 1_u128 << 64 {
+            return Ok(rng.random::<u64>() as i64);
+        }
+        let width = width as u64;
+        let threshold = width.wrapping_neg() % width;
+        for _ in 0..4096 {
+            let draw = rng.random::<u64>();
+            if draw >= threshold {
+                return Ok((self.lower as i128 + (draw % width) as i128) as i64);
+            }
+        }
+        Err(E::SamplingBudget)
     }
 }
 /// Zipf on integers 1..=size. Score order: nonnegative exponent. Construction

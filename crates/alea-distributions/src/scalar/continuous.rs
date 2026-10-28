@@ -18,6 +18,8 @@ enum Kind {
     SkewNormal,
     ExpModNormal,
     NormalInverseGaussian,
+    GeneralizedExtremeValue,
+    BetaProportion,
     Weibull,
     Frechet,
     Pareto,
@@ -46,6 +48,17 @@ impl Kernel {
     fn contains(self, x: f64, interior: bool) -> bool {
         let [a, b, c, _] = self.p;
         match self.kind {
+            Kind::BetaProportion => {
+                if interior {
+                    x > 0.0 && x < 1.0
+                } else {
+                    (0.0..=1.0).contains(&x)
+                }
+            }
+            Kind::GeneralizedExtremeValue => {
+                let q = 1.0 + c * ((x - a) / b);
+                c == 0.0 || if interior { q > 0.0 } else { q >= 0.0 }
+            }
             Kind::Uniform => {
                 if interior {
                     x > a && x < b
@@ -102,6 +115,23 @@ impl Kernel {
     fn eval<const N: usize>(self, x: Jet<N>, p: [Jet<N>; 4]) -> Jet<N> {
         let [a, b, c, d] = p;
         match self.kind {
+            Kind::BetaProportion => {
+                let alpha = a * b;
+                let beta = (1.0 - a) * b;
+                (alpha + beta).lgamma() - alpha.lgamma() - beta.lgamma()
+                    + (alpha - 1.0) * x.ln()
+                    + (beta - 1.0) * (-x).ln_1p()
+            }
+            Kind::GeneralizedExtremeValue => {
+                let z = (x - a) / b;
+                let u = c * z;
+                let w = if u.v.abs() < 1e-5 {
+                    z * (1.0 - u * 0.5 + u * u / 3.0 - u * u * u / 4.0 + u * u * u * u / 5.0)
+                } else {
+                    u.ln_1p() / c
+                };
+                -b.ln() - (1.0 + c) * w - (-w).exp()
+            }
             Kind::Uniform => -(b - a).ln(),
             Kind::Cauchy | Kind::HalfCauchy => {
                 let (z, scale, extra) = if self.kind == Kind::Cauchy {
@@ -110,7 +140,12 @@ impl Kernel {
                     (x / a, a, 2.0_f64.ln())
                 };
                 let l = if z.v.abs() > 1e150 {
-                    2.0 * z.abs().ln()
+                    let log_distance = if self.kind == Kind::Cauchy {
+                        x.log_abs_difference(a)
+                    } else {
+                        x.ln()
+                    };
+                    (2.0 * (log_distance - scale.ln())).softplus()
                 } else {
                     (z * z).ln_1p()
                 };
@@ -146,21 +181,29 @@ impl Kernel {
                 a.ln() + d.ln() - PI.ln() + exponent + (a * r).log_k1_scaled() - r.ln()
             }
             Kind::Weibull => {
-                let z = x / b;
+                let log_z = x.ln() - b.ln();
                 let power = a - 1.0;
                 let term = if x.v == 0.0 && power.v == 0.0 {
                     Jet::c(0.0)
                 } else {
-                    power * z.ln()
+                    power * log_z
                 };
-                a.ln() - b.ln() + term - (a * z.ln()).exp()
+                a.ln() - b.ln() + term - (a * log_z).exp()
             }
             Kind::Frechet => {
-                let z = (x - a) / b;
-                c.ln() - b.ln() - (c + 1.0) * z.ln() - (-c * z.ln()).exp()
+                let log_z = x.log_abs_difference(a) - b.ln();
+                c.ln() - b.ln() - (c + 1.0) * log_z - (-c * log_z).exp()
             }
-            Kind::Pareto => b.ln() - a.ln() - (b + 1.0) * (x / a).ln(),
-            Kind::ParetoType2 => c.ln() - b.ln() - (c + 1.0) * ((x - a) / b).ln_1p(),
+            Kind::Pareto => b.ln() - a.ln() - (b + 1.0) * (x.ln() - a.ln()),
+            Kind::ParetoType2 => {
+                let z = (x - a) / b;
+                let log_z = if z.v.is_finite() {
+                    z.ln_1p()
+                } else {
+                    (x.log_abs_difference(a) - b.ln()).softplus()
+                };
+                c.ln() - b.ln() - (c + 1.0) * log_z
+            }
             Kind::InverseGamma => a * b.ln() - a.lgamma() - (a + 1.0) * x.ln() - b / x,
             Kind::ChiSquared => {
                 let h = a * 0.5;
@@ -178,9 +221,9 @@ impl Kernel {
             Kind::FisherF => {
                 let h = a * 0.5;
                 let j = b * 0.5;
-                let ratio = a / b;
-                h * ratio.ln() + (h - 1.0) * x.ln()
-                    - (h + j) * (ratio.ln() + x.ln()).softplus()
+                let log_ratio = a.ln() - b.ln();
+                h * log_ratio + (h - 1.0) * x.ln()
+                    - (h + j) * (log_ratio + x.ln()).softplus()
                     - (h.lgamma() + j.lgamma() - (h + j).lgamma())
             }
             Kind::Rayleigh => x.ln() - 2.0 * a.ln() - 0.5 * (x / a) * (x / a),
@@ -188,10 +231,13 @@ impl Kernel {
                 let z = x / a - 1.0;
                 0.5 * (b.ln() - LN_TAU - 3.0 * x.ln()) - 0.5 * b * z * z / x
             }
-            Kind::Levy => 0.5 * (b.ln() - LN_TAU) - 1.5 * (x - a).ln() - 0.5 * b / (x - a),
+            Kind::Levy => {
+                let distance = x.log_abs_difference(a);
+                0.5 * (b.ln() - LN_TAU) - 1.5 * distance - 0.5 * (b.ln() - distance).exp()
+            }
             Kind::HalfNormal => 2.0_f64.ln() - 0.5 * LN_TAU - a.ln() - 0.5 * (x / a) * (x / a),
             Kind::LogLogistic => {
-                let z = a * (x / b).ln();
+                let z = a * (x.ln() - b.ln());
                 a.ln() - x.ln() + z - 2.0 * z.softplus()
             }
             Kind::Triangular => {
@@ -228,6 +274,34 @@ impl Kernel {
         }
         if !x.is_finite() || !self.contains(x, false) {
             return Ok(f64::NEG_INFINITY);
+        }
+        if self.kind == Kind::BetaProportion && (x == 0.0 || x == 1.0) {
+            let alpha = self.p[0] * self.p[1];
+            let beta = (1.0 - self.p[0]) * self.p[1];
+            let (shape, other) = if x == 0.0 {
+                (alpha, beta)
+            } else {
+                (beta, alpha)
+            };
+            return Ok(if shape == 1.0 {
+                other.ln()
+            } else if shape < 1.0 {
+                f64::INFINITY
+            } else {
+                f64::NEG_INFINITY
+            });
+        }
+        if self.kind == Kind::GeneralizedExtremeValue
+            && self.p[2] != 0.0
+            && 1.0 + self.p[2] * ((x - self.p[0]) / self.p[1]) == 0.0
+        {
+            return Ok(if self.p[2] == -1.0 {
+                -self.p[1].ln()
+            } else if self.p[2] < -1.0 {
+                f64::INFINITY
+            } else {
+                f64::NEG_INFINITY
+            });
         }
         // Gamma boundary limits avoid 0*log(0).
         if x == 0.0 && self.kind == Kind::ChiSquared {
@@ -275,6 +349,15 @@ impl Kernel {
         let [a, b, c, d] = self.p;
         let u = uniform(rng);
         let x = match self.kind {
+            Kind::BetaProportion => {
+                let g = gamma_draw(a * b, rng)?;
+                let h = gamma_draw((1.0 - a) * b, rng)?;
+                g / (g + h)
+            }
+            Kind::GeneralizedExtremeValue => {
+                let l = (-u.ln()).ln();
+                a + b * if c == 0.0 { -l } else { (-c * l).exp_m1() / c }
+            }
             Kind::Uniform => (1.0 - u) * a + u * b,
             Kind::Cauchy => a + b * (PI * (u - 0.5)).tan(),
             Kind::HalfCauchy => a * (PI * u * 0.5).tan(),
@@ -531,7 +614,7 @@ family!(
     InverseGamma,
     Positive,
     2,
-    "Inverse gamma. Score order: shape, inverse-scale rate (X=rate/Gamma(shape,1))."
+    "Inverse gamma. Score order: shape, rate of the reciprocal Gamma law; X=rate/Gamma(shape,1)."
 );
 family!(
     ChiSquared,
@@ -747,3 +830,35 @@ impl NormalInverseGaussian {
         }))
     }
 }
+
+family!(
+    BetaProportion,
+    BetaProportion,
+    UnitInterval,
+    2,
+    "Beta with mean in (0,1) and precision>0. Score order: mean, precision; alpha=mean*precision, beta=(1-mean)*precision."
+);
+impl BetaProportion {
+    /// # Errors
+    /// Requires an interior mean, positive precision and representable beta shapes/normalization.
+    pub fn new(mean: f64, precision: f64) -> Result<Self, E> {
+        finite(mean, "mean")?;
+        if !(0.0 < mean && mean < 1.0) {
+            return Err(E::Parameter("mean"));
+        }
+        positive(precision, "precision")?;
+        let _ = super::Beta::new(mean * precision, (1.0 - mean) * precision)?;
+        Ok(Self(Kernel {
+            kind: Kind::BetaProportion,
+            p: [mean, precision, 0.0, 0.0],
+        }))
+    }
+}
+family!(
+    GeneralizedExtremeValue,
+    GeneralizedExtremeValue,
+    ParameterDependent,
+    3,
+    "Generalized extreme value for maxima. Score order: location, scale, shape. Shape zero is Gumbel; support requires 1+shape*(x-location)/scale>=0."
+);
+constructor!(GeneralizedExtremeValue,GeneralizedExtremeValue,location:finite,scale:positive,shape:finite);

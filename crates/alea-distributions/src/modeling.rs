@@ -10,6 +10,70 @@ use alea_core::{
 fn error(e: impl std::error::Error + Send + Sync + 'static) -> E {
     E::Factor(Box::new(e))
 }
+/// A continuous scalar law as a model factor, including the event derivative.
+/// `construct` receives the parameter values in the order supplied by `parameters`.
+/// The law's parameter-score order must match that order.
+///
+/// This is an opaque analytic node; Enzyme source export requires a custom primal
+/// instead. Constructed laws are local to each evaluation, not shared across chains.
+/// # Errors
+/// Rejects foreign expressions or dimension overflow. Construction, support and
+/// derivative failures are preserved at evaluation time.
+pub fn continuous<D, F>(
+    builder: &mut ModelBuilder,
+    event: Expr,
+    parameters: &[Expr],
+    construct: F,
+) -> Result<Expr, E>
+where
+    D: ContinuousDistribution + ParameterScore + 'static,
+    F: Fn(&[f64]) -> Result<D, alea_core::distribution::DistributionError> + Send + Sync + 'static,
+{
+    let mut inputs = Vec::with_capacity(parameters.len().checked_add(1).ok_or(E::Shape)?);
+    inputs.push(event);
+    inputs.extend_from_slice(parameters);
+    builder.custom(&inputs, move |x, g| {
+        let law = construct(&x[1..]).map_err(error)?;
+        if law.parameter_count() != g.len() - 1 {
+            return Err(error(alea_core::distribution::DistributionError::Shape));
+        }
+        let value = law.log_prob(&x[0]).map_err(error)?;
+        g[0] = law.event_score(x[0]).map_err(error)?;
+        law.parameter_score(&x[0], &mut g[1..]).map_err(error)?;
+        Ok(value)
+    })
+}
+
+/// A fixed observation with differentiable distribution parameters. Works with
+/// scalar, count, vector and matrix events, using their existing event types.
+/// For vector and matrix laws an owned `Vec` borrows the event slice.
+///
+/// `construct` must return scores in the order of `parameters`. This analytic
+/// node has no Enzyme-exportable scalar primal.
+/// # Errors
+/// Rejects foreign expressions; parameter, observation, shape and score failures
+/// remain visible when evaluating the compiled model.
+pub fn observation<D, F, O>(
+    builder: &mut ModelBuilder,
+    event: O,
+    parameters: &[Expr],
+    construct: F,
+) -> Result<Expr, E>
+where
+    D: ParameterScore + 'static,
+    O: std::borrow::Borrow<D::Event> + Send + Sync + 'static,
+    F: Fn(&[f64]) -> Result<D, alea_core::distribution::DistributionError> + Send + Sync + 'static,
+{
+    builder.custom(parameters, move |x, g| {
+        let law = construct(x).map_err(error)?;
+        if law.parameter_count() != g.len() {
+            return Err(error(alea_core::distribution::DistributionError::Shape));
+        }
+        let value = law.log_prob(event.borrow()).map_err(error)?;
+        law.parameter_score(event.borrow(), g).map_err(error)?;
+        Ok(value)
+    })
+}
 /// Normalized Normal log density node, with event/location/scale reverse scores.
 /// # Errors
 /// Rejects foreign expressions; runtime parameters are checked by Normal.

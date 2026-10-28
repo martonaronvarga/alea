@@ -11,9 +11,11 @@ use std::f64::consts::{PI, TAU};
 mod continuous;
 mod discrete;
 mod jet;
+mod links;
 mod ordinal;
 pub use continuous::*;
 pub use discrete::*;
+pub use links::*;
 pub use ordinal::*;
 
 const LN_TAU: f64 = 1.8378770664093453;
@@ -309,7 +311,7 @@ continuous!(
 continuous!(
     LogNormal,
     Positive,
-    "LogNormal; score order: log location, log scale."
+    "LogNormal; score order: mean of log X, standard deviation of log X."
 );
 continuous!(
     Exponential,
@@ -523,22 +525,36 @@ impl ParameterScore for Binomial {
         if *k > self.n {
             return Err(E::Observation);
         }
+        if (*k > 0 && self.p == 0.0) || (*k < self.n && self.p == 1.0) {
+            return Err(E::Observation);
+        }
         score(
             out,
-            &[*k as f64 / self.p - (self.n - *k) as f64 / (1.0 - self.p)],
+            &[if *k == 0 { 0.0 } else { *k as f64 / self.p }
+                - if *k == self.n {
+                    0.0
+                } else {
+                    (self.n - *k) as f64 / (1.0 - self.p)
+                }],
         )
     }
 }
 impl Sample for Binomial {
     type Draw = u64;
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Result<u64, E> {
+        if self.p == 0.0 || self.n == 0 {
+            return Ok(0);
+        }
+        if self.p == 1.0 {
+            return Ok(self.n);
+        }
         if self.n > 1_000_000 {
             return Err(E::SamplingBudget);
         }
         Ok((0..self.n).filter(|_| uniform(rng) < self.p).count() as u64)
     }
 }
-/// Poisson on integer counts; score order: positive rate.
+/// Poisson on integer counts; score order: nonnegative rate. Rate zero is a point mass at zero.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[must_use]
 pub struct Poisson {
@@ -546,11 +562,12 @@ pub struct Poisson {
 }
 impl Poisson {
     /// # Errors
-    /// Rejects non-positive/non-finite rates.
+    /// Rejects negative/non-finite rates.
     pub fn new(rate: f64) -> Result<Self, E> {
-        Ok(Self {
-            rate: positive(rate, "rate")?,
-        })
+        if !rate.is_finite() || rate < 0.0 {
+            return Err(E::Parameter("rate"));
+        }
+        Ok(Self { rate })
     }
 }
 impl Distribution for Poisson {
@@ -562,6 +579,9 @@ impl Distribution for Poisson {
         Support::Count
     }
     fn log_prob(&self, k: &u64) -> Result<f64, E> {
+        if self.rate == 0.0 {
+            return Ok(if *k == 0 { 0.0 } else { f64::NEG_INFINITY });
+        }
         if *k > 1 << 53 {
             return Err(E::Numerical);
         }
@@ -574,6 +594,13 @@ impl ParameterScore for Poisson {
         1
     }
     fn parameter_score(&self, k: &u64, out: &mut [f64]) -> Result<(), E> {
+        if self.rate == 0.0 {
+            return if *k == 0 {
+                score(out, &[-1.0])
+            } else {
+                Err(E::Observation)
+            };
+        }
         if *k > 1 << 53 {
             return Err(E::Numerical);
         }
@@ -583,6 +610,9 @@ impl ParameterScore for Poisson {
 impl Sample for Poisson {
     type Draw = u64;
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Result<u64, E> {
+        if self.rate == 0.0 {
+            return Ok(0);
+        }
         // Sum independent rate<=30 Poissons; bounded exact inversion, no Gaussian approximation.
         if self.rate > 30_000.0 {
             return Err(E::SamplingBudget);

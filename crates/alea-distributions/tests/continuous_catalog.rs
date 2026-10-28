@@ -241,3 +241,113 @@ fn normal_inverse_gaussian_density_scores_and_mixture_sampling() {
     generated_mean(law, 0.2 + 1.3 * 0.4 / (4.0_f64 - 0.16).sqrt(), 0.012);
     assert!(NormalInverseGaussian::new(1.0, 1.0, 0.0, 1.0).is_err());
 }
+
+#[test]
+fn beta_proportion_and_extreme_value_limits() {
+    scores(
+        BetaProportion::new(0.3, 4.2).unwrap(),
+        &[0.3, 4.2],
+        0.6,
+        |p| BetaProportion::new(p[0], p[1]).unwrap(),
+    );
+    scores(
+        GeneralizedExtremeValue::new(0.2, 1.3, 0.0).unwrap(),
+        &[0.2, 1.3, 0.0],
+        0.6,
+        |p| GeneralizedExtremeValue::new(p[0], p[1], p[2]).unwrap(),
+    );
+    for shape in [-0.3, 0.2] {
+        scores(
+            GeneralizedExtremeValue::new(0.2, 1.3, shape).unwrap(),
+            &[0.2, 1.3, shape],
+            0.6,
+            |p| GeneralizedExtremeValue::new(p[0], p[1], p[2]).unwrap(),
+        );
+    }
+    for x in [0.01, 0.3, 0.8, 0.99] {
+        close(
+            BetaProportion::new(0.3, 4.2).unwrap().log_prob(&x).unwrap(),
+            Beta::new(0.3 * 4.2, 0.7 * 4.2)
+                .unwrap()
+                .log_prob(&x)
+                .unwrap(),
+            1e-13,
+        );
+    }
+    for x in [-20.0, 0.0, 2.0, 100.0] {
+        close(
+            GeneralizedExtremeValue::new(0.2, 1.3, 0.0)
+                .unwrap()
+                .log_prob(&x)
+                .unwrap(),
+            Gumbel::new(0.2, 1.3).unwrap().log_prob(&x).unwrap(),
+            1e-13,
+        );
+    }
+    close(
+        GeneralizedExtremeValue::new(0.0, 2.0, -1.0)
+            .unwrap()
+            .log_prob(&2.0)
+            .unwrap(),
+        -2.0_f64.ln(),
+        1e-13,
+    );
+    assert_eq!(
+        GeneralizedExtremeValue::new(0.0, 1.0, -0.2)
+            .unwrap()
+            .log_prob(&6.0)
+            .unwrap(),
+        f64::NEG_INFINITY
+    );
+    close(
+        integral(
+            &GeneralizedExtremeValue::new(0.2, 1.3, -0.2).unwrap(),
+            -20.0,
+            6.7,
+            100000,
+        ),
+        1.0,
+        1e-8,
+    );
+    generated_mean(
+        GeneralizedExtremeValue::new(0.2, 1.3, 0.0).unwrap(),
+        0.2 + 1.3 * 0.5772156649015329,
+        0.018,
+    );
+    generated_mean(BetaProportion::new(0.3, 4.2).unwrap(), 0.3, 0.008);
+}
+
+#[test]
+fn heavy_tailed_densities_do_not_overflow_intermediate_ratios() {
+    let x = 1e308_f64;
+    let scale = 1e-308_f64;
+    close(
+        Cauchy::new(0.0, scale).unwrap().log_prob(&x).unwrap(),
+        -std::f64::consts::PI.ln() + scale.ln() - 2.0 * x.ln(),
+        1e-13,
+    );
+    close(
+        Pareto::new(scale, 2.0).unwrap().log_prob(&x).unwrap(),
+        2.0_f64.ln() - scale.ln() - 3.0 * (x.ln() - scale.ln()),
+        1e-13,
+    );
+    close(
+        Levy::new(-x, x).unwrap().log_prob(&x).unwrap(),
+        0.5 * (x.ln() - (2.0 * std::f64::consts::PI).ln()) - 1.5 * (x.ln() + 2.0_f64.ln()) - 0.25,
+        1e-13,
+    );
+    assert!(
+        Frechet::new(-x, 1.0, 2.0)
+            .unwrap()
+            .log_prob(&x)
+            .unwrap()
+            .is_finite()
+    );
+    assert!(
+        LogLogistic::new(2.0, scale)
+            .unwrap()
+            .log_prob(&x)
+            .unwrap()
+            .is_finite()
+    );
+}
