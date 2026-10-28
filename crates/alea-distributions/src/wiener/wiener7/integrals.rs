@@ -9,30 +9,15 @@ impl Wiener7 {
         obs: &WienerObservation,
         x: &[f64],
     ) -> Option<(f64, [f64; 7])> {
-        let (_, beta) = Self::map_point(core, x);
-        let time_index = usize::from(core.sw > 0.0);
-        let t = obs.rt
-            - core.tau0
-            - if core.st0 > 0.0 {
-                core.st0 * x[time_index]
-            } else {
-                0.0
-            };
-        if t <= 0.0 {
-            return Some((f64::NEG_INFINITY, [0.0; 7]));
+        let (event, params) = Self::point_model(core, obs, x);
+        if event.rt <= 0. {
+            return Some((f64::NEG_INFINITY, [0.; 7]));
         }
-        let p = Wiener5Params::with_params_unchecked(core.alpha, 0.0, beta, core.delta, core.sv);
-        let e = Wiener5.fused(
-            &WienerObservation {
-                rt: t,
-                boundary: obs.boundary,
-            },
-            &p,
-            core.eps_series,
-        );
+        let e = Wiener5.fused(&event, &params, core.eps_series);
         if !e.log_prob.is_finite() || e.grad_array().iter().any(|v| !v.is_finite()) {
             return None;
         }
+        let time_index = usize::from(core.sw > 0.);
         let mut scores = [0.0; 7];
         scores[..5].copy_from_slice(&e.grad_array());
         if core.sw > 0.0 {
@@ -44,6 +29,44 @@ impl Wiener7 {
             0.5 * e.grad.tau
         };
         Some((e.log_prob, scores))
+    }
+
+    /// Evaluate the density at a trial point without constructing any scores.
+    pub(super) fn point_log_density(
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        x: &[f64],
+    ) -> Option<f64> {
+        let (event, params) = Self::point_model(core, obs, x);
+        if event.rt <= 0. {
+            return Some(f64::NEG_INFINITY);
+        }
+        let value = Wiener5.density_from_parts(event.rt, event.boundary, &params, core.eps_series);
+        value.is_finite().then_some(value)
+    }
+
+    #[inline]
+    fn point_model(
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        x: &[f64],
+    ) -> (WienerObservation, Wiener5Params) {
+        let (_, beta) = Self::map_point(core, x);
+        let time_index = usize::from(core.sw > 0.);
+        let t = obs.rt
+            - core.tau0
+            - if core.st0 > 0. {
+                core.st0 * x[time_index]
+            } else {
+                0.
+            };
+        (
+            WienerObservation {
+                rt: t,
+                boundary: obs.boundary,
+            },
+            Wiener5Params::with_params_unchecked(core.alpha, 0., beta, core.delta, core.sv),
+        )
     }
 
     pub(super) fn from_integrals(val: [f64; 8]) -> Wiener7Eval {

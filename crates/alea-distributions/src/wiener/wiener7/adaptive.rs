@@ -40,16 +40,16 @@ impl Wiener7 {
     ) -> f64 {
         // The bounded moment expansion also handles almost constant intervals.
         if core.sw > 0.
-            && let Some(e) = self.analytic_start(core, obs)
+            && let Some(e) = self.analytic_start_density(core, obs)
         {
-            return e.log_prob.exp();
+            return e.exp();
         }
         let bounds = Bounds::new(&core.xmin, &core.xmax);
         let mut val = [0.0f64; 1];
         let mut err = [0.0f64; 1];
 
         let integrand = |x: &[f64], fv: &mut [f64]| -> i32 {
-            let Some((lp, _)) = Self::point_log_scores(core, obs, x) else {
+            let Some(lp) = Self::point_log_density(core, obs, x) else {
                 return 1;
             };
             fv[0] = lp.exp();

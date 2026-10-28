@@ -133,19 +133,19 @@ impl Wiener7 {
         }
         // The bounded moment expansion also handles almost constant intervals.
         if core.sw > 0.
-            && let Some(e) = self.analytic_start(&core, obs)
+            && let Some(e) = self.analytic_start_density(&core, obs)
         {
             return Wiener7Eval {
-                log_prob: e.log_prob,
+                log_prob: e,
                 grad: NAN_GRAD_7,
             };
         }
         if core.sw == 0.
             && core.sv > 0.
-            && let Some(e) = self.analytic_time(&core, obs)
+            && let Some(e) = self.analytic_time_density(&core, obs)
         {
             return Wiener7Eval {
-                log_prob: e.log_prob,
+                log_prob: e,
                 grad: NAN_GRAD_7,
             };
         }
@@ -167,16 +167,16 @@ impl Wiener7 {
             };
         }
         if Self::prefer_reduced_time(&core, obs)
-            && let Some(e) = self.reduced_time_integral(&core, obs)
+            && let Some(e) = self.reduced_time_density(&core, obs)
         {
             return Wiener7Eval {
-                log_prob: e.log_prob,
+                log_prob: e,
                 grad: NAN_GRAD_7,
             };
         }
-        if let Some(e) = self.reduced_start_integral(&core, obs) {
+        if let Some(e) = self.reduced_start_density(&core, obs) {
             return Wiener7Eval {
-                log_prob: e.log_prob,
+                log_prob: e,
                 grad: NAN_GRAD_7,
             };
         }
@@ -213,20 +213,20 @@ impl Wiener7 {
         }
         if options.quadrature == Quadrature::Adaptive
             && core.sw > 0.
-            && let Some(e) = self.analytic_start(&core, obs)
+            && let Some(e) = self.analytic_start_density(&core, obs)
         {
             return Ok(Wiener7Eval {
-                log_prob: e.log_prob,
+                log_prob: e,
                 grad: NAN_GRAD_7,
             });
         }
         if options.quadrature == Quadrature::Adaptive
             && core.sw == 0.
             && core.sv > 0.
-            && let Some(e) = self.analytic_time(&core, obs)
+            && let Some(e) = self.analytic_time_density(&core, obs)
         {
             return Ok(Wiener7Eval {
-                log_prob: e.log_prob,
+                log_prob: e,
                 grad: NAN_GRAD_7,
             });
         }
@@ -250,18 +250,18 @@ impl Wiener7 {
         }
         if options.quadrature == Quadrature::Adaptive
             && Self::prefer_reduced_time(&core, obs)
-            && let Some(e) = self.reduced_time_integral(&core, obs)
+            && let Some(e) = self.reduced_time_density(&core, obs)
         {
             return Ok(Wiener7Eval {
-                log_prob: e.log_prob,
+                log_prob: e,
                 grad: NAN_GRAD_7,
             });
         }
         if options.quadrature == Quadrature::Adaptive
-            && let Some(e) = self.reduced_start_integral(&core, obs)
+            && let Some(e) = self.reduced_start_density(&core, obs)
         {
             return Ok(Wiener7Eval {
-                log_prob: e.log_prob,
+                log_prob: e,
                 grad: NAN_GRAD_7,
             });
         }
@@ -277,7 +277,7 @@ impl Wiener7 {
             match options.quadrature {
                 Quadrature::Adaptive => self.scaled_density(&core, obs).log_prob,
                 Quadrature::FixedGaussLegendre { order } => {
-                    self.scaled_fixed(&core, obs, order).log_prob
+                    self.scaled_fixed_density(&core, obs, order).log_prob
                 }
             }
         };

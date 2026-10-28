@@ -52,17 +52,34 @@ impl Wiener7 {
         core: &Wiener7Core,
         obs: &WienerObservation,
     ) -> Option<Wiener7Eval> {
+        self.reduced_start_components::<true>(core, obs)
+    }
+
+    pub(super) fn reduced_start_density(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Option<f64> {
+        self.reduced_start_components::<false>(core, obs)
+            .map(|e| e.log_prob)
+    }
+
+    fn reduced_start_components<const SCORES: bool>(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Option<Wiener7Eval> {
         if core.dim != 2 {
             return None;
         }
         for x in [0., 0.5, 1.] {
-            Self::averaged_start_log_scores(core, obs, x)?;
+            Self::averaged_start_components::<SCORES>(core, obs, x)?;
         }
-        let value = self.scaled_integral(core, obs, true, Reduction::Time);
+        let value = self.scaled_integral(core, obs, SCORES, Reduction::Time);
         (value.log_prob.is_finite() && value.grad_array().iter().all(|x| x.is_finite()))
             .then_some(value)
     }
-    fn averaged_start_log_scores(
+    fn averaged_start_components<const SCORES: bool>(
         core: &Wiener7Core,
         obs: &WienerObservation,
         x: f64,
@@ -74,12 +91,15 @@ impl Wiener7 {
         point.xmin = [0.; 2];
         point.xmax = [core.xmax[1], 1.];
         point.eps_series = point.eps_series.min(0.01 * core.opts.req_rel_error);
+        if !SCORES {
+            return Some((Wiener7.analytic_time_density(&point, obs)?, [0.; 7]));
+        }
         let value = Wiener7.analytic_time(&point, obs)?;
         let mut scores = value.grad_array();
         scores[5] = (x - 0.5) * scores[2];
         Some((value.log_prob, scores))
     }
-    fn scaled_rule(
+    fn scaled_rule<const SCORES: bool>(
         core: &Wiener7Core,
         obs: &WienerObservation,
         lo: [f64; 2],
@@ -113,9 +133,21 @@ impl Wiener7 {
                 };
                 let x = [u0, u1];
                 let (lp, scores) = match reduction {
-                    Reduction::Start => Self::averaged_time_log_scores(core, obs, x[0])?,
-                    Reduction::Time => Self::averaged_start_log_scores(core, obs, x[0])?,
-                    Reduction::None => Self::point_log_scores(core, obs, &x)?,
+                    Reduction::Start => {
+                        if SCORES {
+                            Self::averaged_time_log_scores(core, obs, x[0])?
+                        } else {
+                            (Self::averaged_time_log_density(core, obs, x[0])?, [0.; 7])
+                        }
+                    }
+                    Reduction::Time => Self::averaged_start_components::<SCORES>(core, obs, x[0])?,
+                    Reduction::None => {
+                        if SCORES {
+                            Self::point_log_scores(core, obs, &x)?
+                        } else {
+                            (Self::point_log_density(core, obs, &x)?, [0.; 7])
+                        }
+                    }
                 };
                 if lp == f64::NEG_INFINITY {
                     continue;
@@ -125,7 +157,7 @@ impl Wiener7 {
                 sum.add(log_weight, scores);
                 if lp > peak {
                     peak = lp;
-                    if dimension == 2 {
+                    if SCORES && dimension == 2 {
                         let dw = (hi[0] - lo[0]) * core.sw * scores[2];
                         let dt = (hi[1] - lo[1]) * core.st0 * scores[1];
                         split = usize::from(dt.abs() > dw.abs());
@@ -170,11 +202,13 @@ impl Wiener7 {
                 boundary: obs.boundary,
             };
             let lp = if point.dim == 0 {
-                Self::point_log_scores(&point, &event, &[0.5; 2])?.0
+                Self::point_log_density(&point, &event, &[0.5; 2])?
             } else {
-                self.analytic_start(&point, &event)
-                    .unwrap_or_else(|| self.scaled_integral(&point, &event, false, Reduction::None))
-                    .log_prob
+                self.analytic_start_density(&point, &event)
+                    .unwrap_or_else(|| {
+                        self.scaled_integral(&point, &event, false, Reduction::None)
+                            .log_prob
+                    })
             };
             if !lp.is_finite() {
                 return None;
@@ -244,7 +278,11 @@ impl Wiener7 {
         start_fluxes: bool,
     ) -> Option<Region> {
         let rule = |first, second| {
-            let (mut sum, split) = Self::scaled_rule(core, obs, lo, hi, first, second, reduction)?;
+            let (mut sum, split) = if gradients {
+                Self::scaled_rule::<true>(core, obs, lo, hi, first, second, reduction)?
+            } else {
+                Self::scaled_rule::<false>(core, obs, lo, hi, first, second, reduction)?
+            };
             if !gradients {
                 sum.value[1..].fill(0.);
             }
@@ -308,7 +346,7 @@ impl Wiener7 {
         obs: &WienerObservation,
         order: usize,
     ) -> Wiener7Eval {
-        match Self::scaled_rule(
+        match Self::scaled_rule::<true>(
             core,
             obs,
             core.xmin,
@@ -320,6 +358,29 @@ impl Wiener7 {
             Some((s, _)) => Wiener7Eval {
                 log_prob: s.scale + s.value[0].ln(),
                 grad: Wiener7Grad::from_array(std::array::from_fn(|i| s.value[i + 1] / s.value[0])),
+            },
+            None => fail_eval_7(),
+        }
+    }
+
+    pub(super) fn scaled_fixed_density(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        order: usize,
+    ) -> Wiener7Eval {
+        match Self::scaled_rule::<false>(
+            core,
+            obs,
+            core.xmin,
+            core.xmax,
+            order,
+            order,
+            Reduction::None,
+        ) {
+            Some((sum, _)) => Wiener7Eval {
+                log_prob: sum.scale + sum.value[0].ln(),
+                grad: NAN_GRAD_7,
             },
             None => fail_eval_7(),
         }
@@ -351,7 +412,13 @@ impl Wiener7 {
         obs: &WienerObservation,
         gradients: bool,
     ) -> Wiener7Eval {
-        if core.dim == 2 && Self::averaged_time_log_scores(core, obs, 0.).is_some() {
+        if core.dim == 2
+            && (if gradients {
+                Self::averaged_time_log_scores(core, obs, 0.).is_some()
+            } else {
+                Self::averaged_time_log_density(core, obs, 0.).is_some()
+            })
+        {
             let reduced = self.scaled_integral(core, obs, gradients, Reduction::Start);
             if reduced.log_prob.is_finite() && reduced.grad_array().iter().all(|v| v.is_finite()) {
                 return reduced;
@@ -682,9 +749,16 @@ mod tests {
                 for i in 0..panels {
                     let lo = [i as f64 / panels as f64, (max_time - end) / p[6]];
                     let hi = [(i + 1) as f64 / panels as f64, (max_time - time) / p[6]];
-                    let (part, _) =
-                        Wiener7::scaled_rule(&core, &observation, lo, hi, 25, 25, Reduction::None)
-                            .unwrap();
+                    let (part, _) = Wiener7::scaled_rule::<true>(
+                        &core,
+                        &observation,
+                        lo,
+                        hi,
+                        25,
+                        25,
+                        Reduction::None,
+                    )
+                    .unwrap();
                     reference.add(
                         part.scale + part.value[0].ln(),
                         std::array::from_fn(|k| part.value[k + 1] / part.value[0]),

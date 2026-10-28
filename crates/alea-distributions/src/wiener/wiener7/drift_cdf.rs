@@ -24,7 +24,14 @@ fn mills_slope(z: f64) -> f64 {
 }
 
 /// Positive integrated image and its scores, before its lattice sign.
-fn image(t: f64, a: f64, q: f64, v: f64, s: f64, j: f64) -> Option<(f64, [f64; 5])> {
+fn image<const SCORES: bool>(
+    t: f64,
+    a: f64,
+    q: f64,
+    v: f64,
+    s: f64,
+    j: f64,
+) -> Option<(f64, [f64; 5])> {
     let direction = if j >= 0. { 1. } else { -1. };
     let d = a * (q + 2. * j).abs();
     let lambda = 1. + s * s * t;
@@ -37,6 +44,18 @@ fn image(t: f64, a: f64, q: f64, v: f64, s: f64, j: f64) -> Option<(f64, [f64; 5
         let shift = a * ((1. - sign * direction) * q - 2. * sign * direction * j);
         let mean = v + shift * s * s;
         let z = (d - sign * mean * t) / root;
+        if !SCORES {
+            let log = if z >= 0. {
+                energy - 0.5 * (2. * PI).ln() + cdf::log_mills(z)
+            } else {
+                shift * v + 0.5 * shift * shift * s * s + cdf::log_phi(-z)
+            };
+            if !log.is_finite() {
+                return None;
+            }
+            *term = (log, [0.; 5]);
+            continue;
+        }
         let dz = [
             (direction * (q + 2. * j) + s * s * t * ((direction - sign) * q + 2. * direction * j))
                 / root,
@@ -87,6 +106,24 @@ fn image(t: f64, a: f64, q: f64, v: f64, s: f64, j: f64) -> Option<(f64, [f64; 5
 }
 
 pub(super) fn evaluate(t: f64, core: &Wiener7Core, boundary: Boundary, eps: f64) -> Option<Cdf> {
+    components::<true>(t, core, boundary, eps)
+}
+
+pub(super) fn evaluate_density(
+    t: f64,
+    core: &Wiener7Core,
+    boundary: Boundary,
+    eps: f64,
+) -> Option<Cdf> {
+    components::<false>(t, core, boundary, eps)
+}
+
+fn components<const SCORES: bool>(
+    t: f64,
+    core: &Wiener7Core,
+    boundary: Boundary,
+    eps: f64,
+) -> Option<Cdf> {
     // The integrated-image tail proof only needs the omitted-distance
     // monotonicity check below, not the density branch crossover. Bound
     // planning work in long time; conditioning checks still gate every result.
@@ -98,7 +135,7 @@ pub(super) fn evaluate(t: f64, core: &Wiener7Core, boundary: Boundary, eps: f64)
     let base = Wiener5.core(&obs, &p, eps).ok()?;
     let (a, q, v, s) = (core.alpha, base.base.q_eff, base.base.v_eff, core.sv);
     let u = base.base.t_prime;
-    let scale = image(t, a, q, v, s, 0.)?.0;
+    let scale = image::<SCORES>(t, a, q, v, s, 0.)?.0;
     let mut sum = [0.; 6];
     let mut correction = [0.; 6];
     let mut absolute = 0.;
@@ -108,7 +145,7 @@ pub(super) fn evaluate(t: f64, core: &Wiener7Core, boundary: Boundary, eps: f64)
             .into_iter()
             .take(if k == 0 { 1 } else { 2 })
         {
-            let (log, mut scores) = image(t, a, q, v, s, j)?;
+            let (log, mut scores) = image::<SCORES>(t, a, q, v, s, j)?;
             scores[2] *= -base.base.beta_sign;
             scores[3] *= base.base.delta_sign;
             let weight = (log - scale).exp();
@@ -117,7 +154,11 @@ pub(super) fn evaluate(t: f64, core: &Wiener7Core, boundary: Boundary, eps: f64)
                 *total += weight * score.abs();
             }
             let sign = if j < 0. { -1. } else { 1. };
-            for (i, value) in std::iter::once(1.).chain(scores).enumerate() {
+            for (i, value) in std::iter::once(1.)
+                .chain(scores)
+                .take(if SCORES { 6 } else { 1 })
+                .enumerate()
+            {
                 let y = sign * weight * value - correction[i];
                 let next = sum[i] + y;
                 correction[i] = (next - sum[i]) - y;
@@ -137,6 +178,9 @@ pub(super) fn evaluate(t: f64, core: &Wiener7Core, boundary: Boundary, eps: f64)
         let factor = a.ln() - 0.5 * (2. * PI * t).ln() + q * q / (2. * u) - scale;
         let mut moments = [0.; 4];
         for (p, moment) in moments.iter_mut().enumerate() {
+            if !SCORES && p != 1 {
+                continue;
+            }
             *moment = (bounds::add(
                 bounds::lattice(p, next + q, 0., u)?,
                 bounds::lattice(p, next - q, 0., u)?,
@@ -155,6 +199,18 @@ pub(super) fn evaluate(t: f64, core: &Wiener7Core, boundary: Boundary, eps: f64)
         ];
         let margin = sum[0] - errors[0];
         if margin <= 0. {
+            continue;
+        }
+        if !SCORES {
+            let density_error = -(-(errors[0] / sum[0])).ln_1p();
+            if density_error <= eps {
+                let log_prob = scale + sum[0].ln();
+                return log_prob.is_finite().then_some(Cdf {
+                    log_prob,
+                    scores: [0.; 5],
+                    error: [density_error, 0., 0., 0., 0., 0.],
+                });
+            }
             continue;
         }
         let scores = std::array::from_fn(|i| sum[i + 1] / sum[0]);

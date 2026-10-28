@@ -4,7 +4,16 @@ use super::gaussian_polynomial::{C, add, complex_moments, mul, scale};
 use super::*;
 
 impl Wiener7 {
+    #[cfg(test)]
     pub(super) fn analytic_spectral_start(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Option<Wiener7Eval> {
+        self.analytic_spectral_start_components::<true>(core, obs)
+    }
+
+    pub(super) fn analytic_spectral_start_components<const SCORES: bool>(
         &self,
         core: &Wiener7Core,
         obs: &WienerObservation,
@@ -44,8 +53,11 @@ impl Wiener7 {
         for k in 1_usize..=128 {
             let n = k as f64;
             let omega = n * PI;
-            let (moments, remainder) =
-                complex_moments(-d * h * h, (h * (b + 2. * d * m), h * omega))?;
+            let (moments, remainder) = if SCORES {
+                complex_moments::<4>(-d * h * h, (h * (b + 2. * d * m), h * omega))?
+            } else {
+                complex_moments::<1>(-d * h * h, (h * (b + 2. * d * m), h * omega))?
+            };
             let phase = if base.base.w_eff < base.base.q_eff {
                 let (s, c) = (omega * base.base.w_eff).sin_cos();
                 if k.is_multiple_of(2) {
@@ -65,6 +77,9 @@ impl Wiener7 {
                     scale(z[2], h * h),
                 );
                 let density = z[0].1;
+                if !SCORES {
+                    return [density, 0., 0., 0., 0., 0., 0., 0.];
+                }
                 let alpha = (-2. / a + omega * omega * t / (a * a * a)) * density
                     + (v * q1.1 + a * s * s * q2.1) / lam;
                 let tau =
@@ -86,7 +101,7 @@ impl Wiener7 {
             };
             let values = component(moments);
             let mut errors = [0.; 8];
-            for r in 0..4 {
+            for r in 0..if SCORES { 4 } else { 1 } {
                 for unit in [(1., 0.), (0., 1.)] {
                     let mut basis = [(0., 0.); 4];
                     basis[r] = unit;
@@ -97,7 +112,7 @@ impl Wiener7 {
             }
             let weight = n * (-(n * n - 1.) * c).exp();
             absolute += weight * values[0].abs();
-            for i in 0..8 {
+            for i in 0..if SCORES { 8 } else { 1 } {
                 let y = weight * values[i] - correction[i];
                 let next = sum[i] + y;
                 correction[i] = (next - sum[i]) - y;
@@ -105,6 +120,21 @@ impl Wiener7 {
                 error[i] += weight * errors[i];
             }
             if sum[0] <= 0. || absolute / sum[0] > 1e6 {
+                continue;
+            }
+            if !SCORES {
+                let tail = (bounds::spectral(1, k, c)? + factor).exp();
+                let bound = error[0] + tail;
+                if bound < sum[0] && -(-(bound / sum[0])).ln_1p() <= core.eps_series {
+                    let log_prob = PI.ln() - 2. * a.ln() - 0.5 * lam.ln() - 0.5 * v * v * t / lam
+                        + exponent(m)
+                        - c
+                        + sum[0].ln();
+                    return log_prob.is_finite().then_some(Wiener7Eval {
+                        log_prob,
+                        grad: Wiener7Grad::from_array([0.; 7]),
+                    });
+                }
                 continue;
             }
             let tails =

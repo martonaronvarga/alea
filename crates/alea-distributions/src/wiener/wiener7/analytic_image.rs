@@ -87,7 +87,7 @@ struct Sum {
     absolute: f64,
 }
 impl Sum {
-    fn add(&mut self, log: f64, value: [f64; 8], error: [f64; 8]) {
+    fn add<const SCORES: bool>(&mut self, log: f64, value: [f64; 8], error: [f64; 8]) {
         if log > self.scale {
             let factor = (self.scale - log).exp();
             for x in self.value.iter_mut().chain(&mut self.error) {
@@ -97,7 +97,7 @@ impl Sum {
             self.scale = log;
         }
         let factor = (log - self.scale).exp();
-        for i in 0..8 {
+        for i in 0..if SCORES { 8 } else { 1 } {
             self.value[i] += factor * value[i];
             self.error[i] += factor * error[i];
         }
@@ -106,7 +106,16 @@ impl Sum {
 }
 
 impl Wiener7 {
+    #[cfg(test)]
     pub(super) fn analytic_image_start(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Option<Wiener7Eval> {
+        self.analytic_image_start_components::<true>(core, obs)
+    }
+
+    pub(super) fn analytic_image_start_components<const SCORES: bool>(
         &self,
         core: &Wiener7Core,
         obs: &WienerObservation,
@@ -169,6 +178,9 @@ impl Wiener7 {
                         + 3. * m * h * h * j[2]
                         + h * h * h * j[3];
                     let t0 = q1 + 2. * image * q0;
+                    if !SCORES {
+                        return [t0, 0., 0., 0., 0., 0., 0., 0.];
+                    }
                     let t1 = q2 + 2. * image * q1;
                     let t2 = q3 + 2. * image * q2;
                     let derivative = |da: f64, db: f64, dc: f64| -da * t2 + db * t1 + dc * t0;
@@ -197,14 +209,14 @@ impl Wiener7 {
                     [t0, alpha, -dt, beta, delta, sd, width, -0.5 * dt]
                 };
                 let mut error = [0.; 8];
-                for r in 0..4 {
+                for r in 0..if SCORES { 4 } else { 2 } {
                     let mut unit = [0.; 4];
                     unit[r] = 1.;
                     for (e, c) in error.iter_mut().zip(component(unit)) {
                         *e += c.abs() * errors[r];
                     }
                 }
-                sum.add(
+                sum.add::<SCORES>(
                     log_pref + c - aa * m * m + b * m + scale,
                     component(moments),
                     error,
@@ -215,6 +227,9 @@ impl Wiener7 {
             }
             let next = 2. * (k + 1) as f64;
             let logs: [f64; 4] = std::array::from_fn(|p| {
+                if !SCORES && p != 1 {
+                    return f64::NEG_INFINITY;
+                }
                 match (
                     bounds::lattice(p, next + qlo, 0., u),
                     bounds::lattice(p, next - qhi, 0., u),
@@ -225,6 +240,17 @@ impl Wiener7 {
             });
             let factor = pref_max - sum.scale;
             let density = (logs[1] + factor).exp();
+            if !SCORES {
+                let error = density + sum.error[0];
+                if error < sum.value[0] && -(-(error / sum.value[0])).ln_1p() <= core.eps_series {
+                    let log_prob = sum.scale + sum.value[0].ln();
+                    return log_prob.is_finite().then_some(Wiener7Eval {
+                        log_prob,
+                        grad: Wiener7Grad::from_array([0.; 7]),
+                    });
+                }
+                continue;
+            }
             let time = (bounds::add(
                 logs[3] - (2_f64.ln() + 2. * u.ln()),
                 logs[1] + (1.5_f64.ln() - u.ln()),

@@ -8,7 +8,7 @@ fn divide(a: C, b: C) -> C {
 }
 
 /// sinh(z)/z and its derivative, with a regular Taylor branch at zero.
-fn sinhc(z: C) -> (C, C) {
+fn sinhc_components<const SCORES: bool>(z: C) -> (C, C) {
     if z.0.hypot(z.1) < 0.5 {
         let z2 = mul(z, z);
         let (mut h, mut d) = ((1., 0.), (0., 0.));
@@ -18,8 +18,10 @@ fn sinhc(z: C) -> (C, C) {
             let n = 2. * j as f64;
             term = scale(mul(term, z2), 1. / (n * (n + 1.)));
             h = add(h, term);
-            d = add(d, derivative);
-            derivative = scale(mul(derivative, z2), 1. / (n * (n + 3.)));
+            if SCORES {
+                d = add(d, derivative);
+                derivative = scale(mul(derivative, z2), 1. / (n * (n + 3.)));
+            }
         }
         (h, d)
     } else {
@@ -28,7 +30,11 @@ fn sinhc(z: C) -> (C, C) {
         let ch = (z.0.cosh() * c, z.0.sinh() * s);
         (
             divide(sh, z),
-            divide(add(mul(z, ch), scale(sh, -1.)), mul(z, z)),
+            if SCORES {
+                divide(add(mul(z, ch), scale(sh, -1.)), mul(z, z))
+            } else {
+                (0., 0.)
+            },
         )
     }
 }
@@ -40,13 +46,30 @@ impl Wiener7 {
         core: &Wiener7Core,
         obs: &WienerObservation,
     ) -> Option<Wiener7Eval> {
+        self.analytic_start_components::<true>(core, obs)
+    }
+
+    pub(super) fn analytic_start_density(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Option<f64> {
+        self.analytic_start_components::<false>(core, obs)
+            .map(|e| e.log_prob)
+    }
+
+    pub(super) fn analytic_start_components<const SCORES: bool>(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Option<Wiener7Eval> {
         if core.sw <= 0. || core.st0 != 0. {
             return None;
         }
         if core.sv > 0. {
             return self
-                .analytic_image_start(core, obs)
-                .or_else(|| self.analytic_spectral_start(core, obs));
+                .analytic_image_start_components::<SCORES>(core, obs)
+                .or_else(|| self.analytic_spectral_start_components::<SCORES>(core, obs));
         }
         let params = Wiener4Params::from_array([core.alpha, core.tau0, core.beta0, core.delta]);
         let base = Wiener4.core(obs, &params, core.eps_series).ok()?;
@@ -60,7 +83,7 @@ impl Wiener7 {
         );
         let b = a * v;
         if u < 0.15 {
-            return self.analytic_image_start(core, obs);
+            return self.analytic_image_start_components::<SCORES>(core, obs);
         }
         if !u.is_finite() || (b * h / 2.).abs() > 50. {
             return None;
@@ -74,7 +97,7 @@ impl Wiener7 {
             let n = k as f64;
             let omega = n * PI;
             let c = (b, omega);
-            let (sh, ds) = sinhc(scale(c, h / 2.));
+            let (sh, ds) = sinhc_components::<SCORES>(scale(c, h / 2.));
             let phase = if base.w_eff < base.q_eff {
                 let (s, c) = (omega * base.w_eff).sin_cos();
                 if k.is_multiple_of(2) {
@@ -87,23 +110,36 @@ impl Wiener7 {
                 (c, s)
             };
             let mm = mul(phase, sh);
-            let mc = mul(phase, add(scale(sh, m), scale(ds, h / 2.)));
-            let mh = mul(phase, mul(ds, scale(c, 0.5)));
-            let mq = mul(c, mm);
             let weight = n * (-(n * n - 1.) * c1).exp();
             let density = weight * mm.1;
             absolute += density.abs();
             sums[0] += density;
-            sums[1] += weight * ((-2. / a + omega * omega * t / (a * a * a)) * mm.1 + v * mc.1);
-            sums[2] += weight * 0.5 * (v * v + omega * omega / (a * a)) * mm.1;
-            sums[3] += -base.beta_sign * weight * mq.1;
-            sums[4] += base.delta_sign * weight * (a * mc.1 - v * t * mm.1);
-            sums[6] += weight * mh.1;
-            sums[7] = 0.5 * sums[2];
+            if SCORES {
+                let mc = mul(phase, add(scale(sh, m), scale(ds, h / 2.)));
+                let mh = mul(phase, mul(ds, scale(c, 0.5)));
+                let mq = mul(c, mm);
+                sums[1] += weight * ((-2. / a + omega * omega * t / (a * a * a)) * mm.1 + v * mc.1);
+                sums[2] += weight * 0.5 * (v * v + omega * omega / (a * a)) * mm.1;
+                sums[3] += -base.beta_sign * weight * mq.1;
+                sums[4] += base.delta_sign * weight * (a * mc.1 - v * t * mm.1);
+                sums[6] += weight * mh.1;
+                sums[7] = 0.5 * sums[2];
+            }
             if sums[0] <= 0. || absolute / sums[0] > 1e6 {
                 continue;
             }
             let t1 = (super::super::bounds::spectral(1, k, c1)? + amplification).exp();
+            if !SCORES {
+                if t1 < sums[0] && -(-(t1 / sums[0])).ln_1p() <= core.eps_series {
+                    let log_prob =
+                        PI.ln() - 2. * a.ln() - 0.5 * v * v * t + b * m - c1 + sums[0].ln();
+                    return log_prob.is_finite().then_some(Wiener7Eval {
+                        log_prob,
+                        grad: Wiener7Grad::from_array([0.; 7]),
+                    });
+                }
+                continue;
+            }
             let t2 = (super::super::bounds::spectral(2, k, c1)? + amplification).exp();
             let t3 = (super::super::bounds::spectral(3, k, c1)? + amplification).exp();
             let time = 0.5 * (v * v * t1 + PI * PI / (a * a) * t3);
@@ -145,6 +181,9 @@ impl Wiener7 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn sinhc(z: C) -> (C, C) {
+        sinhc_components::<true>(z)
+    }
     #[test]
     fn sinhc_limit_and_derivative() {
         assert_eq!(sinhc((0., 0.)), ((1., 0.), (0., 0.)));

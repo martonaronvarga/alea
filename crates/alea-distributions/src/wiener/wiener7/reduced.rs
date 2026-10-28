@@ -9,6 +9,22 @@ impl Wiener7 {
         obs: &WienerObservation,
         x: f64,
     ) -> Option<(f64, [f64; 7])> {
+        Self::averaged_time_components::<true>(core, obs, x)
+    }
+
+    pub(super) fn averaged_time_log_density(
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        x: f64,
+    ) -> Option<f64> {
+        Self::averaged_time_components::<false>(core, obs, x).map(|e| e.0)
+    }
+
+    fn averaged_time_components<const SCORES: bool>(
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        x: f64,
+    ) -> Option<(f64, [f64; 7])> {
         let t = obs.rt - core.tau0 - core.st0 * x;
         if t <= 0. {
             return Some((f64::NEG_INFINITY, [0.; 7]));
@@ -24,7 +40,7 @@ impl Wiener7 {
             rt: t,
             boundary: obs.boundary,
         };
-        let value = Wiener7.analytic_start(&point, &event)?;
+        let value = Wiener7.analytic_start_components::<SCORES>(&point, &event)?;
         let mut scores = value.grad_array();
         scores[6] = x * scores[1];
         Some((value.log_prob, scores))
@@ -40,6 +56,23 @@ impl Wiener7 {
     }
 
     pub(super) fn reduced_time_integral(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Option<Wiener7Eval> {
+        self.reduced_time_components::<true>(core, obs)
+    }
+
+    pub(super) fn reduced_time_density(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Option<f64> {
+        self.reduced_time_components::<false>(core, obs)
+            .map(|e| e.log_prob)
+    }
+
+    fn reduced_time_components<const SCORES: bool>(
         &self,
         core: &Wiener7Core,
         obs: &WienerObservation,
@@ -65,16 +98,18 @@ impl Wiener7 {
             boundary: obs.boundary,
         };
         // Probe the complete time interval before paying for a reduction attempt.
-        self.analytic_start(&point, &observation(min_time))?;
-        self.analytic_start(&point, &observation(max_time))?;
+        self.analytic_start_components::<SCORES>(&point, &observation(min_time))?;
+        self.analytic_start_components::<SCORES>(&point, &observation(max_time))?;
         let scale = self
             .analytic_start(&point, &observation((min_time + max_time) / 2.))?
             .log_prob;
         let mut val = [0.; 8];
         let mut err = [0.; 8];
         let integrand = |x: &[f64], fv: &mut [f64]| {
-            let Some(e) = self.analytic_start(&point, &observation(max_time - core.st0 * x[0]))
-            else {
+            let Some(e) = self.analytic_start_components::<SCORES>(
+                &point,
+                &observation(max_time - core.st0 * x[0]),
+            ) else {
                 fv.fill(f64::NAN);
                 return 1;
             };
@@ -82,8 +117,10 @@ impl Wiener7 {
             let mut scores = e.grad_array();
             scores[6] = x[0] * scores[1];
             fv[0] = weight;
-            for i in 0..7 {
-                fv[i + 1] = weight * scores[i];
+            if SCORES {
+                for i in 0..7 {
+                    fv[i + 1] = weight * scores[i];
+                }
             }
             if fv.iter().any(|x| !x.is_finite()) {
                 1
@@ -92,7 +129,7 @@ impl Wiener7 {
             }
         };
         hcubature_into(
-            8,
+            if SCORES { 8 } else { 1 },
             Bounds::new(&[0.], &[1.]),
             core.opts,
             &mut val,
@@ -105,10 +142,11 @@ impl Wiener7 {
         e.log_prob += scale;
         if !e.log_prob.is_finite()
             || log_error > core.opts.req_rel_error
-            || errors
-                .iter()
-                .zip(e.grad_array())
-                .any(|(b, g)| *b > core.opts.req_rel_error * g.abs().max(1.))
+            || (SCORES
+                && errors
+                    .iter()
+                    .zip(e.grad_array())
+                    .any(|(b, g)| *b > core.opts.req_rel_error * g.abs().max(1.)))
         {
             return None;
         }

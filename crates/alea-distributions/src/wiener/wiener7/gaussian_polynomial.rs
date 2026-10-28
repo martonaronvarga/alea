@@ -57,13 +57,13 @@ pub(super) fn plan(a: f64, b: f64) -> Option<(usize, [f64; 4])> {
 }
 
 /// Four moments of exp(-a*z²+b*z); negative a and complex b are allowed.
-pub(super) fn complex_moments(a: f64, b: C) -> Option<([C; 4], [f64; 4])> {
+pub(super) fn complex_moments<const MOMENTS: usize>(a: f64, b: C) -> Option<([C; 4], [f64; 4])> {
     let (terms, errors) = plan(a, b.0.hypot(b.1))?;
     let (mut previous, mut coefficient) = ((0., 0.), (1., 0.));
     let mut sums = [(0., 0.); 4];
     let mut compensation = [(0., 0.); 4];
     for n in 0..terms {
-        for r in 0..4 {
+        for r in 0..MOMENTS {
             let value = scale(coefficient, MONOMIALS[n + r]);
             let y = add(value, scale(compensation[r], -1.));
             let next = add(sums[r], y);

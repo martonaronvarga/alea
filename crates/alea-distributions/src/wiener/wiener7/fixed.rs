@@ -26,7 +26,7 @@ impl Wiener7 {
         (lo + width * node, width * weight)
     }
 
-    pub(in crate::wiener) fn fixed_integral(
+    fn fixed_components<const SCORES: bool>(
         &self,
         core: &Wiener7Core,
         obs: &WienerObservation,
@@ -42,8 +42,13 @@ impl Wiener7 {
                     Self::fixed_interval(node, weight, core.xmin[0], core.xmax[0]);
                 x[0] = x0;
                 let mut local = [0.0; 8];
-                Self::wiener7_integrand(core, obs, &x[..1], &mut local);
-                for (dst, v) in val.iter_mut().zip(local) {
+                if SCORES {
+                    Self::wiener7_integrand(core, obs, &x[..1], &mut local);
+                } else {
+                    local[0] =
+                        Self::point_log_density(core, obs, &x[..1]).map_or(f64::NAN, f64::exp);
+                }
+                for (dst, v) in val[..if SCORES { 8 } else { 1 }].iter_mut().zip(local) {
                     *dst += scaled_weight * v;
                 }
             }
@@ -58,9 +63,14 @@ impl Wiener7 {
                         Self::fixed_interval(node1, weight1, core.xmin[1], core.xmax[1]);
                     x[1] = x1;
                     let mut local = [0.0; 8];
-                    Self::wiener7_integrand(core, obs, &x, &mut local);
+                    if SCORES {
+                        Self::wiener7_integrand(core, obs, &x, &mut local);
+                    } else {
+                        local[0] =
+                            Self::point_log_density(core, obs, &x).map_or(f64::NAN, f64::exp);
+                    }
                     let scaled_weight = scaled_weight0 * scaled_weight1;
-                    for i in 0..8 {
+                    for i in 0..if SCORES { 8 } else { 1 } {
                         val[i] += scaled_weight * local[i];
                     }
                 }
@@ -70,6 +80,15 @@ impl Wiener7 {
         val
     }
 
+    pub(in crate::wiener) fn fixed_integral(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        order: usize,
+    ) -> [f64; 8] {
+        self.fixed_components::<true>(core, obs, order)
+    }
+
     /// Integrate only the density over the hypercube using fixed Gauss-Legendre nodes.
     #[cfg(test)]
     pub(in crate::wiener) fn eval_density_fixed(
@@ -77,7 +96,7 @@ impl Wiener7 {
         core: &Wiener7Core,
         obs: &WienerObservation,
     ) -> f64 {
-        self.fixed_integral(core, obs, Self::FIXED_QUADRATURE_ORDER)[0]
+        self.fixed_components::<false>(core, obs, Self::FIXED_QUADRATURE_ORDER)[0]
     }
 
     pub(in crate::wiener) fn eval_density_fixed_order(
@@ -86,7 +105,7 @@ impl Wiener7 {
         obs: &WienerObservation,
         order: usize,
     ) -> f64 {
-        self.fixed_integral(core, obs, order)[0]
+        self.fixed_components::<false>(core, obs, order)[0]
     }
 
     /// Integrate density + 5 inner-parameter gradient components with fixed Gauss-Legendre nodes.

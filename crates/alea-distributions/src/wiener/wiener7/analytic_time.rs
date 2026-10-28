@@ -1,6 +1,59 @@
 //! Analytic CDF parameter scores for uniform nondecision-time averaging.
 use super::*;
 impl Wiener7 {
+    /// Time averaging of density alone, with its own CDF subtraction budget.
+    pub(super) fn analytic_time_density(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Option<f64> {
+        let high = obs.rt - core.tau0;
+        if core.sw != 0. || core.st0 <= 0. || core.st0 < 1e-5 * high {
+            return None;
+        }
+        if core.sv == 0. {
+            let params = Wiener4Params::from_array([core.alpha, core.tau0, core.beta0, core.delta]);
+            return Wiener4
+                .try_log_interval_prob(
+                    obs.rt - core.st0,
+                    obs.rt,
+                    obs.boundary,
+                    &params,
+                    WienerOptions::new(core.eps_series),
+                )
+                .ok()
+                .map(|value| value - core.st0.ln());
+        }
+        let low = high - core.st0;
+        let budget = 0.01 * core.eps_series.min(core.opts.req_rel_error);
+        let hi = super::drift_cdf::evaluate_density(high, core, obs.boundary, budget)?;
+        let lo = if low > 0. {
+            Some(super::drift_cdf::evaluate_density(
+                low,
+                core,
+                obs.boundary,
+                budget,
+            )?)
+        } else {
+            None
+        };
+        let mass = if let Some(lo) = &lo {
+            super::super::cdf::log_sub(hi.log_prob, lo.log_prob)?
+        } else {
+            hi.log_prob
+        };
+        let wh = (hi.log_prob - mass).exp();
+        let wl = lo.as_ref().map_or(0., |lo| (lo.log_prob - mass).exp());
+        let error = 64. * f64::EPSILON * (wh + wl)
+            + wh * hi.error[0].exp_m1()
+            + lo.as_ref().map_or(0., |lo| wl * lo.error[0].exp_m1());
+        if error >= 1. || -(-error).ln_1p() > core.opts.req_rel_error {
+            return None;
+        }
+        let value = mass - core.st0.ln();
+        value.is_finite().then_some(value)
+    }
+
     fn analytic_drift_time(
         &self,
         core: &Wiener7Core,
