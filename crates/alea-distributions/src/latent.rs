@@ -42,17 +42,23 @@ impl<Context, Latent> LatentStateView for LatentState<Context, Latent> {
     }
 }
 
-pub trait LatentParameterMap<Context, Latent> {
-    fn write_params(&self, context: &Context, latent: &Latent, out: &mut Wiener4Params);
+pub trait WienerParameterMap<Context, Latent> {
+    fn write_params(
+        &self,
+        context: &Context,
+        latent: &Latent,
+        t: usize,
+        out: &mut Wiener4Params,
+    ) -> crate::wiener::Result<()>;
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct ObservationLayer<M> {
+pub struct WienerObservationModel<M> {
     pub map: M,
     pub density: Wiener4,
 }
 
-impl<M> ObservationLayer<M> {
+impl<M> WienerObservationModel<M> {
     #[inline]
     pub fn new(map: M, density: Wiener4) -> Self {
         Self { map, density }
@@ -60,12 +66,18 @@ impl<M> ObservationLayer<M> {
 }
 
 impl<Context, Latent, M> ObservationModel<LatentState<Context, Latent>, WienerObservation>
-    for ObservationLayer<M>
+    for WienerObservationModel<M>
 where
-    M: LatentParameterMap<Context, Latent>,
+    M: WienerParameterMap<Context, Latent>,
 {
+    type Error = crate::wiener::ProbError;
     #[inline]
-    fn log_likelihood(&self, state: &LatentState<Context, Latent>, obs: &WienerObservation) -> f64 {
+    fn log_likelihood(
+        &self,
+        state: &LatentState<Context, Latent>,
+        obs: &WienerObservation,
+        t: usize,
+    ) -> Result<f64, Self::Error> {
         let mut params = Wiener4Params {
             alpha: 1.0,
             tau: 0.0,
@@ -73,52 +85,14 @@ where
             delta: 0.0,
         };
         self.map
-            .write_params(&state.context, &state.latent, &mut params);
-        self.density.log_prob(obs, &params, 1e-12).log_prob
+            .write_params(&state.context, &state.latent, t, &mut params)?;
+        super::wiener::Wiener4Law::new(params, super::wiener::WienerOptions::new(1e-12))
+            .and_then(|law| alea_core::distribution::Distribution::log_prob(&law, obs))
     }
 }
 
 use alea_core::state_space::TransitionModel;
-use rand::Rng;
 
-#[derive(Debug, Clone)]
-pub struct TransitionLayer<T> {
-    pub transition: T,
-}
-
-impl<T> TransitionLayer<T> {
-    #[inline]
-    pub fn new(transition: T) -> Self {
-        Self { transition }
-    }
-}
-
-impl<Context, Latent, T> TransitionModel<LatentState<Context, Latent>> for TransitionLayer<T>
-where
-    T: TransitionModel<LatentState<Context, Latent>>,
-{
-    #[inline]
-    fn log_transition(
-        &self,
-        prev: &LatentState<Context, Latent>,
-        next: &LatentState<Context, Latent>,
-        t: usize,
-    ) -> f64 {
-        self.transition.log_transition(prev, next, t)
-    }
-
-    #[inline]
-    fn sample_next<R: Rng + ?Sized>(
-        &self,
-        prev: &LatentState<Context, Latent>,
-        rng: &mut R,
-    ) -> LatentState<Context, Latent> {
-        self.transition.sample_next(prev, rng)
-    }
-}
-
-/// Alternative direction ->
-///
 /// Single-time latent state used by transition and observation models.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LatentFrame {
@@ -223,21 +197,6 @@ impl AffineLatentWienerMap {
         }
         true
     }
-
-    /// Serial entry point with the same SoA layout. Despite its historical name,
-    /// this currently delegates to `map_into`; it does not spawn parallel work.
-    /// Callers may shard independent slices outside the numerical kernel.
-    #[inline]
-    pub fn map_into_parallel(
-        &self,
-        latent: LatentFrameSoA<'_>,
-        out_alpha: &mut [f64],
-        out_tau: &mut [f64],
-        out_beta: &mut [f64],
-        out_delta: &mut [f64],
-    ) -> bool {
-        self.map_into(latent, out_alpha, out_tau, out_beta, out_delta)
-    }
 }
 
 /// A latent dynamics model that evolves `c_t` and `m_t`.
@@ -270,14 +229,39 @@ impl LatentRandomWalk {
 }
 
 impl TransitionModel<LatentFrame> for LatentRandomWalk {
+    type Error = alea_core::distribution::DistributionError;
     #[inline]
-    fn log_transition(&self, prev: &LatentFrame, next: &LatentFrame, _t: usize) -> f64 {
-        Self::gaussian_log_density(next.c, prev.c, self.sigma_c)
-            + Self::gaussian_log_density(next.m, prev.m, self.sigma_m)
+    fn log_transition(
+        &self,
+        prev: &LatentFrame,
+        next: &LatentFrame,
+        _t: usize,
+    ) -> Result<f64, Self::Error> {
+        if [prev.c, prev.m, next.c, next.m]
+            .iter()
+            .any(|x| !x.is_finite())
+        {
+            return Err(Self::Error::Observation);
+        }
+        let value = Self::gaussian_log_density(next.c, prev.c, self.sigma_c)
+            + Self::gaussian_log_density(next.m, prev.m, self.sigma_m);
+        if value.is_nan() {
+            Err(Self::Error::Numerical)
+        } else {
+            Ok(value)
+        }
     }
 
     #[inline]
-    fn sample_next<R: rand::Rng + ?Sized>(&self, prev: &LatentFrame, rng: &mut R) -> LatentFrame {
+    fn sample_next<R: rand::Rng + ?Sized>(
+        &self,
+        prev: &LatentFrame,
+        _t: usize,
+        rng: &mut R,
+    ) -> Result<LatentFrame, Self::Error> {
+        if !prev.c.is_finite() || !prev.m.is_finite() {
+            return Err(Self::Error::Observation);
+        }
         let dc = if self.sigma_c > 0.0 {
             alea_math::random::standard_normal(rng) * self.sigma_c
         } else {
@@ -288,9 +272,14 @@ impl TransitionModel<LatentFrame> for LatentRandomWalk {
         } else {
             0.0
         };
-        LatentFrame {
+        let draw = LatentFrame {
             c: prev.c + dc,
             m: prev.m + dm,
+        };
+        if draw.c.is_finite() && draw.m.is_finite() {
+            Ok(draw)
+        } else {
+            Err(Self::Error::Numerical)
         }
     }
 }
@@ -298,12 +287,12 @@ impl TransitionModel<LatentFrame> for LatentRandomWalk {
 /// Observation model that turns a latent frame into Wiener parameters and then
 /// evaluates the exact first-passage density.
 #[derive(Debug, Clone, Copy)]
-pub struct LatentObservationModel {
+pub struct LatentWienerObservation {
     pub projection: AffineLatentWienerMap,
     pub distribution: Wiener4,
 }
 
-impl LatentObservationModel {
+impl LatentWienerObservation {
     #[inline]
     pub fn new(projection: AffineLatentWienerMap, distribution: Wiener4) -> Self {
         Self {
@@ -313,11 +302,18 @@ impl LatentObservationModel {
     }
 }
 
-impl ObservationModel<LatentFrame, WienerObservation> for LatentObservationModel {
+impl ObservationModel<LatentFrame, WienerObservation> for LatentWienerObservation {
+    type Error = crate::wiener::ProbError;
     #[inline]
-    fn log_likelihood(&self, state: &LatentFrame, obs: &WienerObservation) -> f64 {
+    fn log_likelihood(
+        &self,
+        state: &LatentFrame,
+        obs: &WienerObservation,
+        _t: usize,
+    ) -> Result<f64, Self::Error> {
         let params = self.projection.map_frame(*state);
-        self.distribution.log_prob(obs, &params, 1e-12).log_prob
+        super::wiener::Wiener4Law::new(params, super::wiener::WienerOptions::new(1e-12))
+            .and_then(|law| alea_core::distribution::Distribution::log_prob(&law, obs))
     }
 }
 
@@ -337,7 +333,7 @@ mod tests {
         let mut fourths = [0.0; 2];
         const N: usize = 50_000;
         for _ in 0..N {
-            let draw = walk.sample_next(&origin, &mut rng);
+            let draw = walk.sample_next(&origin, 0, &mut rng).unwrap();
             for (i, z) in [(draw.c - origin.c) / 2.0, (draw.m - origin.m) / 0.5]
                 .into_iter()
                 .enumerate()
@@ -363,12 +359,15 @@ mod tests {
         let walk = LatentRandomWalk::new(0.0, 0.0).unwrap();
         let origin = LatentFrame { c: 0.0, m: 1.0 };
         let mut rng = SmallRng::seed_from_u64(7);
-        assert_eq!(walk.sample_next(&origin, &mut rng), origin);
-        assert_eq!(walk.log_transition(&origin, &origin, 0), 0.0);
+        assert_eq!(walk.sample_next(&origin, 0, &mut rng).unwrap(), origin);
+        assert_eq!(walk.log_transition(&origin, &origin, 0).unwrap(), 0.0);
         let nearby = LatentFrame {
             c: f64::EPSILON / 2.0,
             ..origin
         };
-        assert_eq!(walk.log_transition(&origin, &nearby, 0), f64::NEG_INFINITY);
+        assert_eq!(
+            walk.log_transition(&origin, &nearby, 0).unwrap(),
+            f64::NEG_INFINITY
+        );
     }
 }

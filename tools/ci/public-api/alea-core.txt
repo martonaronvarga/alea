@@ -882,10 +882,12 @@ pub fn alea_core::prelude::evaluate<T: alea_core::target::LogDensityGradient + ?
 pub fn alea_core::prelude::evaluate_density<T: alea_core::density::LogDensity + ?core::marker::Sized>(target: &T, q: &[f64]) -> core::result::Result<f64, alea_core::target::EvaluationError<<T as alea_core::target::TargetSpace>::Error>>
 pub mod alea_core::state_space
 pub trait alea_core::state_space::ObservationModel<S, Y>
-pub fn alea_core::state_space::ObservationModel::log_likelihood(&self, state: &S, obs: &Y) -> f64
+pub type alea_core::state_space::ObservationModel::Error: core::error::Error + 'static
+pub fn alea_core::state_space::ObservationModel::log_likelihood(&self, state: &S, obs: &Y, t: usize) -> core::result::Result<f64, Self::Error>
 pub trait alea_core::state_space::TransitionModel<S>
-pub fn alea_core::state_space::TransitionModel::log_transition(&self, prev: &S, next: &S, t: usize) -> f64
-pub fn alea_core::state_space::TransitionModel::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &S, rng: &mut R) -> S
+pub type alea_core::state_space::TransitionModel::Error: core::error::Error + 'static
+pub fn alea_core::state_space::TransitionModel::log_transition(&self, prev: &S, next: &S, t: usize) -> core::result::Result<f64, Self::Error>
+pub fn alea_core::state_space::TransitionModel::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &S, t: usize, rng: &mut R) -> core::result::Result<S, Self::Error>
 pub mod alea_core::target
 #[non_exhaustive] pub enum alea_core::target::EvaluationError<E: core::error::Error + 'static>
 pub alea_core::target::EvaluationError::DensityDimension

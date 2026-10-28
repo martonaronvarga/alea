@@ -44,9 +44,8 @@ fn affine_scalar_and_soa_paths_match_and_preserve_unused_output_tails() {
     }
     assert_eq!([alpha[3], tau[3], beta[3], delta[3]], [99.0; 4]);
     let before = [alpha, tau, beta, delta];
-    // This existing entry point is serial, despite its name. Preserve outputs,
-    // not a nonexistent parallel implementation or performance promise.
-    assert!(map.map_into_parallel(latent, &mut alpha, &mut tau, &mut beta, &mut delta));
+    // Reusing the same caller-owned buffers gives the same mapped values.
+    assert!(map.map_into(latent, &mut alpha, &mut tau, &mut beta, &mut delta));
     for (a, b) in [alpha, tau, beta, delta]
         .iter()
         .flatten()
@@ -76,29 +75,36 @@ fn affine_batch_shape_failures_do_not_partially_write_outputs() {
 }
 
 struct Project;
-impl LatentParameterMap<f64, LatentFrame> for Project {
-    fn write_params(&self, context: &f64, latent: &LatentFrame, out: &mut Wiener4Params) {
+impl WienerParameterMap<f64, LatentFrame> for Project {
+    fn write_params(
+        &self,
+        context: &f64,
+        latent: &LatentFrame,
+        _t: usize,
+        out: &mut Wiener4Params,
+    ) -> alea_distributions::wiener::Result<()> {
         *out = projection().map_frame(*latent);
         out.delta += context;
+        Ok(())
     }
 }
 
 #[test]
 fn observation_layers_match_direct_wiener_evaluation_on_both_boundaries() {
     let frame = LatentFrame { c: 0.5, m: -0.25 };
-    let model = LatentObservationModel::new(projection(), Wiener4);
+    let model = LatentWienerObservation::new(projection(), Wiener4);
     let state = LatentState::new(0.0, frame);
     assert_eq!(*state.context(), 0.0);
     assert_eq!(*state.latent(), frame);
     assert_eq!(state.into_parts(), (0.0, frame));
-    let layer = ObservationLayer::new(Project, Wiener4);
+    let layer = WienerObservationModel::new(Project, Wiener4);
     let params = projection().map_frame(frame);
     for boundary in [Boundary::Lower, Boundary::Upper] {
         for rt in [0.05, 0.6, 1.2] {
             let obs = WienerObservation { rt, boundary };
             let expected = Wiener4.log_prob(&obs, &params, 1e-12).log_prob;
-            let a = model.log_likelihood(&frame, &obs);
-            let b = layer.log_likelihood(&state, &obs);
+            let a = model.log_likelihood(&frame, &obs, 3).unwrap();
+            let b = layer.log_likelihood(&state, &obs, 3).unwrap();
             if rt < params.tau {
                 assert_eq!((a, b), (f64::NEG_INFINITY, f64::NEG_INFINITY));
             } else {
@@ -109,39 +115,50 @@ fn observation_layers_match_direct_wiener_evaluation_on_both_boundaries() {
     }
 }
 
-#[derive(Clone)]
 struct Increment;
 impl TransitionModel<LatentState<u64, f64>> for Increment {
+    type Error = std::convert::Infallible;
     fn log_transition(
         &self,
         prev: &LatentState<u64, f64>,
         next: &LatentState<u64, f64>,
         t: usize,
-    ) -> f64 {
-        next.latent - prev.latent + t as f64
+    ) -> Result<f64, Self::Error> {
+        Ok(if next.latent == prev.latent + t as f64 {
+            0.
+        } else {
+            f64::NEG_INFINITY
+        })
     }
     fn sample_next<R: rand::Rng + ?Sized>(
         &self,
         prev: &LatentState<u64, f64>,
+        t: usize,
         _: &mut R,
-    ) -> LatentState<u64, f64> {
-        LatentState::new(prev.context, prev.latent + 1.0)
+    ) -> Result<LatentState<u64, f64>, Self::Error> {
+        Ok(LatentState::new(prev.context, prev.latent + t as f64))
     }
 }
-
 #[test]
-fn transition_layer_preserves_context_time_and_rng_contract() {
-    let model = TransitionLayer::new(Increment);
+fn transition_conditions_density_and_sampling_on_the_same_time() {
     let previous = LatentState::new(17, 0.5);
     let mut rng = SmallRng::seed_from_u64(812);
     let before = rng.clone();
-    let next = model.sample_next(&previous, &mut rng);
-    assert_eq!(next.into_parts(), (17, 1.5));
-    assert_eq!(model.log_transition(&previous, &next, 9), 10.0);
+    for time in [0, 1, 9] {
+        let next = Increment.sample_next(&previous, time, &mut rng).unwrap();
+        assert_eq!(next.into_parts(), (17, 0.5 + time as f64));
+        assert_eq!(
+            Increment.log_transition(&previous, &next, time).unwrap(),
+            0.
+        );
+    }
     assert_eq!(rng, before);
-    let walk = LatentRandomWalk::new(2.0, 0.5).unwrap();
-    let a = LatentFrame { c: 1.0, m: -2.0 };
-    let b = LatentFrame { c: 3.0, m: -1.5 };
-    let expected = -1.0 - (2.0 * std::f64::consts::PI).ln();
-    assert!((walk.log_transition(&a, &b, 0) - expected).abs() < 1e-12);
+    let walk = LatentRandomWalk::new(2., 0.5).unwrap();
+    let a = LatentFrame { c: 1., m: -2. };
+    let b = LatentFrame { c: 3., m: -1.5 };
+    let expected = -1. - (2. * std::f64::consts::PI).ln();
+    assert!((walk.log_transition(&a, &b, 0).unwrap() - expected).abs() < 1e-12);
+    let invalid = LatentFrame { c: f64::NAN, ..a };
+    assert!(walk.sample_next(&invalid, 0, &mut rng).is_err());
+    assert!(walk.log_transition(&invalid, &b, 0).is_err());
 }

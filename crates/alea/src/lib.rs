@@ -2,7 +2,9 @@
 #![forbid(unsafe_code)]
 
 #[doc(inline)]
-pub use alea_core::{capability, density, distribution, model, target, transform, transport};
+pub use alea_core::{
+    capability, density, distribution, model, state_space, target, transform, transport,
+};
 #[doc(inline)]
 pub use alea_math as math;
 #[doc(inline)]

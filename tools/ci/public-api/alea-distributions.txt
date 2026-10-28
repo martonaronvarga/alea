@@ -98,7 +98,6 @@ pub alea_distributions::latent::AffineLatentWienerMap::tau: [f64; 3]
 impl alea_distributions::latent::AffineLatentWienerMap
 pub fn alea_distributions::latent::AffineLatentWienerMap::map_frame(&self, frame: alea_distributions::latent::LatentFrame) -> alea_distributions::prelude::Wiener4Params
 pub fn alea_distributions::latent::AffineLatentWienerMap::map_into(&self, latent: alea_distributions::latent::LatentFrameSoA<'_>, out_alpha: &mut [f64], out_tau: &mut [f64], out_beta: &mut [f64], out_delta: &mut [f64]) -> bool
-pub fn alea_distributions::latent::AffineLatentWienerMap::map_into_parallel(&self, latent: alea_distributions::latent::LatentFrameSoA<'_>, out_alpha: &mut [f64], out_tau: &mut [f64], out_beta: &mut [f64], out_delta: &mut [f64]) -> bool
 pub fn alea_distributions::latent::AffineLatentWienerMap::new(alpha: [f64; 3], tau: [f64; 3], beta: [f64; 3], delta: [f64; 3]) -> Self
 impl core::clone::Clone for alea_distributions::latent::AffineLatentWienerMap
 pub fn alea_distributions::latent::AffineLatentWienerMap::clone(&self) -> alea_distributions::latent::AffineLatentWienerMap
@@ -108,11 +107,13 @@ impl core::marker::Copy for alea_distributions::latent::AffineLatentWienerMap
 pub struct alea_distributions::latent::LatentFrame
 pub alea_distributions::latent::LatentFrame::c: f64
 pub alea_distributions::latent::LatentFrame::m: f64
-impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentObservationModel
-pub fn alea_distributions::latent::LatentObservationModel::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation) -> f64
+impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentWienerObservation
+pub type alea_distributions::latent::LatentWienerObservation::Error = alea_distributions::wiener::ProbError
+pub fn alea_distributions::latent::LatentWienerObservation::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation, _t: usize) -> core::result::Result<f64, Self::Error>
 impl alea_core::state_space::TransitionModel<alea_distributions::latent::LatentFrame> for alea_distributions::latent::LatentRandomWalk
-pub fn alea_distributions::latent::LatentRandomWalk::log_transition(&self, prev: &alea_distributions::latent::LatentFrame, next: &alea_distributions::latent::LatentFrame, _t: usize) -> f64
-pub fn alea_distributions::latent::LatentRandomWalk::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &alea_distributions::latent::LatentFrame, rng: &mut R) -> alea_distributions::latent::LatentFrame
+pub type alea_distributions::latent::LatentRandomWalk::Error = alea_core::distribution::DistributionError
+pub fn alea_distributions::latent::LatentRandomWalk::log_transition(&self, prev: &alea_distributions::latent::LatentFrame, next: &alea_distributions::latent::LatentFrame, _t: usize) -> core::result::Result<f64, Self::Error>
+pub fn alea_distributions::latent::LatentRandomWalk::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &alea_distributions::latent::LatentFrame, _t: usize, rng: &mut R) -> core::result::Result<alea_distributions::latent::LatentFrame, Self::Error>
 impl core::clone::Clone for alea_distributions::latent::LatentFrame
 pub fn alea_distributions::latent::LatentFrame::clone(&self) -> alea_distributions::latent::LatentFrame
 impl core::cmp::PartialEq for alea_distributions::latent::LatentFrame
@@ -133,24 +134,13 @@ pub fn alea_distributions::latent::LatentFrameSoA<'a>::clone(&self) -> alea_dist
 impl<'a> core::fmt::Debug for alea_distributions::latent::LatentFrameSoA<'a>
 pub fn alea_distributions::latent::LatentFrameSoA<'a>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl<'a> core::marker::Copy for alea_distributions::latent::LatentFrameSoA<'a>
-pub struct alea_distributions::latent::LatentObservationModel
-pub alea_distributions::latent::LatentObservationModel::distribution: alea_distributions::prelude::Wiener4
-pub alea_distributions::latent::LatentObservationModel::projection: alea_distributions::latent::AffineLatentWienerMap
-impl alea_distributions::latent::LatentObservationModel
-pub fn alea_distributions::latent::LatentObservationModel::new(projection: alea_distributions::latent::AffineLatentWienerMap, distribution: alea_distributions::prelude::Wiener4) -> Self
-impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentObservationModel
-pub fn alea_distributions::latent::LatentObservationModel::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation) -> f64
-impl core::clone::Clone for alea_distributions::latent::LatentObservationModel
-pub fn alea_distributions::latent::LatentObservationModel::clone(&self) -> alea_distributions::latent::LatentObservationModel
-impl core::fmt::Debug for alea_distributions::latent::LatentObservationModel
-pub fn alea_distributions::latent::LatentObservationModel::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_distributions::latent::LatentObservationModel
 pub struct alea_distributions::latent::LatentRandomWalk
 impl alea_distributions::latent::LatentRandomWalk
 pub fn alea_distributions::latent::LatentRandomWalk::new(sigma_c: f64, sigma_m: f64) -> core::option::Option<Self>
 impl alea_core::state_space::TransitionModel<alea_distributions::latent::LatentFrame> for alea_distributions::latent::LatentRandomWalk
-pub fn alea_distributions::latent::LatentRandomWalk::log_transition(&self, prev: &alea_distributions::latent::LatentFrame, next: &alea_distributions::latent::LatentFrame, _t: usize) -> f64
-pub fn alea_distributions::latent::LatentRandomWalk::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &alea_distributions::latent::LatentFrame, rng: &mut R) -> alea_distributions::latent::LatentFrame
+pub type alea_distributions::latent::LatentRandomWalk::Error = alea_core::distribution::DistributionError
+pub fn alea_distributions::latent::LatentRandomWalk::log_transition(&self, prev: &alea_distributions::latent::LatentFrame, next: &alea_distributions::latent::LatentFrame, _t: usize) -> core::result::Result<f64, Self::Error>
+pub fn alea_distributions::latent::LatentRandomWalk::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &alea_distributions::latent::LatentFrame, _t: usize, rng: &mut R) -> core::result::Result<alea_distributions::latent::LatentFrame, Self::Error>
 impl core::clone::Clone for alea_distributions::latent::LatentRandomWalk
 pub fn alea_distributions::latent::LatentRandomWalk::clone(&self) -> alea_distributions::latent::LatentRandomWalk
 impl core::fmt::Debug for alea_distributions::latent::LatentRandomWalk
@@ -162,11 +152,9 @@ pub alea_distributions::latent::LatentState::latent: Latent
 impl<Context, Latent> alea_distributions::latent::LatentState<Context, Latent>
 pub fn alea_distributions::latent::LatentState<Context, Latent>::into_parts(self) -> (Context, Latent)
 pub fn alea_distributions::latent::LatentState<Context, Latent>::new(context: Context, latent: Latent) -> Self
-impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::ObservationLayer<M> where M: alea_distributions::latent::LatentParameterMap<Context, Latent>
-pub fn alea_distributions::latent::ObservationLayer<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation) -> f64
-impl<Context, Latent, T> alea_core::state_space::TransitionModel<alea_distributions::latent::LatentState<Context, Latent>> for alea_distributions::latent::TransitionLayer<T> where T: alea_core::state_space::TransitionModel<alea_distributions::latent::LatentState<Context, Latent>>
-pub fn alea_distributions::latent::TransitionLayer<T>::log_transition(&self, prev: &alea_distributions::latent::LatentState<Context, Latent>, next: &alea_distributions::latent::LatentState<Context, Latent>, t: usize) -> f64
-pub fn alea_distributions::latent::TransitionLayer<T>::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &alea_distributions::latent::LatentState<Context, Latent>, rng: &mut R) -> alea_distributions::latent::LatentState<Context, Latent>
+impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::WienerObservationModel<M> where M: alea_distributions::latent::WienerParameterMap<Context, Latent>
+pub type alea_distributions::latent::WienerObservationModel<M>::Error = alea_distributions::wiener::ProbError
+pub fn alea_distributions::latent::WienerObservationModel<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation, t: usize) -> core::result::Result<f64, Self::Error>
 impl<Context, Latent> alea_distributions::latent::LatentStateView for alea_distributions::latent::LatentState<Context, Latent>
 pub type alea_distributions::latent::LatentState<Context, Latent>::Context = Context
 pub type alea_distributions::latent::LatentState<Context, Latent>::Latent = Latent
@@ -177,31 +165,32 @@ pub fn alea_distributions::latent::LatentState<Context, Latent>::clone(&self) ->
 impl<Context: core::fmt::Debug, Latent: core::fmt::Debug> core::fmt::Debug for alea_distributions::latent::LatentState<Context, Latent>
 pub fn alea_distributions::latent::LatentState<Context, Latent>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl<Context: core::marker::Copy, Latent: core::marker::Copy> core::marker::Copy for alea_distributions::latent::LatentState<Context, Latent>
-pub struct alea_distributions::latent::ObservationLayer<M>
-pub alea_distributions::latent::ObservationLayer::density: alea_distributions::prelude::Wiener4
-pub alea_distributions::latent::ObservationLayer::map: M
-impl<M> alea_distributions::latent::ObservationLayer<M>
-pub fn alea_distributions::latent::ObservationLayer<M>::new(map: M, density: alea_distributions::prelude::Wiener4) -> Self
-impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::ObservationLayer<M> where M: alea_distributions::latent::LatentParameterMap<Context, Latent>
-pub fn alea_distributions::latent::ObservationLayer<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation) -> f64
-impl<M: core::clone::Clone> core::clone::Clone for alea_distributions::latent::ObservationLayer<M>
-pub fn alea_distributions::latent::ObservationLayer<M>::clone(&self) -> alea_distributions::latent::ObservationLayer<M>
-impl<M: core::fmt::Debug> core::fmt::Debug for alea_distributions::latent::ObservationLayer<M>
-pub fn alea_distributions::latent::ObservationLayer<M>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl<M: core::marker::Copy> core::marker::Copy for alea_distributions::latent::ObservationLayer<M>
-pub struct alea_distributions::latent::TransitionLayer<T>
-pub alea_distributions::latent::TransitionLayer::transition: T
-impl<T> alea_distributions::latent::TransitionLayer<T>
-pub fn alea_distributions::latent::TransitionLayer<T>::new(transition: T) -> Self
-impl<Context, Latent, T> alea_core::state_space::TransitionModel<alea_distributions::latent::LatentState<Context, Latent>> for alea_distributions::latent::TransitionLayer<T> where T: alea_core::state_space::TransitionModel<alea_distributions::latent::LatentState<Context, Latent>>
-pub fn alea_distributions::latent::TransitionLayer<T>::log_transition(&self, prev: &alea_distributions::latent::LatentState<Context, Latent>, next: &alea_distributions::latent::LatentState<Context, Latent>, t: usize) -> f64
-pub fn alea_distributions::latent::TransitionLayer<T>::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &alea_distributions::latent::LatentState<Context, Latent>, rng: &mut R) -> alea_distributions::latent::LatentState<Context, Latent>
-impl<T: core::clone::Clone> core::clone::Clone for alea_distributions::latent::TransitionLayer<T>
-pub fn alea_distributions::latent::TransitionLayer<T>::clone(&self) -> alea_distributions::latent::TransitionLayer<T>
-impl<T: core::fmt::Debug> core::fmt::Debug for alea_distributions::latent::TransitionLayer<T>
-pub fn alea_distributions::latent::TransitionLayer<T>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-pub trait alea_distributions::latent::LatentParameterMap<Context, Latent>
-pub fn alea_distributions::latent::LatentParameterMap::write_params(&self, context: &Context, latent: &Latent, out: &mut alea_distributions::prelude::Wiener4Params)
+pub struct alea_distributions::latent::LatentWienerObservation
+pub alea_distributions::latent::LatentWienerObservation::distribution: alea_distributions::prelude::Wiener4
+pub alea_distributions::latent::LatentWienerObservation::projection: alea_distributions::latent::AffineLatentWienerMap
+impl alea_distributions::latent::LatentWienerObservation
+pub fn alea_distributions::latent::LatentWienerObservation::new(projection: alea_distributions::latent::AffineLatentWienerMap, distribution: alea_distributions::prelude::Wiener4) -> Self
+impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentWienerObservation
+pub type alea_distributions::latent::LatentWienerObservation::Error = alea_distributions::wiener::ProbError
+pub fn alea_distributions::latent::LatentWienerObservation::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation, _t: usize) -> core::result::Result<f64, Self::Error>
+impl core::clone::Clone for alea_distributions::latent::LatentWienerObservation
+pub fn alea_distributions::latent::LatentWienerObservation::clone(&self) -> alea_distributions::latent::LatentWienerObservation
+impl core::fmt::Debug for alea_distributions::latent::LatentWienerObservation
+pub fn alea_distributions::latent::LatentWienerObservation::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::latent::LatentWienerObservation
+pub struct alea_distributions::latent::WienerObservationModel<M>
+pub alea_distributions::latent::WienerObservationModel::density: alea_distributions::prelude::Wiener4
+pub alea_distributions::latent::WienerObservationModel::map: M
+impl<M> alea_distributions::latent::WienerObservationModel<M>
+pub fn alea_distributions::latent::WienerObservationModel<M>::new(map: M, density: alea_distributions::prelude::Wiener4) -> Self
+impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::WienerObservationModel<M> where M: alea_distributions::latent::WienerParameterMap<Context, Latent>
+pub type alea_distributions::latent::WienerObservationModel<M>::Error = alea_distributions::wiener::ProbError
+pub fn alea_distributions::latent::WienerObservationModel<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation, t: usize) -> core::result::Result<f64, Self::Error>
+impl<M: core::clone::Clone> core::clone::Clone for alea_distributions::latent::WienerObservationModel<M>
+pub fn alea_distributions::latent::WienerObservationModel<M>::clone(&self) -> alea_distributions::latent::WienerObservationModel<M>
+impl<M: core::fmt::Debug> core::fmt::Debug for alea_distributions::latent::WienerObservationModel<M>
+pub fn alea_distributions::latent::WienerObservationModel<M>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<M: core::marker::Copy> core::marker::Copy for alea_distributions::latent::WienerObservationModel<M>
 pub trait alea_distributions::latent::LatentStateView
 pub type alea_distributions::latent::LatentStateView::Context
 pub type alea_distributions::latent::LatentStateView::Latent
@@ -212,6 +201,8 @@ pub type alea_distributions::latent::LatentState<Context, Latent>::Context = Con
 pub type alea_distributions::latent::LatentState<Context, Latent>::Latent = Latent
 pub fn alea_distributions::latent::LatentState<Context, Latent>::context(&self) -> &Self::Context
 pub fn alea_distributions::latent::LatentState<Context, Latent>::latent(&self) -> &Self::Latent
+pub trait alea_distributions::latent::WienerParameterMap<Context, Latent>
+pub fn alea_distributions::latent::WienerParameterMap::write_params(&self, context: &Context, latent: &Latent, t: usize, out: &mut alea_distributions::prelude::Wiener4Params) -> alea_distributions::wiener::Result<()>
 pub mod alea_distributions::mixture
 pub struct alea_distributions::mixture::FiniteMixture<D>
 impl<D: alea_core::distribution::Distribution<Error = alea_core::distribution::DistributionError>> alea_distributions::mixture::FiniteMixture<D>
@@ -2369,8 +2360,9 @@ pub fn alea_distributions::prelude::WienerModel<F, D>::fmt(&self, f: &mut core::
 pub struct alea_distributions::prelude::WienerObservation
 pub alea_distributions::prelude::WienerObservation::boundary: alea_distributions::prelude::Boundary
 pub alea_distributions::prelude::WienerObservation::rt: f64
-impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentObservationModel
-pub fn alea_distributions::latent::LatentObservationModel::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation) -> f64
+impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentWienerObservation
+pub type alea_distributions::latent::LatentWienerObservation::Error = alea_distributions::wiener::ProbError
+pub fn alea_distributions::latent::LatentWienerObservation::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation, _t: usize) -> core::result::Result<f64, Self::Error>
 impl core::clone::Clone for alea_distributions::prelude::WienerObservation
 pub fn alea_distributions::prelude::WienerObservation::clone(&self) -> alea_distributions::prelude::WienerObservation
 impl core::cmp::PartialEq for alea_distributions::prelude::WienerObservation
@@ -2381,8 +2373,9 @@ impl core::iter::traits::collect::FromIterator<alea_distributions::prelude::Wien
 pub fn alea_distributions::prelude::WienerObservations::from_iter<T: core::iter::traits::collect::IntoIterator<Item = alea_distributions::prelude::WienerObservation>>(iter: T) -> Self
 impl core::marker::Copy for alea_distributions::prelude::WienerObservation
 impl core::marker::StructuralPartialEq for alea_distributions::prelude::WienerObservation
-impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::ObservationLayer<M> where M: alea_distributions::latent::LatentParameterMap<Context, Latent>
-pub fn alea_distributions::latent::ObservationLayer<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation) -> f64
+impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::WienerObservationModel<M> where M: alea_distributions::latent::WienerParameterMap<Context, Latent>
+pub type alea_distributions::latent::WienerObservationModel<M>::Error = alea_distributions::wiener::ProbError
+pub fn alea_distributions::latent::WienerObservationModel<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation, t: usize) -> core::result::Result<f64, Self::Error>
 pub struct alea_distributions::prelude::WienerObservations
 impl alea_distributions::prelude::WienerObservations
 pub fn alea_distributions::prelude::WienerObservations::batch_strategy(&self) -> alea_distributions::prelude::BatchStrategy
@@ -4333,8 +4326,9 @@ pub fn alea_distributions::prelude::WienerModel<F, D>::fmt(&self, f: &mut core::
 pub struct alea_distributions::wiener::WienerObservation
 pub alea_distributions::wiener::WienerObservation::boundary: alea_distributions::prelude::Boundary
 pub alea_distributions::wiener::WienerObservation::rt: f64
-impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentObservationModel
-pub fn alea_distributions::latent::LatentObservationModel::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation) -> f64
+impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentWienerObservation
+pub type alea_distributions::latent::LatentWienerObservation::Error = alea_distributions::wiener::ProbError
+pub fn alea_distributions::latent::LatentWienerObservation::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation, _t: usize) -> core::result::Result<f64, Self::Error>
 impl core::clone::Clone for alea_distributions::prelude::WienerObservation
 pub fn alea_distributions::prelude::WienerObservation::clone(&self) -> alea_distributions::prelude::WienerObservation
 impl core::cmp::PartialEq for alea_distributions::prelude::WienerObservation
@@ -4345,8 +4339,9 @@ impl core::iter::traits::collect::FromIterator<alea_distributions::prelude::Wien
 pub fn alea_distributions::prelude::WienerObservations::from_iter<T: core::iter::traits::collect::IntoIterator<Item = alea_distributions::prelude::WienerObservation>>(iter: T) -> Self
 impl core::marker::Copy for alea_distributions::prelude::WienerObservation
 impl core::marker::StructuralPartialEq for alea_distributions::prelude::WienerObservation
-impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::ObservationLayer<M> where M: alea_distributions::latent::LatentParameterMap<Context, Latent>
-pub fn alea_distributions::latent::ObservationLayer<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation) -> f64
+impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::WienerObservationModel<M> where M: alea_distributions::latent::WienerParameterMap<Context, Latent>
+pub type alea_distributions::latent::WienerObservationModel<M>::Error = alea_distributions::wiener::ProbError
+pub fn alea_distributions::latent::WienerObservationModel<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation, t: usize) -> core::result::Result<f64, Self::Error>
 pub struct alea_distributions::wiener::WienerObservations
 impl alea_distributions::prelude::WienerObservations
 pub fn alea_distributions::prelude::WienerObservations::batch_strategy(&self) -> alea_distributions::prelude::BatchStrategy

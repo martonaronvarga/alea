@@ -883,6 +883,13 @@
     },
     {
       "crate": "alea",
+      "item": "state_space",
+      "profile": "research_component",
+      "summary": "Mathematical API exposed through its owning module.",
+      "promotion_gate": "Broaden independent consumer validation before promotion."
+    },
+    {
+      "crate": "alea",
       "item": "target",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
@@ -1559,6 +1566,12 @@
       "item": "pub use alea::session",
       "profile": "research_mixed",
       "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::state_space",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea",
@@ -5739,21 +5752,21 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::state_space::ObservationModel::log_likelihood(&self, state: &S, obs: &Y) -> f64",
-      "profile": "design_contract",
-      "promotion_gate": "Implement and validate a consuming inference vertical before exposure."
+      "item": "pub fn alea_core::state_space::ObservationModel::log_likelihood(&self, state: &S, obs: &Y, t: usize) -> core::result::Result<f64, Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::state_space::TransitionModel::log_transition(&self, prev: &S, next: &S, t: usize) -> f64",
-      "profile": "design_contract",
-      "promotion_gate": "Implement and validate a consuming inference vertical before exposure."
+      "item": "pub fn alea_core::state_space::TransitionModel::log_transition(&self, prev: &S, next: &S, t: usize) -> core::result::Result<f64, Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::state_space::TransitionModel::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &S, rng: &mut R) -> S",
-      "profile": "design_contract",
-      "promotion_gate": "Implement and validate a consuming inference vertical before exposure."
+      "item": "pub fn alea_core::state_space::TransitionModel::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &S, t: usize, rng: &mut R) -> core::result::Result<S, Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -6592,6 +6605,18 @@
     {
       "crate": "alea-core",
       "item": "pub type alea_core::prelude::TargetSpace::Error: core::error::Error + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub type alea_core::state_space::ObservationModel::Error: core::error::Error + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub type alea_core::state_space::TransitionModel::Error: core::error::Error + 'static",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -7852,8 +7877,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentObservationModel",
-      "profile": "validated_component_reference"
+      "item": "impl alea_core::state_space::ObservationModel<alea_distributions::latent::LatentFrame, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::LatentWienerObservation",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -7904,13 +7930,14 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "impl alea_distributions::latent::LatentObservationModel",
+      "item": "impl alea_distributions::latent::LatentRandomWalk",
       "profile": "validated_component_opt_in"
     },
     {
       "crate": "alea-distributions",
-      "item": "impl alea_distributions::latent::LatentRandomWalk",
-      "profile": "validated_component_opt_in"
+      "item": "impl alea_distributions::latent::LatentWienerObservation",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -8388,13 +8415,14 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "impl core::clone::Clone for alea_distributions::latent::LatentObservationModel",
+      "item": "impl core::clone::Clone for alea_distributions::latent::LatentRandomWalk",
       "profile": "validated_component_opt_in"
     },
     {
       "crate": "alea-distributions",
-      "item": "impl core::clone::Clone for alea_distributions::latent::LatentRandomWalk",
-      "profile": "validated_component_opt_in"
+      "item": "impl core::clone::Clone for alea_distributions::latent::LatentWienerObservation",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -9354,13 +9382,14 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "impl core::fmt::Debug for alea_distributions::latent::LatentObservationModel",
+      "item": "impl core::fmt::Debug for alea_distributions::latent::LatentRandomWalk",
       "profile": "validated_component_opt_in"
     },
     {
       "crate": "alea-distributions",
-      "item": "impl core::fmt::Debug for alea_distributions::latent::LatentRandomWalk",
-      "profile": "validated_component_opt_in"
+      "item": "impl core::fmt::Debug for alea_distributions::latent::LatentWienerObservation",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -9857,13 +9886,14 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "impl core::marker::Copy for alea_distributions::latent::LatentObservationModel",
+      "item": "impl core::marker::Copy for alea_distributions::latent::LatentRandomWalk",
       "profile": "validated_component_opt_in"
     },
     {
       "crate": "alea-distributions",
-      "item": "impl core::marker::Copy for alea_distributions::latent::LatentRandomWalk",
-      "profile": "validated_component_opt_in"
+      "item": "impl core::marker::Copy for alea_distributions::latent::LatentWienerObservation",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -10691,13 +10721,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::ObservationLayer<M> where M: alea_distributions::latent::LatentParameterMap<Context, Latent>",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "impl<Context, Latent, T> alea_core::state_space::TransitionModel<alea_distributions::latent::LatentState<Context, Latent>> for alea_distributions::latent::TransitionLayer<T> where T: alea_core::state_space::TransitionModel<alea_distributions::latent::LatentState<Context, Latent>>",
-      "profile": "validated_component_opt_in"
+      "item": "impl<Context, Latent, M> alea_core::state_space::ObservationModel<alea_distributions::latent::LatentState<Context, Latent>, alea_distributions::prelude::WienerObservation> for alea_distributions::latent::WienerObservationModel<M> where M: alea_distributions::latent::WienerParameterMap<Context, Latent>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -10776,38 +10802,27 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "impl<M: core::clone::Clone> core::clone::Clone for alea_distributions::latent::ObservationLayer<M>",
-      "profile": "validated_component_opt_in"
+      "item": "impl<M: core::clone::Clone> core::clone::Clone for alea_distributions::latent::WienerObservationModel<M>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "impl<M: core::fmt::Debug> core::fmt::Debug for alea_distributions::latent::ObservationLayer<M>",
-      "profile": "validated_component_opt_in"
+      "item": "impl<M: core::fmt::Debug> core::fmt::Debug for alea_distributions::latent::WienerObservationModel<M>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "impl<M: core::marker::Copy> core::marker::Copy for alea_distributions::latent::ObservationLayer<M>",
-      "profile": "validated_component_opt_in"
+      "item": "impl<M: core::marker::Copy> core::marker::Copy for alea_distributions::latent::WienerObservationModel<M>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "impl<M> alea_distributions::latent::ObservationLayer<M>",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "impl<T: core::clone::Clone> core::clone::Clone for alea_distributions::latent::TransitionLayer<T>",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "impl<T: core::fmt::Debug> core::fmt::Debug for alea_distributions::latent::TransitionLayer<T>",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "impl<T> alea_distributions::latent::TransitionLayer<T>",
-      "profile": "validated_component_opt_in"
+      "item": "impl<M> alea_distributions::latent::WienerObservationModel<M>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -10866,16 +10881,6 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub alea_distributions::latent::LatentObservationModel::distribution: alea_distributions::prelude::Wiener4",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub alea_distributions::latent::LatentObservationModel::projection: alea_distributions::latent::AffineLatentWienerMap",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-distributions",
       "item": "pub alea_distributions::latent::LatentState::context: Context",
       "profile": "validated_component_opt_in"
     },
@@ -10886,18 +10891,27 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub alea_distributions::latent::ObservationLayer::density: alea_distributions::prelude::Wiener4",
-      "profile": "validated_component_reference"
+      "item": "pub alea_distributions::latent::LatentWienerObservation::distribution: alea_distributions::prelude::Wiener4",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub alea_distributions::latent::ObservationLayer::map: M",
-      "profile": "validated_component_opt_in"
+      "item": "pub alea_distributions::latent::LatentWienerObservation::projection: alea_distributions::latent::AffineLatentWienerMap",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub alea_distributions::latent::TransitionLayer::transition: T",
-      "profile": "validated_component_opt_in"
+      "item": "pub alea_distributions::latent::WienerObservationModel::density: alea_distributions::prelude::Wiener4",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::latent::WienerObservationModel::map: M",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -11659,11 +11673,6 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::AffineLatentWienerMap::map_into_parallel(&self, latent: alea_distributions::latent::LatentFrameSoA<'_>, out_alpha: &mut [f64], out_tau: &mut [f64], out_beta: &mut [f64], out_delta: &mut [f64]) -> bool",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::latent::AffineLatentWienerMap::new(alpha: [f64; 3], tau: [f64; 3], beta: [f64; 3], delta: [f64; 3]) -> Self",
       "profile": "validated_component_opt_in"
     },
@@ -11709,31 +11718,6 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::LatentObservationModel::clone(&self) -> alea_distributions::latent::LatentObservationModel",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::LatentObservationModel::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::LatentObservationModel::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation) -> f64",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::LatentObservationModel::new(projection: alea_distributions::latent::AffineLatentWienerMap, distribution: alea_distributions::prelude::Wiener4) -> Self",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::LatentParameterMap::write_params(&self, context: &Context, latent: &Latent, out: &mut alea_distributions::prelude::Wiener4Params)",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::latent::LatentRandomWalk::clone(&self) -> alea_distributions::latent::LatentRandomWalk",
       "profile": "validated_component_opt_in"
     },
@@ -11744,8 +11728,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::LatentRandomWalk::log_transition(&self, prev: &alea_distributions::latent::LatentFrame, next: &alea_distributions::latent::LatentFrame, _t: usize) -> f64",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::latent::LatentRandomWalk::log_transition(&self, prev: &alea_distributions::latent::LatentFrame, next: &alea_distributions::latent::LatentFrame, _t: usize) -> core::result::Result<f64, Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -11754,8 +11739,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::LatentRandomWalk::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &alea_distributions::latent::LatentFrame, rng: &mut R) -> alea_distributions::latent::LatentFrame",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::latent::LatentRandomWalk::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &alea_distributions::latent::LatentFrame, _t: usize, rng: &mut R) -> core::result::Result<alea_distributions::latent::LatentFrame, Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -11799,48 +11785,57 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::ObservationLayer<M>::clone(&self) -> alea_distributions::latent::ObservationLayer<M>",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::latent::LatentWienerObservation::clone(&self) -> alea_distributions::latent::LatentWienerObservation",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::ObservationLayer<M>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::latent::LatentWienerObservation::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::ObservationLayer<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation) -> f64",
-      "profile": "validated_component_reference"
+      "item": "pub fn alea_distributions::latent::LatentWienerObservation::log_likelihood(&self, state: &alea_distributions::latent::LatentFrame, obs: &alea_distributions::prelude::WienerObservation, _t: usize) -> core::result::Result<f64, Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::ObservationLayer<M>::new(map: M, density: alea_distributions::prelude::Wiener4) -> Self",
-      "profile": "validated_component_reference"
+      "item": "pub fn alea_distributions::latent::LatentWienerObservation::new(projection: alea_distributions::latent::AffineLatentWienerMap, distribution: alea_distributions::prelude::Wiener4) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::TransitionLayer<T>::clone(&self) -> alea_distributions::latent::TransitionLayer<T>",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::latent::WienerObservationModel<M>::clone(&self) -> alea_distributions::latent::WienerObservationModel<M>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::TransitionLayer<T>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::latent::WienerObservationModel<M>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::TransitionLayer<T>::log_transition(&self, prev: &alea_distributions::latent::LatentState<Context, Latent>, next: &alea_distributions::latent::LatentState<Context, Latent>, t: usize) -> f64",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::latent::WienerObservationModel<M>::log_likelihood(&self, state: &alea_distributions::latent::LatentState<Context, Latent>, obs: &alea_distributions::prelude::WienerObservation, t: usize) -> core::result::Result<f64, Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::TransitionLayer<T>::new(transition: T) -> Self",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::latent::WienerObservationModel<M>::new(map: M, density: alea_distributions::prelude::Wiener4) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::latent::TransitionLayer<T>::sample_next<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &alea_distributions::latent::LatentState<Context, Latent>, rng: &mut R) -> alea_distributions::latent::LatentState<Context, Latent>",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::latent::WienerParameterMap::write_params(&self, context: &Context, latent: &Latent, t: usize, out: &mut alea_distributions::prelude::Wiener4Params) -> alea_distributions::wiener::Result<()>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16983,11 +16978,6 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub struct alea_distributions::latent::LatentObservationModel",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-distributions",
       "item": "pub struct alea_distributions::latent::LatentRandomWalk",
       "profile": "validated_component_opt_in"
     },
@@ -16998,13 +16988,15 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub struct alea_distributions::latent::ObservationLayer<M>",
-      "profile": "validated_component_opt_in"
+      "item": "pub struct alea_distributions::latent::LatentWienerObservation",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub struct alea_distributions::latent::TransitionLayer<T>",
-      "profile": "validated_component_opt_in"
+      "item": "pub struct alea_distributions::latent::WienerObservationModel<M>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -17865,13 +17857,14 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub trait alea_distributions::latent::LatentParameterMap<Context, Latent>",
+      "item": "pub trait alea_distributions::latent::LatentStateView",
       "profile": "validated_component_opt_in"
     },
     {
       "crate": "alea-distributions",
-      "item": "pub trait alea_distributions::latent::LatentStateView",
-      "profile": "validated_component_opt_in"
+      "item": "pub trait alea_distributions::latent::WienerParameterMap<Context, Latent>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -17930,6 +17923,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub type alea_distributions::latent::LatentRandomWalk::Error = alea_core::distribution::DistributionError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub type alea_distributions::latent::LatentState<Context, Latent>::Context = Context",
       "profile": "validated_component_opt_in"
     },
@@ -17947,6 +17946,18 @@
       "crate": "alea-distributions",
       "item": "pub type alea_distributions::latent::LatentStateView::Latent",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub type alea_distributions::latent::LatentWienerObservation::Error = alea_distributions::wiener::ProbError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub type alea_distributions::latent::WienerObservationModel<M>::Error = alea_distributions::wiener::ProbError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -40962,21 +40973,21 @@
     },
     {
       "crate": "alea-smc",
-      "item": "pub fn alea_smc::ParticleMutationKernel::propagate<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &S, t: usize, rng: &mut R, out: &mut S)",
-      "profile": "design_contract",
-      "promotion_gate": "Implement resampling, filtering, estimation, and PMCMC verticals before exposure."
+      "item": "pub fn alea_smc::ParticleMutationKernel::propagate<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &S, t: usize, rng: &mut R, out: &mut S) -> core::result::Result<(), Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-smc",
-      "item": "pub fn alea_smc::ParticleResampler::resample<R: rand_core::Rng + ?core::marker::Sized>(&mut self, normalized_weights: &[f64], rng: &mut R, out_index: &mut [usize])",
-      "profile": "design_contract",
-      "promotion_gate": "Implement resampling, filtering, estimation, and PMCMC verticals before exposure."
+      "item": "pub fn alea_smc::ParticleResampler::resample<R: rand_core::Rng + ?core::marker::Sized>(&mut self, normalized_weights: &[f64], rng: &mut R, out_index: &mut [usize]) -> core::result::Result<(), Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-smc",
-      "item": "pub fn alea_smc::ParticleWeightModel::log_weight(&self, state: &S, obs: &Y, t: usize) -> f64",
-      "profile": "design_contract",
-      "promotion_gate": "Implement resampling, filtering, estimation, and PMCMC verticals before exposure."
+      "item": "pub fn alea_smc::ParticleWeightModel::log_weight(&self, prev: core::option::Option<&S>, state: &S, obs: &Y, t: usize) -> core::result::Result<f64, Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-smc",
@@ -41001,6 +41012,24 @@
       "item": "pub trait alea_smc::ParticleWeightModel<S, Y>",
       "profile": "design_contract",
       "promotion_gate": "Implement and validate an SMC vertical before exposing this contract."
+    },
+    {
+      "crate": "alea-smc",
+      "item": "pub type alea_smc::ParticleMutationKernel::Error: core::error::Error + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-smc",
+      "item": "pub type alea_smc::ParticleResampler::Error: core::error::Error + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-smc",
+      "item": "pub type alea_smc::ParticleWeightModel::Error: core::error::Error + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     }
   ]
 }

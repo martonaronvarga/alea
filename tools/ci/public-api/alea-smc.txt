@@ -1,7 +1,10 @@
 pub mod alea_smc
 pub trait alea_smc::ParticleMutationKernel<S>
-pub fn alea_smc::ParticleMutationKernel::propagate<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &S, t: usize, rng: &mut R, out: &mut S)
+pub type alea_smc::ParticleMutationKernel::Error: core::error::Error + 'static
+pub fn alea_smc::ParticleMutationKernel::propagate<R: rand_core::Rng + ?core::marker::Sized>(&self, prev: &S, t: usize, rng: &mut R, out: &mut S) -> core::result::Result<(), Self::Error>
 pub trait alea_smc::ParticleResampler
-pub fn alea_smc::ParticleResampler::resample<R: rand_core::Rng + ?core::marker::Sized>(&mut self, normalized_weights: &[f64], rng: &mut R, out_index: &mut [usize])
+pub type alea_smc::ParticleResampler::Error: core::error::Error + 'static
+pub fn alea_smc::ParticleResampler::resample<R: rand_core::Rng + ?core::marker::Sized>(&mut self, normalized_weights: &[f64], rng: &mut R, out_index: &mut [usize]) -> core::result::Result<(), Self::Error>
 pub trait alea_smc::ParticleWeightModel<S, Y>
-pub fn alea_smc::ParticleWeightModel::log_weight(&self, state: &S, obs: &Y, t: usize) -> f64
+pub type alea_smc::ParticleWeightModel::Error: core::error::Error + 'static
+pub fn alea_smc::ParticleWeightModel::log_weight(&self, prev: core::option::Option<&S>, state: &S, obs: &Y, t: usize) -> core::result::Result<f64, Self::Error>
