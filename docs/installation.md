@@ -91,8 +91,11 @@ Start with the default build. Add a backend when your workload needs it.
 | `faer` | Stable Rust | Optional matrix operations and fitted geometry |
 | `openblas` | LP64 OpenBLAS headers and libraries | BLAS-backed matrix operations |
 | `simd` | Pinned nightly Rust | Portable SIMD kernels |
-| `branch-hints` | Pinned nightly Rust | Optional branch hints |
+| `branch-hints` | Pinned nightly Rust | Additional branch-probability hints |
 | `std-autodiff` | Matching nightly Rust and Enzyme | Compiled automatic derivatives |
+
+Wiener kernels already mark rare recovery paths as cold on stable Rust. The
+`branch-hints` feature additionally selects nightly probability intrinsics.
 
 For example, enable Faer:
 

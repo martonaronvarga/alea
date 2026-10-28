@@ -49,7 +49,7 @@ on stable Rust. Select optional capabilities on the `alea` dependency:
 | `faer` | Stable Rust | Optional matrix operations and geometry fitting |
 | `openblas` | LP64 OpenBLAS headers and libraries | BLAS-backed matrix operations |
 | `simd` | Pinned nightly Rust | Portable SIMD kernels |
-| `branch-hints` | Pinned nightly Rust | Optional Wiener branch hints; enables distributions |
+| `branch-hints` | Pinned nightly Rust | Additional Wiener probability hints; enables distributions |
 | `std-autodiff` | Matching nightly Rust and Enzyme | Compiled automatic derivatives; enables autodiff |
 
 Examples and toolchain commands are in [Installation](installation.md).

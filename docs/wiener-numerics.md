@@ -292,6 +292,76 @@ rather than two implementations of equally correct complete gradients. SIMD
 builds showed the same broad pattern. The largest gains come from eliminating
 integration dimensions; scalar calls do not automatically gain SIMD throughput.
 
+## Ordinary-region costs and branch layout
+
+A separate check at `a9cefc1` selected 78 configurations with normalized time
+between `0.01` and `3`, starting point between `0.1` and `0.9`, absolute drift at
+most `3`, drift variability at most `1`, start width at most `0.5`, and time width
+strictly below decision time. These are workload definitions, not additional
+support restrictions. The Wiener4/5 subset is small: six and twelve cases,
+respectively. Nine alternating process pairs with 31 timing batches per operation
+checked the before/after cost against `49b7527`.
+
+The scalar median slowdown factors, current time divided by original time, were:
+
+| Evaluation | Density | Density and scores |
+|---|---:|---:|
+| Wiener4 | 1.01× | 1.02× |
+| Wiener5 | 0.97× | 1.01× |
+| Wiener7, tiny time width | 1.10× | 1.17× |
+| Wiener7, broad joint variability | 1.68× | 1.10× |
+| Wiener7, long-time joint variability | 1.36× | 0.99× |
+
+Factors below one mean faster evaluation. SIMD builds showed the same broad
+pattern; Wiener4 density was about 1.09× its original cost in this subset.
+Other Wiener7 groups retain substantial improvements, including ordinary time
+averaging and localized joint variability. There is no single slowdown factor
+without specifying the model and observation mix.
+
+The compiler hints are active on stable Rust 1.95 through `cold_path`. Endpoint
+series evaluation stays out of line, and validation failures, underflow recovery,
+cubature failures and score-scale recalibration are marked as cold paths. The
+small-time and spectral expansions remain ordinary workload-dependent choices;
+neither is labeled likely or unlikely. The optional nightly `branch-hints`
+feature uses probability intrinsics for the same guards.
+
+The hint-only comparison retained identical binary64 output vectors for all
+8,328 paired checks, including batch operations, and for the full replay of
+64,736 previously failing gradients. All 676 independent density and score checks
+still pass in scalar and SIMD builds. Most timing changes were within a few
+percent or measurement variability. Hints guide layout; they do not reduce the
+integration work or guarantee a gain on every processor.
+
+### Scalar comparison with Stan Math
+
+A fresh comparison used Stan Math `68c680126898f5f61c0ed6af09919c11346f5fcd`,
+which includes the full Wiener density underflow fix. The 78-case ordinary subset
+used three alternating process pairs on the same CPU, with 11 timing batches per
+operation. Both engines were checked against the same independent enclosures at
+`1e-9 * (1 + |reference|)`; only passing pairs contribute to these ratios.
+
+| Evaluation | Qualified density cases | Stan / Alea density time | Qualified score cases | Stan / Alea score time |
+|---|---:|---:|---:|---:|
+| Wiener4 | 6/6 | 0.79× | 6/6 | 5.68× |
+| Wiener5 | 12/12 | 2.91× | 12/12 | 6.90× |
+| Wiener7, time averaging | 6/6 | 5.47× | 6/6 | 3.55× |
+| Wiener7, broad joint variability | 6/6 | 52.5× | 6/6 | 173× |
+| Wiener7, localized joint variability | 6/6 | 125× | 6/6 | 424× |
+| Wiener7, long-time joint variability | 6/6 | 98.1× | 6/6 | 327× |
+
+A ratio above one favors Alea. Stan was faster for Wiener4 density alone;
+Alea was faster for its analytic gradients and for the listed Wiener5/7 cases.
+All 78 density comparisons qualified; 48 of 78 complete score comparisons
+qualified. Thirty zero-time-width score vectors failed the comparison gate and
+were retained as ineligible rather than counted as speed gains.
+
+This measures individual scalar likelihood calls. Stan's fused calls include
+constructing, differentiating and recovering a reverse-mode tape; Alea uses
+analytic scores. It is not a comparison of vectorized Stan models or complete
+fits. Wiener4's zero nondecision time uses an explicitly labeled smallest-positive
+normal adapter for Stan. Stan Wiener4 retains its built-in series precision;
+Wiener4/5 Alea requests were `1e-12`, and Wiener7 requests were `1e-9`.
+
 ## Complete model fits
 
 Kernel timings do not establish inference performance. A complete-fit comparison
