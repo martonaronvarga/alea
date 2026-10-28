@@ -86,9 +86,19 @@ subtracting two large primitive values. Write `q = m + h x`,
 through order three supply the integrated density and all seven parameter
 derivatives.
 
-For narrow intervals, the evaluator integrates an exponential Taylor polynomial
-and carries the uniform remainder `exp(R) R^N / N!` (`N = 8` for `R <= 0.01`, otherwise 20) into each moment's error.
-Here `R` bounds the absolute exponent throughout the interval. Otherwise it
+For moderate intervals, the evaluator integrates a power series and carries a
+Cauchy remainder into each moment's error. The coefficients satisfy
+`(n+1)c_(n+1) = B c_n - 2A c_(n-1)`, avoiding repeated polynomial products.
+It sums 16, 48 or 80 coefficients according to the exponent radius. On any
+circle `|z|=rho>1/2`, the omitted series is bounded uniformly by
+
+\[
+\frac{\exp(A\rho^2+|B|\rho)}{1-1/(2\rho)}
+\left(\frac1{2\rho}\right)^N.
+\]
+
+The contour radius is chosen near the minimum of this bound, within `[1,16]`.
+Compensated accumulation combines the integrated monomials. Otherwise it
 uses a scaled normal interval probability followed by Gaussian moment
 recurrences. Poorly conditioned recurrences return to cubature.
 
@@ -113,9 +123,9 @@ together with spectral Gaussian moments, controls the omitted integrated terms.
 When these analytic start averages are available throughout an unclipped time
 interval, adaptive inference can integrate only over time. The automatic cost
 policy selects this reduction for localized starting-point integrands: the
-smallest interval curvature `a² h² / (2 t (1+s²t))` must be at least one half.
-A measured regression on a broad integrand motivated retaining ordinary
-cubature below this threshold. This policy does not promise minimum latency. Any failed moment or
+smallest interval curvature `a² h² / (2 t (1+s²t))` must be at least `0.01`.
+The coefficient recurrence makes moderate intervals cheaper, while nearly
+constant intervals retain the other paths. This policy does not promise minimum latency. Any failed moment or
 quadrature check returns to the ordinary two-dimensional evaluator. Fixed
 Gauss–Legendre options retain the requested product rule.
 

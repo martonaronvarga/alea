@@ -29,12 +29,12 @@ impl Wiener7 {
         scores[6] = x * scores[1];
         Some((value.log_prob, scores))
     }
-    /// Avoid the measured regression for broad, nearly linear start intervals.
-    /// This is a conservative cost policy, not a universal latency guarantee.
+    /// Try the analytic start average before integrating both coordinates.
+    /// Unsupported or poorly conditioned moments retain the other paths.
     pub(super) fn prefer_reduced_time(core: &Wiener7Core, obs: &WienerObservation) -> bool {
         let t = obs.rt - core.tau0;
         let curvature = (core.alpha * core.sw).powi(2) / (2. * t * (1. + core.sv * core.sv * t));
-        core.st0 > 0. && curvature.is_finite() && curvature >= 0.5
+        core.st0 > 0. && curvature.is_finite() && curvature >= 0.01
     }
 
     pub(super) fn reduced_time_integral(

@@ -7,38 +7,49 @@ use super::*;
 fn gaussian_moments(a: f64, b: f64) -> Option<([f64; 4], [f64; 4], f64)> {
     let radius = a / 4. + b.abs() / 2.;
     if radius <= 4.0 {
-        // Integrate the exponential's Taylor polynomial exactly. Carry its
-        // uniform Lagrange remainder into each moment's error budget.
-        let monomials: [f64; 44] = std::array::from_fn(|power| {
+        // exp(-a*z²+b*z)=sum c_n*z^n, with
+        // (n+1)c_(n+1)=b*c_n-2a*c_(n-1). Integrate coefficients once,
+        // rather than repeatedly multiplying powers of the exponent.
+        let monomials: [f64; 84] = std::array::from_fn(|power| {
             if power.is_multiple_of(2) {
                 0.5_f64.powi(power as i32) / (power + 1) as f64
             } else {
                 0.
             }
         });
-        // Small widths need fewer terms. The same explicit remainder is
-        // propagated to every score, so this is not an unbounded asymptotic
-        // shortcut: the caller still verifies the requested ratio budget.
-        let terms = if radius <= 0.01 { 8 } else { 20 };
-        let mut polynomial = [0.; 41];
-        polynomial[0] = 1.;
+        let terms = if radius <= 0.01 {
+            16
+        } else if radius <= 1. {
+            48
+        } else {
+            80
+        };
+        let mut previous = 0.;
+        let mut coefficient = 1.;
         let mut sums = [0.; 4];
-        let mut factorial = 1.;
+        let mut compensation = [0.; 4];
         for n in 0..terms {
             for (r, sum) in sums.iter_mut().enumerate() {
-                for (j, c) in polynomial[..=2 * n].iter().enumerate() {
-                    *sum += c * monomials[j + r];
-                }
+                let y = coefficient * monomials[n + r] - compensation[r];
+                let next = *sum + y;
+                compensation[r] = (next - *sum) - y;
+                *sum = next;
             }
-            let mut next = [0.; 41];
-            for j in 0..=2 * n {
-                next[j + 1] += polynomial[j] * b / (n + 1) as f64;
-                next[j + 2] -= polynomial[j] * a / (n + 1) as f64;
-            }
-            polynomial = next;
-            factorial *= (n + 1) as f64;
+            let next = (b * coefficient - 2. * a * previous) / (n + 1) as f64;
+            previous = coefficient;
+            coefficient = next;
         }
-        let remainder = radius.exp() * radius.powi(terms as i32) / factorial;
+        // Cauchy's coefficient bound on |z|=rho>1/2. Choose a bounded
+        // contour near the minimum of a*rho²+|b|rho-N*ln(rho).
+        let contour = if a == 0. && b == 0. {
+            16.
+        } else {
+            (2. * terms as f64 / (b.abs() + (b * b + 8. * a * terms as f64).sqrt())).clamp(1., 16.)
+        };
+        let ratio = 0.5 / contour;
+        let remainder = (a * contour * contour + b.abs() * contour + terms as f64 * ratio.ln()
+            - (-ratio).ln_1p())
+        .exp();
         return Some((
             sums,
             std::array::from_fn(|r| remainder / (2_f64.powi(r as i32) * (r + 1) as f64)),
@@ -287,6 +298,32 @@ impl Wiener7 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn polynomial_moments_match_independent_continuous_ball_integrals() {
+        let mut count = 0;
+        for line in include_str!("../../../tests/support/wiener_polynomial_balls.csv")
+            .lines()
+            .skip(1)
+        {
+            let x: Vec<f64> = line.split(',').map(|s| s.parse().unwrap()).collect();
+            let (values, errors, scale) = gaussian_moments(x[0], x[1]).unwrap();
+            assert_eq!(scale, 0.);
+            for i in 0..4 {
+                let reference = x[2 + 2 * i];
+                assert!(
+                    (values[i] - reference).abs()
+                        <= errors[i] + x[3 + 2 * i] + 3e-14 * (1. + reference.abs()),
+                    "A={}, B={}, moment {i}: {} vs {reference}",
+                    x[0],
+                    x[1],
+                    values[i]
+                );
+            }
+            count += 1;
+        }
+        assert_eq!(count, 22);
+    }
     #[test]
     fn gaussian_moments_have_symmetric_zero_width_limits() {
         let (j, error, _) = gaussian_moments(0., 0.).unwrap();
