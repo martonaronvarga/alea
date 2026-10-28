@@ -41,6 +41,87 @@ fn clipped_boundary_fluxes_match_independent_integrated_cdf_balls() {
 }
 
 #[test]
+fn gaussian_drift_time_marginalization_matches_ball_enclosures() {
+    use alea_distributions::wiener::{Wiener7, Wiener7Params, WienerOptions};
+    let mut count = 0;
+    for line in include_str!("support/wiener7_drift_cdf_balls.csv")
+        .lines()
+        .skip(1)
+    {
+        let x: Vec<f64> = line.split(',').map(|s| s.parse().unwrap()).collect();
+        let event = WienerObservation {
+            rt: x[0],
+            boundary: if x[7] == 1. {
+                Boundary::Lower
+            } else {
+                Boundary::Upper
+            },
+        };
+        let p = Wiener7Params::with_params(x[1], x[2], x[3], x[4], 0., x[6], x[5]).unwrap();
+        let evaluation = Wiener7
+            .try_fused(&event, &p, WienerOptions::new(1e-9))
+            .unwrap();
+        for (i, actual) in std::iter::once(evaluation.log_prob)
+            .chain(evaluation.grad_array())
+            .enumerate()
+        {
+            let reference = x[8 + 2 * i];
+            assert!(
+                (actual - reference).abs() <= x[9 + 2 * i] + 1e-9 * reference.abs().max(1.),
+                "row {count}, component {i}: {actual} vs {reference}"
+            );
+        }
+        count += 1;
+    }
+    assert_eq!(count, 72);
+}
+
+#[test]
+fn captured_proposals_match_independent_ball_enclosures() {
+    use alea_distributions::wiener::{Wiener7, Wiener7Params, WienerOptions};
+    let mut count = 0;
+    for line in include_str!("support/wiener7_replay_balls.csv")
+        .lines()
+        .skip(1)
+    {
+        let x: Vec<f64> = line.split(',').map(|s| s.parse().unwrap()).collect();
+        let event = WienerObservation {
+            rt: x[0],
+            boundary: if x[8] == 1. {
+                Boundary::Lower
+            } else {
+                Boundary::Upper
+            },
+        };
+        let p = Wiener7Params::with_params(x[1], x[2], x[3], x[4], x[6], x[7], x[5]).unwrap();
+        let e = Wiener7
+            .try_fused(&event, &p, WienerOptions::new(1e-9))
+            .unwrap();
+        let density = Wiener7
+            .try_log_prob(&event, &p, WienerOptions::new(1e-9))
+            .unwrap();
+        for (i, actual) in std::iter::once(e.log_prob)
+            .chain(e.grad_array())
+            .enumerate()
+        {
+            let reference = x[11 + 2 * i];
+            assert!(
+                (actual - reference).abs() <= x[12 + 2 * i] + 1e-9 * reference.abs().max(1.),
+                "row {count}, component {i}: {actual} vs {reference}"
+            );
+        }
+        assert!(
+            (density.log_prob - x[11]).abs() <= x[12] + 1e-9 * x[11].abs().max(1.),
+            "density row {count}: {} vs {}",
+            density.log_prob,
+            x[11]
+        );
+        count += 1;
+    }
+    assert_eq!(count, 9);
+}
+
+#[test]
 fn componentwise_evaluations_match_independent_ball_enclosures() {
     let mut count = 0;
     for line in include_str!("support/wiener_balls.csv").lines().skip(1) {

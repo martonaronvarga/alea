@@ -6,6 +6,7 @@ mod analytic_start;
 mod analytic_time;
 #[cfg(test)]
 mod audit;
+mod drift_cdf;
 mod error;
 mod fixed;
 mod gaussian_tail;
@@ -138,6 +139,15 @@ impl Wiener7 {
             };
         }
         if core.sw == 0.
+            && core.sv > 0.
+            && let Some(e) = self.analytic_time(&core, obs)
+        {
+            return Wiener7Eval {
+                log_prob: e.log_prob,
+                grad: NAN_GRAD_7,
+            };
+        }
+        if core.sw == 0.
             && core.sv == 0.
             && core.st0 >= 1e-5 * (obs.rt - core.tau0)
             && core.st0 > 0.
@@ -157,6 +167,12 @@ impl Wiener7 {
         if Self::prefer_reduced_time(&core, obs)
             && let Some(e) = self.reduced_time_integral(&core, obs)
         {
+            return Wiener7Eval {
+                log_prob: e.log_prob,
+                grad: NAN_GRAD_7,
+            };
+        }
+        if let Some(e) = self.reduced_start_integral(&core, obs) {
             return Wiener7Eval {
                 log_prob: e.log_prob,
                 grad: NAN_GRAD_7,
@@ -204,6 +220,16 @@ impl Wiener7 {
         }
         if options.quadrature == Quadrature::Adaptive
             && core.sw == 0.
+            && core.sv > 0.
+            && let Some(e) = self.analytic_time(&core, obs)
+        {
+            return Ok(Wiener7Eval {
+                log_prob: e.log_prob,
+                grad: NAN_GRAD_7,
+            });
+        }
+        if options.quadrature == Quadrature::Adaptive
+            && core.sw == 0.
             && core.sv == 0.
             && core.st0 >= 1e-5 * (obs.rt - core.tau0)
             && core.st0 > 0.
@@ -223,6 +249,14 @@ impl Wiener7 {
         if options.quadrature == Quadrature::Adaptive
             && Self::prefer_reduced_time(&core, obs)
             && let Some(e) = self.reduced_time_integral(&core, obs)
+        {
+            return Ok(Wiener7Eval {
+                log_prob: e.log_prob,
+                grad: NAN_GRAD_7,
+            });
+        }
+        if options.quadrature == Quadrature::Adaptive
+            && let Some(e) = self.reduced_start_integral(&core, obs)
         {
             return Ok(Wiener7Eval {
                 log_prob: e.log_prob,

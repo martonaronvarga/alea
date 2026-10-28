@@ -1,6 +1,13 @@
 //! Rare-path, locally scaled quadrature. No natural-scale tail density is formed.
 use super::*;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Reduction {
+    None,
+    Start,
+    Time,
+}
+
 #[derive(Clone, Copy)]
 struct Sum {
     scale: f64,
@@ -40,6 +47,38 @@ struct Region {
 }
 
 impl Wiener7 {
+    pub(super) fn reduced_start_integral(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Option<Wiener7Eval> {
+        if core.dim != 2 {
+            return None;
+        }
+        for x in [0., 0.5, 1.] {
+            Self::averaged_start_log_scores(core, obs, x)?;
+        }
+        let value = self.scaled_integral(core, obs, true, Reduction::Time);
+        (value.log_prob.is_finite() && value.grad_array().iter().all(|x| x.is_finite()))
+            .then_some(value)
+    }
+    fn averaged_start_log_scores(
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        x: f64,
+    ) -> Option<(f64, [f64; 7])> {
+        let mut point = core.clone();
+        point.beta0 = core.beta0 + core.sw * (x - 0.5);
+        point.sw = 0.;
+        point.dim = 1;
+        point.xmin = [0.; 2];
+        point.xmax = [core.xmax[1], 1.];
+        point.eps_series = point.eps_series.min(0.01 * core.opts.req_rel_error);
+        let value = Wiener7.analytic_time(&point, obs)?;
+        let mut scores = value.grad_array();
+        scores[5] = (x - 0.5) * scores[2];
+        Some((value.log_prob, scores))
+    }
     fn scaled_rule(
         core: &Wiener7Core,
         obs: &WienerObservation,
@@ -47,9 +86,13 @@ impl Wiener7 {
         hi: [f64; 2],
         order: usize,
         second_order: usize,
-        reduce_start: bool,
+        reduction: Reduction,
     ) -> Option<(Sum, usize)> {
-        let dimension = if reduce_start { 1 } else { core.dim };
+        let dimension = if reduction != Reduction::None {
+            1
+        } else {
+            core.dim
+        };
         let (nodes, weights) = Self::fixed_rule(order);
         let (second_nodes, second_weights) = Self::fixed_rule(second_order);
         let mut sum = Sum::new();
@@ -69,10 +112,10 @@ impl Wiener7 {
                     (0.0, 1.0)
                 };
                 let x = [u0, u1];
-                let (lp, scores) = if reduce_start {
-                    Self::averaged_time_log_scores(core, obs, x[0])?
-                } else {
-                    Self::point_log_scores(core, obs, &x)?
+                let (lp, scores) = match reduction {
+                    Reduction::Start => Self::averaged_time_log_scores(core, obs, x[0])?,
+                    Reduction::Time => Self::averaged_start_log_scores(core, obs, x[0])?,
+                    Reduction::None => Self::point_log_scores(core, obs, &x)?,
                 };
                 if lp == f64::NEG_INFINITY {
                     continue;
@@ -124,7 +167,7 @@ impl Wiener7 {
                 Self::point_log_scores(&point, &event, &[0.5; 2])?.0
             } else {
                 self.analytic_start(&point, &event)
-                    .unwrap_or_else(|| self.scaled_integral(&point, &event, false, false))
+                    .unwrap_or_else(|| self.scaled_integral(&point, &event, false, Reduction::None))
                     .log_prob
             };
             if !lp.is_finite() {
@@ -173,7 +216,10 @@ impl Wiener7 {
             } else {
                 None
             }
-            .unwrap_or_else(|| self.scaled_integral(&point, obs, false, false).log_prob);
+            .unwrap_or_else(|| {
+                self.scaled_integral(&point, obs, false, Reduction::None)
+                    .log_prob
+            });
             if !lp.is_finite() {
                 return None;
             }
@@ -188,17 +234,16 @@ impl Wiener7 {
         lo: [f64; 2],
         hi: [f64; 2],
         gradients: bool,
-        reduce_start: bool,
+        reduction: Reduction,
         start_fluxes: bool,
     ) -> Option<Region> {
         let rule = |first, second| {
-            let (mut sum, split) =
-                Self::scaled_rule(core, obs, lo, hi, first, second, reduce_start)?;
+            let (mut sum, split) = Self::scaled_rule(core, obs, lo, hi, first, second, reduction)?;
             if !gradients {
                 sum.value[1..].fill(0.);
             }
             // Time derivatives are obtained from the full boundary fluxes.
-            if gradients && Self::use_time_fluxes(core, obs) {
+            if gradients && reduction != Reduction::Time && Self::use_time_fluxes(core, obs) {
                 sum.value[1] = 0.;
                 sum.value[2] = 0.;
                 sum.value[7] = 0.;
@@ -213,7 +258,7 @@ impl Wiener7 {
         let (low, _) = rule(7, 7)?;
         let factor = (low.scale - sum.scale).exp();
         let mut error = std::array::from_fn(|i| (sum.value[i] - factor * low.value[i]).abs());
-        if core.dim == 2 && !reduce_start {
+        if core.dim == 2 && reduction == Reduction::None {
             // Mixed rules isolate the error in each coordinate. The peak slope
             // alone need not detect curvature in a derivative numerator.
             let (low_start, _) = rule(7, 15)?;
@@ -258,7 +303,15 @@ impl Wiener7 {
         obs: &WienerObservation,
         order: usize,
     ) -> Wiener7Eval {
-        match Self::scaled_rule(core, obs, core.xmin, core.xmax, order, order, false) {
+        match Self::scaled_rule(
+            core,
+            obs,
+            core.xmin,
+            core.xmax,
+            order,
+            order,
+            Reduction::None,
+        ) {
             Some((s, _)) => Wiener7Eval {
                 log_prob: s.scale + s.value[0].ln(),
                 grad: Wiener7Grad::from_array(std::array::from_fn(|i| s.value[i + 1] / s.value[0])),
@@ -294,12 +347,12 @@ impl Wiener7 {
         gradients: bool,
     ) -> Wiener7Eval {
         if core.dim == 2 && Self::averaged_time_log_scores(core, obs, 0.).is_some() {
-            let reduced = self.scaled_integral(core, obs, gradients, true);
+            let reduced = self.scaled_integral(core, obs, gradients, Reduction::Start);
             if reduced.log_prob.is_finite() && reduced.grad_array().iter().all(|v| v.is_finite()) {
                 return reduced;
             }
         }
-        self.scaled_integral(core, obs, gradients, false)
+        self.scaled_integral(core, obs, gradients, Reduction::None)
     }
 
     fn scaled_integral(
@@ -307,14 +360,17 @@ impl Wiener7 {
         core: &Wiener7Core,
         obs: &WienerObservation,
         gradients: bool,
-        reduce_start: bool,
+        reduction: Reduction,
     ) -> Wiener7Eval {
-        let start_faces = if gradients && Self::start_face_budget(core).is_some() {
-            self.start_faces(core, obs)
-        } else {
-            None
-        };
-        let faces = if gradients && Self::use_time_fluxes(core, obs) {
+        let start_faces =
+            if gradients && reduction != Reduction::Time && Self::start_face_budget(core).is_some()
+            {
+                self.start_faces(core, obs)
+            } else {
+                None
+            };
+        let faces = if gradients && reduction != Reduction::Time && Self::use_time_fluxes(core, obs)
+        {
             let Some(faces) = self.time_faces(core, obs) else {
                 return fail_eval_7();
             };
@@ -322,10 +378,10 @@ impl Wiener7 {
         } else {
             None
         };
-        let (lo, hi) = if reduce_start {
-            ([0.; 2], [core.xmax[1], 1.])
-        } else {
-            (core.xmin, core.xmax)
+        let (lo, hi) = match reduction {
+            Reduction::Start => ([0.; 2], [core.xmax[1], 1.]),
+            Reduction::Time => ([0.; 2], [1.; 2]),
+            Reduction::None => (core.xmin, core.xmax),
         };
         let Some(first) = Self::scaled_region(
             core,
@@ -333,13 +389,13 @@ impl Wiener7 {
             lo,
             hi,
             gradients,
-            reduce_start,
+            reduction,
             start_faces.is_some(),
         ) else {
             return fail_eval_7();
         };
         let mut regions = vec![first];
-        let per_region = if core.dim == 2 && !reduce_start {
+        let per_region = if core.dim == 2 && reduction == Reduction::None {
             15 * 15 + 7 * 7 + 2 * 7 * 15
         } else {
             15 + 7
@@ -450,7 +506,7 @@ impl Wiener7 {
                 old.lo,
                 left_hi,
                 gradients,
-                reduce_start,
+                reduction,
                 start_faces.is_some(),
             ) else {
                 return fail_eval_7();
@@ -461,7 +517,7 @@ impl Wiener7 {
                 right_lo,
                 old.hi,
                 gradients,
-                reduce_start,
+                reduction,
                 start_faces.is_some(),
             ) else {
                 return fail_eval_7();
@@ -610,7 +666,8 @@ mod tests {
                     let lo = [i as f64 / panels as f64, (max_time - end) / p[6]];
                     let hi = [(i + 1) as f64 / panels as f64, (max_time - time) / p[6]];
                     let (part, _) =
-                        Wiener7::scaled_rule(&core, &observation, lo, hi, 25, 25, false).unwrap();
+                        Wiener7::scaled_rule(&core, &observation, lo, hi, 25, 25, Reduction::None)
+                            .unwrap();
                     reference.add(
                         part.scale + part.value[0].ln(),
                         std::array::from_fn(|k| part.value[k + 1] / part.value[0]),

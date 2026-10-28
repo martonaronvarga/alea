@@ -20,6 +20,9 @@ impl Wiener7 {
         {
             return e;
         }
+        if let Some(e) = self.reduced_start_integral(core, obs) {
+            return e;
+        }
         let e = self.integrate_fused_adaptive(core, obs);
         if e.log_prob.is_finite() && e.grad_array().iter().all(|g| g.is_finite()) {
             e

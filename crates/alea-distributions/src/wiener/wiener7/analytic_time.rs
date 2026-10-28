@@ -1,16 +1,86 @@
 //! Analytic CDF parameter scores for uniform nondecision-time averaging.
 use super::*;
 impl Wiener7 {
+    fn analytic_drift_time(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Option<Wiener7Eval> {
+        let high = obs.rt - core.tau0;
+        let low = high - core.st0;
+        let budget = 0.01 * core.eps_series.min(core.opts.req_rel_error);
+        let hi = super::drift_cdf::evaluate(high, core, obs.boundary, budget)?;
+        let lo = if low > 0. {
+            Some(super::drift_cdf::evaluate(low, core, obs.boundary, budget)?)
+        } else {
+            None
+        };
+        let log = if let Some(lo) = &lo {
+            super::super::cdf::log_sub(hi.log_prob, lo.log_prob)?
+        } else {
+            hi.log_prob
+        };
+        let wh = (hi.log_prob - log).exp();
+        let wl = lo.as_ref().map_or(0., |lo| (lo.log_prob - log).exp());
+        let density_error = 64. * f64::EPSILON * (wh + wl)
+            + wh * hi.error[0].exp_m1()
+            + lo.as_ref().map_or(0., |lo| wl * lo.error[0].exp_m1());
+        if density_error >= 1. || -(-density_error).ln_1p() > core.opts.req_rel_error {
+            return None;
+        }
+        let mut scores = [0.; 7];
+        for (i, score) in scores[..5].iter_mut().enumerate() {
+            *score = wh * hi.scores[i] - lo.as_ref().map_or(0., |lo| wl * lo.scores[i]);
+            let numerator = |cdf: &super::drift_cdf::Cdf| {
+                cdf.error[0].exp_m1() * cdf.scores[i].abs() + cdf.error[0].exp() * cdf.error[i + 1]
+            };
+            let error = (wh * numerator(&hi)
+                + lo.as_ref().map_or(0., |lo| wl * numerator(lo))
+                + score.abs() * density_error)
+                / (1. - density_error);
+            if !score.is_finite() || error > core.opts.req_rel_error * score.abs().max(1.) {
+                return None;
+            }
+        }
+        let ratio = if low > 0. {
+            let p = Wiener5Params::from_array([core.alpha, 0., core.beta0, core.delta, core.sv]);
+            let event = WienerObservation {
+                rt: low,
+                boundary: obs.boundary,
+            };
+            let (e, r) = Wiener5.try_fused_with_truncation(&event, &p, budget).ok()?;
+            let ratio = (e.log_prob - log).exp();
+            let error = ratio * (r.log_prob.exp_m1() + density_error) / (1. - density_error);
+            (ratio, error)
+        } else {
+            (0., 0.)
+        };
+        scores[6] = ratio.0 - core.st0.recip();
+        if !scores[6].is_finite()
+            || ratio.1 + 64. * f64::EPSILON * (ratio.0 + core.st0.recip())
+                > core.opts.req_rel_error * scores[6].abs().max(1.)
+        {
+            return None;
+        }
+        Some(Wiener7Eval {
+            log_prob: log - core.st0.ln(),
+            grad: Wiener7Grad::from_array(scores),
+        })
+    }
+
     pub(super) fn analytic_time(
         &self,
         core: &Wiener7Core,
         obs: &WienerObservation,
     ) -> Option<Wiener7Eval> {
-        if core.sw != 0. || core.sv != 0. || core.st0 <= 0. {
+        if core.sw != 0. || core.st0 <= 0. {
             return None;
         }
         if core.st0 < 1e-5 * (obs.rt - core.tau0) {
             return None;
+        }
+        if core.sv > 0. {
+            return self.analytic_drift_time(core, obs);
         }
         let budget = core.eps_series.min(1e-3) * 1e-4;
         let base = Wiener4Params::from_array([core.alpha, core.tau0, core.beta0, core.delta]);

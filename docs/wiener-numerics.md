@@ -593,3 +593,88 @@ checks include the errors of both faces and both drift derivatives. Six
 independent ball fixtures obtain the clipped probability and scores by averaging
 spectral CDFs over the start interval, without time quadrature. As elsewhere,
 adaptive quadrature discrepancies remain estimates rather than certified bounds.
+
+## Exact time averaging with Gaussian drift variability
+
+Gaussian drift variability does not require an extra numerical integral in the
+boundary CDF. For `V ~ Normal(v,s²)`, completing the Gaussian square gives
+
+\[
+E[e^{kV}\Phi(A+BV)]
+=e^{kv+k^2s^2/2}\Phi\!\left(
+\frac{A+B(v+ks^2)}{\sqrt{1+B^2s^2}}\right).
+\]
+
+Apply this identity to each integrated image. Write `x=aq`,
+`d_j=a|q+2j|`, `lambda=1+s²T`, and `k_sigma=x-sigma*d_j`, with `sigma=+1,-1`.
+The Gaussian-drift boundary CDF is
+
+\[
+F_5(T)=\sum_{j\in\mathbb Z}\operatorname{sign}(q+2j)
+\sum_{\sigma=\pm1}
+e^{k_\sigma v+k_\sigma^2s^2/2}
+\Phi\!\left(\frac{\sigma(v+k_\sigma s^2)T-d_j}{\sqrt{T\lambda}}\right).
+\]
+
+Directly multiplying the exponential and normal tail is poorly conditioned.
+For a nonnegative tail argument `z`, both terms share the combined exponent
+
+\[
+E_j=-\frac{(aq-vT)^2}{2T\lambda}
+-\frac{d_j^2-a^2q^2}{2T}.
+\]
+
+Their log values are `E_j - log(2π)/2 + log R(z)`, where `R` is the normal
+Mills ratio. The implementation differentiates this expression and uses a
+continued fraction for `R'(z)/R(z)` at large `z`, avoiding subtraction of
+nearly equal normal-tail ratios. It also simplifies the time derivative of
+`z` before evaluation; large drift variance otherwise causes another
+cancellation. Signed images use compensated summation.
+
+The omitted images admit explicit derivative bounds. For the first omitted
+distance `d`, require `d²-a²q² >= 5T`. Every factor
+`t^(-r) exp(-(d²-a²q²)/(2t))`, `r <= 5/2`, then increases throughout
+`0<t<=T`. Integrating its endpoint bound controls the CDF tail and all five
+parameter derivatives. The same positive lattice moments used by the density
+evaluator supply these bounds. This is a real-arithmetic truncation analysis;
+it does not bound the production elementary functions' rounding errors.
+
+More explicitly, let `M_p` sum the two omitted lattices of
+`d^p exp(-d²/(2u))`, using dimensionless image distances, and put
+`P = a exp(q²/(2u)) / sqrt(2πT)` and `r = aq+|v|T`. Sufficient bounds are
+
+\[
+\begin{aligned}
+B_0&=PM_1,& B_\tau&=PM_1/T,\\
+B_a&=P[(1/a+qr/T+aq^2/T)M_1+aM_3/T],\\
+B_\beta&=P[M_0+a^2M_2/T+(a^2q+ar)M_1/T],\\
+B_v&=PrM_1,& B_s&=Ps(r^2+T)M_1.
+\end{aligned}
+\]
+
+They deliberately discard the central Gaussian and use `lambda >= 1`, so they
+are sufficient envelopes rather than optimal parameter-dependent bounds. The
+time derivative is the boundary density, which has the stated endpoint bound.
+
+Two CDF values now remove time quadrature with positive Gaussian drift
+variability. The implementation checks interval subtraction and score-error
+propagation before accepting the result. Its image implementation is restricted
+to `T/a² < 2`; unsupported or poorly conditioned evaluations retain numerical
+quadrature. Adaptive evaluation can instead integrate only over the starting
+point, evaluating the exact time average at each node. It first retains the
+existing Gaussian-start reduction when that supported path is preferred. Fixed
+quadrature retains its selected finite-rule semantics.
+
+Seventy-two independent ball fixtures cover clipped and unclipped intervals,
+both response boundaries, and drift standard deviations `0.5`, `350` and `1e12`.
+The largest variance also checks the numerical fallback: subtracting two CDFs
+close to their limiting mass can lose accuracy even when each CDF is accurate.
+Cancellation diagnostics reject that shortcut before returning its result.
+The independent CDF reference also agrees with the earlier continuous time
+integrals. New timing and coverage measurements are needed before attributing
+speed or full-support claims to this shortcut.
+
+Nine captured numerical proposals also have independent ball fixtures. One
+large-variance case uses the exact CDF reference; the others retain continuous
+time integration. Both density and fused scores are checked, since a finite
+two-dimensional quadrature result can still miss its requested accuracy.

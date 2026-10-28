@@ -41,7 +41,7 @@ fn log_mass(a: f64, v: f64, w: f64, q: f64) -> Option<f64> {
 }
 
 /// Log Mills ratio for a nonnegative argument, avoiding erfc underflow.
-fn log_mills(z: f64) -> f64 {
+pub(super) fn log_mills(z: f64) -> f64 {
     if z < 10. {
         return (0.5 * libm::erfc(z / std::f64::consts::SQRT_2)).ln()
             + 0.5 * z * z

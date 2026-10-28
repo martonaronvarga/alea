@@ -77,4 +77,29 @@ class AnalyticStartReference(unittest.TestCase):
                     expected=acb.integral(f,arb('-.5'),arb('.5'),abs_tol=arb('1e-24'),rel_tol=arb('1e-22'),eval_limit=4000)
                     self.assertTrue(actual.is_finite() and expected.is_finite() and actual.overlaps(expected),(time,lower,component))
 
+class GaussianDriftCdfReference(unittest.TestCase):
+    def test_cdf_time_average_overlaps_independent_continuous_integrals(self):
+        import csv
+        from pathlib import Path
+        from wiener5_cdf_reference import evaluate
+        with Path(__file__).with_name('wiener7_nested_balls.csv').open() as stream:rows=list(csv.reader(stream))[1:]
+        for row in rows:
+            x=list(map(float,row))
+            values,_=evaluate(x[:8]+[bool(x[8])],goal='1e-14')
+            for i,value in enumerate(values):self.assertTrue(value.overlaps(arb(x[11+2*i],x[12+2*i])))
+
+    def test_cdf_time_derivative_matches_independent_large_variance_density(self):
+        from flint import acb
+        from wiener5_cdf_reference import point,tails
+        from generate_wiener_balls import evaluate
+        for lower in [False,True]:
+            for t in [.001,.03,.3]:
+                reference,_,_=evaluate(t,1.6,0.,.3,.5,350.,lower)
+                a,beta,v,sd,time=map(arb,[1.6,.3,.5,350.,t])
+                q=beta if lower else 1-beta
+                effective_v=-v if lower else v
+                derivative=point(time,a,acb(q),effective_v,sd,lower,8,2).real
+                error=tails(time,a,effective_v,sd,q,q,8)[2]
+                self.assertTrue((-derivative+arb(0,error.upper())).overlaps(reference[0].exp()))
+
 if __name__=='__main__':unittest.main()
