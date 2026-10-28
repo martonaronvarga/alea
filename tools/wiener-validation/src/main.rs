@@ -238,6 +238,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     summary.flush()?;
     failures.flush()?;
     progress.flush()?;
+    // Finish durable records before Slurm observes a successful exit. Some
+    // shared filesystems otherwise leave an allocated summary full of NULs.
+    failures.get_ref().sync_all()?;
+    progress.get_ref().sync_all()?;
+    summary.get_ref().sync_all()?;
     println!("{record}");
     Ok(())
 }
