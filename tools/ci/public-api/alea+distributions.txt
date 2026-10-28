@@ -22,15 +22,6 @@ pub use alea::prelude::<<alea_distributions::prelude::*>>
 pub use alea::prelude::<<alea_math::prelude::*>>
 pub use alea::prelude::<<alea_mcmc::prelude::*>>
 pub use alea::prelude::<<alea_runtime::prelude::*>>
-pub use alea::prelude::Bernoulli
-pub use alea::prelude::Beta
-pub use alea::prelude::Binomial
-pub use alea::prelude::Exponential
-pub use alea::prelude::Gamma
-pub use alea::prelude::LogNormal
-pub use alea::prelude::Normal
-pub use alea::prelude::Poisson
-pub use alea::prelude::StudentT
 pub mod alea::sampling
 pub use alea::sampling::Hmc
 pub use alea::sampling::HmcOptions

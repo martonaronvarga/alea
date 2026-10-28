@@ -209,15 +209,24 @@ pub fn alea_core::distribution::EventShape::fmt(&self, f: &mut core::fmt::Format
 impl core::marker::Copy for alea_core::distribution::EventShape
 impl core::marker::StructuralPartialEq for alea_core::distribution::EventShape
 #[non_exhaustive] pub enum alea_core::distribution::Support
+pub alea_core::distribution::Support::Circle
 pub alea_core::distribution::Support::CorrelationCholesky
+pub alea_core::distribution::Support::CorrelationMatrix
 pub alea_core::distribution::Support::Count
 pub alea_core::distribution::Support::Finite
 pub alea_core::distribution::Support::Finite::outcomes: usize
+pub alea_core::distribution::Support::Integer
+pub alea_core::distribution::Support::Interval
+pub alea_core::distribution::Support::LowerBounded
+pub alea_core::distribution::Support::ParameterDependent
 pub alea_core::distribution::Support::Positive
+pub alea_core::distribution::Support::PositiveDefinite
 pub alea_core::distribution::Support::Real
 pub alea_core::distribution::Support::RealVector
 pub alea_core::distribution::Support::Simplex
+pub alea_core::distribution::Support::UnitBall
 pub alea_core::distribution::Support::UnitInterval
+pub alea_core::distribution::Support::UnitSphere
 impl core::clone::Clone for alea_core::distribution::Support
 pub fn alea_core::distribution::Support::clone(&self) -> alea_core::distribution::Support
 impl core::cmp::Eq for alea_core::distribution::Support

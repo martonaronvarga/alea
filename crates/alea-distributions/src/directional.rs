@@ -199,7 +199,7 @@ impl Bingham {
     pub fn log_normalizer(&self) -> f64 {
         self.shift + self.log_c_shifted
     }
-    /// E[X_i²], obtained from the same holonomic solve as the normalizer.
+    /// `E[X_i²]`, obtained from the same holonomic solve as the normalizer.
     pub fn mean_squares(&self) -> &[f64] {
         &self.moments
     }

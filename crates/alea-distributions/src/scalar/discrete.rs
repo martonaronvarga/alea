@@ -585,7 +585,7 @@ pub struct PoissonBinomial {
 }
 impl PoissonBinomial {
     /// # Errors
-    /// Requires at most 4096 finite probabilities in [0,1]. Empty trials give a point mass at zero.
+    /// Requires at most 4096 finite probabilities in `[0,1]`. Empty trials give a point mass at zero.
     pub fn new(probabilities: Vec<f64>) -> Result<Self, E> {
         if probabilities.len() > 4096 {
             return Err(E::Parameter("trial count"));

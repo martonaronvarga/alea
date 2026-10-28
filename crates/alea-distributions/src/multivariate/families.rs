@@ -537,12 +537,12 @@ macro_rules! matrix_law {
 matrix_law!(
     Wishart,
     false,
-    "Wishart W(df,S) on SPD matrices with E[X]=df*S. Density is with respect to independent symmetric entries, not Cholesky entries. Score order: df, packed lower scale Cholesky. Matrix evaluation uses temporary dense storage."
+    "Wishart W(df,S) on SPD matrices with `E[X]`=df*S. Density is with respect to independent symmetric entries, not Cholesky entries. Score order: df, packed lower scale Cholesky. Matrix evaluation uses temporary dense storage."
 );
 matrix_law!(
     InverseWishart,
     true,
-    "Inverse Wishart IW(df,Psi); E[X]=Psi/(df-dimension-1) when defined. Density uses symmetric-matrix measure. Score order: df, packed lower scale Cholesky. Evaluation uses temporary dense storage."
+    "Inverse Wishart IW(df,Psi); `E[X]`=Psi/(df-dimension-1) when defined. Density uses symmetric-matrix measure. Score order: df, packed lower scale Cholesky. Evaluation uses temporary dense storage."
 );
 
 /// LKJ density on correlation matrices, with respect to free off-diagonal entries.

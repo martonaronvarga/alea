@@ -6,6 +6,12 @@ The scalar and multivariate laws provide normalized log probabilities. Optional
 traits supply sampling and derivatives. Constructors check parameter domains;
 sampling uses a random-number generator supplied by the caller.
 
+The catalogue covers continuous and count likelihoods, heavy-tailed and survival
+models, ordered responses, vector and covariance priors, and directional data.
+`modeling::continuous` and `modeling::observation` connect analytic distribution
+scores to native models. Bingham's cached normalizer uses holonomic continuation;
+the two-dimensional case uses a direct Bessel formula.
+
 ```rust
 use alea::distribution::Distribution;
 use alea::distributions::scalar::Normal;

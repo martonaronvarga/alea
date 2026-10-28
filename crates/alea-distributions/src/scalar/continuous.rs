@@ -691,7 +691,7 @@ family!(
     Triangular,
     Interval,
     3,
-    "Triangular on [lower,upper]. Score order: lower, upper, mode; no score at mode."
+    "Triangular on `[lower,upper]`. Score order: lower, upper, mode; no score at mode."
 );
 family!(
     Pert,
