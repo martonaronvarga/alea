@@ -149,7 +149,9 @@ draws. Degenerate Binomial laws and zero-rate Poisson laws return their fixed
 outcome directly.
 
 Zipf caches at most one million probabilities. PoissonBinomial caches a
-convolution for up to 4096 trials. Zeta sampling can produce counts beyond the
+log-space convolution for up to 4096 trials. Its probability-vector scores use
+positive prefix/suffix convolutions, with temporary storage proportional to
+`trials * (1 + min(count, trials-count))`. Zeta sampling can produce counts beyond the
 exact binary64 integer range and reports those cases rather than rounding them.
 VonMises accepts concentration up to 1e8. See the
 [directional guide](directional-distributions.md) for Bingham's HGM domain and
@@ -158,8 +160,7 @@ support.
 
 All named scalar laws provide parameter and event scores where continuous
 parameters and differentiable events exist. Hypergeometric and DiscreteUniform
-have only fixed integer parameters; PoissonBinomial currently provides mass and
-sampling without probability-vector scores. UniformSphere and UniformBall have
+have only fixed integer parameters. UniformSphere and UniformBall have
 no continuous distribution parameters. Multivariate and directional scores have
 explicit coordinate conventions in their type documentation.
 

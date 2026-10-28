@@ -321,3 +321,43 @@ fn regression_links_remain_stable_at_extreme_predictors() {
         }
     }
 }
+
+#[test]
+fn poisson_binomial_log_tails_and_probability_vector_scores() {
+    let law = PoissonBinomial::new(vec![0.5; 4096]).unwrap();
+    close(law.log_prob(&0).unwrap(), -4096.0 * 2.0_f64.ln(), 2e-13);
+    close(law.log_prob(&4096).unwrap(), -4096.0 * 2.0_f64.ln(), 2e-13);
+    let p = [0.1, 0.3, 0.6, 0.9];
+    for k in 0..=4 {
+        let law = PoissonBinomial::new(p.to_vec()).unwrap();
+        let mut s = [0.0; 4];
+        law.parameter_score(&k, &mut s).unwrap();
+        for i in 0..4 {
+            let h = 1e-5;
+            let mut a = p;
+            let mut b = p;
+            a[i] += h;
+            b[i] -= h;
+            let fd = (PoissonBinomial::new(a.to_vec())
+                .unwrap()
+                .log_prob(&k)
+                .unwrap()
+                - PoissonBinomial::new(b.to_vec())
+                    .unwrap()
+                    .log_prob(&k)
+                    .unwrap())
+                / (2.0 * h);
+            close(s[i], fd, 2e-7);
+        }
+    }
+    let tiny = PoissonBinomial::new(vec![1e-100; 4]).unwrap();
+    let mut s = [0.0; 4];
+    tiny.parameter_score(&4, &mut s).unwrap();
+    for g in s {
+        close(g, 1e100, 1e-12);
+    }
+    let deterministic = PoissonBinomial::new(vec![0.0, 1.0]).unwrap();
+    let mut s = [0.0; 2];
+    deterministic.parameter_score(&1, &mut s).unwrap();
+    assert_eq!(s, [-1.0, 1.0]);
+}

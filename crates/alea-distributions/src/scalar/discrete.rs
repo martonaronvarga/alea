@@ -576,12 +576,14 @@ impl Sample for Zeta {
     }
 }
 /// Poisson-binomial: sum of independent Bernoulli trials with unequal probabilities.
-/// The constructor caches an exact convolution in binary64; no Gaussian approximation.
+/// The constructor caches a log-space Bernoulli convolution, without a Gaussian
+/// approximation. Score order: trial probabilities. Scores use O(n*(r+1)) temporary
+/// storage and work, where r=min(count,n-count); endpoints have polynomial one-sided scores.
 #[derive(Debug, Clone, PartialEq)]
 #[must_use]
 pub struct PoissonBinomial {
     probabilities: Vec<f64>,
-    mass: Vec<f64>,
+    log_mass: Vec<f64>,
 }
 impl PoissonBinomial {
     /// # Errors
@@ -593,17 +595,17 @@ impl PoissonBinomial {
         for p in &probabilities {
             probability(*p)?;
         }
-        let mut mass = vec![0.0; probabilities.len() + 1];
-        mass[0] = 1.0;
+        let mut log_mass = vec![f64::NEG_INFINITY; probabilities.len() + 1];
+        log_mass[0] = 0.0;
         for (i, p) in probabilities.iter().enumerate() {
             for k in (1..=i + 1).rev() {
-                mass[k] = mass[k] * (1.0 - p) + mass[k - 1] * p;
+                log_mass[k] = log_add(log_mass[k] + (-p).ln_1p(), log_mass[k - 1] + p.ln());
             }
-            mass[0] *= 1.0 - p;
+            log_mass[0] += (-p).ln_1p();
         }
         Ok(Self {
             probabilities,
-            mass,
+            log_mass,
         })
     }
 }
@@ -618,10 +620,104 @@ impl Distribution for PoissonBinomial {
     fn log_prob(&self, k: &u64) -> Result<f64, E> {
         Ok(usize::try_from(*k)
             .ok()
-            .and_then(|k| self.mass.get(k))
+            .and_then(|k| self.log_mass.get(k))
             .copied()
-            .unwrap_or(0.0)
-            .ln())
+            .unwrap_or(f64::NEG_INFINITY))
+    }
+}
+fn log_add(a: f64, b: f64) -> f64 {
+    if a == f64::NEG_INFINITY {
+        return b;
+    }
+    if b == f64::NEG_INFINITY {
+        return a;
+    }
+    a.max(b) + (-(a - b).abs()).exp().ln_1p()
+}
+impl ParameterScore for PoissonBinomial {
+    fn parameter_count(&self) -> usize {
+        self.probabilities.len()
+    }
+    fn parameter_score(&self, k: &u64, out: &mut [f64]) -> Result<(), E> {
+        let n = self.probabilities.len();
+        if out.len() != n {
+            return Err(E::Shape);
+        }
+        let k = usize::try_from(*k).map_err(|_| E::Observation)?;
+        if k > n {
+            return Err(E::Observation);
+        }
+        let complement = k > n / 2;
+        let r = if complement { n - k } else { k };
+        let stride = r + 1;
+        let logs = self
+            .probabilities
+            .iter()
+            .map(|p| {
+                if complement {
+                    ((-p).ln_1p(), p.ln())
+                } else {
+                    (p.ln(), (-p).ln_1p())
+                }
+            })
+            .collect::<Vec<_>>();
+        let mut prefix = vec![f64::NEG_INFINITY; (n + 1) * stride];
+        prefix[0] = 0.0;
+        for (i, (success, failure)) in logs.iter().enumerate() {
+            for j in 0..=r.min(i + 1) {
+                prefix[(i + 1) * stride + j] = log_add(
+                    prefix[i * stride + j] + failure,
+                    if j == 0 {
+                        f64::NEG_INFINITY
+                    } else {
+                        prefix[i * stride + j - 1] + success
+                    },
+                );
+            }
+        }
+        let lp = prefix[n * stride + r];
+        if !lp.is_finite() {
+            return Err(E::Observation);
+        }
+        let mut suffix = vec![f64::NEG_INFINITY; stride];
+        suffix[0] = 0.0;
+        for i in (0..n).rev() {
+            let coefficient = |degree: usize| {
+                (0..=degree).fold(f64::NEG_INFINITY, |sum, j| {
+                    log_add(sum, prefix[i * stride + j] + suffix[degree - j])
+                })
+            };
+            let current = coefficient(r);
+            let previous = if r == 0 {
+                f64::NEG_INFINITY
+            } else {
+                coefficient(r - 1)
+            };
+            let derivative = if previous == current {
+                0.0
+            } else if previous > current {
+                (previous - lp).exp() * (-(current - previous).exp_m1())
+            } else {
+                -(current - lp).exp() * (-(previous - current).exp_m1())
+            };
+            out[i] = if complement { -derivative } else { derivative };
+            let (success, failure) = logs[i];
+            for j in (0..=r).rev() {
+                suffix[j] = log_add(
+                    suffix[j] + failure,
+                    if j == 0 {
+                        f64::NEG_INFINITY
+                    } else {
+                        suffix[j - 1] + success
+                    },
+                );
+            }
+        }
+        if out.iter().all(|v| v.is_finite()) {
+            Ok(())
+        } else {
+            Err(E::Numerical)
+        }
     }
 }
 impl Sample for PoissonBinomial {

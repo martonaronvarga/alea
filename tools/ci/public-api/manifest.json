@@ -28,8 +28,8 @@
     },
     "alea-distributions": {
       "file": "alea-distributions.txt",
-      "items": 4006,
-      "sha256": "0d1ac2367ba6f2990bf8fea96f00f2dc2de6efd2bdb9486e88a111df08339da7"
+      "items": 4012,
+      "sha256": "e5df31c8bd3d9974eeaf024f8ba3f7281750cbbe5c3d598810b1d3dab66bfa42"
     },
     "alea-ffi": {
       "file": "alea-ffi.txt",

@@ -6513,6 +6513,11 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl alea_core::distribution::ParameterScore for alea_distributions::scalar::PoissonBinomial",
+      "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl alea_core::distribution::ParameterScore for alea_distributions::scalar::PoissonLog",
       "profile": "validated_component_opt_in"
     },
@@ -14322,6 +14327,16 @@
     {
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::PoissonBinomial::new(probabilities: alloc::vec::Vec<f64>) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
+      "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::PoissonBinomial::parameter_count(&self) -> usize",
+      "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::PoissonBinomial::parameter_score(&self, k: &u64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
     {

@@ -1,5 +1,6 @@
 //! Normalized scalar laws. Scale/rate conventions and score order are explicit.
-//! Evaluation and derivatives allocate nothing. Sampling uses bounded work.
+//! Elementary scalar kernels allocate nothing. Poisson-binomial scores use
+//! temporary convolution storage. Sampling uses bounded work.
 use alea_core::distribution::{
     ContinuousDistribution, Distribution, DistributionError as E, EventShape, ParameterScore,
     Sample, Support,

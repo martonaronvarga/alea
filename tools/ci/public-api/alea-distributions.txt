@@ -1653,6 +1653,9 @@ pub type alea_distributions::scalar::PoissonBinomial::Event = u64
 pub fn alea_distributions::scalar::PoissonBinomial::event_shape(&self) -> alea_core::distribution::EventShape
 pub fn alea_distributions::scalar::PoissonBinomial::log_prob(&self, k: &u64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::PoissonBinomial::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::scalar::PoissonBinomial
+pub fn alea_distributions::scalar::PoissonBinomial::parameter_count(&self) -> usize
+pub fn alea_distributions::scalar::PoissonBinomial::parameter_score(&self, k: &u64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::PoissonBinomial
 pub type alea_distributions::scalar::PoissonBinomial::Draw = u64
 pub fn alea_distributions::scalar::PoissonBinomial::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<u64, alea_core::distribution::DistributionError>
@@ -3190,6 +3193,9 @@ pub type alea_distributions::scalar::PoissonBinomial::Event = u64
 pub fn alea_distributions::scalar::PoissonBinomial::event_shape(&self) -> alea_core::distribution::EventShape
 pub fn alea_distributions::scalar::PoissonBinomial::log_prob(&self, k: &u64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::PoissonBinomial::support(&self) -> alea_core::distribution::Support
+impl alea_core::distribution::ParameterScore for alea_distributions::scalar::PoissonBinomial
+pub fn alea_distributions::scalar::PoissonBinomial::parameter_count(&self) -> usize
+pub fn alea_distributions::scalar::PoissonBinomial::parameter_score(&self, k: &u64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::PoissonBinomial
 pub type alea_distributions::scalar::PoissonBinomial::Draw = u64
 pub fn alea_distributions::scalar::PoissonBinomial::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<u64, alea_core::distribution::DistributionError>
