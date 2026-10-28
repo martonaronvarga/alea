@@ -166,7 +166,7 @@ impl Wiener7 {
         let log_prob = if density.is_normal() && density > 0.0 {
             density.ln()
         } else {
-            self.scaled_adaptive(&core, obs).log_prob
+            self.scaled_density(&core, obs).log_prob
         };
         Wiener7Eval {
             log_prob,
@@ -239,7 +239,7 @@ impl Wiener7 {
             density.ln()
         } else {
             match options.quadrature {
-                Quadrature::Adaptive => self.scaled_adaptive(&core, obs).log_prob,
+                Quadrature::Adaptive => self.scaled_density(&core, obs).log_prob,
                 Quadrature::FixedGaussLegendre { order } => {
                     self.scaled_fixed(&core, obs, order).log_prob
                 }

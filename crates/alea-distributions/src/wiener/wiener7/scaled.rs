@@ -275,13 +275,31 @@ impl Wiener7 {
         core: &Wiener7Core,
         obs: &WienerObservation,
     ) -> Wiener7Eval {
+        self.scaled_adaptive_components(core, obs, true)
+    }
+
+    #[cold]
+    pub(super) fn scaled_density(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+    ) -> Wiener7Eval {
+        self.scaled_adaptive_components(core, obs, false)
+    }
+
+    fn scaled_adaptive_components(
+        &self,
+        core: &Wiener7Core,
+        obs: &WienerObservation,
+        gradients: bool,
+    ) -> Wiener7Eval {
         if core.dim == 2 && Self::averaged_time_log_scores(core, obs, 0.).is_some() {
-            let reduced = self.scaled_integral(core, obs, true, true);
+            let reduced = self.scaled_integral(core, obs, gradients, true);
             if reduced.log_prob.is_finite() && reduced.grad_array().iter().all(|v| v.is_finite()) {
                 return reduced;
             }
         }
-        self.scaled_integral(core, obs, true, false)
+        self.scaled_integral(core, obs, gradients, false)
     }
 
     fn scaled_integral(
@@ -623,6 +641,20 @@ mod tests {
 #[cfg(test)]
 mod atlasz_replay {
     use super::*;
+    #[test]
+    fn density_fallback_does_not_require_score_convergence() {
+        for (tau, drift, sd) in [(0., 1., 1e-8), (0.05, -1., 1.)] {
+            let event = WienerObservation {
+                rt: tau + 1e-6,
+                boundary: Boundary::Upper,
+            };
+            let p = Wiener7Params::with_params(8., tau, 0.25, drift, 1e-8, 0.001, sd).unwrap();
+            let result = Wiener7
+                .try_log_prob(&event, &p, WienerOptions::new(1e-8))
+                .unwrap();
+            assert!(result.log_prob < -1e7 && result.grad_array().iter().all(|x| x.is_nan()));
+        }
+    }
     #[test]
     fn selected_boundary_clipped_time() {
         let event = WienerObservation {
