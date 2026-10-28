@@ -423,6 +423,12 @@
       "promotion_gate": "Define a stable facade that does not imply promotion of Fisher fitting."
     },
     {
+      "path": "crates/alea-math/src/matrix.rs",
+      "profile": "research_component",
+      "summary": "Explicit mathematical contract or representation with scoped regression coverage.",
+      "promotion_gate": "Broaden independent downstream and numerical validation before promotion."
+    },
+    {
       "path": "crates/alea-math/src/metric.rs",
       "profile": "validated_component_reference",
       "summary": "Validated constant mass and explicit inverse-mass geometry, shared energy/velocity evaluation and cached factors; structured research owners remain separately classified."
@@ -12333,6 +12339,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::multivariate::MultivariateNormal::covariance_factor(&self) -> alea_math::matrix::SquareMatrixRef<'_, alea_math::matrix::RowMajor>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::multivariate::MultivariateNormal::event_gradient(&self, x: &[f64], out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -19528,6 +19540,18 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl alea_math::matrix::MatrixLayout for alea_math::matrix::ColumnMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl alea_math::matrix::MatrixLayout for alea_math::matrix::RowMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl alea_math::metric::BlockDiagonalMetric",
       "profile": "validated_component_reference"
     },
@@ -19648,6 +19672,24 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::matrix::ColumnMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::matrix::MatrixError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::matrix::RowMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::clone::Clone for alea_math::metric::CholeskyFactor",
       "profile": "validated_component_reference"
     },
@@ -19698,6 +19740,24 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::cmp::Eq for alea_math::matrix::ColumnMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::Eq for alea_math::matrix::MatrixError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::Eq for alea_math::matrix::RowMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::cmp::Eq for alea_math::metric::IdentityMetric",
       "profile": "validated_component_reference"
     },
@@ -19715,6 +19775,24 @@
       "crate": "alea-math",
       "item": "impl core::cmp::PartialEq for alea_math::interpolation::InterpolationError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::PartialEq for alea_math::matrix::ColumnMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::PartialEq for alea_math::matrix::MatrixError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::PartialEq for alea_math::matrix::RowMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -19778,6 +19856,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::error::Error for alea_math::matrix::MatrixError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::error::Error for alea_math::metric::MetricError",
       "profile": "validated_component_reference"
     },
@@ -19810,6 +19894,24 @@
       "crate": "alea-math",
       "item": "impl core::fmt::Debug for alea_math::interpolation::UniformGrid",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::matrix::ColumnMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::matrix::MatrixError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::matrix::RowMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -19888,6 +19990,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::fmt::Display for alea_math::matrix::MatrixError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::fmt::Display for alea_math::metric::MetricError",
       "profile": "validated_component_reference"
     },
@@ -19913,6 +20021,24 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::matrix::ColumnMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::matrix::MatrixError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::matrix::RowMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::marker::Copy for alea_math::metric::IdentityMetric",
       "profile": "validated_component_reference"
     },
@@ -19930,6 +20056,24 @@
       "crate": "alea-math",
       "item": "impl core::marker::StructuralPartialEq for alea_math::interpolation::InterpolationError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::matrix::ColumnMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::matrix::MatrixError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::matrix::RowMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -19965,6 +20109,30 @@
       "crate": "alea-math",
       "item": "impl core::marker::StructuralPartialEq for alea_math::metric::MetricError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl<'a, L: alea_math::matrix::MatrixLayout> alea_math::matrix::SquareMatrixRef<'a, L>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl<'a, L: core::clone::Clone + alea_math::matrix::MatrixLayout> core::clone::Clone for alea_math::matrix::SquareMatrixRef<'a, L>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl<'a, L: core::fmt::Debug + alea_math::matrix::MatrixLayout> core::fmt::Debug for alea_math::matrix::SquareMatrixRef<'a, L>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl<'a, L: core::marker::Copy + alea_math::matrix::MatrixLayout> core::marker::Copy for alea_math::matrix::SquareMatrixRef<'a, L>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -20125,6 +20293,42 @@
       "crate": "alea-math",
       "item": "pub alea_math::interpolation::InterpolationError::Values",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::matrix::MatrixError::NonFinite",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::matrix::MatrixError::NonFinite::column: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::matrix::MatrixError::NonFinite::row: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::matrix::MatrixError::NotPositiveDefinite",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::matrix::MatrixError::NotPositiveDefinite::index: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::matrix::MatrixError::Shape",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -20345,6 +20549,12 @@
       "crate": "alea-math",
       "item": "pub enum alea_math::interpolation::InterpolationError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub enum alea_math::matrix::MatrixError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -20663,6 +20873,126 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::ColumnMajor::clone(&self) -> alea_math::matrix::ColumnMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::ColumnMajor::eq(&self, other: &alea_math::matrix::ColumnMajor) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::ColumnMajor::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::ColumnMajor::index(order: usize, row: usize, column: usize) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::MatrixError::clone(&self) -> alea_math::matrix::MatrixError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::MatrixError::eq(&self, other: &alea_math::matrix::MatrixError) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::MatrixError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::MatrixError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::MatrixLayout::index(order: usize, row: usize, column: usize) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::RowMajor::clone(&self) -> alea_math::matrix::RowMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::RowMajor::eq(&self, other: &alea_math::matrix::RowMajor) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::RowMajor::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::RowMajor::index(order: usize, row: usize, column: usize) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::SquareMatrixRef<'a, L>::as_slice(&self) -> &'a [f64]",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::SquareMatrixRef<'a, L>::clone(&self) -> alea_math::matrix::SquareMatrixRef<'a, L>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::SquareMatrixRef<'a, L>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::SquareMatrixRef<'a, L>::get(&self, row: usize, column: usize) -> core::option::Option<f64>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::SquareMatrixRef<'a, L>::new(order: usize, values: &'a [f64]) -> core::result::Result<Self, alea_math::matrix::MatrixError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::SquareMatrixRef<'a, L>::order(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::matrix::cholesky_in_place<L: alea_math::matrix::MatrixLayout>(order: usize, values: &mut [f64]) -> core::result::Result<(), alea_math::matrix::MatrixError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub fn alea_math::metric::BlockDiagonalMetric::blocks(&self) -> &[alea_math::metric::BlockMetric]",
       "profile": "validated_component_reference"
     },
@@ -20745,6 +21075,12 @@
       "crate": "alea-math",
       "item": "pub fn alea_math::metric::CholeskyFactor::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::metric::CholeskyFactor::matrix(&self) -> alea_math::matrix::SquareMatrixRef<'_, alea_math::matrix::ColumnMajor>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -21331,6 +21667,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub mod alea_math::matrix",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub mod alea_math::metric",
       "profile": "validated_component_reference"
     },
@@ -21378,6 +21720,24 @@
       "crate": "alea-math",
       "item": "pub struct alea_math::interpolation::UniformGrid",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub struct alea_math::matrix::ColumnMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub struct alea_math::matrix::RowMajor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub struct alea_math::matrix::SquareMatrixRef<'a, L: alea_math::matrix::MatrixLayout>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -21463,6 +21823,12 @@
       "crate": "alea-math",
       "item": "pub struct alea_math::random::NormalGenerator",
       "profile": "validated_utility_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub trait alea_math::matrix::MatrixLayout: alea_math::matrix::sealed::Sealed",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",

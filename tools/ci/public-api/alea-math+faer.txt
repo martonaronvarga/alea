@@ -137,6 +137,68 @@ pub fn alea_math::interpolation::UniformGrid::clone(&self) -> alea_math::interpo
 impl core::fmt::Debug for alea_math::interpolation::UniformGrid
 pub fn alea_math::interpolation::UniformGrid::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_math::interpolation::UniformGrid
+pub mod alea_math::matrix
+pub enum alea_math::matrix::MatrixError
+pub alea_math::matrix::MatrixError::NonFinite
+pub alea_math::matrix::MatrixError::NonFinite::column: usize
+pub alea_math::matrix::MatrixError::NonFinite::row: usize
+pub alea_math::matrix::MatrixError::NotPositiveDefinite
+pub alea_math::matrix::MatrixError::NotPositiveDefinite::index: usize
+pub alea_math::matrix::MatrixError::Shape
+impl core::clone::Clone for alea_math::matrix::MatrixError
+pub fn alea_math::matrix::MatrixError::clone(&self) -> alea_math::matrix::MatrixError
+impl core::cmp::Eq for alea_math::matrix::MatrixError
+impl core::cmp::PartialEq for alea_math::matrix::MatrixError
+pub fn alea_math::matrix::MatrixError::eq(&self, other: &alea_math::matrix::MatrixError) -> bool
+impl core::error::Error for alea_math::matrix::MatrixError
+impl core::fmt::Debug for alea_math::matrix::MatrixError
+pub fn alea_math::matrix::MatrixError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_math::matrix::MatrixError
+pub fn alea_math::matrix::MatrixError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::matrix::MatrixError
+impl core::marker::StructuralPartialEq for alea_math::matrix::MatrixError
+pub struct alea_math::matrix::ColumnMajor
+impl alea_math::matrix::MatrixLayout for alea_math::matrix::ColumnMajor
+pub fn alea_math::matrix::ColumnMajor::index(order: usize, row: usize, column: usize) -> usize
+impl core::clone::Clone for alea_math::matrix::ColumnMajor
+pub fn alea_math::matrix::ColumnMajor::clone(&self) -> alea_math::matrix::ColumnMajor
+impl core::cmp::Eq for alea_math::matrix::ColumnMajor
+impl core::cmp::PartialEq for alea_math::matrix::ColumnMajor
+pub fn alea_math::matrix::ColumnMajor::eq(&self, other: &alea_math::matrix::ColumnMajor) -> bool
+impl core::fmt::Debug for alea_math::matrix::ColumnMajor
+pub fn alea_math::matrix::ColumnMajor::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::matrix::ColumnMajor
+impl core::marker::StructuralPartialEq for alea_math::matrix::ColumnMajor
+pub struct alea_math::matrix::RowMajor
+impl alea_math::matrix::MatrixLayout for alea_math::matrix::RowMajor
+pub fn alea_math::matrix::RowMajor::index(order: usize, row: usize, column: usize) -> usize
+impl core::clone::Clone for alea_math::matrix::RowMajor
+pub fn alea_math::matrix::RowMajor::clone(&self) -> alea_math::matrix::RowMajor
+impl core::cmp::Eq for alea_math::matrix::RowMajor
+impl core::cmp::PartialEq for alea_math::matrix::RowMajor
+pub fn alea_math::matrix::RowMajor::eq(&self, other: &alea_math::matrix::RowMajor) -> bool
+impl core::fmt::Debug for alea_math::matrix::RowMajor
+pub fn alea_math::matrix::RowMajor::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::matrix::RowMajor
+impl core::marker::StructuralPartialEq for alea_math::matrix::RowMajor
+pub struct alea_math::matrix::SquareMatrixRef<'a, L: alea_math::matrix::MatrixLayout>
+impl<'a, L: alea_math::matrix::MatrixLayout> alea_math::matrix::SquareMatrixRef<'a, L>
+pub fn alea_math::matrix::SquareMatrixRef<'a, L>::as_slice(&self) -> &'a [f64]
+pub fn alea_math::matrix::SquareMatrixRef<'a, L>::get(&self, row: usize, column: usize) -> core::option::Option<f64>
+pub fn alea_math::matrix::SquareMatrixRef<'a, L>::new(order: usize, values: &'a [f64]) -> core::result::Result<Self, alea_math::matrix::MatrixError>
+pub fn alea_math::matrix::SquareMatrixRef<'a, L>::order(&self) -> usize
+impl<'a, L: core::clone::Clone + alea_math::matrix::MatrixLayout> core::clone::Clone for alea_math::matrix::SquareMatrixRef<'a, L>
+pub fn alea_math::matrix::SquareMatrixRef<'a, L>::clone(&self) -> alea_math::matrix::SquareMatrixRef<'a, L>
+impl<'a, L: core::fmt::Debug + alea_math::matrix::MatrixLayout> core::fmt::Debug for alea_math::matrix::SquareMatrixRef<'a, L>
+pub fn alea_math::matrix::SquareMatrixRef<'a, L>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'a, L: core::marker::Copy + alea_math::matrix::MatrixLayout> core::marker::Copy for alea_math::matrix::SquareMatrixRef<'a, L>
+pub trait alea_math::matrix::MatrixLayout: alea_math::matrix::sealed::Sealed
+pub fn alea_math::matrix::MatrixLayout::index(order: usize, row: usize, column: usize) -> usize
+impl alea_math::matrix::MatrixLayout for alea_math::matrix::ColumnMajor
+pub fn alea_math::matrix::ColumnMajor::index(order: usize, row: usize, column: usize) -> usize
+impl alea_math::matrix::MatrixLayout for alea_math::matrix::RowMajor
+pub fn alea_math::matrix::RowMajor::index(order: usize, row: usize, column: usize) -> usize
+pub fn alea_math::matrix::cholesky_in_place<L: alea_math::matrix::MatrixLayout>(order: usize, values: &mut [f64]) -> core::result::Result<(), alea_math::matrix::MatrixError>
 pub mod alea_math::metric
 pub enum alea_math::metric::BlockMetric
 pub alea_math::metric::BlockMetric::Dense(alea_math::metric::DenseMetric)
@@ -198,6 +260,7 @@ pub struct alea_math::metric::CholeskyFactor
 impl alea_math::metric::CholeskyFactor
 pub fn alea_math::metric::CholeskyFactor::as_slice(&self) -> &[f64]
 pub fn alea_math::metric::CholeskyFactor::dimension(&self) -> usize
+pub fn alea_math::metric::CholeskyFactor::matrix(&self) -> alea_math::matrix::SquareMatrixRef<'_, alea_math::matrix::ColumnMajor>
 pub fn alea_math::metric::CholeskyFactor::new_lower(dim: usize, lower_col_major: alea_math::buffer::OwnedBuffer) -> core::result::Result<Self, alea_math::metric::MetricError>
 impl core::clone::Clone for alea_math::metric::CholeskyFactor
 pub fn alea_math::metric::CholeskyFactor::clone(&self) -> alea_math::metric::CholeskyFactor
@@ -443,6 +506,7 @@ pub struct alea_math::prelude::CholeskyFactor
 impl alea_math::metric::CholeskyFactor
 pub fn alea_math::metric::CholeskyFactor::as_slice(&self) -> &[f64]
 pub fn alea_math::metric::CholeskyFactor::dimension(&self) -> usize
+pub fn alea_math::metric::CholeskyFactor::matrix(&self) -> alea_math::matrix::SquareMatrixRef<'_, alea_math::matrix::ColumnMajor>
 pub fn alea_math::metric::CholeskyFactor::new_lower(dim: usize, lower_col_major: alea_math::buffer::OwnedBuffer) -> core::result::Result<Self, alea_math::metric::MetricError>
 impl core::clone::Clone for alea_math::metric::CholeskyFactor
 pub fn alea_math::metric::CholeskyFactor::clone(&self) -> alea_math::metric::CholeskyFactor

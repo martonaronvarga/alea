@@ -207,29 +207,13 @@ impl OnlineCovariance {
 }
 
 fn cholesky(mut matrix: OwnedBuffer, n: usize) -> Result<OwnedBuffer, CovarianceError> {
-    for col in 0..n {
-        for row in col..n {
-            let mut value = matrix[row + col * n];
-            for k in 0..col {
-                value -= matrix[row + k * n] * matrix[col + k * n];
+    alea_math::matrix::cholesky_in_place::<alea_math::matrix::ColumnMajor>(n, &mut matrix)
+        .map_err(|error| match error {
+            alea_math::matrix::MatrixError::NotPositiveDefinite { .. } => {
+                CovarianceError::NotPositiveDefinite
             }
-            if row == col {
-                if !value.is_finite() || value <= 0.0 {
-                    return Err(CovarianceError::NotPositiveDefinite);
-                }
-                matrix[row + col * n] = value.sqrt();
-            } else {
-                value /= matrix[col + col * n];
-                if !value.is_finite() {
-                    return Err(CovarianceError::NonFinite);
-                }
-                matrix[row + col * n] = value;
-            }
-        }
-        for row in 0..col {
-            matrix[row + col * n] = 0.0;
-        }
-    }
+            _ => CovarianceError::NonFinite,
+        })?;
     Ok(matrix)
 }
 

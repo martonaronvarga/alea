@@ -410,6 +410,7 @@ pub fn alea_distributions::multivariate::Multinomial::fmt(&self, f: &mut core::f
 impl core::marker::StructuralPartialEq for alea_distributions::multivariate::Multinomial
 pub struct alea_distributions::multivariate::MultivariateNormal
 impl alea_distributions::multivariate::MultivariateNormal
+pub fn alea_distributions::multivariate::MultivariateNormal::covariance_factor(&self) -> alea_math::matrix::SquareMatrixRef<'_, alea_math::matrix::RowMajor>
 pub fn alea_distributions::multivariate::MultivariateNormal::event_gradient(&self, x: &[f64], out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 pub fn alea_distributions::multivariate::MultivariateNormal::new(mean: alloc::vec::Vec<f64>, lower: alloc::vec::Vec<f64>) -> core::result::Result<Self, alea_core::distribution::DistributionError>
 impl alea_core::distribution::Distribution for alea_distributions::multivariate::MultivariateNormal
@@ -1471,6 +1472,7 @@ pub fn alea_distributions::multivariate::Multinomial::fmt(&self, f: &mut core::f
 impl core::marker::StructuralPartialEq for alea_distributions::multivariate::Multinomial
 pub struct alea_distributions::prelude::MultivariateNormal
 impl alea_distributions::multivariate::MultivariateNormal
+pub fn alea_distributions::multivariate::MultivariateNormal::covariance_factor(&self) -> alea_math::matrix::SquareMatrixRef<'_, alea_math::matrix::RowMajor>
 pub fn alea_distributions::multivariate::MultivariateNormal::event_gradient(&self, x: &[f64], out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 pub fn alea_distributions::multivariate::MultivariateNormal::new(mean: alloc::vec::Vec<f64>, lower: alloc::vec::Vec<f64>) -> core::result::Result<Self, alea_core::distribution::DistributionError>
 impl alea_core::distribution::Distribution for alea_distributions::multivariate::MultivariateNormal

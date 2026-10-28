@@ -11,6 +11,7 @@ pub mod buffer;
 #[cfg(feature = "faer")]
 pub mod fisher;
 pub mod interpolation;
+pub mod matrix;
 pub mod metric;
 pub mod numeric;
 pub mod random;

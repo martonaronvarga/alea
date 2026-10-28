@@ -269,25 +269,12 @@ fn cholesky(x: &[f64], d: usize) -> Result<Option<Vec<f64>>, E> {
             }
         }
     }
-    let mut l = vec![0.0; d * d];
-    for i in 0..d {
-        for j in 0..=i {
-            let mut v = x[i * d + j];
-            for k in 0..j {
-                v -= l[i * d + k] * l[j * d + k];
-            }
-            if i == j {
-                if v <= 0.0 {
-                    return Ok(None);
-                }
-                l[i * d + j] = v.sqrt();
-            } else {
-                l[i * d + j] = v / l[j * d + j];
-            }
-            if !l[i * d + j].is_finite() {
-                return Err(E::Numerical);
-            }
-        }
+    let mut l = x.to_vec();
+    match alea_math::matrix::cholesky_in_place::<alea_math::matrix::RowMajor>(d, &mut l) {
+        Ok(()) => {}
+        Err(alea_math::matrix::MatrixError::NotPositiveDefinite { .. }) => return Ok(None),
+        Err(alea_math::matrix::MatrixError::Shape) => return Err(E::Shape),
+        Err(alea_math::matrix::MatrixError::NonFinite { .. }) => return Err(E::Numerical),
     }
     Ok(Some(l))
 }

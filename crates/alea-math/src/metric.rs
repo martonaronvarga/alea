@@ -768,6 +768,11 @@ impl CholeskyFactor {
     pub fn as_slice(&self) -> &[f64] {
         self.lower_col_major.as_slice()
     }
+    /// Borrows the validated factor with its column-major layout in the type.
+    pub fn matrix(&self) -> crate::matrix::SquareMatrixRef<'_, crate::matrix::ColumnMajor> {
+        crate::matrix::SquareMatrixRef::new(self.dim, self.as_slice())
+            .expect("validated factor shape")
+    }
 }
 
 /// Dense momentum mass matrix represented by its validated Cholesky factor.

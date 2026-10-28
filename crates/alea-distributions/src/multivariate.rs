@@ -58,6 +58,13 @@ impl MultivariateNormal {
             work: RefCell::new(vec![0.0; 2 * d]),
         })
     }
+    /// Checked covariance factor in row-major storage, without copying.
+    pub fn covariance_factor(
+        &self,
+    ) -> alea_math::matrix::SquareMatrixRef<'_, alea_math::matrix::RowMajor> {
+        alea_math::matrix::SquareMatrixRef::new(self.mean.len(), &self.lower)
+            .expect("validated factor shape")
+    }
     fn whiten(&self, x: &[f64], z: &mut [f64]) -> Result<(), E> {
         let d = self.mean.len();
         if x.len() != d {
