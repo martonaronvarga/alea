@@ -1,17 +1,8 @@
 //! Exact spectral averaging over uniform start variability when drift SD is zero.
 //! The moment generating function is exp(c*m) sinh(c*h/2)/(c*h/2).
 //! Differentiating it gives all parameter scores without endpoint subtraction.
+use super::gaussian_polynomial::{C, add, mul, scale};
 use super::*;
-type C = (f64, f64);
-fn mul(a: C, b: C) -> C {
-    (a.0 * b.0 - a.1 * b.1, a.0 * b.1 + a.1 * b.0)
-}
-fn scale(a: C, x: f64) -> C {
-    (a.0 * x, a.1 * x)
-}
-fn add(a: C, b: C) -> C {
-    (a.0 + b.0, a.1 + b.1)
-}
 fn divide(a: C, b: C) -> C {
     scale(mul(a, (b.0, -b.1)), 1. / (b.0 * b.0 + b.1 * b.1))
 }
@@ -53,7 +44,9 @@ impl Wiener7 {
             return None;
         }
         if core.sv > 0. {
-            return self.analytic_image_start(core, obs);
+            return self
+                .analytic_image_start(core, obs)
+                .or_else(|| self.analytic_spectral_start(core, obs));
         }
         let params = Wiener4Params::from_array([core.alpha, core.tau0, core.beta0, core.delta]);
         let base = Wiener4.core(obs, &params, core.eps_series).ok()?;

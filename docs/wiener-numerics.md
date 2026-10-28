@@ -698,3 +698,40 @@ Nine captured numerical proposals also have independent ball fixtures. One
 large-variance case uses the exact CDF reference; the others retain continuous
 time integration. Both density and fused scores are checked, since a finite
 two-dimensional quadrature result can still miss its requested accuracy.
+
+## Spectral start averaging with Gaussian drift variability
+
+The long-time branch can also average the start interval with positive drift
+variability. With `lambda=1+s²t`, `B=av/lambda` and `D=a²s²/(2lambda)`, each
+spectral term contains
+
+\[
+E_q[e^{Bq+Dq^2}\sin(\omega q)],\qquad \omega=n\pi.
+\]
+
+Write `q=m+hz`. Its exact average is the imaginary part of
+
+\[
+e^{(B+i\omega)m+Dm^2}
+\int_{-1/2}^{1/2}
+\exp\{Dh^2z^2+h(B+2Dm+i\omega)z\}\,dz.
+\]
+
+This is a complex Gaussian moment with positive quadratic coefficient. Bounded
+power moments avoid introducing a complex error-function dependency. The same
+coefficient recurrence and Cauchy remainder used for the image moments extend
+to complex linear coefficients; higher radii use 128 or 256 coefficients.
+Polynomial moments through order two give every parameter derivative and the
+start-width derivative. Their remainders are added to the omitted spectral
+density and derivative tails before accepting the result.
+
+The implementation uses this path for `t/a² >= 0.15` when the exponent radius
+is at most 16. Unsupported or poorly conditioned moments retain numerical
+quadrature. Long-time start averages can then reduce the remaining time
+integral to one dimension, including the locally scaled fallback. This also
+avoids fitting nearly constant start intervals with an unnecessary product rule.
+
+The independent reference integrates the spectral density and derivatives
+continuously over the start coordinate, with separate Gaussian tail envelopes.
+Its 288 fixtures cover four time scales, both response boundaries, multiple
+drifts and drift variabilities, and both narrow and wide start intervals.

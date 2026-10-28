@@ -34,7 +34,9 @@ impl Wiener7 {
     pub(super) fn prefer_reduced_time(core: &Wiener7Core, obs: &WienerObservation) -> bool {
         let t = obs.rt - core.tau0;
         let curvature = (core.alpha * core.sw).powi(2) / (2. * t * (1. + core.sv * core.sv * t));
-        core.st0 > 0. && curvature.is_finite() && curvature >= 0.01
+        core.st0 > 0.
+            && curvature.is_finite()
+            && (curvature >= 0.01 || t / (core.alpha * core.alpha) >= 0.15)
     }
 
     pub(super) fn reduced_time_integral(

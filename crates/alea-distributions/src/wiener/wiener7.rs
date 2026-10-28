@@ -2,6 +2,7 @@ use super::*;
 
 mod adaptive;
 mod analytic_image;
+mod analytic_spectral;
 mod analytic_start;
 mod analytic_time;
 #[cfg(test)]
@@ -9,6 +10,7 @@ mod audit;
 mod drift_cdf;
 mod error;
 mod fixed;
+mod gaussian_polynomial;
 mod gaussian_tail;
 pub use error::Wiener7ErrorEstimate;
 mod integrals;

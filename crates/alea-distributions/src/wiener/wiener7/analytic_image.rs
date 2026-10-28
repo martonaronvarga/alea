@@ -10,27 +10,15 @@ fn gaussian_moments(a: f64, b: f64) -> Option<([f64; 4], [f64; 4], f64)> {
         // exp(-a*z²+b*z)=sum c_n*z^n, with
         // (n+1)c_(n+1)=b*c_n-2a*c_(n-1). Integrate coefficients once,
         // rather than repeatedly multiplying powers of the exponent.
-        let monomials: [f64; 84] = std::array::from_fn(|power| {
-            if power.is_multiple_of(2) {
-                0.5_f64.powi(power as i32) / (power + 1) as f64
-            } else {
-                0.
-            }
-        });
-        let terms = if radius <= 0.01 {
-            16
-        } else if radius <= 1. {
-            48
-        } else {
-            80
-        };
+        let (terms, errors) = super::gaussian_polynomial::plan(a, b.abs())?;
         let mut previous = 0.;
         let mut coefficient = 1.;
         let mut sums = [0.; 4];
         let mut compensation = [0.; 4];
         for n in 0..terms {
             for (r, sum) in sums.iter_mut().enumerate() {
-                let y = coefficient * monomials[n + r] - compensation[r];
+                let y =
+                    coefficient * super::gaussian_polynomial::MONOMIALS[n + r] - compensation[r];
                 let next = *sum + y;
                 compensation[r] = (next - *sum) - y;
                 *sum = next;
@@ -39,22 +27,7 @@ fn gaussian_moments(a: f64, b: f64) -> Option<([f64; 4], [f64; 4], f64)> {
             previous = coefficient;
             coefficient = next;
         }
-        // Cauchy's coefficient bound on |z|=rho>1/2. Choose a bounded
-        // contour near the minimum of a*rho²+|b|rho-N*ln(rho).
-        let contour = if a == 0. && b == 0. {
-            16.
-        } else {
-            (2. * terms as f64 / (b.abs() + (b * b + 8. * a * terms as f64).sqrt())).clamp(1., 16.)
-        };
-        let ratio = 0.5 / contour;
-        let remainder = (a * contour * contour + b.abs() * contour + terms as f64 * ratio.ln()
-            - (-ratio).ln_1p())
-        .exp();
-        return Some((
-            sums,
-            std::array::from_fn(|r| remainder / (2_f64.powi(r as i32) * (r + 1) as f64)),
-            0.,
-        ));
+        return Some((sums, errors, 0.));
     }
     if let Some(moments) = super::gaussian_tail::moments(a, b) {
         return Some(moments);
