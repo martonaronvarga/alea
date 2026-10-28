@@ -1,3 +1,4 @@
+#![allow(clippy::excessive_precision)] // Independent high-precision fixture decimals.
 use alea_core::distribution::{ContinuousDistribution, Distribution, ParameterScore, Sample};
 use alea_distributions::scalar::*;
 use rand::{SeedableRng, rngs::SmallRng};

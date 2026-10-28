@@ -9,8 +9,12 @@ use statrs::function::gamma::{digamma, ln_gamma};
 use std::f64::consts::{PI, TAU};
 
 mod continuous;
+mod discrete;
 mod jet;
+mod ordinal;
 pub use continuous::*;
+pub use discrete::*;
+pub use ordinal::*;
 
 const LN_TAU: f64 = 1.8378770664093453;
 pub(crate) fn positive(x: f64, name: &'static str) -> Result<f64, E> {

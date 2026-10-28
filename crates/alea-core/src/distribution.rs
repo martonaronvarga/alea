@@ -23,6 +23,8 @@ pub enum Support {
     Positive,
     UnitInterval,
     Count,
+    /// Signed integers with counting measure.
+    Integer,
     Finite {
         outcomes: usize,
     },
