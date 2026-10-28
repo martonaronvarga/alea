@@ -211,6 +211,42 @@ reference cannot produce a false pass. A rejected result is separated from an
 unresolved enclosure. This is a certificate for the supplied input/result pair,
 not a global proof of all Rust floating-point executions.
 
+## Coverage on the Atlasz grid
+
+The completed run at `7990d02` evaluated all 42,611,184 valid inputs from the
+historical Atlasz grid. Every density and fused-gradient evaluation returned a
+finite result. All 512 shards completed; their summaries agree with the retained
+worker output and identify the same sealed binary and source archive.
+
+| Source revision | Density failures | Fused-gradient failures |
+|---|---:|---:|
+| Original implementation, `49b7527` | 9,837 | 9,837 |
+| `61ec34c` | 124,676 | 223,080 |
+| `c65e146` | 16,816 | 29,463 |
+| `5d4390c` | 0 | 64,736 |
+| `871d27d` | 0 | 13,697 |
+| `7990d02` | 0 | 0 |
+
+Comparing failures by input index confirms recovery of every original failure,
+with no new finite-output failures in this grid. The intermediate regressions
+remain in the comparison. The separate replay of all 64,736 gradient failures
+from `5d4390c` also passes.
+
+The grid spans decision-time gaps from `1e-6` to `50`, boundary separations from
+`0.1` to `8`, nondecision times from zero to `5`, starting points from `1e-4` to
+`0.999`, drifts from `-30` to `30`, drift variability from zero to `5`, start
+widths from zero to `0.9`, and time widths from zero to `5`. It uses tolerances
+`1e-4`, `1e-6` and `1e-8`, excludes starting intervals touching the boundaries,
+and forms the observation time as `tau + gap` in binary64. The
+[validation tool](../tools/wiener-validation/README.md) contains the exact axes,
+validity check and reproducible shard commands. This run used the upper response;
+independent numerical tests also cover the lower response.
+
+This establishes finite-output coverage over that finite grid. It does not
+certify the accuracy of all 42.6 million results or prove coverage of the entire
+continuous support. The independent ball-arithmetic checks and the error-report
+contracts above provide separate accuracy evidence.
+
 ## Measured costs
 
 A CPU-pinned comparison on an Intel Core i5-8250U covered 676 parameter

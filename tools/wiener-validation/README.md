@@ -71,3 +71,18 @@ tools/wiener-validation/target/release/alea-wiener-validation \
 Replay preserves the input index, parameters and evaluation kind, and records
 both successful values and errors. Its denominator is the supplied records;
 it must not be described as a new complete support sweep.
+
+## Completed coverage check
+
+Source `7990d02` completed all 512 full-grid shards on Atlasz, with
+42,611,184 finite density evaluations and 42,611,184 finite fused-gradient
+evaluations. Neither path failed. The original `49b7527` run had 9,837 failures
+in each path on the same grid. Per-index comparisons found every original
+failure recovered and no new failures. Intermediate results and their failures
+were retained; see [Wiener numerical methods](../../docs/wiener-numerics.md).
+
+This is a finite-output result on the upper-response grid at the three declared
+tolerances. It is separate from the smaller independent accuracy tests, and does
+not establish accuracy everywhere on the continuous support. The timing grid
+also has a different denominator and compiler; its measurements must not be
+inferred from aggregate cluster job durations.
