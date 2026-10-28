@@ -216,7 +216,7 @@ not a global proof of all Rust floating-point executions.
 A CPU-pinned comparison on an Intel Core i5-8250U covered 676 parameter
 configurations, scalar and SIMD builds, density and fused-score evaluation,
 and 32-observation batch paths. Three alternating process pairs retained all
-16,656 outcomes. The comparison used source revisions `49b7527` and `7d1f488`,
+16,656 outcomes. The comparison used source revisions `49b7527` and `7990d02`,
 with the same compiler within each build pair. Every density and fused output
 in this grid passed pointwise ball-enclosure comparisons at
 `1e-9 * (1 + |reference|)` in both build modes. The old build failed 33 fused
@@ -228,20 +228,27 @@ Median scalar old/new timing ratios were:
 | Evaluation | Density | Density and scores |
 |---|---:|---:|
 | Wiener4/5 | about 1× | about 1× |
-| Wiener7, ordinary image start averaging | 1.76× | 1.93× |
-| Wiener7, localized image start averaging | 82.6× | 87.9× |
-| Wiener7, spectral start averaging | 23.6× | 25.1× |
-| Wiener7, time averaging | 8.68× | 2.24× |
-| Wiener7, clipped time averaging | 112× | 97.5× |
-| Wiener7, localized joint variability | 12.9× | 13.1× |
-| Wiener7, broad joint variability | 0.89× | 0.31× |
-| Wiener7, clipped joint variability | 0.89× | 0.67× |
-| Wiener7, long-time joint variability | 0.90× | 0.32× |
+| Wiener7, no variability | 1.02× | 1.02× |
+| Wiener7, tiny start variability | 1.12× | 1.35× |
+| Wiener7, ordinary image start averaging | 5.10× | 6.07× |
+| Wiener7, localized image start averaging | 80.3× | 86.6× |
+| Wiener7, spectral start averaging | 19.5× | 25.3× |
+| Wiener7, tiny time variability | 0.93× | 0.85× |
+| Wiener7, time averaging | 7.69× | 2.05× |
+| Wiener7, clipped time averaging | 112× | 100× |
+| Wiener7, localized joint variability | 12.8× | 13.3× |
+| Wiener7, broad joint variability | 0.60× | about 1× |
+| Wiener7, clipped joint variability | 11.2× | 12.0× |
+| Wiener7, long-time joint variability | 0.75× | 1.04× |
+| Wiener7, extreme tail | 6.78× | 7.06× |
+| Wiener7, extreme joint variability | 0.56× | 1.09× |
 
-A ratio below one means slower evaluation. General cubature now integrates
-direct width derivatives and checks estimated errors in every score, increasing
-its cost. Tiny variability widths were roughly 5–12% slower in this grid; rare
-tails had mixed results. Batch evaluation was essentially unchanged.
+A ratio below one means slower evaluation. Broad and long-time joint density
+calls still regress, and tiny time widths cost about 7–18% more. The two extreme
+joint cases have mixed fused results, from 0.81× to 1.37×. Batch evaluation is
+essentially unchanged. These are medians across parameter cases after taking the
+median of three paired process measurements for each case. Retained p95 values
+describe batch-average timings, rather than individual-call latency tails.
 
 The old implementation returned an incorrect time-width score at zero width.
 Consequently, fused start-only timings compare historical execution costs,
@@ -384,7 +391,8 @@ absorbing boundaries. If `z_max = min(1,T/h)`, integration by parts also gives
 Consequently, the clipped-width score is exactly `-1/h`. These identities avoid
 integrating time derivatives whose large positive and negative contributions
 nearly cancel. The adaptive scaled path evaluates the two start-averaged faces
-once at one hundredth of the outer tolerance, and propagates their estimated
+once at one hundredth of the outer tolerance multiplied by `min(h,1)`,
+and propagates their estimated
 uncertainty along with the density estimate into the final score-ratio checks.
 The face evaluations have their own bounded work; any failure remains explicit.
 Fixed quadrature continues to differentiate its chosen finite rule directly.
@@ -431,7 +439,7 @@ intervals. It integrates the exponential polynomial exactly and propagates its
 uniform remainder through every parameter derivative before accepting a result.
 This supplies a controlled small-width evaluation without estimating a fourth
 derivative of the complete likelihood or subtracting endpoints of size `1/h`.
-Eight terms suffice in the small exponent-radius regime; failure to meet the
+Sixteen power coefficients suffice in the small exponent-radius regime; failure to meet the
 error budget still returns to numerical integration. This replaces the earlier
 width-only exclusion, which discarded an accurate analytic result solely because
 its interval was narrow.
