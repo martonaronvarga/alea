@@ -117,7 +117,7 @@ pub enum AdvancedHmcError<E: Error + 'static> {
     SplitForce(#[from] SplitForceError<E>),
     #[error(transparent)]
     Hvp(#[from] HvpError<E>),
-    #[error("Gaussian reference center/precision is malformed")]
+    #[error("StandardNormalTarget reference center/precision is malformed")]
     GaussianReference,
     #[error("inner cheap-force step count must be nonzero")]
     InnerSteps,

@@ -5,7 +5,7 @@ use alea_math::buffer::OwnedBuffer;
 use alea_core::target::{
     EvaluationError, EvaluationWorkspace, LogDensityGradient, PointState, evaluate,
 };
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use rand::{RngExt, SeedableRng, rngs::SmallRng};
 
 #[derive(Debug, thiserror::Error)]
@@ -57,7 +57,9 @@ impl LogDensityGradient for Target {
             Mode::Partial => return Ok(-1.0),
             Mode::Good | Mode::Log(_) | Mode::Gradient(_) => {}
         }
-        let value = Gaussian::new(q.len()).logp_grad(q, gradient).unwrap();
+        let value = StandardNormalTarget::new(q.len())
+            .logp_grad(q, gradient)
+            .unwrap();
         match self.mode.get() {
             Mode::Log(value) => Ok(value),
             Mode::Gradient(value) => {
@@ -360,7 +362,7 @@ fn randomized_dimensions_and_updates_match_gaussian_reference() {
     let mut rng = SmallRng::seed_from_u64(5423);
     for _ in 0..64 {
         let n = rng.random_range(0..66);
-        let target = Gaussian::new(n);
+        let target = StandardNormalTarget::new(n);
         let mut point = PointState::new(&target, OwnedBuffer::new(n)).unwrap();
         let mut workspace = EvaluationWorkspace::new(n);
         let q: Vec<_> = (0..n).map(|_| rng.random_range(-10.0..10.0)).collect();
@@ -382,7 +384,7 @@ fn randomized_dimensions_and_updates_match_gaussian_reference() {
 
 #[test]
 fn zero_dimensional_targets_and_dynamic_dispatch_are_supported() {
-    let adapter = Gaussian::new(0);
+    let adapter = StandardNormalTarget::new(0);
     let target: &dyn LogDensityGradient<Error = alea_core::target::DimensionError> = &adapter;
     let mut point = PointState::new(target, OwnedBuffer::new(0)).unwrap();
     point
@@ -395,7 +397,7 @@ fn zero_dimensional_targets_and_dynamic_dispatch_are_supported() {
 
 #[test]
 fn cloning_preserves_complete_cache_and_clone_from_reuses_matching_buffers() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let source = PointState::new(&target, buffer(&[1.0, 2.0])).unwrap();
     let mut copy = source.clone();
     assert!(std::ptr::eq(source.target(), copy.target()));
@@ -407,7 +409,7 @@ fn cloning_preserves_complete_cache_and_clone_from_reuses_matching_buffers() {
     assert_eq!(copy.gradient().as_ptr(), g_ptr);
     assert_eq!(copy.gradient(), source.gradient());
     assert_eq!(copy.log_density(), source.log_density());
-    let other_target = Gaussian::new(1);
+    let other_target = StandardNormalTarget::new(1);
     let other = PointState::new(&other_target, buffer(&[3.0])).unwrap();
     copy.clone_from(&other);
     assert!(std::ptr::eq(copy.target(), &other_target));

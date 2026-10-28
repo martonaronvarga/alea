@@ -1,4 +1,4 @@
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{buffer::OwnedBuffer, metric::EuclideanMetric};
 use alea_mcmc::{
     HmcOptions,
@@ -180,7 +180,7 @@ fn low_rank_history_is_bounded_and_cannot_be_reinterpreted_at_another_dimension(
 }
 #[test]
 fn fisher_warmup_freezes_and_zero_warmup_preserves_rng() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let options = HmcOptions::new(0.1, 3).unwrap();
     let mut rng = SmallRng::seed_from_u64(517);
     let mut untouched = rng.clone();
@@ -229,7 +229,7 @@ fn paired_observation_and_diagonal_estimation_do_not_allocate() {
 #[cfg(feature = "faer")]
 #[test]
 fn low_rank_warmup_runs_with_bounded_history() {
-    let target = Gaussian::new(3);
+    let target = StandardNormalTarget::new(3);
     let mut rng = SmallRng::seed_from_u64(982);
     let (mut chain, report) = FisherHmcWarmup::new(
         &target,

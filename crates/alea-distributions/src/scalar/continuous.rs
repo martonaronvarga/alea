@@ -2,8 +2,8 @@
 use super::jet::Jet;
 use super::{LN_TAU, checked, finite, gamma_draw, positive, score, standard_normal, uniform};
 use alea_core::distribution::{
-    ContinuousDistribution, Distribution, DistributionError as E, EventShape, ParameterScore,
-    Sample, Support,
+    Distribution, DistributionError as E, EventShape, ParameterScore, Sample, ScalarEventScore,
+    Support,
 };
 use rand::Rng;
 use std::f64::consts::{PI, TAU};
@@ -468,12 +468,16 @@ macro_rules! family {
         #[must_use]
         pub struct $name(Kernel);
         impl Distribution for $name {
+            type Error = alea_core::distribution::DistributionError;
             type Event = f64;
             fn event_shape(&self) -> EventShape {
                 EventShape::Scalar
             }
             fn support(&self) -> Support {
                 Support::$support
+            }
+            fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+                alea_core::distribution::ReferenceMeasure::Lebesgue { dimension: 1 }
             }
             fn log_prob(&self, x: &f64) -> Result<f64, E> {
                 self.0.logp(*x)
@@ -488,7 +492,7 @@ macro_rules! family {
                 score(out, &s[1..1 + $n])
             }
         }
-        impl ContinuousDistribution for $name {
+        impl ScalarEventScore for $name {
             fn event_score(&self, x: f64) -> Result<f64, E> {
                 Ok(self.0.derivatives(x)?[0])
             }
@@ -625,7 +629,7 @@ family!(
     InverseGaussian,
     Positive,
     2,
-    "Inverse Gaussian (Wald). Score order: mean, shape."
+    "Inverse StandardNormalTarget (Wald). Score order: mean, shape."
 );
 family!(
     Levy,
@@ -776,7 +780,7 @@ family!(
     NormalInverseGaussian,
     Real,
     4,
-    "Normal-inverse-Gaussian. Score order: alpha, beta, location, delta. Requires alpha>|beta| and delta>0. Uses exponentially scaled Bessel K functions."
+    "Normal-inverse-StandardNormalTarget. Score order: alpha, beta, location, delta. Requires alpha>|beta| and delta>0. Uses exponentially scaled Bessel K functions."
 );
 impl NormalInverseGaussian {
     /// # Errors

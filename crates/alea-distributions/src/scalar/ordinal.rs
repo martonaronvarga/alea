@@ -134,6 +134,7 @@ macro_rules! ordered {
             }
         }
         impl Distribution for $name {
+            type Error = alea_core::distribution::DistributionError;
             type Event = usize;
             fn event_shape(&self) -> EventShape {
                 EventShape::Scalar
@@ -142,6 +143,9 @@ macro_rules! ordered {
                 Support::Finite {
                     outcomes: self.0.cuts.len() + 1,
                 }
+            }
+            fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+                alea_core::distribution::ReferenceMeasure::Counting
             }
             fn log_prob(&self, k: &usize) -> Result<f64, E> {
                 checked(self.0.logp(*k)?)

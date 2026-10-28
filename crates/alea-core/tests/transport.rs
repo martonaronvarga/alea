@@ -8,8 +8,8 @@ use alea_math::{affine::LowRankAffineMap, buffer::OwnedBuffer};
 #[error("infallible")]
 struct Never;
 
-struct Gaussian;
-impl LogDensityGradient for Gaussian {
+struct StandardNormalTarget;
+impl LogDensityGradient for StandardNormalTarget {
     type Error = Never;
     fn dimension(&self) -> usize {
         2
@@ -33,7 +33,7 @@ fn map() -> LowRankAffineMap {
 
 #[test]
 fn transported_value_gradient_and_measure_match_finite_difference() {
-    let transformed = FrozenTransportTarget::new(&Gaussian, map()).unwrap();
+    let transformed = FrozenTransportTarget::new(&StandardNormalTarget, map()).unwrap();
     let point = [0.3, -0.7];
     let mut gradient = [0.0; 2];
     let value = evaluate(&transformed, &point, &mut gradient).unwrap();
@@ -56,7 +56,7 @@ fn transported_value_gradient_and_measure_match_finite_difference() {
 
 #[test]
 fn frozen_evaluation_reuses_storage() {
-    let transformed = FrozenTransportTarget::new(&Gaussian, map()).unwrap();
+    let transformed = FrozenTransportTarget::new(&StandardNormalTarget, map()).unwrap();
     let point = [0.3, -0.7];
     let mut gradient = [0.0; 2];
     let measured = allocation_counter::measure(|| {
@@ -177,7 +177,7 @@ fn affine_numerical_outputs_and_map_overflow_remain_outer_numerical_errors() {
         OwnedBuffer::new(0),
     )
     .unwrap();
-    let target = FrozenTransportTarget::new(&Gaussian, huge).unwrap();
+    let target = FrozenTransportTarget::new(&StandardNormalTarget, huge).unwrap();
     assert!(matches!(
         evaluate(&target, &[1e300, 0.], &mut [7.; 2]),
         Err(alea_core::target::EvaluationError::NonFiniteLogDensity)

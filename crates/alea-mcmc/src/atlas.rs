@@ -177,13 +177,13 @@ fn normalize<E: std::error::Error + 'static>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alea_distributions::Gaussian;
+    use alea_distributions::StandardNormalTarget;
     use alea_math::metric::IdentityMetric;
     use rand::{SeedableRng, rngs::SmallRng};
 
     #[test]
     fn identity_hessian_has_unit_curvature_and_exact_budget() {
-        let target = Gaussian::new(5);
+        let target = StandardNormalTarget::new(5);
         let point = PointState::new(&target, OwnedBuffer::new(5)).unwrap();
         let options = CurvatureProbeOptions::new(3, 4).unwrap();
         let probe = probe_metric_curvature(

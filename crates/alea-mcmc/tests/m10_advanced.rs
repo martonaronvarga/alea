@@ -7,7 +7,7 @@ use alea_core::{
     },
     target::LogDensityGradient,
 };
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
     adapt::{CurvatureProbeOptions, JointHmcWarmup, JointWarmupOptions, WarmupOptions},
@@ -329,7 +329,7 @@ fn explicit_layout_adapter_and_batched_fsm_match_and_reverse() {
 
 #[test]
 fn joint_warmup_changes_only_at_epochs_and_returns_frozen_chain() {
-    let target = Gaussian::new(3);
+    let target = StandardNormalTarget::new(3);
     let options = JointWarmupOptions::new(
         WarmupOptions::new(80),
         CurvatureProbeOptions::new(2, 3).unwrap(),

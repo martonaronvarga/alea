@@ -1,4 +1,4 @@
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
     MarkovChain,
@@ -23,7 +23,9 @@ fn adapter() -> CheesEnsembleAdapter {
     .unwrap()
 }
 
-fn chains(target: &Gaussian) -> Vec<Chain<CheesHmc<'_, Gaussian, IdentityMetric>, ()>> {
+fn chains(
+    target: &StandardNormalTarget,
+) -> Vec<Chain<CheesHmc<'_, StandardNormalTarget, IdentityMetric>, ()>> {
     let frozen = adapter().finish().unwrap();
     (0..4)
         .map(|id| {
@@ -48,7 +50,7 @@ fn chains(target: &Gaussian) -> Vec<Chain<CheesHmc<'_, Gaussian, IdentityMetric>
 
 #[test]
 fn shared_warmup_is_bitwise_scheduler_deterministic_and_freezes() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let mut sequential = chains(&target);
     let mut parallel = chains(&target);
     let pool = rayon::ThreadPoolBuilder::new()

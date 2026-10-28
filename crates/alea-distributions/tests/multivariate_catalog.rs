@@ -84,7 +84,9 @@ fn scalar_reductions_and_correlation_measure() {
 fn matrix_scores(inverted: bool) {
     let p = [5.2, 1.3, 0.2, 0.9];
     let x = [2.0, 0.3, 0.3, 1.5];
-    let make = |p: [f64; 4]| -> Box<dyn ParameterScore<Event = [f64]>> {
+    let make = |p: [f64; 4]| -> Box<
+        dyn ParameterScore<Event = [f64], Error = alea_core::distribution::DistributionError>,
+    > {
         let l = vec![p[1], 0.0, p[2], p[3]];
         if inverted {
             Box::new(InverseWishart::new(p[0], 2, l).unwrap())

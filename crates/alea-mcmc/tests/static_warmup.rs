@@ -1,4 +1,4 @@
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
     Hmc, HmcOptions,
@@ -11,7 +11,7 @@ use rand::{RngExt, SeedableRng, rngs::SmallRng};
 
 #[test]
 fn fixed_geometry_warmup_freezes_each_static_kernel_and_accounts_for_ghost_work() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let mut rng = SmallRng::seed_from_u64(18001);
     let h = Hmc::new(
         &target,
@@ -75,7 +75,7 @@ fn fixed_geometry_warmup_freezes_each_static_kernel_and_accounts_for_ghost_work(
 
 #[test]
 fn zero_static_warmup_preserves_persistent_momentum_and_random_stream() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let mut rng = SmallRng::seed_from_u64(18001);
     let g = Ghmc::new(
         &target,

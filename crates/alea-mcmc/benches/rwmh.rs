@@ -6,7 +6,7 @@ use rand::rngs::SmallRng;
 use std::hint::black_box;
 
 use alea_core::density::LogDensity;
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::buffer::OwnedBuffer;
 use alea_math::metric::{CholeskyFactor, DenseMetric, EuclideanMetric, IdentityMetric};
 use alea_mcmc::{Rwmh, RwmhOptions};
@@ -42,7 +42,7 @@ fn bench_rwmh_isotropic(c: &mut Criterion) {
 
         c.bench_function(&name, move |b| {
             b.iter_custom(|iters| {
-                let density = Gaussian::new(dim);
+                let density = StandardNormalTarget::new(dim);
                 let mut kernel = Rwmh::new(
                     &density,
                     OwnedBuffer::from_fn(dim, |_| 0.1),
@@ -67,7 +67,7 @@ fn bench_rwmh_dense(c: &mut Criterion) {
         let name = format!("rwmh/dense/step/dim={}", dim);
         c.bench_function(&name, move |b| {
             b.iter_custom(|iters| {
-                let density = Gaussian::new(dim);
+                let density = StandardNormalTarget::new(dim);
                 let factor = make_dense_factor(dim);
                 let mut kernel = Rwmh::new(
                     &density,
@@ -128,7 +128,7 @@ fn bench_step_no_density(c: &mut Criterion) {
 fn bench_density(c: &mut Criterion) {
     for &dim in DIMS {
         let name = format!("density/gaussian/dim={}", dim);
-        let density = Gaussian::new(dim);
+        let density = StandardNormalTarget::new(dim);
         let mut x = OwnedBuffer::new(dim);
         x.fill(0.1);
 

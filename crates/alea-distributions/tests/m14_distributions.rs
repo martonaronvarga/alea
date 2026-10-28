@@ -1,6 +1,6 @@
 //! Gates and seeds are declared in docs/m14-validation-protocol.md.
 use alea_core::distribution::{
-    ContinuousDistribution, Distribution, ParameterScore, Sample, log_prob_batch,
+    Distribution, ParameterScore, Sample, ScalarEventScore, log_prob_batch,
 };
 use alea_distributions::{mixture::FiniteMixture, multivariate::*, scalar::*};
 use rand::{SeedableRng, rngs::SmallRng};
@@ -14,7 +14,7 @@ fn integral<D: Distribution<Event = f64>>(d: &D, a: f64, b: f64, n: usize) -> f6
         .sum::<f64>()
         * h
 }
-fn derivative<D: ContinuousDistribution + ParameterScore>(d: &D, x: f64) {
+fn derivative<D: ScalarEventScore + ParameterScore>(d: &D, x: f64) {
     let h = 1e-5;
     let fd = (d.log_prob(&(x + h)).unwrap() - d.log_prob(&(x - h)).unwrap()) / (2.0 * h);
     close(d.event_score(x).unwrap(), fd, 2e-5);
@@ -422,7 +422,8 @@ fn evaluation_and_scores_allocate_nothing() {
     let allocation = allocation_counter::measure(|| {
         for _ in 0..128 {
             for d in [
-                &normal as &dyn ContinuousDistribution,
+                &normal
+                    as &dyn ScalarEventScore<Error = alea_core::distribution::DistributionError>,
                 &t,
                 &log,
                 &exp,
@@ -561,9 +562,13 @@ fn invalid_component_outputs_are_errors_instead_of_support_zeros() {
     use alea_core::distribution::{DistributionError, EventShape, Support};
     struct Faulty(bool);
     impl Distribution for Faulty {
+        type Error = alea_core::distribution::DistributionError;
         type Event = f64;
         fn event_shape(&self) -> EventShape {
             EventShape::Scalar
+        }
+        fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+            alea_core::distribution::ReferenceMeasure::Lebesgue { dimension: 1 }
         }
         fn support(&self) -> Support {
             Support::Real
@@ -589,4 +594,167 @@ fn gamma_rate_is_not_misvalidated_as_a_second_shape() {
     let rate = 1e306;
     let law = Gamma::new(1.0, rate).unwrap();
     close(law.log_prob(&1e-306).unwrap(), rate.ln() - 1.0, 1e-14);
+}
+
+#[test]
+fn mixture_compatibility_uses_measure_not_domain() {
+    use alea_core::distribution::{DistributionError, EventShape, ReferenceMeasure, Support};
+    struct Component {
+        counting: bool,
+        positive: bool,
+    }
+    impl Distribution for Component {
+        type Error = DistributionError;
+        type Event = f64;
+        fn event_shape(&self) -> EventShape {
+            EventShape::Scalar
+        }
+        fn support(&self) -> Support {
+            if self.positive {
+                Support::Positive
+            } else {
+                Support::Real
+            }
+        }
+        fn reference_measure(&self) -> ReferenceMeasure {
+            if self.counting {
+                ReferenceMeasure::Counting
+            } else {
+                ReferenceMeasure::Lebesgue { dimension: 1 }
+            }
+        }
+        fn log_prob(&self, x: &f64) -> Result<f64, Self::Error> {
+            if self.counting {
+                Ok(if *x == 0. { 0. } else { f64::NEG_INFINITY })
+            } else if self.positive {
+                Exponential::new(1.)?.log_prob(x)
+            } else {
+                Normal::new(0., 1.)?.log_prob(x)
+            }
+        }
+    }
+    let mixture = FiniteMixture::new(
+        vec![0.5, 0.5],
+        vec![
+            Component {
+                counting: false,
+                positive: false,
+            },
+            Component {
+                counting: false,
+                positive: true,
+            },
+        ],
+    )
+    .unwrap();
+    assert_eq!(mixture.support(), Support::Union);
+    close(
+        mixture.log_prob(&-1.).unwrap(),
+        0.5f64.ln() + Normal::new(0., 1.).unwrap().log_prob(&-1.).unwrap(),
+        1e-14,
+    );
+    assert!(
+        FiniteMixture::new(
+            vec![0.5, 0.5],
+            vec![
+                Component {
+                    counting: false,
+                    positive: false
+                },
+                Component {
+                    counting: true,
+                    positive: false
+                }
+            ]
+        )
+        .is_err()
+    );
+    assert_eq!(
+        ReferenceMeasure::SimplexCoordinates { components: 4 }.dimension(),
+        Some(3)
+    );
+    assert_eq!(
+        ReferenceMeasure::SphereSurface {
+            ambient_dimension: 4
+        }
+        .dimension(),
+        Some(3)
+    );
+    assert_eq!(
+        ReferenceMeasure::SymmetricMatrixCoordinates { order: 4 }.dimension(),
+        Some(10)
+    );
+    assert_eq!(
+        ReferenceMeasure::CorrelationCoordinates { order: 4 }.dimension(),
+        Some(6)
+    );
+    assert_eq!(
+        ReferenceMeasure::SymmetricMatrixCoordinates { order: usize::MAX }.dimension(),
+        None
+    );
+}
+
+#[test]
+fn bound_wiener_laws_preserve_kernels_scores_support_and_errors() {
+    use alea_distributions::wiener::*;
+    let obs = WienerObservation {
+        rt: 0.8,
+        boundary: Boundary::Upper,
+    };
+    let options = WienerOptions::default();
+    let p4 = Wiener4Params {
+        alpha: 1.2,
+        tau: 0.2,
+        beta: 0.4,
+        delta: 0.7,
+    };
+    let p5 = Wiener5Params::from_array([1.2, 0.2, 0.4, 0.7, 0.3]);
+    let p7 = Wiener7Params::from_array([1.2, 0.2, 0.4, 0.7, 0.3, 0.1, 0.05]);
+    macro_rules! check {
+        ($law:ident,$kernel:ident,$params:expr,$n:literal) => {{
+            let law = $law::new($params, options).unwrap();
+            assert_eq!(
+                law.log_prob(&obs).unwrap(),
+                $kernel
+                    .try_log_prob(&obs, &$params, options)
+                    .unwrap()
+                    .log_prob
+            );
+            let mut score = [0.; $n];
+            law.parameter_score(&obs, &mut score).unwrap();
+            assert_eq!(
+                score,
+                $kernel
+                    .try_fused(&obs, &$params, options)
+                    .unwrap()
+                    .grad_array()
+            );
+            assert!(law.parameter_score(&obs, &mut []).is_err());
+            assert_eq!(
+                law.log_prob(&WienerObservation { rt: 0.1, ..obs }).unwrap(),
+                f64::NEG_INFINITY
+            );
+            assert!(
+                law.log_prob(&WienerObservation {
+                    rt: f64::NAN,
+                    ..obs
+                })
+                .is_err()
+            );
+            let mut rng = SmallRng::seed_from_u64(123);
+            let draw = law.sample(&mut rng).unwrap();
+            assert!(law.log_prob(&draw).unwrap().is_finite());
+        }};
+    }
+    check!(Wiener4Law, Wiener4, p4, 4);
+    check!(Wiener5Law, Wiener5, p5, 5);
+    check!(Wiener7Law, Wiener7, p7, 7);
+    assert!(Wiener4Law::new(Wiener4Params { beta: 1., ..p4 }, options).is_err());
+    assert!(
+        Wiener7Law::new(
+            Wiener7Params::from_array([1.2, 0.2, 0.4, 0.7, 0.3, 1., 0.05]),
+            options
+        )
+        .is_err()
+    );
 }

@@ -457,7 +457,7 @@ impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> crate::M
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alea_distributions::Gaussian;
+    use alea_distributions::StandardNormalTarget;
     use alea_math::metric::{CholeskyFactor, DenseMetric, DiagonalMetric, IdentityMetric};
     use rand::{SeedableRng, rngs::SmallRng};
 
@@ -466,7 +466,7 @@ mod tests {
     }
 
     fn check_momentum<M: EuclideanMetric>(metric: M) {
-        let target = Gaussian::new(2);
+        let target = StandardNormalTarget::new(2);
         let mut chain =
             Hmc::new(&target, OwnedBuffer::new(2), metric, HmcOptions::default()).unwrap();
         let mut rng = SmallRng::seed_from_u64(823);

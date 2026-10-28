@@ -928,7 +928,7 @@ pub fn delayed_rejection_probability(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alea_distributions::Gaussian;
+    use alea_distributions::StandardNormalTarget;
     use alea_math::metric::IdentityMetric;
     use rand::{SeedableRng, rngs::SmallRng};
 
@@ -949,7 +949,7 @@ mod tests {
 
     #[test]
     fn ghmc_numerical_rejection_keeps_negative_refreshed_momentum() {
-        let target = Gaussian::new(2);
+        let target = StandardNormalTarget::new(2);
         let options = GhmcOptions::new(0.9, 1, 0.0)
             .unwrap()
             .with_max_energy_error(1e-16)
@@ -994,7 +994,7 @@ mod tests {
 
     #[test]
     fn staged_rejection_executes_configured_actual_and_reverse_work() {
-        let target = Gaussian::new(2);
+        let target = StandardNormalTarget::new(2);
         let options = DrGhmcOptions::new(2.0, 4.0, 0.0)
             .unwrap()
             .with_integration_steps(3)

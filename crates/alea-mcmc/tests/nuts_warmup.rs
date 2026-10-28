@@ -203,7 +203,7 @@ fn gradient_zero_warmup_and_presearch_cancellation_preserve_rng_and_cache() {
 
 #[test]
 fn gradient_warmup_reuses_storage_and_observation_does_not_change_results() {
-    let t = alea_distributions::Gaussian::new(4);
+    let t = alea_distributions::StandardNormalTarget::new(4);
     for (jitter, restart, position) in [(0.0, false), (0.0, true), (0.1, false), (0.1, true)]
         .into_iter()
         .flat_map(|(j, r)| [(j, r, false), (j, r, true)])
@@ -327,7 +327,7 @@ fn frozen_conversion_preserves_cache_and_costs_no_evaluation_or_rng() {
 #[test]
 fn fisher_native_nuts_uses_paired_live_states_and_freezes_all_optimizer_modes() {
     use alea_mcmc::adapt::{DiminishingSchedule, FisherNutsWarmup, FisherOptions, StepAdaptation};
-    let t = alea_distributions::Gaussian::new(2);
+    let t = alea_distributions::StandardNormalTarget::new(2);
     for optimizer in [
         StepAdaptation::default(),
         StepAdaptation::robbins_monro(0.1, DiminishingSchedule::new(10., 0.6).unwrap()).unwrap(),
@@ -368,7 +368,7 @@ fn fisher_native_nuts_uses_paired_live_states_and_freezes_all_optimizer_modes() 
 
 #[test]
 fn short_native_warmup_allocates_no_transition_or_observation_storage() {
-    let t = alea_distributions::Gaussian::new(2);
+    let t = alea_distributions::StandardNormalTarget::new(2);
     let mut rng = SmallRng::seed_from_u64(18001);
     let warmup = NutsWarmup::new(
         &t,
@@ -439,7 +439,7 @@ fn native_warmup_preserves_concrete_backend_errors() {
 #[test]
 fn rank_capped_native_fisher_freezes_its_selected_rank() {
     use alea_mcmc::adapt::{FisherNutsWarmup, FisherOptions};
-    let t = alea_distributions::Gaussian::new(4);
+    let t = alea_distributions::StandardNormalTarget::new(4);
     let mut rng = SmallRng::seed_from_u64(18001);
     let (mut s, r) = FisherNutsWarmup::new(
         &t,

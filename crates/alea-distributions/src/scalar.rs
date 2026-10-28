@@ -2,8 +2,8 @@
 //! Elementary scalar kernels allocate nothing. Poisson-binomial scores use
 //! temporary convolution storage. Sampling uses bounded work.
 use alea_core::distribution::{
-    ContinuousDistribution, Distribution, DistributionError as E, EventShape, ParameterScore,
-    Sample, Support,
+    Distribution, DistributionError as E, EventShape, ParameterScore, Sample, ScalarEventScore,
+    Support,
 };
 use rand::{Rng, RngExt};
 use statrs::function::gamma::{digamma, ln_gamma};
@@ -257,12 +257,16 @@ macro_rules! continuous {
         #[must_use]
         pub struct $name(Scalar);
         impl Distribution for $name {
+            type Error = alea_core::distribution::DistributionError;
             type Event = f64;
             fn event_shape(&self) -> EventShape {
                 EventShape::Scalar
             }
             fn support(&self) -> Support {
                 Support::$support
+            }
+            fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+                alea_core::distribution::ReferenceMeasure::Lebesgue { dimension: 1 }
             }
             fn log_prob(&self, x: &f64) -> Result<f64, E> {
                 self.0.logp(*x)
@@ -281,7 +285,7 @@ macro_rules! continuous {
                 score(out, &v[..n])
             }
         }
-        impl ContinuousDistribution for $name {
+        impl ScalarEventScore for $name {
             fn event_score(&self, x: f64) -> Result<f64, E> {
                 let (s, _, _) = self.0.scores(x)?;
                 if s.is_finite() {
@@ -436,12 +440,16 @@ impl Bernoulli {
     }
 }
 impl Distribution for Bernoulli {
+    type Error = alea_core::distribution::DistributionError;
     type Event = bool;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Finite { outcomes: 2 }
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, x: &bool) -> Result<f64, E> {
         Ok(if *x { self.p.ln() } else { (-self.p).ln_1p() })
@@ -489,12 +497,16 @@ impl Binomial {
     }
 }
 impl Distribution for Binomial {
+    type Error = alea_core::distribution::DistributionError;
     type Event = u64;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Count
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, k: &u64) -> Result<f64, E> {
         if *k > self.n {
@@ -572,12 +584,16 @@ impl Poisson {
     }
 }
 impl Distribution for Poisson {
+    type Error = alea_core::distribution::DistributionError;
     type Event = u64;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Count
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, k: &u64) -> Result<f64, E> {
         if self.rate == 0.0 {

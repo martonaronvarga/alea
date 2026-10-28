@@ -4,7 +4,7 @@ use crate::{
     wiener::{Wiener4, Wiener4Params, WienerObservation, WienerOptions},
 };
 use alea_core::{
-    distribution::{ContinuousDistribution, Distribution, ParameterScore},
+    distribution::{Distribution, ParameterScore, ScalarEventScore},
     model::assembly::{AssemblyError as E, Expr, ModelBuilder, Parameter, Positive},
 };
 fn error(e: impl std::error::Error + Send + Sync + 'static) -> E {
@@ -26,8 +26,8 @@ pub fn continuous<D, F>(
     construct: F,
 ) -> Result<Expr, E>
 where
-    D: ContinuousDistribution + ParameterScore + 'static,
-    F: Fn(&[f64]) -> Result<D, alea_core::distribution::DistributionError> + Send + Sync + 'static,
+    D: ScalarEventScore + ParameterScore + 'static,
+    F: Fn(&[f64]) -> Result<D, D::Error> + Send + Sync + 'static,
 {
     let mut inputs = Vec::with_capacity(parameters.len().checked_add(1).ok_or(E::Shape)?);
     inputs.push(event);
@@ -62,7 +62,7 @@ pub fn observation<D, F, O>(
 where
     D: ParameterScore + 'static,
     O: std::borrow::Borrow<D::Event> + Send + Sync + 'static,
-    F: Fn(&[f64]) -> Result<D, alea_core::distribution::DistributionError> + Send + Sync + 'static,
+    F: Fn(&[f64]) -> Result<D, D::Error> + Send + Sync + 'static,
 {
     builder.custom(parameters, move |x, g| {
         let law = construct(x).map_err(error)?;

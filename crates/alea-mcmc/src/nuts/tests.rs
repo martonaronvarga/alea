@@ -1,12 +1,12 @@
 use super::*;
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::metric::{DiagonalMetric, IdentityMetric};
 use rand::{SeedableRng, rngs::SmallRng};
 
 #[test]
 fn trajectory_jitter_is_a_fixed_step_mixture_with_identical_conditional_rng() {
     fn check<I: Integrator + Copy>(integrator: I, d: usize, position: bool) {
-        let t = Gaussian::new(d);
+        let t = StandardNormalTarget::new(d);
         let options = NutsOptions::new(0.3, 5)
             .unwrap()
             .with_step_size_jitter(0.1)
@@ -82,7 +82,7 @@ fn jitter_rejects_invalid_widths_and_keeps_extreme_steps_positive_and_finite() {
 
 #[test]
 fn symmetric_acceptance_observes_without_changing_trajectory_or_rng() {
-    let target = Gaussian::new(4);
+    let target = StandardNormalTarget::new(4);
     for seed in 0..32 {
         let build = || {
             Nuts::new(
@@ -109,7 +109,7 @@ fn symmetric_acceptance_observes_without_changing_trajectory_or_rng() {
 
 #[test]
 fn symmetric_acceptance_matches_independent_single_edge_energy() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     for seed in 0..32 {
         for step in [0.1, 1.5, 8.0] {
             let options = NutsOptions::new(step, 1).unwrap();
@@ -336,7 +336,7 @@ fn build(
 
 #[test]
 fn iterative_carries_match_independent_recursive_scalar_oracle() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     for (eps, position) in [0.01, 0.3, 1.4, 3.0]
         .into_iter()
         .flat_map(|eps| [(eps, false), (eps, true)])
@@ -438,7 +438,7 @@ fn configuration_rejects_invalid_boundaries() {
     }
     assert!(
         Nuts::new(
-            &Gaussian::new(0),
+            &StandardNormalTarget::new(0),
             OwnedBuffer::new(0),
             IdentityMetric::new(0),
             NutsOptions::new(0.1, 3).unwrap()
@@ -449,7 +449,7 @@ fn configuration_rejects_invalid_boundaries() {
 
 #[test]
 fn turning_uses_velocity_and_scaled_dots_not_raw_momentum() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let point = PointState::new(&target, OwnedBuffer::new(2)).unwrap();
     let state = PhaseState::new(point.clone(), OwnedBuffer::from_fn(2, |_| 1.0)).unwrap();
     let mut scratch = TurnScratch::new(2);
@@ -549,7 +549,7 @@ fn failed_initial_momentum_never_commits_a_previous_tree() {
             0.0
         }
     }
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let fail = Cell::new(false);
     let mut chain = Nuts::new(
         &target,
@@ -601,7 +601,7 @@ fn finite_factored_energy_cannot_admit_nonfinite_cached_velocity() {
             0.
         }
     }
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let mut chain = Nuts::new(
         &target,
         OwnedBuffer::new(2),

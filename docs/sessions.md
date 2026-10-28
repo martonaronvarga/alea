@@ -10,7 +10,7 @@ Add `rayon = "1.12"` to your dependencies. This example samples a two-dimensiona
 standard normal target on two worker threads:
 
 ```rust
-use alea::distributions::Gaussian;
+use alea::distributions::StandardNormalTarget;
 use alea::sampling::{NutsOptions, adapt::MetricKind};
 use alea::{
     ensemble::Execution,
@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .build()?;
     let result = session.run(
-        |_| Ok(Gaussian::new(2)),
+        |_| Ok(StandardNormalTarget::new(2)),
         Execution::Parallel(&pool),
         &Discard,
     )?;
@@ -73,7 +73,7 @@ token. The following program stops after 32 retained draws, saves a checkpoint,
 and writes the remaining 96 draws to a new file:
 
 ```rust
-use alea::distributions::Gaussian;
+use alea::distributions::StandardNormalTarget;
 use alea::sampling::{NutsOptions, adapt::MetricKind};
 use alea::{
     ensemble::Execution,
@@ -114,7 +114,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .cancellation(cancel.clone())
         .build()?;
     let partial = session.run(
-        |_| Ok(Gaussian::new(1)),
+        |_| Ok(StandardNormalTarget::new(1)),
         Execution::Sequential,
         &Observer(|draw: &OwnedDraw| {
             if draw.index == 31 {
@@ -139,7 +139,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         resumed.provenance(),
         1_000_000,
     )?;
-    let result = resumed.run(|_| Ok(Gaussian::new(1)), Execution::Sequential, &sink)?;
+    let result = resumed.run(|_| Ok(StandardNormalTarget::new(1)), Execution::Sequential, &sink)?;
     assert_eq!(result.chains[0].completed, 128);
 
     let mut reader = DrawReader::new(File::open(output.join("continuation.alea"))?, 65_536)?;

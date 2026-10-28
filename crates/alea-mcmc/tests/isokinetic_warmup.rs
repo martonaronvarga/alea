@@ -1,4 +1,4 @@
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::buffer::OwnedBuffer;
 use alea_mcmc::{
     adapt::{
@@ -9,7 +9,7 @@ use alea_mcmc::{
 use rand::{SeedableRng, rngs::SmallRng};
 #[test]
 fn squared_local_correction_error_has_sixth_order_step_scaling() {
-    let t = Gaussian::new(5);
+    let t = StandardNormalTarget::new(5);
     for refresh in [None, Some(5_f64.sqrt())] {
         let mut errors = Vec::new();
         for h in [0.02, 0.01, 0.005] {
@@ -40,7 +40,7 @@ fn squared_local_correction_error_has_sixth_order_step_scaling() {
 }
 #[test]
 fn corrected_and_approximate_warmup_return_frozen_steps_with_complete_work() {
-    let t = Gaussian::new(4);
+    let t = StandardNormalTarget::new(4);
     let mut rng = SmallRng::seed_from_u64(18001);
     let s = Mams::new(&t, OwnedBuffer::new(4), MamsOptions::new(0.1, 8).unwrap()).unwrap();
     let (mut s, r) = warmup_mams_step_size(s, StaticWarmupOptions::new(200), &mut rng).unwrap();

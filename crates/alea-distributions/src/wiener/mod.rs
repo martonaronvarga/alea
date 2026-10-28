@@ -6,6 +6,8 @@ use std::f64::consts::PI;
 #[allow(clippy::unreadable_literal)]
 const LN_PI: f64 = 1.1447298858494001741434273513530587;
 
+mod law;
+pub use law::{Wiener4Law, Wiener5Law, Wiener7Law};
 mod accuracy;
 mod bounds;
 mod cdf;

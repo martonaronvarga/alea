@@ -1,7 +1,7 @@
 use std::{cell::Cell, convert::Infallible};
 
 use alea_core::{target::LogDensityGradient, transport::FrozenTransportTarget};
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{affine::LowRankAffineMap, buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
     Hmc, HmcOptions, MarkovChain,
@@ -51,7 +51,7 @@ fn learner_fits_bounded_low_rank_map_and_updates_without_allocating() {
 
 #[test]
 fn warmup_consumes_learning_and_retained_draws_cannot_change_map() {
-    let base = Gaussian::new(2);
+    let base = StandardNormalTarget::new(2);
     let mut warmup = Hmc::new(
         &base,
         OwnedBuffer::from_fn(2, |i| [0.8, -0.6][i]),

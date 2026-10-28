@@ -6,10 +6,10 @@ use alea::sampling::{
 };
 
 mod support;
-use support::Gaussian;
+use support::StandardNormalTarget;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let hmc = Hmc::new_with_integrator(
         &target,
         OwnedBuffer::new(2),
@@ -18,6 +18,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         TwoStage::OMF,
     )?;
     let options = WalnutsOptions::new(0.1, 4)?;
-    let _: Walnuts<'_, Gaussian, IdentityMetric> = Walnuts::from_hmc(hmc, options)?;
+    let _: Walnuts<'_, StandardNormalTarget, IdentityMetric> = Walnuts::from_hmc(hmc, options)?;
     Ok(())
 }

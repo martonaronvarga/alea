@@ -6,10 +6,10 @@ use alea::sampling::{
 use rand::{SeedableRng, rngs::SmallRng};
 
 mod support;
-use support::Gaussian;
+use support::StandardNormalTarget;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let warmup = HmcWarmup::new(
         &target,
         OwnedBuffer::new(2),

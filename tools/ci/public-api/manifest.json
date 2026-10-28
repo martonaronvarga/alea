@@ -23,13 +23,13 @@
     },
     "alea-core": {
       "file": "alea-core.txt",
-      "items": 958,
-      "sha256": "15959e18bbcf56f575422dfd282dfe26c792eb03eeeb823a45896dd4fa294e89"
+      "items": 991,
+      "sha256": "1e038af98e700c3b4fc352607a39c8e1d295879fb92920b82314dcb3c5040107"
     },
     "alea-distributions": {
       "file": "alea-distributions.txt",
-      "items": 4012,
-      "sha256": "e5df31c8bd3d9974eeaf024f8ba3f7281750cbbe5c3d598810b1d3dab66bfa42"
+      "items": 4419,
+      "sha256": "22308829e6b7ca94ec1e62a8293ab4bf3512255932eb466bb905799f7c170407"
     },
     "alea-ffi": {
       "file": "alea-ffi.txt",

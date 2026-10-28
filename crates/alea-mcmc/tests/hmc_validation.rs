@@ -2,7 +2,7 @@
 use std::convert::Infallible;
 
 use alea_core::target::LogDensityGradient;
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::buffer::OwnedBuffer;
 use alea_math::metric::{
     CholeskyFactor, DenseMetric, DiagonalMetric, EuclideanMetric, IdentityMetric,
@@ -383,7 +383,7 @@ fn unstable_ill_conditioned_trajectory_rejects_without_corrupting_cache() {
 #[test]
 fn actual_floating_point_overflow_has_typed_rejection_and_preserves_cache() {
     // Valid finite starting states and configurations; no injected model errors.
-    let target = Gaussian::new(1);
+    let target = StandardNormalTarget::new(1);
     for (position, mass, eps, expected) in [
         (1e154, 1.0, f64::MAX, Divergence::Momentum { index: 0 }),
         (0.0, 1e-308, f64::MAX, Divergence::Position { index: 0 }),

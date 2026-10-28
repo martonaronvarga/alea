@@ -589,7 +589,7 @@ mod reference_tests;
 mod tests {
     use super::*;
 
-    use alea_distributions::Gaussian;
+    use alea_distributions::StandardNormalTarget;
     use alea_math::metric::{CholeskyFactor, DenseMetric, DiagonalMetric, IdentityMetric};
     use rand::{SeedableRng, rngs::SmallRng};
     use std::{
@@ -611,7 +611,7 @@ mod tests {
     }
 
     fn check_reversal<M: EuclideanMetric>(metric: M) {
-        let target = Gaussian::new(2);
+        let target = StandardNormalTarget::new(2);
         let point = PointState::new(&target, buffer(&[0.7, -0.2])).unwrap();
         let mut scratch = PhaseWorkspace::new(&point);
         let mut phase = scratch
@@ -643,7 +643,7 @@ mod tests {
 
     #[test]
     fn fallible_leapfrog_has_second_order_energy_error() {
-        let target = Gaussian::new(1);
+        let target = StandardNormalTarget::new(1);
         let metric = IdentityMetric::new(1);
         let point = PointState::new(&target, buffer(&[0.7])).unwrap();
         let integrate = |eps: f64, count| {
@@ -662,8 +662,8 @@ mod tests {
 
     #[test]
     fn start_rejects_shapes_and_nonfinite_momentum_before_exposing_phase() {
-        let target = Gaussian::new(2);
-        let other = Gaussian::new(1);
+        let target = StandardNormalTarget::new(2);
+        let other = StandardNormalTarget::new(1);
         let point = PointState::new(&target, buffer(&[0.7, -0.2])).unwrap();
         let wrong_point = PointState::new(&other, buffer(&[0.7])).unwrap();
         let mut scratch = PhaseWorkspace::new(&point);
@@ -722,7 +722,7 @@ mod tests {
                 }
                 _ => {}
             }
-            Ok(Gaussian::new(q.len()).logp_grad(q, g).unwrap())
+            Ok(StandardNormalTarget::new(q.len()).logp_grad(q, g).unwrap())
         }
     }
 
@@ -778,7 +778,7 @@ mod tests {
 
     #[test]
     fn dropping_phase_is_rejection_and_next_start_copies_whole_live_point() {
-        let target = Gaussian::new(1);
+        let target = StandardNormalTarget::new(1);
         let metric = IdentityMetric::new(1);
         let mut live = PointState::new(&target, buffer(&[0.7])).unwrap();
         let mut scratch = PhaseWorkspace::new(&live);

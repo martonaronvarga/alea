@@ -1,5 +1,5 @@
 use alea_core::prelude::{EvaluationWorkspace, LogDensityGradient, Transform};
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::prelude::{EuclideanMetric, IdentityMetric, OwnedBuffer};
 use alea_mcmc::prelude::{
     Hmc, HmcOptions, HmcWarmup, MarkovChain, Nuts, Rwmh, RwmhOptions, TreeDepth, WarmupOptions,
@@ -11,7 +11,7 @@ use std::ops::ControlFlow;
 #[test]
 fn convenience_preludes_form_an_end_to_end_inference_path() -> Result<(), Box<dyn std::error::Error>>
 {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let mut gradient = [0.0; 2];
     target.logp_grad(&[0.0; 2], &mut gradient)?;
     let _workspace = EvaluationWorkspace::new(2);

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Arb/Acb continuous references for endpoint-scaled Gaussian moments."""
+"""Arb/Acb continuous references for endpoint-scaled StandardNormalTarget moments."""
 import csv,math
 from pathlib import Path
 from flint import arb,acb,ctx

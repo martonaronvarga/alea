@@ -639,7 +639,7 @@ fn normalize(values: &mut [f64]) -> Result<(), ()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alea_distributions::Gaussian;
+    use alea_distributions::StandardNormalTarget;
     use rand::{SeedableRng, rngs::SmallRng};
 
     #[test]
@@ -662,7 +662,7 @@ mod tests {
 
     #[test]
     fn mams_uses_noncanonical_correction_and_keeps_gaussian_cache_coherent() {
-        let target = Gaussian::new(3);
+        let target = StandardNormalTarget::new(3);
         let mut chain = Mams::new(
             &target,
             OwnedBuffer::new(3),
@@ -681,7 +681,7 @@ mod tests {
 
     #[test]
     fn unadjusted_kernel_requires_and_reports_approximate_marker() {
-        let target = Gaussian::new(3);
+        let target = StandardNormalTarget::new(3);
         let mut rng = SmallRng::seed_from_u64(17);
         let mut chain = ApproximateMclmc::new(
             ApproximateTarget::acknowledge_bias(),
@@ -702,7 +702,7 @@ mod tests {
         ignore = "statistical workload runs natively; Miri covers bounded map contracts"
     )]
     fn mams_recovers_standard_gaussian_first_two_moments() {
-        let target = Gaussian::new(3);
+        let target = StandardNormalTarget::new(3);
         let mut chain = Mams::new(
             &target,
             OwnedBuffer::from_fn(3, |i| [1.0, -1.0, 0.5][i]),

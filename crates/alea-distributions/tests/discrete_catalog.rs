@@ -197,7 +197,12 @@ fn ordered_models_normalize_and_have_cutpoint_scores() {
     for probit in [false, true] {
         for location in [-30.0, -2.0, 0.0, 2.0, 30.0] {
             let cuts = vec![-1.2, 0.3, 2.0];
-            let law: Box<dyn ParameterScore<Event = usize>> = if probit {
+            let law: Box<
+                dyn ParameterScore<
+                        Event = usize,
+                        Error = alea_core::distribution::DistributionError,
+                    >,
+            > = if probit {
                 Box::new(OrderedProbit::new(location, cuts.clone()).unwrap())
             } else {
                 Box::new(OrderedLogistic::new(location, cuts.clone()).unwrap())

@@ -1,4 +1,4 @@
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{Rwmh, RwmhOptions};
 use alea_runtime::{
@@ -9,7 +9,7 @@ use rand::{SeedableRng, rngs::SmallRng};
 
 #[test]
 fn collection_checks_size_before_rng_and_keeps_rejected_draws() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let mut chain = Rwmh::new(
         &target,
         OwnedBuffer::new(2),

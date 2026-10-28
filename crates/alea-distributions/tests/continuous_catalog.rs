@@ -1,5 +1,5 @@
 #![allow(clippy::excessive_precision)] // Independent high-precision fixture decimals.
-use alea_core::distribution::{ContinuousDistribution, Distribution, ParameterScore, Sample};
+use alea_core::distribution::{Distribution, ParameterScore, Sample, ScalarEventScore};
 use alea_distributions::scalar::*;
 use rand::{SeedableRng, rngs::SmallRng};
 use statrs::distribution::{self as reference, Continuous};
@@ -7,7 +7,7 @@ use std::f64::consts::PI;
 fn close(a: f64, b: f64, t: f64) {
     assert!((a - b).abs() <= t * (1.0 + b.abs()), "{a} != {b}");
 }
-fn scores<D: ContinuousDistribution + ParameterScore>(
+fn scores<D: ScalarEventScore + ParameterScore>(
     law: D,
     p: &[f64],
     x: f64,
@@ -148,7 +148,9 @@ fn generated_mean<D: Sample<Draw = f64> + Distribution<Event = f64>>(
 }
 #[test]
 fn normalization_and_generative_checks() {
-    let laws: Vec<(Box<dyn Distribution<Event = f64>>, f64, f64)> = vec![
+    type ScalarLaw =
+        Box<dyn Distribution<Event = f64, Error = alea_core::distribution::DistributionError>>;
+    let laws: Vec<(ScalarLaw, f64, f64)> = vec![
         (Box::new(Logistic::new(0.2, 1.3).unwrap()), -40.0, 40.0),
         (
             Box::new(SkewNormal::new(0.2, 1.3, -2.0).unwrap()),

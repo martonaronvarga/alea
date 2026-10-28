@@ -296,7 +296,7 @@ where
 mod tests {
     use super::*;
     use crate::adapt::{CheesCriterion, CheesEnsembleAdapter};
-    use alea_distributions::Gaussian;
+    use alea_distributions::StandardNormalTarget;
     use alea_math::metric::IdentityMetric;
     use rand::{SeedableRng, rngs::SmallRng};
 
@@ -316,7 +316,7 @@ mod tests {
 
     #[test]
     fn plan_execution_exposes_unselected_endpoint_and_keeps_cache_coherent() {
-        let target = Gaussian::new(2);
+        let target = StandardNormalTarget::new(2);
         let mut chain = CheesHmc::new(
             &target,
             OwnedBuffer::from_fn(2, |i| [1.0, -0.5][i]),
@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn retained_kernel_randomizes_lengths_without_adaptation_state() {
-        let target = Gaussian::new(1);
+        let target = StandardNormalTarget::new(1);
         let mut chain = CheesHmc::new(
             &target,
             OwnedBuffer::new(1),

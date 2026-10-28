@@ -2,6 +2,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ProbError {
+    #[error(transparent)]
+    Distribution(#[from] alea_core::distribution::DistributionError),
     #[error("Invalid parameters provided: {0}")]
     InvalidParameters(String),
 

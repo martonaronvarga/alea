@@ -1,5 +1,5 @@
 //! Cheap-gradient steady-state baseline: no construction or allocation in timing.
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_distributions::wiener::WienerPrimitive;
 use alea_distributions::wiener::{Boundary, WienerObservation};
 use alea_math::buffer::OwnedBuffer;
@@ -46,7 +46,7 @@ fn workloads(c: &mut Criterion) {
         .sample_size(20)
         .warm_up_time(Duration::from_millis(300))
         .measurement_time(Duration::from_secs(1));
-    let gaussian = Gaussian::new(64);
+    let gaussian = StandardNormalTarget::new(64);
     workload(
         &mut group,
         "gaussian64_identity",
@@ -151,7 +151,7 @@ fn hmc(c: &mut Criterion) {
         .warm_up_time(Duration::from_millis(500))
         .measurement_time(Duration::from_secs(2));
     for dim in [8, 64, 1024] {
-        let target = Gaussian::new(dim);
+        let target = StandardNormalTarget::new(dim);
         let mut chain = Hmc::new(
             &target,
             OwnedBuffer::new(dim),

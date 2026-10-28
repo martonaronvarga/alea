@@ -2,7 +2,7 @@
 """Pointwise certified Wiener7 reference with precision escalation (python-flint 0.9).
 
 Finite image densities/derivatives are integrated with Acb on the fixed trial
-variability cube. Analytic Gaussian envelopes bound omitted images uniformly
+variability cube. Analytic StandardNormalTarget envelopes bound omitted images uniformly
 on the full integration rectangle. Clipped t=0 support is removed with an
 explicit uniform bound on the omitted time slab, including derivative numerators.
 All complex square roots forward Acb's analyticity flag. The result encloses
@@ -43,7 +43,7 @@ def envelopes(a,v,s,qlo,qhi,tlo,thi,k,all_images=False):
     """Bounds each numerator over all q,t in the closed positive rectangle.
 
     For the clipped slab [0,thi], all_images=True is valid only when
-    thi*(1+s²*thi)/a² <= qlo²/8. Gaussian t^-r exp(-a²qlo²/(2t*(1+s²t))) is then increasing for
+    thi*(1+s²*thi)/a² <= qlo²/8. StandardNormalTarget t^-r exp(-a²qlo²/(2t*(1+s²t))) is then increasing for
     every exponent r<=7/2 used here. This also bounds the infinite image tails.
     """
     u=thi/(a*a)
@@ -159,7 +159,7 @@ def evaluate(params,goal='1e-18',max_precision=768,analytic_start=False):
             if values[0]>0:
                 result=[values[0].log()+log_scale]+[x/values[0] for x in values[1:]]
                 if all(x.is_finite() and x.rad()<arb(goal)*(1+abs(x.mid())) for x in result):
-                    return result,{'precision':precision,'start_integration':'analytic Gaussian moments' if analytic_start else 'continuous Acb quadrature','quadrature_tolerance':str(tol),'terms':k,'clipped':clipped,'cutoff':str(cutoff),'slab_upper':[str(x.upper()) for x in slab]}
+                    return result,{'precision':precision,'start_integration':'analytic StandardNormalTarget moments' if analytic_start else 'continuous Acb quadrature','quadrature_tolerance':str(tol),'terms':k,'clipped':clipped,'cutoff':str(cutoff),'slab_upper':[str(x.upper()) for x in slab]}
     raise ArithmeticError('reference work/precision budget exhausted')
 
 

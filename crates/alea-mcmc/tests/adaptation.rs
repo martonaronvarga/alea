@@ -1,4 +1,4 @@
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
     Rwmh, RwmhOptions,
@@ -33,7 +33,7 @@ fn dual_averaging_matches_original_recurrence_and_rejects_without_mutation() {
 
 #[test]
 fn warmup_is_explicit_then_scale_is_frozen_and_draws_keep_shape() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let mut chain = Rwmh::new(
         &target,
         OwnedBuffer::new(2),

@@ -187,7 +187,7 @@ pub enum PathfinderError<E: Error + 'static> {
         source: EvaluationError<E>,
     },
     /// No finite positive-definite local approximation survived.
-    #[error("Pathfinder produced no finite local Gaussian approximation")]
+    #[error("Pathfinder produced no finite local StandardNormalTarget approximation")]
     NoApproximation,
     /// Counting, factorization, weighting or optimization arithmetic failed.
     #[error("Pathfinder failed numerically")]

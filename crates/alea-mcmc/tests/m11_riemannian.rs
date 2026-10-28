@@ -37,10 +37,10 @@ impl PositionMetric for IdentityPositionMetric {
     }
 }
 
-struct Gaussian {
+struct StandardNormalTarget {
     dimension: usize,
 }
-impl LogDensityGradient for Gaussian {
+impl LogDensityGradient for StandardNormalTarget {
     type Error = Infallible;
     fn dimension(&self) -> usize {
         self.dimension
@@ -149,7 +149,7 @@ fn moments(draws: &[f64]) -> (f64, f64) {
 
 #[test]
 fn rmhmc_constant_metric_has_stationary_gaussian_moments_and_exact_costs() {
-    let target = Gaussian { dimension: 2 };
+    let target = StandardNormalTarget { dimension: 2 };
     let metric = IdentityPositionMetric { dimension: 2 };
     let options = RmhmcOptions::new(0.18, 5, 2, 1.0e-14).unwrap();
     let mut draws = Vec::with_capacity(24_000);
@@ -390,7 +390,7 @@ fn bounded_solve_failure_is_a_rejected_event() {
             Ok(())
         }
     }
-    let target = Gaussian { dimension: 2 };
+    let target = StandardNormalTarget { dimension: 2 };
     let metric = ExponentialMetric;
     let options = RmhmcOptions::new(0.8, 2, 1, 1.0e-16).unwrap();
     let mut chain =

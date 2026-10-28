@@ -2,17 +2,17 @@
 use alea_core::target::{DimensionError, LogDensityGradient};
 
 #[derive(Debug, Clone, Copy)]
-pub struct Gaussian {
+pub struct StandardNormalTarget {
     dimension: usize,
 }
 
-impl Gaussian {
+impl StandardNormalTarget {
     pub fn new(dimension: usize) -> Self {
         Self { dimension }
     }
 }
 
-impl alea_core::density::LogDensity for Gaussian {
+impl alea_core::density::LogDensity for StandardNormalTarget {
     type Error = DimensionError;
     fn dimension(&self) -> usize {
         self.dimension
@@ -29,7 +29,7 @@ impl alea_core::density::LogDensity for Gaussian {
     }
 }
 
-impl LogDensityGradient for Gaussian {
+impl LogDensityGradient for StandardNormalTarget {
     type Error = DimensionError;
 
     fn dimension(&self) -> usize {
@@ -53,7 +53,7 @@ impl LogDensityGradient for Gaussian {
     }
 }
 
-impl alea_core::capability::HessianVector for Gaussian {
+impl alea_core::capability::HessianVector for StandardNormalTarget {
     fn potential_hvp(
         &self,
         q: &[f64],
@@ -75,7 +75,7 @@ impl alea_core::capability::HessianVector for Gaussian {
     }
 }
 
-impl alea_core::capability::BatchLogDensityGradient for Gaussian {
+impl alea_core::capability::BatchLogDensityGradient for StandardNormalTarget {
     fn batch_logp_grad(
         &self,
         shape: alea_core::capability::BatchShape,

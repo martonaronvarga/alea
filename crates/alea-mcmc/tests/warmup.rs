@@ -1,5 +1,5 @@
 use alea_core::target::{EvaluationError, LogDensityGradient};
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{
     buffer::OwnedBuffer,
     metric::{EuclideanMetric, IdentityMetric},
@@ -145,7 +145,7 @@ fn covariance_failures_are_transactional_and_constant_windows_regularize() {
 
 #[test]
 fn search_is_bounded_replayable_and_never_commits_a_proposal() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     for initial in [1e-8, 100.0] {
         let mut chain = Hmc::new(
             &target,
@@ -266,7 +266,7 @@ fn search_and_warmup_preserve_backend_errors_and_report_search_exhaustion() {
     ignore = "exact replay needs deterministic floats; run separately in CI"
 )]
 fn warmup_freezes_is_deterministic_and_zero_iterations_consume_no_rng() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     for kind in [MetricKind::Diagonal, MetricKind::Dense] {
         for iterations in [0, 19, 20, 200] {
             let run = |rng: &mut SmallRng| {
@@ -326,7 +326,7 @@ fn online_updates_search_and_frozen_sampling_allocate_nothing() {
             e.reset();
         });
         assert_eq!(count.count_total, 0);
-        let target = Gaussian::new(2);
+        let target = StandardNormalTarget::new(2);
         let mut rng = SmallRng::seed_from_u64(119);
         let (mut chain, _) = HmcWarmup::new(
             &target,

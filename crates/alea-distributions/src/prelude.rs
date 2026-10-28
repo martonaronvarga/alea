@@ -1,5 +1,5 @@
 //! Common probability laws and observation models.
-pub use crate::Gaussian;
+pub use crate::StandardNormalTarget;
 pub use crate::directional::{Bingham, UniformBall, UniformSphere};
 pub use crate::multivariate::{
     Categorical, Dirichlet, DirichletMultinomial, InverseWishart, Lkj, LkjCholesky, Multinomial,
@@ -18,9 +18,11 @@ pub use crate::scalar::{
     BernoulliLogit, BetaProportion, BinomialLogit, GeneralizedExtremeValue, PoissonLog,
 };
 pub use crate::wiener::{
-    BatchStrategy, Boundary, Quadrature, Wiener4, Wiener4Params, Wiener5, Wiener5Params, Wiener7,
-    Wiener7Params, WienerBatchModel, WienerBatchWorkspace, WienerModel, WienerObservation,
-    WienerObservations, WienerOptions,
+    BatchStrategy, Boundary, Quadrature, Wiener4, Wiener4Law, Wiener4Params, Wiener5, Wiener5Law,
+    Wiener5Params, Wiener7, Wiener7Law, Wiener7Params, WienerBatchModel, WienerBatchWorkspace,
+    WienerModel, WienerObservation, WienerObservations, WienerOptions,
 };
-pub use alea_core::distribution::{ContinuousDistribution, Distribution};
+pub use alea_core::distribution::{Distribution, ScalarEventScore};
 pub use alea_core::distribution::{ParameterScore, Sample};
+
+pub use alea_core::distribution::{EventShape, ReferenceMeasure, Support};

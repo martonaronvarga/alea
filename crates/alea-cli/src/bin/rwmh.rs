@@ -1,7 +1,7 @@
 use rand::SeedableRng;
 use rand::rngs::SmallRng;
 
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{
     buffer::OwnedBuffer,
     metric::{CholeskyFactor, DenseMetric, EuclideanMetric, IdentityMetric},
@@ -49,7 +49,7 @@ fn run<M: EuclideanMetric>(
     dim: usize,
     n_steps: usize,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let target = Gaussian::new(dim);
+    let target = StandardNormalTarget::new(dim);
     let config = base_config(dim);
 
     let mut chain = Rwmh::new(&target, OwnedBuffer::from_fn(dim, |_| 0.1), metric, config)?;

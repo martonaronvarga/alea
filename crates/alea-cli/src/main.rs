@@ -1,11 +1,11 @@
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{Hmc, HmcOptions};
 use rand::{SeedableRng, rngs::SmallRng};
 use std::ops::ControlFlow;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let target = Gaussian::new(4);
+    let target = StandardNormalTarget::new(4);
     let mut chain = Hmc::new(
         &target,
         OwnedBuffer::new(4),

@@ -1,5 +1,5 @@
 use super::*;
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::metric::IdentityMetric;
 use rand::{SeedableRng, rngs::SmallRng};
 use std::convert::Infallible;
@@ -73,7 +73,7 @@ fn randomized_two_point_distribution_has_the_published_support_and_ratio() {
 
 #[test]
 fn microtrajectory_matches_independent_scalar_leapfrog_and_range() {
-    let target = Gaussian::new(1);
+    let target = StandardNormalTarget::new(1);
     let metric = IdentityMetric::new(1);
     let point = PointState::new(&target, buffer(&[0.7])).unwrap();
     let start = PhaseState::new(point.clone(), buffer(&[-0.3])).unwrap();
@@ -141,7 +141,7 @@ fn fixed_macro_grid_has_bounded_work_on_flat_target() {
 
 #[test]
 fn local_refinement_uses_a_finer_dyadic_grid_when_required() {
-    let target = Gaussian::new(1);
+    let target = StandardNormalTarget::new(1);
     let options = WalnutsOptions::new(2.0, 2)
         .unwrap()
         .with_local_refinement(8, 1, 0.05)
@@ -158,7 +158,7 @@ fn deterministic_reverse_probability_excludes_mismatched_refinement() {
     // Independent scalar search: this edge first passes forward at eight
     // microsteps, while the reversed endpoint first passes at four. For
     // deterministic p_micro the forward/reverse probability ratio is zero.
-    let target = Gaussian::new(1);
+    let target = StandardNormalTarget::new(1);
     let options = WalnutsOptions::new(3.0, 1)
         .unwrap()
         .with_local_refinement(8, 1, 1.0)
@@ -184,7 +184,7 @@ fn randomized_two_point_weights_an_asymmetric_reverse_critical_level() {
     // The same independently identified edge has forward critical level three
     // and reverse critical level two. R2P gives the selected critical count a
     // reverse/forward probability ratio (1/3)/(2/3) = 1/2.
-    let target = Gaussian::new(1);
+    let target = StandardNormalTarget::new(1);
     let options = WalnutsOptions::new(3.0, 1)
         .unwrap()
         .with_local_refinement(8, 1, 1.0)
@@ -243,7 +243,7 @@ fn randomized_two_point_weights_an_asymmetric_reverse_critical_level() {
 
 #[test]
 fn selected_reverse_level_is_replayed_at_floating_point_thresholds() {
-    let target = Gaussian::new(1);
+    let target = StandardNormalTarget::new(1);
     let metric = IdentityMetric::new(1);
     let mut mismatch = None;
     'search: for q in [0.1, 0.3, 0.7, 1.1, 3.0, 10.0] {

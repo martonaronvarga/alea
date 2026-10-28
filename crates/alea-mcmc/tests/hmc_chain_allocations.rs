@@ -1,6 +1,6 @@
 #![cfg(not(miri))]
 
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::buffer::OwnedBuffer;
 use alea_math::metric::{
     CholeskyFactor, DenseMetric, DiagonalMetric, EuclideanMetric, IdentityMetric,
@@ -15,7 +15,7 @@ fn check<M: EuclideanMetric>(metric: M, options: HmcOptions) {
 
 fn check_count<M: EuclideanMetric>(metric: M, options: HmcOptions, transitions: usize) {
     let dimension = metric.dimension();
-    let target = Gaussian::new(dimension);
+    let target = StandardNormalTarget::new(dimension);
     let mut chain = Hmc::new(&target, OwnedBuffer::new(dimension), metric, options).unwrap();
     let mut rng = SmallRng::seed_from_u64(89);
     let count = allocation_counter::measure(|| {

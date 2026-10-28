@@ -2,7 +2,7 @@
 """Independent clipped Wiener7 references from integrated spectral CDFs.
 
 No production code or time quadrature is used. Acb integrates the start
-coordinate; positive Gaussian moment majorants enclose every spectral tail.
+coordinate; positive StandardNormalTarget moment majorants enclose every spectral tail.
 Requires python-flint 0.9.0. Inputs are exact binary64 values.
 """
 import csv,math

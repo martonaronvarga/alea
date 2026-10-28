@@ -42,12 +42,16 @@ macro_rules! count_law {
             n: u64,
         }
         impl Distribution for $name {
+            type Error = alea_core::distribution::DistributionError;
             type Event = u64;
             fn event_shape(&self) -> EventShape {
                 EventShape::Scalar
             }
             fn support(&self) -> Support {
                 Support::Count
+            }
+            fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+                alea_core::distribution::ReferenceMeasure::Counting
             }
             fn log_prob(&self, k: &u64) -> Result<f64, E> {
                 self.logp(*k)
@@ -187,12 +191,16 @@ impl NegativeBinomialMean {
     }
 }
 impl Distribution for NegativeBinomialMean {
+    type Error = alea_core::distribution::DistributionError;
     type Event = u64;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Count
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, k: &u64) -> Result<f64, E> {
         let k = count(*k)?;
@@ -300,12 +308,16 @@ impl Hypergeometric {
     }
 }
 impl Distribution for Hypergeometric {
+    type Error = alea_core::distribution::DistributionError;
     type Event = u64;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Count
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, k: &u64) -> Result<f64, E> {
         if *k > self.successes
@@ -355,12 +367,16 @@ impl DiscreteUniform {
     }
 }
 impl Distribution for DiscreteUniform {
+    type Error = alea_core::distribution::DistributionError;
     type Event = i64;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Integer
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, k: &i64) -> Result<f64, E> {
         Ok(if *k < self.lower || *k > self.upper {
@@ -433,12 +449,16 @@ impl Zipf {
     }
 }
 impl Distribution for Zipf {
+    type Error = alea_core::distribution::DistributionError;
     type Event = u64;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Count
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, k: &u64) -> Result<f64, E> {
         Ok(if *k == 0 || *k > self.cdf.len() as u64 {
@@ -522,12 +542,16 @@ impl Zeta {
     }
 }
 impl Distribution for Zeta {
+    type Error = alea_core::distribution::DistributionError;
     type Event = u64;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Count
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, k: &u64) -> Result<f64, E> {
         if *k == 0 {
@@ -610,12 +634,16 @@ impl PoissonBinomial {
     }
 }
 impl Distribution for PoissonBinomial {
+    type Error = alea_core::distribution::DistributionError;
     type Event = u64;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Count
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, k: &u64) -> Result<f64, E> {
         Ok(usize::try_from(*k)
@@ -754,12 +782,16 @@ impl BetaNegativeBinomial {
     }
 }
 impl Distribution for BetaNegativeBinomial {
+    type Error = alea_core::distribution::DistributionError;
     type Event = u64;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Count
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, k: &u64) -> Result<f64, E> {
         let k = count(*k)?;

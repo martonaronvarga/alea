@@ -56,12 +56,18 @@ impl UniformSphere {
     }
 }
 impl Distribution for UniformSphere {
+    type Error = alea_core::distribution::DistributionError;
     type Event = [f64];
     fn event_shape(&self) -> EventShape {
         EventShape::Vector(self.dimension)
     }
     fn support(&self) -> Support {
         Support::UnitSphere
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::SphereSurface {
+            ambient_dimension: self.dimension,
+        }
     }
     fn log_prob(&self, x: &[f64]) -> Result<f64, E> {
         Ok(if sphere(x, self.dimension)? {
@@ -102,12 +108,21 @@ impl UniformBall {
     }
 }
 impl Distribution for UniformBall {
+    type Error = alea_core::distribution::DistributionError;
     type Event = [f64];
     fn event_shape(&self) -> EventShape {
         EventShape::Vector(self.dimension)
     }
     fn support(&self) -> Support {
         Support::UnitBall
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Lebesgue {
+            dimension: match self.event_shape() {
+                EventShape::Vector(n) => n,
+                _ => unreachable!(),
+            },
+        }
     }
     fn log_prob(&self, x: &[f64]) -> Result<f64, E> {
         if x.len() != self.dimension {
@@ -234,12 +249,18 @@ impl Bingham {
     }
 }
 impl Distribution for Bingham {
+    type Error = alea_core::distribution::DistributionError;
     type Event = [f64];
     fn event_shape(&self) -> EventShape {
         EventShape::Vector(self.lambda.len())
     }
     fn support(&self) -> Support {
         Support::UnitSphere
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::SphereSurface {
+            ambient_dimension: self.lambda.len(),
+        }
     }
     fn log_prob(&self, x: &[f64]) -> Result<f64, E> {
         if !sphere(x, self.lambda.len())? {

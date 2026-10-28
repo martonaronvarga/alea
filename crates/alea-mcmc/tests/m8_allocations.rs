@@ -2,7 +2,7 @@
 
 use std::hint::black_box;
 
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
     MarkovChain,
@@ -16,7 +16,7 @@ use rand::{SeedableRng, rngs::SmallRng};
 
 #[test]
 fn m8_retained_kernels_and_shared_update_allocate_nothing() {
-    let target = Gaussian::new(3);
+    let target = StandardNormalTarget::new(3);
     let mut rng = SmallRng::seed_from_u64(8_008);
     let adapter = CheesEnsembleAdapter::new(
         3,

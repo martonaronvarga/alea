@@ -2,11 +2,11 @@ use alea_core::{
     model::ConstrainedModel,
     target::{DimensionError, LogDensityGradient},
 };
-use alea_distributions::{Gaussian, wiener::*};
+use alea_distributions::{StandardNormalTarget, wiener::*};
 
 #[test]
 fn gaussian_is_dimension_bound_and_rejects_shapes_before_mutation() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let mut gradient = [123.0; 2];
     assert_eq!(
         target.logp_grad(&[1.0], &mut gradient),

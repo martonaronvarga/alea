@@ -1,6 +1,6 @@
 """Rigorous finite-image start averages for the optional Wiener7 ball oracle.
 
-Complex Gaussian moments use bounded polynomial expansions or erf/Tricomi U.
+Complex StandardNormalTarget moments use bounded polynomial expansions or erf/Tricomi U.
 The outer time integral remains independent Acb quadrature. No f64 library
 error model is assumed. This is an optional reference path, not production Rust.
 """

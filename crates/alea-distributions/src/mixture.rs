@@ -1,8 +1,8 @@
 //! Finite latent-category marginalization using stable log-sum-exp.
 use crate::multivariate::Categorical;
 use alea_core::distribution::{
-    ContinuousDistribution, Distribution, DistributionError as E, EventShape, ParameterScore,
-    Sample, Support,
+    Distribution, DistributionError as E, EventShape, ParameterScore, Sample, ScalarEventScore,
+    Support,
 };
 use rand::Rng;
 /// Normalized homogeneous finite mixture. Zero-weight components are never evaluated.
@@ -13,18 +13,18 @@ pub struct FiniteMixture<D> {
     components: Vec<D>,
     selector: Categorical,
 }
-impl<D: Distribution> FiniteMixture<D> {
+impl<D: Distribution<Error = E>> FiniteMixture<D> {
     /// # Errors
-    /// Rejects invalid weights, empty/mismatched components or differing event supports/shapes.
+    /// Rejects invalid weights, empty/mismatched components or differing event shapes or reference measures.
     pub fn new(weights: Vec<f64>, components: Vec<D>) -> Result<Self, E> {
         if components.is_empty() || components.len() != weights.len() {
             return Err(E::Shape);
         }
         let first = &components[0];
-        if components
-            .iter()
-            .any(|x| x.event_shape() != first.event_shape() || x.support() != first.support())
-        {
+        if components.iter().any(|x| {
+            x.event_shape() != first.event_shape()
+                || x.reference_measure() != first.reference_measure()
+        }) {
             return Err(E::Shape);
         }
         let selector = Categorical::new(weights.clone())?;
@@ -35,13 +35,22 @@ impl<D: Distribution> FiniteMixture<D> {
         })
     }
 }
-impl<D: Distribution> Distribution for FiniteMixture<D> {
+impl<D: Distribution<Error = E>> Distribution for FiniteMixture<D> {
+    type Error = alea_core::distribution::DistributionError;
     type Event = D::Event;
     fn event_shape(&self) -> EventShape {
         self.components[0].event_shape()
     }
     fn support(&self) -> Support {
-        self.components[0].support()
+        let first = self.components[0].support();
+        if self.components.iter().all(|law| law.support() == first) {
+            first
+        } else {
+            Support::Union
+        }
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        self.components[0].reference_measure()
     }
     fn log_prob(&self, x: &Self::Event) -> Result<f64, E> {
         let mut max = f64::NEG_INFINITY;
@@ -70,7 +79,7 @@ impl<D: Distribution> Distribution for FiniteMixture<D> {
         Ok(max + sum.ln())
     }
 }
-impl<D: ContinuousDistribution> ContinuousDistribution for FiniteMixture<D> {
+impl<D: ScalarEventScore<Error = E>> ScalarEventScore for FiniteMixture<D> {
     fn event_score(&self, x: f64) -> Result<f64, E> {
         let logp = self.log_prob(&x)?;
         if !logp.is_finite() {
@@ -92,7 +101,7 @@ impl<D: ContinuousDistribution> ContinuousDistribution for FiniteMixture<D> {
         }
     }
 }
-impl<D: Sample> Sample for FiniteMixture<D> {
+impl<D: Sample<Error = E>> Sample for FiniteMixture<D> {
     type Draw = D::Draw;
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Result<Self::Draw, E> {
         self.components[self.selector.sample(rng)?].sample(rng)
@@ -100,7 +109,7 @@ impl<D: Sample> Sample for FiniteMixture<D> {
 }
 /// Ambient weight scores followed by each component's documented parameter scores.
 /// Weights are simplex coordinates; their transform supplies the tangent pullback.
-impl<D: ParameterScore> ParameterScore for FiniteMixture<D> {
+impl<D: ParameterScore<Error = E>> ParameterScore for FiniteMixture<D> {
     fn parameter_count(&self) -> usize {
         self.weights.len()
             + self

@@ -7,7 +7,7 @@ make the capabilities of each law explicit.
 ## Evaluate and sample
 
 ```rust
-use alea::distribution::{ContinuousDistribution, Distribution, Sample};
+use alea::distribution::{ScalarEventScore, Distribution, Sample};
 use alea::distributions::scalar::Normal;
 use rand::{SeedableRng, rngs::SmallRng};
 
@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 `Normal::new` takes a mean and a standard deviation. Its `log_prob` includes the
-normalizing constant. This differs from `alea::distributions::Gaussian`, which is
+normalizing constant. This differs from `alea::distributions::StandardNormalTarget`, which is
 an unnormalized multivariate standard-normal target for inference examples.
 
 Sampling uses a random-number generator supplied by you. Record its seed when
@@ -226,3 +226,26 @@ variants are obtained by supplying unit scale and zero location, rather than
 adding aliases for the same law. `UniformSphere::new(2)` gives the unit circle;
 `UniformBall::new(2)` gives the unit disc. Dimension three gives the sphere and
 ball counterparts.
+
+## Events and measures
+
+`event_shape()` describes storage; `support()` describes the domain;
+`reference_measure()` says what the density is relative to. These are different
+properties. A four-component Dirichlet event stores four values, but its density
+uses three independent simplex coordinates. A sphere law uses surface area;
+a discrete law uses counting measure. A finite mixture requires a common event
+shape and reference measure, even when its components have different domains.
+
+`ScalarEventScore` supplies the derivative of log probability with respect to a
+scalar observation. It is separate from `ParameterScore`, which differentiates
+the law's parameters. Sampling returns an owned value that borrows the same event
+type accepted by `log_prob`. Each law retains its own evaluation error type.
+
+For a parameter-bound Wiener law, construct `Wiener4Law`, `Wiener5Law` or
+`Wiener7Law` with parameters and `WienerOptions`. These implement `Distribution`,
+`ParameterScore` and `Sample`. An event contains reaction time and response
+boundary; its joint density is relative to time Lebesgue measure times boundary
+counting measure. The lower-level Wiener evaluators remain available for fused
+calculations and numerical diagnostics. A bound law validates its parameters and
+keeps them immutable; evaluating a support zero returns negative infinity, while
+invalid observations and numerical failures remain errors.

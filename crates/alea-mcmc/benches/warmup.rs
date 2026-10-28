@@ -1,4 +1,4 @@
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::buffer::OwnedBuffer;
 use alea_mcmc::{
     HmcOptions,
@@ -112,7 +112,7 @@ fn bench(c: &mut Criterion) {
                 |b, _| b.iter(|| black_box(covariance.metric().unwrap())),
             );
         }
-        let target = Gaussian::new(8);
+        let target = StandardNormalTarget::new(8);
         group.bench_function(format!("hmc200/{kind:?}/8"), |b| {
             b.iter(|| {
                 let controller = HmcWarmup::new(
@@ -150,7 +150,7 @@ fn bench(c: &mut Criterion) {
         if low_rank && !cfg!(feature = "faer") {
             continue;
         }
-        let target = Gaussian::new(8);
+        let target = StandardNormalTarget::new(8);
         group.bench_function(
             if low_rank {
                 "warmup200/low_rank/d8"

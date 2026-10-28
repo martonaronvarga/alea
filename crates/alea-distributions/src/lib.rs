@@ -12,4 +12,4 @@ pub mod multivariate;
 pub mod prelude;
 pub mod scalar;
 pub mod wiener;
-pub use gaussian::Gaussian;
+pub use gaussian::StandardNormalTarget;

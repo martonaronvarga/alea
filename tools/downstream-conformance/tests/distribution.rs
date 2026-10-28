@@ -1,5 +1,5 @@
 use alea::distribution::{
-    ContinuousDistribution, Distribution, DistributionError, EventShape, ParameterScore, Support,
+    ScalarEventScore, Distribution, DistributionError, EventShape, ParameterScore, Support,
 };
 use alea_downstream_conformance::assert_distribution_conformance;
 
@@ -21,7 +21,7 @@ impl Distribution for ExternalNormal {
         Ok(-0.5 * (event - self.location).powi(2) - 0.5 * (2.0 * std::f64::consts::PI).ln())
     }
 }
-impl ContinuousDistribution for ExternalNormal {
+impl ScalarEventScore for ExternalNormal {
     fn event_score(&self, event: f64) -> Result<f64, DistributionError> {
         if !event.is_finite() {
             return Err(DistributionError::Observation);

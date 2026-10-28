@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exact time marginalization with Gaussian drift variability: Arb fixtures."""
+"""Exact time marginalization with StandardNormalTarget drift variability: Arb fixtures."""
 import csv,math
 from pathlib import Path
 from flint import arb

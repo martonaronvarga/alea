@@ -1,16 +1,16 @@
 use alea::target::{DimensionError, LogDensityGradient};
 
-pub(crate) struct Gaussian {
+pub(crate) struct StandardNormalTarget {
     dimension: usize,
 }
 
-impl Gaussian {
+impl StandardNormalTarget {
     pub(crate) const fn new(dimension: usize) -> Self {
         Self { dimension }
     }
 }
 
-impl LogDensityGradient for Gaussian {
+impl LogDensityGradient for StandardNormalTarget {
     type Error = DimensionError;
 
     fn dimension(&self) -> usize {

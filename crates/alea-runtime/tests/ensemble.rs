@@ -388,10 +388,10 @@ fn minimum_draw_policy_and_explicit_cancellation_are_enforced() {
 
 #[test]
 fn actual_nuts_draws_statistics_and_rng_match_across_execution_modes() {
-    use alea_distributions::Gaussian;
+    use alea_distributions::StandardNormalTarget;
     use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
     use alea_mcmc::{Nuts, NutsOptions, NutsTransition};
-    let target = Gaussian::new(4);
+    let target = StandardNormalTarget::new(4);
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(3)
         .build()

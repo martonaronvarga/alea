@@ -1,4 +1,4 @@
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::buffer::OwnedBuffer;
 use alea_mcmc::{
     NutsOptions,
@@ -7,7 +7,7 @@ use alea_mcmc::{
 use rand::{SeedableRng, rngs::SmallRng};
 #[test]
 fn coefficients_freeze_before_final_fast_and_retained_steps_keep_geometry() {
-    let target = Gaussian::new(3);
+    let target = StandardNormalTarget::new(3);
     let mut rng = SmallRng::seed_from_u64(781);
     let options = JointWarmupOptions::new(
         WarmupOptions::new(150),

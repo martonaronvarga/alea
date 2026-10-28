@@ -63,12 +63,21 @@ impl MultivariateStudentT {
     }
 }
 impl Distribution for MultivariateStudentT {
+    type Error = alea_core::distribution::DistributionError;
     type Event = [f64];
     fn event_shape(&self) -> EventShape {
         self.normal.event_shape()
     }
     fn support(&self) -> Support {
         Support::RealVector
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Lebesgue {
+            dimension: match self.event_shape() {
+                EventShape::Vector(n) => n,
+                _ => unreachable!(),
+            },
+        }
     }
     fn log_prob(&self, x: &[f64]) -> Result<f64, E> {
         let d = self.normal.mean.len();
@@ -188,12 +197,16 @@ impl DirichletMultinomial {
     }
 }
 impl Distribution for DirichletMultinomial {
+    type Error = alea_core::distribution::DistributionError;
     type Event = [u64];
     fn event_shape(&self) -> EventShape {
         EventShape::Vector(self.alpha.len())
     }
     fn support(&self) -> Support {
         Support::Count
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, x: &[u64]) -> Result<f64, E> {
         if !self.valid(x)? {
@@ -504,6 +517,7 @@ macro_rules! matrix_law {
             }
         }
         impl Distribution for $name {
+            type Error = alea_core::distribution::DistributionError;
             type Event = [f64];
             fn event_shape(&self) -> EventShape {
                 EventShape::Matrix {
@@ -513,6 +527,11 @@ macro_rules! matrix_law {
             }
             fn support(&self) -> Support {
                 Support::PositiveDefinite
+            }
+            fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+                alea_core::distribution::ReferenceMeasure::SymmetricMatrixCoordinates {
+                    order: self.0.d,
+                }
             }
             fn log_prob(&self, x: &[f64]) -> Result<f64, E> {
                 self.0.logp(x)
@@ -575,12 +594,18 @@ impl Lkj {
     }
 }
 impl Distribution for Lkj {
+    type Error = alea_core::distribution::DistributionError;
     type Event = [f64];
     fn event_shape(&self) -> EventShape {
         self.cholesky.event_shape()
     }
     fn support(&self) -> Support {
         Support::CorrelationMatrix
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::CorrelationCoordinates {
+            order: self.cholesky.dimension,
+        }
     }
     fn log_prob(&self, x: &[f64]) -> Result<f64, E> {
         let Some(l) = self.factor(x)? else {

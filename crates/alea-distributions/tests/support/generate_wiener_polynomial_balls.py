@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent continuous Acb enclosures for moderate Gaussian moments."""
+"""Independent continuous Acb enclosures for moderate StandardNormalTarget moments."""
 import csv,math
 from pathlib import Path
 from flint import arb,acb,ctx

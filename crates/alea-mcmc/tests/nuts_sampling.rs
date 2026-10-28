@@ -1,4 +1,4 @@
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{
     buffer::OwnedBuffer,
     metric::{
@@ -16,7 +16,7 @@ fn buffer(values: &[f64]) -> OwnedBuffer {
     OwnedBuffer::from_fn(values.len(), |i| values[i])
 }
 fn check<M: EuclideanMetric, I: Integrator + Copy>(metric: impl Fn() -> M, integrator: I) {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let mut batches = Vec::new();
     for (seed, position) in (601..605).flat_map(|seed| [(seed, false), (seed, true)]) {
         let mut chain = Nuts::new_with_integrator(

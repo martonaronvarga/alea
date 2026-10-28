@@ -1,4 +1,4 @@
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
     Hmc, HmcOptions,
@@ -7,7 +7,7 @@ use alea_mcmc::{
 use rand::{SeedableRng, rngs::SmallRng};
 #[test]
 fn full_atlas_exercises_all_branches_with_frozen_geometry_and_bounded_work() {
-    let t = Gaussian::new(3);
+    let t = StandardNormalTarget::new(3);
     let mut observed = [0_usize; 3];
     for baseline in [0.8, 1.5, 4.] {
         let mut rng = SmallRng::seed_from_u64(18001);

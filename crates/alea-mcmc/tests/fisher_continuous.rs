@@ -1,4 +1,4 @@
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{buffer::OwnedBuffer, metric::EuclideanMetric};
 use alea_mcmc::{
     HmcOptions,
@@ -190,7 +190,7 @@ fn controllers_find_the_same_log_step_root() {
 
 #[test]
 fn weighted_warmup_runs_each_controller_then_freezes_geometry() {
-    let target = Gaussian::new(3);
+    let target = StandardNormalTarget::new(3);
     for settings in settings() {
         let options = FisherOptions::new(1000)
             .with_step_adaptation(settings)
@@ -231,7 +231,7 @@ fn weighted_warmup_runs_each_controller_then_freezes_geometry() {
 
 #[test]
 fn zero_weighted_warmup_preserves_rng_and_initial_step_for_all_controllers() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     for settings in settings() {
         let mut rng = SmallRng::seed_from_u64(712);
         let mut control = rng.clone();
@@ -283,7 +283,7 @@ fn weighted_unweighted_low_rank_combination_is_explicitly_rejected() {
         .with_weighted_moments(DiminishingSchedule::new(1.0, 0.75).unwrap());
     assert!(
         FisherHmcWarmup::new(
-            &Gaussian::new(2),
+            &StandardNormalTarget::new(2),
             OwnedBuffer::new(2),
             HmcOptions::default(),
             options

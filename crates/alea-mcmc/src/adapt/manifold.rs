@@ -80,7 +80,7 @@ pub enum ManifoldTuningError {
     DynamicsCost,
     #[error("manifold warmup observation count overflow")]
     ObservationCount,
-    #[error("manifold Gaussian-process arithmetic is not finite positive definite")]
+    #[error("manifold StandardNormalTarget-process arithmetic is not finite positive definite")]
     Numerical,
     #[error("manifold tuner has no observation to freeze")]
     NoObservations,

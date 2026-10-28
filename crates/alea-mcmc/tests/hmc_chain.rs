@@ -3,7 +3,7 @@ use std::{cell::Cell, error::Error};
 use alea_math::buffer::OwnedBuffer;
 
 use alea_core::target::{EvaluationError, LogDensityGradient};
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::metric::{CholeskyFactor, DenseMetric, IdentityMetric};
 use alea_mcmc::hmc::{Divergence, Hmc, HmcConfigError, HmcError, HmcOptions, StepSize};
 use rand::{SeedableRng, rngs::SmallRng};
@@ -62,7 +62,7 @@ impl LogDensityGradient for Target {
                 Fault::Partial => return Ok(0.0),
             }
         }
-        Ok(Gaussian::new(q.len()).logp_grad(q, g).unwrap())
+        Ok(StandardNormalTarget::new(q.len()).logp_grad(q, g).unwrap())
     }
 }
 
@@ -109,7 +109,7 @@ fn construction_and_contract_errors_do_not_evaluate_or_advance_rng() {
         Err(HmcError::MetricDimension { .. })
     ));
     assert_eq!(target.calls.get(), 0);
-    let empty = Gaussian::new(0);
+    let empty = StandardNormalTarget::new(0);
     assert!(matches!(
         Hmc::new(
             &empty,
@@ -186,7 +186,7 @@ fn exactly_l_evaluations_per_trajectory_and_reset_refreshes_once() {
         let mut gradient = [0.0; 2];
         assert_eq!(
             chain.point().log_density(),
-            Gaussian::new(2)
+            StandardNormalTarget::new(2)
                 .logp_grad(chain.point().position(), &mut gradient)
                 .unwrap()
         );
@@ -284,7 +284,7 @@ fn invalid_target_outputs_are_typed_divergences_without_commit() {
 
 #[test]
 fn finite_energy_divergence_and_ordinary_rejection_are_distinct() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let mut divergent = Hmc::new(
         &target,
         initial(),

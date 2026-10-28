@@ -5,10 +5,10 @@ use std::ops::ControlFlow;
 
 #[test]
 fn nuts_streams_typed_transitions_through_the_existing_chain_boundary() {
-    use alea_distributions::Gaussian;
+    use alea_distributions::StandardNormalTarget;
     use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
     use alea_mcmc::{Nuts, NutsOptions};
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let mut chain = Nuts::new(
         &target,
         OwnedBuffer::new(2),
@@ -118,10 +118,10 @@ fn observer_panic_leaves_the_completed_transition_intact() {
 #[test]
 #[cfg(not(miri))]
 fn real_hmc_stream_includes_rejections_and_allocates_nothing() {
-    use alea_distributions::Gaussian;
+    use alea_distributions::StandardNormalTarget;
     use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
     use alea_mcmc::{Hmc, HmcOptions};
-    let target = Gaussian::new(4);
+    let target = StandardNormalTarget::new(4);
     let mut chain = Hmc::new(
         &target,
         OwnedBuffer::new(4),

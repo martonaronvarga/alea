@@ -22,12 +22,16 @@ impl BernoulliLogit {
     }
 }
 impl Distribution for BernoulliLogit {
+    type Error = alea_core::distribution::DistributionError;
     type Event = bool;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Finite { outcomes: 2 }
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, x: &bool) -> Result<f64, E> {
         Bernoulli::logit_log_prob(self.logit, *x)
@@ -76,12 +80,16 @@ impl BinomialLogit {
     }
 }
 impl Distribution for BinomialLogit {
+    type Error = alea_core::distribution::DistributionError;
     type Event = u64;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Count
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, k: &u64) -> Result<f64, E> {
         if *k > self.trials {
@@ -134,12 +142,16 @@ impl PoissonLog {
     }
 }
 impl Distribution for PoissonLog {
+    type Error = alea_core::distribution::DistributionError;
     type Event = u64;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
     }
     fn support(&self) -> Support {
         Support::Count
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, k: &u64) -> Result<f64, E> {
         if *k > 1 << 53 {

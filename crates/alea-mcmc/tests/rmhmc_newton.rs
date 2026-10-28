@@ -1,5 +1,5 @@
 use alea_core::capability::PositionMetric;
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::buffer::OwnedBuffer;
 use alea_mcmc::riemannian::{ExactnessPendingRmhmc, RmhmcOptions};
 use rand::{SeedableRng, rngs::SmallRng};
@@ -28,7 +28,7 @@ impl PositionMetric for Metric {
 }
 #[test]
 fn tight_newton_and_full_replay_charge_work_and_keep_live_cache_coherent() {
-    let target = Gaussian::new(2);
+    let target = StandardNormalTarget::new(2);
     let metric = Metric;
     let mut rng = SmallRng::seed_from_u64(1781);
     let options = RmhmcOptions::new(0.1, 4, 100, 1e-12)

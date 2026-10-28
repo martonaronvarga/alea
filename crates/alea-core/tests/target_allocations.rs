@@ -7,7 +7,7 @@ use std::{cell::Cell, hint::black_box};
 use alea_math::buffer::OwnedBuffer;
 
 use alea_core::target::{EvaluationWorkspace, LogDensityGradient, PointState};
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 
 #[derive(Debug, thiserror::Error)]
 #[error("outside model support")]
@@ -26,7 +26,9 @@ impl LogDensityGradient for Target {
         if self.0.get() {
             return Err(OutsideSupport);
         }
-        Ok(Gaussian::new(q.len()).logp_grad(q, gradient).unwrap())
+        Ok(StandardNormalTarget::new(q.len())
+            .logp_grad(q, gradient)
+            .unwrap())
     }
 }
 

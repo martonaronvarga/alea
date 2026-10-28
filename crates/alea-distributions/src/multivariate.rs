@@ -104,12 +104,21 @@ impl MultivariateNormal {
     }
 }
 impl Distribution for MultivariateNormal {
+    type Error = alea_core::distribution::DistributionError;
     type Event = [f64];
     fn event_shape(&self) -> EventShape {
         EventShape::Vector(self.mean.len())
     }
     fn support(&self) -> Support {
         Support::RealVector
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Lebesgue {
+            dimension: match self.event_shape() {
+                EventShape::Vector(n) => n,
+                _ => unreachable!(),
+            },
+        }
     }
     fn log_prob(&self, x: &[f64]) -> Result<f64, E> {
         let mut w = self.work.try_borrow_mut().map_err(|_| E::Numerical)?;
@@ -224,12 +233,18 @@ impl Dirichlet {
     }
 }
 impl Distribution for Dirichlet {
+    type Error = alea_core::distribution::DistributionError;
     type Event = [f64];
     fn event_shape(&self) -> EventShape {
         EventShape::Vector(self.alpha.len())
     }
     fn support(&self) -> Support {
         Support::Simplex
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::SimplexCoordinates {
+            components: self.alpha.len(),
+        }
     }
     fn log_prob(&self, x: &[f64]) -> Result<f64, E> {
         if x.len() != self.alpha.len() {
@@ -309,6 +324,7 @@ impl Categorical {
     }
 }
 impl Distribution for Categorical {
+    type Error = alea_core::distribution::DistributionError;
     type Event = usize;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar
@@ -317,6 +333,9 @@ impl Distribution for Categorical {
         Support::Finite {
             outcomes: self.probabilities.len(),
         }
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, x: &usize) -> Result<f64, E> {
         Ok(self.probabilities.get(*x).copied().unwrap_or(0.0).ln())
@@ -382,12 +401,16 @@ impl Multinomial {
     }
 }
 impl Distribution for Multinomial {
+    type Error = alea_core::distribution::DistributionError;
     type Event = [u64];
     fn event_shape(&self) -> EventShape {
         EventShape::Vector(self.categorical.probabilities.len())
     }
     fn support(&self) -> Support {
         Support::Count
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::Counting
     }
     fn log_prob(&self, x: &[u64]) -> Result<f64, E> {
         if x.len() != self.categorical.probabilities.len() {
@@ -520,6 +543,7 @@ impl LkjCholesky {
     }
 }
 impl Distribution for LkjCholesky {
+    type Error = alea_core::distribution::DistributionError;
     type Event = [f64];
     fn event_shape(&self) -> EventShape {
         EventShape::Matrix {
@@ -529,6 +553,11 @@ impl Distribution for LkjCholesky {
     }
     fn support(&self) -> Support {
         Support::CorrelationCholesky
+    }
+    fn reference_measure(&self) -> alea_core::distribution::ReferenceMeasure {
+        alea_core::distribution::ReferenceMeasure::CorrelationCholeskyCoordinates {
+            order: self.dimension,
+        }
     }
     fn log_prob(&self, l: &[f64]) -> Result<f64, E> {
         if !self.valid(l)? {

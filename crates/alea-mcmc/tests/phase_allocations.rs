@@ -1,6 +1,6 @@
 #![cfg(not(miri))]
 use alea_core::target::{EvaluationWorkspace, PointState};
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::buffer::OwnedBuffer;
 use alea_math::metric::IdentityMetric;
 use alea_mcmc::hamiltonian::{PhaseState, PhaseWorkspace, SignedStep};
@@ -11,7 +11,7 @@ mod targets;
 #[test]
 fn phase_restart_snapshot_clone_and_update_allocate_nothing() {
     for dim in [1, 7, 33, 129] {
-        let target = Gaussian::new(dim);
+        let target = StandardNormalTarget::new(dim);
         let initial = PhaseState::new(
             PointState::new(&target, OwnedBuffer::new(dim)).unwrap(),
             OwnedBuffer::from_fn(dim, |_| 0.5),

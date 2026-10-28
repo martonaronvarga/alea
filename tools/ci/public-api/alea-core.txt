@@ -197,6 +197,9 @@ impl core::marker::StructuralPartialEq for alea_core::distribution::Distribution
 pub alea_core::distribution::EventShape::Matrix
 pub alea_core::distribution::EventShape::Matrix::columns: usize
 pub alea_core::distribution::EventShape::Matrix::rows: usize
+pub alea_core::distribution::EventShape::Mixed
+pub alea_core::distribution::EventShape::Mixed::continuous: usize
+pub alea_core::distribution::EventShape::Mixed::discrete: usize
 pub alea_core::distribution::EventShape::Scalar
 pub alea_core::distribution::EventShape::Vector(usize)
 impl core::clone::Clone for alea_core::distribution::EventShape
@@ -208,6 +211,33 @@ impl core::fmt::Debug for alea_core::distribution::EventShape
 pub fn alea_core::distribution::EventShape::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_core::distribution::EventShape
 impl core::marker::StructuralPartialEq for alea_core::distribution::EventShape
+#[non_exhaustive] pub enum alea_core::distribution::ReferenceMeasure
+pub alea_core::distribution::ReferenceMeasure::CorrelationCholeskyCoordinates
+pub alea_core::distribution::ReferenceMeasure::CorrelationCholeskyCoordinates::order: usize
+pub alea_core::distribution::ReferenceMeasure::CorrelationCoordinates
+pub alea_core::distribution::ReferenceMeasure::CorrelationCoordinates::order: usize
+pub alea_core::distribution::ReferenceMeasure::Counting
+pub alea_core::distribution::ReferenceMeasure::Lebesgue
+pub alea_core::distribution::ReferenceMeasure::Lebesgue::dimension: usize
+pub alea_core::distribution::ReferenceMeasure::LebesgueCounting
+pub alea_core::distribution::ReferenceMeasure::LebesgueCounting::dimension: usize
+pub alea_core::distribution::ReferenceMeasure::SimplexCoordinates
+pub alea_core::distribution::ReferenceMeasure::SimplexCoordinates::components: usize
+pub alea_core::distribution::ReferenceMeasure::SphereSurface
+pub alea_core::distribution::ReferenceMeasure::SphereSurface::ambient_dimension: usize
+pub alea_core::distribution::ReferenceMeasure::SymmetricMatrixCoordinates
+pub alea_core::distribution::ReferenceMeasure::SymmetricMatrixCoordinates::order: usize
+impl alea_core::distribution::ReferenceMeasure
+pub fn alea_core::distribution::ReferenceMeasure::dimension(self) -> core::option::Option<usize>
+impl core::clone::Clone for alea_core::distribution::ReferenceMeasure
+pub fn alea_core::distribution::ReferenceMeasure::clone(&self) -> alea_core::distribution::ReferenceMeasure
+impl core::cmp::Eq for alea_core::distribution::ReferenceMeasure
+impl core::cmp::PartialEq for alea_core::distribution::ReferenceMeasure
+pub fn alea_core::distribution::ReferenceMeasure::eq(&self, other: &alea_core::distribution::ReferenceMeasure) -> bool
+impl core::fmt::Debug for alea_core::distribution::ReferenceMeasure
+pub fn alea_core::distribution::ReferenceMeasure::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::distribution::ReferenceMeasure
+impl core::marker::StructuralPartialEq for alea_core::distribution::ReferenceMeasure
 #[non_exhaustive] pub enum alea_core::distribution::Support
 pub alea_core::distribution::Support::Circle
 pub alea_core::distribution::Support::CorrelationCholesky
@@ -224,6 +254,7 @@ pub alea_core::distribution::Support::PositiveDefinite
 pub alea_core::distribution::Support::Real
 pub alea_core::distribution::Support::RealVector
 pub alea_core::distribution::Support::Simplex
+pub alea_core::distribution::Support::Union
 pub alea_core::distribution::Support::UnitBall
 pub alea_core::distribution::Support::UnitInterval
 pub alea_core::distribution::Support::UnitSphere
@@ -236,20 +267,22 @@ impl core::fmt::Debug for alea_core::distribution::Support
 pub fn alea_core::distribution::Support::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_core::distribution::Support
 impl core::marker::StructuralPartialEq for alea_core::distribution::Support
-pub trait alea_core::distribution::ContinuousDistribution: alea_core::distribution::Distribution<Event = f64>
-pub fn alea_core::distribution::ContinuousDistribution::event_score(&self, event: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub trait alea_core::distribution::Distribution
+pub type alea_core::distribution::Distribution::Error: core::error::Error + core::marker::Send + core::marker::Sync + core::convert::From<alea_core::distribution::DistributionError> + 'static
 pub type alea_core::distribution::Distribution::Event: ?core::marker::Sized
 pub fn alea_core::distribution::Distribution::event_shape(&self) -> alea_core::distribution::EventShape
-pub fn alea_core::distribution::Distribution::log_prob(&self, event: &Self::Event) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_core::distribution::Distribution::log_prob(&self, event: &Self::Event) -> core::result::Result<f64, Self::Error>
+pub fn alea_core::distribution::Distribution::reference_measure(&self) -> alea_core::distribution::ReferenceMeasure
 pub fn alea_core::distribution::Distribution::support(&self) -> alea_core::distribution::Support
 pub trait alea_core::distribution::ParameterScore: alea_core::distribution::Distribution
 pub fn alea_core::distribution::ParameterScore::parameter_count(&self) -> usize
-pub fn alea_core::distribution::ParameterScore::parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+pub fn alea_core::distribution::ParameterScore::parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> core::result::Result<(), Self::Error>
 pub trait alea_core::distribution::Sample: alea_core::distribution::Distribution
-pub type alea_core::distribution::Sample::Draw
-pub fn alea_core::distribution::Sample::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<Self::Draw, alea_core::distribution::DistributionError>
-pub fn alea_core::distribution::log_prob_batch<D: alea_core::distribution::Distribution<Event = f64>>(distribution: &D, observations: &[f64], output: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
+pub type alea_core::distribution::Sample::Draw: core::borrow::Borrow<Self::Event>
+pub fn alea_core::distribution::Sample::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<Self::Draw, Self::Error>
+pub trait alea_core::distribution::ScalarEventScore: alea_core::distribution::Distribution<Event = f64>
+pub fn alea_core::distribution::ScalarEventScore::event_score(&self, event: f64) -> core::result::Result<f64, Self::Error>
+pub fn alea_core::distribution::log_prob_batch<D: alea_core::distribution::Distribution<Event = f64>>(distribution: &D, observations: &[f64], output: &mut [f64]) -> core::result::Result<(), <D as alea_core::distribution::Distribution>::Error>
 pub mod alea_core::model
 pub mod alea_core::model::assembly
 #[non_exhaustive] pub enum alea_core::model::assembly::AssemblyError

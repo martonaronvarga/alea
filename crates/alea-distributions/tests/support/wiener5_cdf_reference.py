@@ -1,4 +1,4 @@
-"""Gaussian-drift-averaged integrated images, independently enclosed with Acb.
+"""StandardNormalTarget-drift-averaged integrated images, independently enclosed with Acb.
 
 E[exp(kV) Phi(A+B V)] = exp(kv+k²s²/2)
     Phi((A+B(v+ks²))/sqrt(1+B²s²)).
@@ -104,7 +104,7 @@ def tails(t,a,v,s,qlo,qhi,k):
 
 
 def evaluate(params,goal='1e-14',max_precision=384,progress=None):
-    """Continuous start average of two exact Gaussian-drift CDFs.
+    """Continuous start average of two exact StandardNormalTarget-drift CDFs.
 
     Same exact-binary64 parameter order as wiener7_reference.evaluate.
     Time width must be positive. Both clipped and unclipped time are supported.
@@ -151,5 +151,5 @@ def evaluate(params,goal='1e-14',max_precision=384,progress=None):
             if not values[0]>0:continue
             result=[(values[0]*scale/st).log()]+[x/values[0] for x in values[1:]]+[low_density/values[0]-1/st]
             if all(x.is_finite() and x.rad()<arb(goal)*(1+abs(x.mid())) for x in result):
-                return result,{'precision':precision,'terms':k,'time_integration':'analytic Gaussian-drift CDF','start_integration':'continuous Acb quadrature'}
+                return result,{'precision':precision,'terms':k,'time_integration':'analytic StandardNormalTarget-drift CDF','start_integration':'continuous Acb quadrature'}
     raise ArithmeticError('CDF reference work/precision budget exhausted')

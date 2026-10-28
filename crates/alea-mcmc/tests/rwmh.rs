@@ -1,5 +1,5 @@
 use alea_core::{density::LogDensity, target::EvaluationError};
-use alea_distributions::Gaussian;
+use alea_distributions::StandardNormalTarget;
 use alea_math::{
     buffer::OwnedBuffer,
     metric::{CholeskyFactor, DenseMetric, DiagonalMetric, EuclideanMetric, IdentityMetric},
@@ -35,7 +35,7 @@ impl LogDensity for Target {
             4 => return Ok(f64::NAN),
             _ => {}
         }
-        Ok(Gaussian::new(q.len()).logp(q).unwrap())
+        Ok(StandardNormalTarget::new(q.len()).logp(q).unwrap())
     }
 }
 
@@ -46,7 +46,7 @@ fn validated_configuration_and_dimensions() {
     }
     assert!(matches!(
         Rwmh::new(
-            &Gaussian::new(0),
+            &StandardNormalTarget::new(0),
             OwnedBuffer::new(0),
             IdentityMetric::new(0),
             RwmhOptions::new(1.0).unwrap()
@@ -55,7 +55,7 @@ fn validated_configuration_and_dimensions() {
     ));
     assert!(matches!(
         Rwmh::new(
-            &Gaussian::new(2),
+            &StandardNormalTarget::new(2),
             OwnedBuffer::new(2),
             IdentityMetric::new(1),
             RwmhOptions::new(1.0).unwrap()
@@ -121,7 +121,7 @@ fn errors_panics_and_numerical_rejections_preserve_cache_and_recover() {
 #[cfg_attr(miri, ignore = "long statistical gate; native CI covers it")]
 fn gaussian_moments_for_all_proposal_covariances() {
     fn check<M: EuclideanMetric>(metric: M) {
-        let target = Gaussian::new(2);
+        let target = StandardNormalTarget::new(2);
         let mut chain = Rwmh::new(
             &target,
             OwnedBuffer::new(2),
@@ -159,7 +159,7 @@ fn gaussian_moments_for_all_proposal_covariances() {
 #[test]
 #[cfg(not(miri))]
 fn first_and_repeated_transitions_allocate_nothing() {
-    let target = Gaussian::new(33);
+    let target = StandardNormalTarget::new(33);
     let mut chain = Rwmh::new(
         &target,
         OwnedBuffer::new(33),
@@ -179,7 +179,7 @@ fn first_and_repeated_transitions_allocate_nothing() {
 
 #[test]
 fn density_only_transitions_match_original_polar_and_metropolis_recurrence() {
-    let target = Gaussian::new(1);
+    let target = StandardNormalTarget::new(1);
     let mut chain = Rwmh::new(
         &target,
         OwnedBuffer::from_fn(1, |_| 0.7),
