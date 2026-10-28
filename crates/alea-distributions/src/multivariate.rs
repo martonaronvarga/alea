@@ -8,6 +8,8 @@ use alea_core::distribution::{
 use rand::Rng;
 use statrs::function::gamma::{digamma, ln_gamma};
 use std::{cell::RefCell, f64::consts::PI};
+mod families;
+pub use families::*;
 fn simplex(x: &[f64]) -> Result<bool, E> {
     if x.iter().any(|v| v.is_nan()) {
         return Err(E::Observation);

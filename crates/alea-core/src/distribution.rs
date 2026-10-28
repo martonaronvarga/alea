@@ -31,6 +31,8 @@ pub enum Support {
     RealVector,
     Simplex,
     CorrelationCholesky,
+    /// Correlation matrices with respect to their free off-diagonal entries.
+    CorrelationMatrix,
     /// A finite interval in the real line (bounds belong to the law).
     Interval,
     /// A half-line with a law-specific finite lower endpoint.
