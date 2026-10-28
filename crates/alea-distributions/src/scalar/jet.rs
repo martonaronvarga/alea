@@ -70,7 +70,7 @@ impl<const N: usize> Jet<N> {
         self.map(ln_gamma(self.v), digamma(self.v))
     }
     pub fn softplus(self) -> Self {
-        let v = self.v.max(0.0) + (-self.v.abs()).exp().ln_1p();
+        let v = alea_math::numeric::softplus(self.v);
         let slope = alea_math::numeric::sigmoid(self.v);
         self.map(v, slope)
     }

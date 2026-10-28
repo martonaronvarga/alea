@@ -4,6 +4,7 @@ use super::{checked, finite, standard_normal, uniform};
 use alea_core::distribution::{
     Distribution, DistributionError as E, EventShape, ParameterScore, Sample, Support,
 };
+use alea_math::numeric::softplus;
 use rand::Rng;
 #[derive(Debug, Clone, PartialEq)]
 struct Ordered {
@@ -118,9 +119,6 @@ impl Ordered {
         }
         Ok(self.cuts.partition_point(|c| *c < latent))
     }
-}
-fn softplus(x: f64) -> f64 {
-    x.max(0.0) + (-x.abs()).exp().ln_1p()
 }
 macro_rules! ordered {
     ($name:ident,$probit:literal,$doc:literal) => {

@@ -3,12 +3,9 @@ use super::{Bernoulli, Binomial, Poisson, finite, score, uniform};
 use alea_core::distribution::{
     Distribution, DistributionError as E, EventShape, ParameterScore, Sample, Support,
 };
-use alea_math::numeric::sigmoid;
+use alea_math::numeric::{sigmoid, softplus};
 use rand::Rng;
 use statrs::function::gamma::ln_gamma;
-fn softplus(x: f64) -> f64 {
-    x.max(0.0) + (-x.abs()).exp().ln_1p()
-}
 /// Bernoulli in log-odds coordinates. Score order: log odds; bool events.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[must_use]

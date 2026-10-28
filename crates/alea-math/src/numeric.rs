@@ -33,16 +33,10 @@ pub fn logit(p: f64) -> f64 {
 /// Evaluates `ln(1 + exp(x))` with tail branches that avoid overflow.
 ///
 /// Negative infinity gives zero, positive infinity gives infinity, and NaN
-/// propagates. The tail branches use the corresponding asymptotic expressions.
+/// propagates. `ln_1p` preserves the small positive tail without an asymptotic cutoff.
 #[inline(always)]
 pub fn softplus(x: f64) -> f64 {
-    if x > 30.0 {
-        x
-    } else if x < -30.0 {
-        x.exp()
-    } else {
-        (1.0 + x.exp()).ln()
-    }
+    x.max(0.0) + (-x.abs()).exp().ln_1p()
 }
 
 /// Log logistic probability without first rounding the probability to an endpoint.
@@ -130,6 +124,31 @@ impl pulp::WithSimd for FirstNonfinite<'_> {
 #[cfg(test)]
 mod finite_tests {
     use super::*;
+    #[test]
+    fn logistic_primitives_preserve_small_log_probabilities() {
+        // Independently rounded high-precision values of log(1+exp(x)).
+        let fixtures: [(f64, f64); 6] = [
+            (-40.0, 4.248354255291589e-18),
+            (-30.0, 9.357622968839737e-14),
+            (-20.0, 2.061153620314381e-9),
+            (-1.0, 0.31326168751822286),
+            (0.0, std::f64::consts::LN_2),
+            (1.0, 1.3132616875182228),
+        ];
+        for (x, expected) in fixtures {
+            let actual = softplus(x);
+            assert!(
+                actual.to_bits().abs_diff(expected.to_bits()) <= 2,
+                "x={x}: {actual} != {expected}"
+            );
+            assert_eq!(log_sigmoid(-x), -actual);
+            assert_eq!(log1m_sigmoid(x), -actual);
+        }
+        assert_eq!(softplus(f64::NEG_INFINITY), 0.0);
+        assert_eq!(softplus(f64::INFINITY), f64::INFINITY);
+        assert_eq!(softplus(f64::MAX), f64::MAX);
+        assert!(softplus(f64::NAN).is_nan());
+    }
     #[test]
     fn finite_check_preserves_first_error_across_lanes_tails_and_alignment() {
         // Keep every error position and alignment through scalar, chunk and
