@@ -8,14 +8,14 @@ use alea_math::{
 };
 use alea_mcmc::{
     Nuts, NutsOptions,
-    integrator::{Integrator, Leapfrog, TwoStage},
+    integrator::{Leapfrog, SymmetricSplitting, TwoStage},
     nuts::NutsTermination,
 };
 use rand::{SeedableRng, rngs::SmallRng};
 fn buffer(values: &[f64]) -> OwnedBuffer {
     OwnedBuffer::from_fn(values.len(), |i| values[i])
 }
-fn check<M: EuclideanMetric, I: Integrator + Copy>(metric: impl Fn() -> M, integrator: I) {
+fn check<M: EuclideanMetric, I: SymmetricSplitting + Copy>(metric: impl Fn() -> M, integrator: I) {
     let target = StandardNormalTarget::new(2);
     let mut batches = Vec::new();
     for (seed, position) in (601..605).flat_map(|seed| [(seed, false), (seed, true)]) {

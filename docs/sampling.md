@@ -22,12 +22,12 @@ A session selects the kernel with its corresponding checked options:
 
 ```rust
 use alea::sampling::{HmcOptions, NutsOptions, RwmhOptions};
-use alea::session::Kernel;
+use alea::session::SamplerConfig;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let nuts = Kernel::Nuts(NutsOptions::new(0.2, 8)?);
-    let hmc = Kernel::Hmc(HmcOptions::new(0.1, 10)?);
-    let metropolis = Kernel::Rwmh(RwmhOptions::new(0.5)?);
+    let nuts = SamplerConfig::Nuts(NutsOptions::new(0.2, 8)?);
+    let hmc = SamplerConfig::Hmc(HmcOptions::new(0.1, 10)?);
+    let metropolis = SamplerConfig::Rwmh(RwmhOptions::new(0.5)?);
     let _ = (nuts, hmc, metropolis);
     Ok(())
 }
@@ -109,3 +109,9 @@ Their API documentation states the applicable assumptions and limitations.
 an exact-target sampler. `ExactnessPendingRmhmc` has unresolved numerical-map
 reversibility and volume obligations. These names describe material differences
 in the methods, not alternative names for ordinary Euclidean HMC.
+
+`StepSize` describes a positive integration step. `ProposalScale` describes a
+positive random-walk proposal scale. Both are validated types in
+`alea::sampling::config`; `RwmhOptions::proposal_scale()` and
+`Rwmh::set_proposal_scale()` use the latter. Warmup adapts these quantities before
+retained sampling and reports the proposal scale separately for RWMH.

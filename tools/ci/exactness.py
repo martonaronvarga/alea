@@ -32,7 +32,7 @@ def discover_transitions(root: Path) -> set[str]:
 def discover_proposals(root: Path) -> set[str]:
     """Sealed integrators and public phase/batch proposal entry points."""
     text = (root / "tools/ci/public-api/alea-mcmc.txt").read_text()
-    integrators = set(re.findall(r"Integrator for (alea_mcmc::integrator::[A-Za-z0-9_]+)", text))
+    integrators = set(re.findall(r"SymmetricSplitting for (alea_mcmc::integrator::[A-Za-z0-9_]+)", text))
     methods = set(re.findall(r"pub fn (alea_mcmc::(?:hamiltonian::Phase|batch::BatchedLeapfrog))<[^\n]*?::(step_with|step|advance)[<(]", text))
     return integrators | {f"{owner}::{method}" for owner, method in methods}
 

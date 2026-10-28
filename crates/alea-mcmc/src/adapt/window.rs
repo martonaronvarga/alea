@@ -2,7 +2,7 @@
 use super::{
     AdaptationError, CovarianceError, DualAveraging, MetricKind, OnlineCovariance, WarmupMetric,
 };
-use crate::integrator::{Integrator, Leapfrog};
+use crate::integrator::{Leapfrog, SymmetricSplitting};
 use crate::{
     Hmc, HmcOptions,
     config::{AcceptanceTarget, StepSize},
@@ -237,7 +237,7 @@ where
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
     R: Rng + ?Sized,
-    I: Integrator,
+    I: SymmetricSplitting,
 {
     let mut step = chain
         .options()
@@ -348,7 +348,7 @@ impl<'a, T: LogDensityGradient + ?Sized> HmcWarmup<'a, T> {
         Self::new_with_integrator(target, position, hmc, options, Leapfrog)
     }
 }
-impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> HmcWarmup<'a, T, I> {
+impl<'a, T: LogDensityGradient + ?Sized, I: SymmetricSplitting> HmcWarmup<'a, T, I> {
     /// Construct the initial kernel and its reusable adaptation workspace.
     /// No covariance storage is allocated for fewer than 20 transitions.
     ///

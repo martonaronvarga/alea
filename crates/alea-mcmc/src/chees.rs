@@ -19,7 +19,7 @@ use crate::{
     canonical::metropolis,
     hamiltonian::{Divergence, PhaseError, PhaseWorkspace, SignedStep},
     hmc::{HmcConfigError, HmcError},
-    integrator::{Integrator, Leapfrog},
+    integrator::{Leapfrog, SymmetricSplitting},
 };
 
 /// Fixed retained-sampling settings for randomized static HMC.
@@ -122,7 +122,7 @@ impl<'a, T, M, I> CheesHmc<'a, T, M, I>
 where
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
-    I: Integrator,
+    I: SymmetricSplitting,
 {
     /// Constructs the retained kernel with a validated symmetric integrator.
     ///
@@ -238,7 +238,7 @@ where
 impl<'a, T, I> CheesHmc<'a, T, IdentityMetric, I>
 where
     T: LogDensityGradient + ?Sized,
-    I: Integrator,
+    I: SymmetricSplitting,
 {
     /// Forms the paper's identity-coordinate warmup observation from the most
     /// recent transition. Divergences report the initial point and zero velocity.
@@ -277,7 +277,7 @@ impl<T, M, I> MarkovChain for CheesHmc<'_, T, M, I>
 where
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
-    I: Integrator,
+    I: SymmetricSplitting,
 {
     type Error = HmcError<T::Error>;
     type Transition = CheesHmcTransition;

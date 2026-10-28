@@ -108,7 +108,7 @@ fn mclmc_recovers_only_in_warmup_and_charges_failed_macrosteps() {
     t.mode.set(5);
     assert!(matches!(
         warmup_mclmc_step_size(chain, MclmcWarmupOptions::new(10), &mut rng),
-        Err(alea_mcmc::adapt::StaticWarmupError::Kernel(
+        Err(alea_mcmc::adapt::StaticWarmupError::SamplerConfig(
             MamsError::Evaluation {
                 source: EvaluationError::Model(Backend),
                 ..

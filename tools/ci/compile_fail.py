@@ -26,6 +26,9 @@ class Case:
 
 
 CASES = (
+    Case("vector_domain_mismatch", "E0308", ("Simplex", "Real")),
+    Case("matrix_layout_mismatch", "E0308", ("RowMajor", "ColumnMajor")),
+    Case("sample_event_mismatch", "E0277", ("Borrow<f64>", "bool")),
     Case("parameter_support_mismatch", "E0308", ("Positive", "Real")),
     Case("phase_reuse", "E0382", ("phase", "moved")),
     Case("adaptation_after_freeze", "E0382", ("warmup", "moved")),

@@ -3,7 +3,7 @@
 #![deny(missing_docs)]
 use crate::{
     MarkovChain,
-    config::{SamplerConfigError, StepSize},
+    config::{ProposalScale, SamplerConfigError},
 };
 use alea_core::{
     density::{DensityPoint, LogDensity},
@@ -20,21 +20,21 @@ use rand::{Rng, RngExt};
 #[must_use]
 /// Validated fixed-scale random-walk proposal settings.
 pub struct RwmhOptions {
-    step_size: StepSize,
+    proposal_scale: ProposalScale,
 }
 impl RwmhOptions {
     /// Validates a finite, strictly positive proposal scale.
     ///
     /// # Errors
-    /// Returns [`SamplerConfigError`] when `step_size` is non-finite or not positive.
-    pub fn new(step_size: f64) -> Result<Self, SamplerConfigError> {
+    /// Returns [`SamplerConfigError`] when `proposal_scale` is non-finite or not positive.
+    pub fn new(proposal_scale: f64) -> Result<Self, SamplerConfigError> {
         Ok(Self {
-            step_size: StepSize::try_from(step_size)?,
+            proposal_scale: ProposalScale::try_from(proposal_scale)?,
         })
     }
     /// Validated proposal scale.
-    pub fn step_size(self) -> StepSize {
-        self.step_size
+    pub fn proposal_scale(self) -> ProposalScale {
+        self.proposal_scale
     }
 }
 
@@ -146,8 +146,8 @@ impl<'a, T: LogDensity + ?Sized, M: EuclideanMetric> Rwmh<'a, T, M> {
         self
     }
     /// Installs an already validated scale; cache and RNG are untouched.
-    pub fn set_step_size(&mut self, step_size: StepSize) {
-        self.options.step_size = step_size;
+    pub fn set_proposal_scale(&mut self, proposal_scale: ProposalScale) {
+        self.options.proposal_scale = proposal_scale;
     }
     /// Re-evaluates and transactionally installs a new retained position.
     ///
@@ -188,7 +188,7 @@ impl<'a, T: LogDensity + ?Sized, M: EuclideanMetric> Rwmh<'a, T, M> {
         self.metric
             .sample_momentum(&self.noise, &mut self.position)?;
         for (p, q) in self.position.iter_mut().zip(self.point.position()) {
-            *p = q + self.options.step_size.value() * *p;
+            *p = q + self.options.proposal_scale.value() * *p;
         }
         if let Err(error) = self.proposal.try_update(&self.position) {
             let reason = match error {

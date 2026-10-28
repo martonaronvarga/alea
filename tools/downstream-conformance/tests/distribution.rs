@@ -1,5 +1,5 @@
 use alea::distribution::{
-    ScalarEventScore, Distribution, DistributionError, EventShape, ParameterScore, Support,
+    Distribution, DistributionError, EventShape, ParameterScore, ScalarEventScore, Support,
 };
 use alea_downstream_conformance::assert_distribution_conformance;
 
@@ -7,6 +7,10 @@ struct ExternalNormal {
     location: f64,
 }
 impl Distribution for ExternalNormal {
+    type Error = DistributionError;
+    fn reference_measure(&self) -> alea::distribution::ReferenceMeasure {
+        alea::distribution::ReferenceMeasure::Lebesgue { dimension: 1 }
+    }
     type Event = f64;
     fn event_shape(&self) -> EventShape {
         EventShape::Scalar

@@ -138,7 +138,7 @@ pub fn warmup_mclmc_step_size<'a, T: LogDensityGradient + ?Sized, R: Rng + ?Size
                 coefficients = ErrorVariance::default();
                 continue;
             }
-            Err(error) => return Err(StaticWarmupError::Kernel(error)),
+            Err(error) => return Err(StaticWarmupError::SamplerConfig(error)),
         };
         let error = o.correction_error / dimension.sqrt();
         coefficients.update(error, step);

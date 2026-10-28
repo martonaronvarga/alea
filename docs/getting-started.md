@@ -23,7 +23,7 @@ use alea::sampling::{NutsOptions, adapt::MetricKind};
 use alea::target::LogDensityGradient;
 use alea::{
     ensemble::Execution,
-    session::{Kernel, SessionBuilder, Warmup, storage::Discard},
+    session::{SamplerConfig, SessionBuilder, Warmup, storage::Discard},
 };
 use std::convert::Infallible;
 
@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .seed([17; 32])
     .draws(1_000)
-    .kernel(Kernel::Nuts(NutsOptions::new(0.2, 8)?))
+    .sampler(SamplerConfig::Nuts(NutsOptions::new(0.2, 8)?))
     .warmup(Warmup::Covariance {
         iterations: 500,
         metric: MetricKind::Diagonal,

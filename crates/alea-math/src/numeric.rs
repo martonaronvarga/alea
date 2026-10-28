@@ -30,7 +30,7 @@ pub fn logit(p: f64) -> f64 {
     (p / (1.0 - p)).ln()
 }
 
-/// Evaluates `ln(1 + exp(x))` with tail branches that avoid overflow.
+/// Evaluates `ln(1 + exp(x))` without overflowing the exponential.
 ///
 /// Negative infinity gives zero, positive infinity gives infinity, and NaN
 /// propagates. `ln_1p` preserves the small positive tail without an asymptotic cutoff.
@@ -121,6 +121,26 @@ impl pulp::WithSimd for FirstNonfinite<'_> {
     }
 }
 
+/// Max-scaled Euclidean norm, avoiding overflow in the sum of squares for finite
+/// inputs. A nonrepresentable result is infinite; any nonfinite input yields NaN.
+pub fn scaled_norm(values: &[f64]) -> f64 {
+    if values.iter().any(|x| !x.is_finite()) {
+        return f64::NAN;
+    }
+    let scale = values
+        .iter()
+        .fold(0.0_f64, |scale, value| scale.max(value.abs()));
+    if scale == 0.0 {
+        return 0.0;
+    }
+    scale
+        * values
+            .iter()
+            .map(|value| (value / scale) * (value / scale))
+            .sum::<f64>()
+            .sqrt()
+}
+
 #[cfg(test)]
 mod finite_tests {
     use super::*;
@@ -178,5 +198,14 @@ mod finite_tests {
                 }
             }
         }
+    }
+    #[test]
+    fn norm_preserves_extreme_finite_scales_and_rejects_nonfinite_inputs() {
+        assert_eq!(scaled_norm(&[]), 0.);
+        assert_eq!(scaled_norm(&[3., 4.]), 5.);
+        assert!((scaled_norm(&[3e200, 4e200]) / 5e200 - 1.).abs() < 1e-15);
+        assert_eq!(scaled_norm(&[f64::from_bits(1)]), f64::from_bits(1));
+        assert!(scaled_norm(&[f64::INFINITY]).is_nan());
+        assert!(scaled_norm(&[f64::NAN]).is_nan());
     }
 }

@@ -133,7 +133,7 @@ impl Wiener7 {
         };
         hcubature_into(
             16,
-            Bounds::new(&core.xmin, &core.xmax),
+            Bounds::try_new(&core.xmin, &core.xmax).expect("validated cubature bounds"),
             core.opts,
             &mut val,
             &mut err,

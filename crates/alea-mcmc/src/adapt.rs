@@ -177,8 +177,8 @@ pub struct WarmupSummary {
     pub iterations: usize,
     /// Number of accepted proposals.
     pub accepted: usize,
-    /// Validated proposal or integration step size.
-    pub step_size: StepSize,
+    /// Validated random-walk proposal scale.
+    pub proposal_scale: crate::config::ProposalScale,
 }
 impl WarmupSummary {
     #[must_use]
@@ -209,27 +209,31 @@ where
     M: EuclideanMetric,
     R: rand::Rng + ?Sized,
 {
-    let mut adapter = target.map(|target| DualAveraging::new(chain.options().step_size(), target));
+    let mut adapter =
+        target.map(|target| DualAveraging::new(chain.options().proposal_scale().into(), target));
     let mut accepted = 0;
     for _ in 0..iterations {
         let transition = chain.step(rng)?;
         accepted += usize::from(transition.accepted);
         if let Some(adapter) = &mut adapter {
-            chain.set_step_size(
-                adapter.update(transition.acceptance_probability).expect(
-                    "RWMH produces a finite probability and iterations are bounded by usize",
-                ),
+            chain.set_proposal_scale(
+                adapter
+                    .update(transition.acceptance_probability)
+                    .expect(
+                        "RWMH produces a finite probability and iterations are bounded by usize",
+                    )
+                    .into(),
             );
         }
     }
     if iterations > 0
         && let Some(adapter) = adapter
     {
-        chain.set_step_size(adapter.finish());
+        chain.set_proposal_scale(adapter.finish().into());
     }
     Ok(WarmupSummary {
         iterations,
         accepted,
-        step_size: chain.options().step_size(),
+        proposal_scale: chain.options().proposal_scale(),
     })
 }

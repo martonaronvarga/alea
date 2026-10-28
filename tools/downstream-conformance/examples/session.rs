@@ -4,7 +4,7 @@ use alea::{
     ensemble::Execution,
     session::SessionBuilder,
     session::{
-        Checkpoint, Kernel, Status, Warmup,
+        Checkpoint, SamplerConfig, Status, Warmup,
         storage::{DrawReader, DurableSink, Observer},
     },
 };
@@ -40,7 +40,7 @@ fn spec() -> SessionBuilder {
     )
     .seed([15; 32])
     .draws(128)
-    .kernel(Kernel::Nuts(NutsOptions::new(0.1, 6).unwrap()))
+    .sampler(SamplerConfig::Nuts(NutsOptions::new(0.1, 6).unwrap()))
 }
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // A caller-selected empty directory keeps every durable path create-new.

@@ -343,6 +343,8 @@ impl core::fmt::Debug for alea_core::model::assembly::Ordered
 pub fn alea_core::model::assembly::Ordered::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_core::model::assembly::Ordered
 pub enum alea_core::model::assembly::Positive
+impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::Positive
+pub fn alea_core::model::assembly::Positive::accepts(transform: alea_core::transform::Transform) -> bool
 impl core::clone::Clone for alea_core::model::assembly::Positive
 pub fn alea_core::model::assembly::Positive::clone(&self) -> alea_core::model::assembly::Positive
 impl core::fmt::Debug for alea_core::model::assembly::Positive
@@ -381,6 +383,8 @@ impl core::fmt::Debug for alea_core::model::assembly::Simplex
 pub fn alea_core::model::assembly::Simplex::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_core::model::assembly::Simplex
 pub enum alea_core::model::assembly::UnitInterval
+impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::UnitInterval
+pub fn alea_core::model::assembly::UnitInterval::accepts(transform: alea_core::transform::Transform) -> bool
 impl core::clone::Clone for alea_core::model::assembly::UnitInterval
 pub fn alea_core::model::assembly::UnitInterval::clone(&self) -> alea_core::model::assembly::UnitInterval
 impl core::fmt::Debug for alea_core::model::assembly::UnitInterval
@@ -479,6 +483,8 @@ impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::Dy
 pub fn alea_core::model::assembly::DynamicDomain::accepts(_: alea_core::transform::Transform) -> bool
 impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::Ordered
 pub fn alea_core::model::assembly::Ordered::accepts(transform: alea_core::transform::Transform) -> bool
+impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::Positive
+pub fn alea_core::model::assembly::Positive::accepts(transform: alea_core::transform::Transform) -> bool
 impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::PositiveDefinite
 pub fn alea_core::model::assembly::PositiveDefinite::accepts(transform: alea_core::transform::Transform) -> bool
 impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::PositiveOrdered
@@ -487,6 +493,8 @@ impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::Re
 pub fn alea_core::model::assembly::Real::accepts(transform: alea_core::transform::Transform) -> bool
 impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::Simplex
 pub fn alea_core::model::assembly::Simplex::accepts(transform: alea_core::transform::Transform) -> bool
+impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::UnitInterval
+pub fn alea_core::model::assembly::UnitInterval::accepts(transform: alea_core::transform::Transform) -> bool
 impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::UnitSphere
 pub fn alea_core::model::assembly::UnitSphere::accepts(transform: alea_core::transform::Transform) -> bool
 pub mod alea_core::model::prediction

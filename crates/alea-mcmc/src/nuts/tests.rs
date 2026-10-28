@@ -5,7 +5,7 @@ use rand::{SeedableRng, rngs::SmallRng};
 
 #[test]
 fn trajectory_jitter_is_a_fixed_step_mixture_with_identical_conditional_rng() {
-    fn check<I: Integrator + Copy>(integrator: I, d: usize, position: bool) {
+    fn check<I: SymmetricSplitting + Copy>(integrator: I, d: usize, position: bool) {
         let t = StandardNormalTarget::new(d);
         let options = NutsOptions::new(0.3, 5)
             .unwrap()

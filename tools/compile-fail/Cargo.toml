@@ -42,3 +42,15 @@ path = "cases/construct_transition_record.rs"
 [[example]]
 name = "parameter_support_mismatch"
 path = "cases/parameter_support_mismatch.rs"
+
+[[example]]
+name = "vector_domain_mismatch"
+path = "cases/vector_domain_mismatch.rs"
+
+[[example]]
+name = "matrix_layout_mismatch"
+path = "cases/matrix_layout_mismatch.rs"
+
+[[example]]
+name = "sample_event_mismatch"
+path = "cases/sample_event_mismatch.rs"

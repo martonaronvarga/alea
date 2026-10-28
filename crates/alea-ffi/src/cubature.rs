@@ -42,10 +42,6 @@ pub enum CubatureError {
 /// Result of a checked cubature operation.
 pub type CubatureResult<T> = Result<T, CubatureError>;
 
-/// Compatibility alias for callers storing a borrowed closure. Safe entry points
-/// accept generic callbacks and do not introduce their own trait-object dispatch.
-pub type IntegrandFn<'a> = dyn FnMut(&[f64], &mut [f64]) -> c_int + 'a;
-
 /// Hyperrectangle bounds. Entry points revalidate even directly constructed values.
 #[derive(Debug, Clone, Copy)]
 pub struct Bounds<'a> {
@@ -54,14 +50,6 @@ pub struct Bounds<'a> {
 }
 
 impl<'a> Bounds<'a> {
-    /// Compatibility constructor. Prefer [`Self::try_new`] for user inputs.
-    ///
-    /// # Panics
-    /// Panics when the bound lengths differ or a coordinate is invalid.
-    pub fn new(xmin: &'a [f64], xmax: &'a [f64]) -> Self {
-        Self::try_new(xmin, xmax).expect("invalid integration bounds")
-    }
-
     /// # Errors
     /// Rejects unequal lengths, non-finite/reversed bounds, and overflowing centers/widths.
     pub fn try_new(xmin: &'a [f64], xmax: &'a [f64]) -> CubatureResult<Self> {

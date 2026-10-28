@@ -1,3 +1,4 @@
+use alea_mcmc::config::StepSize;
 use std::{cell::Cell, error::Error};
 
 use alea_math::buffer::OwnedBuffer;
@@ -5,7 +6,7 @@ use alea_math::buffer::OwnedBuffer;
 use alea_core::target::{EvaluationError, LogDensityGradient};
 use alea_distributions::StandardNormalTarget;
 use alea_math::metric::{CholeskyFactor, DenseMetric, IdentityMetric};
-use alea_mcmc::hmc::{Divergence, Hmc, HmcConfigError, HmcError, HmcOptions, StepSize};
+use alea_mcmc::hmc::{Divergence, Hmc, HmcConfigError, HmcError, HmcOptions};
 use rand::{SeedableRng, rngs::SmallRng};
 
 #[derive(Debug, thiserror::Error)]
@@ -75,7 +76,10 @@ fn initial() -> OwnedBuffer {
 #[test]
 fn settings_validate_once_and_cannot_store_invalid_values() {
     for bad in [0.0, -0.0, -1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
-        assert_eq!(StepSize::try_from(bad), Err(HmcConfigError::StepSize));
+        assert_eq!(
+            StepSize::try_from(bad),
+            Err(alea_mcmc::config::InvalidScale)
+        );
         assert!(matches!(
             HmcOptions::new(bad, 4),
             Err(HmcConfigError::StepSize)

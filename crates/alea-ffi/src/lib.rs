@@ -186,7 +186,7 @@ mod tests {
         }
 
         // run safe closure wrapper
-        let bounds = safe::Bounds::new(&xmin, &xmax);
+        let bounds = safe::Bounds::try_new(&xmin, &xmax).expect("validated cubature bounds");
         let opts = safe::Options {
             max_eval,
             req_abs_error,

@@ -10,6 +10,7 @@ use alea_core::{
 };
 use alea_math::buffer::OwnedBuffer;
 use alea_math::metric::{EuclideanMetric, MetricError};
+use alea_math::numeric::scaled_norm;
 use rand::Rng;
 
 /// Validated work bounds for a local curvature probe.
@@ -144,21 +145,6 @@ pub(crate) fn probe_metric_curvature<
         curvature_estimate: estimate,
         hvp_count: calls,
     })
-}
-
-fn scaled_norm(values: &[f64]) -> f64 {
-    let scale = values
-        .iter()
-        .fold(0.0_f64, |scale, value| scale.max(value.abs()));
-    if scale == 0.0 {
-        return 0.0;
-    }
-    scale
-        * values
-            .iter()
-            .map(|value| (value / scale) * (value / scale))
-            .sum::<f64>()
-            .sqrt()
 }
 
 fn normalize<E: std::error::Error + 'static>(

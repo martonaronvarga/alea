@@ -12,7 +12,7 @@ use alea::{
         assembly::{AssemblyError, CompiledModel, ModelBuilder},
     },
     sampling::{NutsOptions, adapt::MetricKind},
-    session::{Kernel, SessionBuilder, Warmup, storage::Discard},
+    session::{SamplerConfig, SessionBuilder, Warmup, storage::Discard},
     target::EvaluationError,
     transform::Transform,
 };
@@ -84,7 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .seed([29; 32])
     .draws(DRAWS)
-    .kernel(Kernel::Nuts(NutsOptions::new(0.15, 9)?))
+    .sampler(SamplerConfig::Nuts(NutsOptions::new(0.15, 9)?))
     .warmup(Warmup::Covariance {
         iterations: 1_000,
         metric: MetricKind::Diagonal,

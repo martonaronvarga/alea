@@ -747,6 +747,17 @@ fn bound_wiener_laws_preserve_kernels_scores_support_and_errors() {
         }};
     }
     check!(Wiener4Law, Wiener4, p4, 4);
+    let law = Wiener4Law::new(p4, options).unwrap();
+    let mixture = FiniteMixture::new(vec![0.4, 0.6], vec![law, law]).unwrap();
+    close(
+        mixture.log_prob(&obs).unwrap(),
+        law.log_prob(&obs).unwrap(),
+        1e-14,
+    );
+    let mut rng = SmallRng::seed_from_u64(904);
+    let draw = mixture.sample(&mut rng).unwrap();
+    assert!(mixture.log_prob(&draw).unwrap().is_finite());
+
     check!(Wiener5Law, Wiener5, p5, 5);
     check!(Wiener7Law, Wiener7, p7, 7);
     assert!(Wiener4Law::new(Wiener4Params { beta: 1., ..p4 }, options).is_err());

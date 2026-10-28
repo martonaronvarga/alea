@@ -10,10 +10,12 @@ pub use crate::adapt::{
     ControlledNutsWarmupResult, NutsWarmup, NutsWarmupError, NutsWarmupObservation,
     NutsWarmupReport, NutsWarmupResult, find_reasonable_nuts_step_size,
 };
-pub use crate::config::{AcceptanceTarget, SamplerConfigError, TreeDepth};
+pub use crate::config::{
+    AcceptanceTarget, InvalidScale, ProposalScale, SamplerConfigError, StepSize, TreeDepth,
+};
 pub use crate::hamiltonian::Divergence;
-pub use crate::hmc::{Hmc, HmcConfigError, HmcError, HmcOptions, HmcTransition, StepSize};
-pub use crate::integrator::{Integrator, Leapfrog};
+pub use crate::hmc::{Hmc, HmcConfigError, HmcError, HmcOptions, HmcTransition};
+pub use crate::integrator::{Leapfrog, SymmetricSplitting};
 pub use crate::nuts::{
     Nuts, NutsConfigError, NutsError, NutsOptions, NutsTermination, NutsTransition,
 };

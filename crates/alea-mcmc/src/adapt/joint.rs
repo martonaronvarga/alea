@@ -74,7 +74,7 @@ pub enum JointWarmupError<E: Error + 'static> {
     #[error(transparent)]
     Curvature(#[from] CurvatureProbeError<E>),
     #[error(transparent)]
-    Integrator(#[from] AdvancedIntegratorError),
+    SymmetricSplitting(#[from] AdvancedIntegratorError),
     #[error("step-size search did not bracket acceptance within its limits")]
     SearchExhausted,
     #[error("joint warmup counter overflow")]

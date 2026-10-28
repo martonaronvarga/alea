@@ -7,6 +7,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+use crate::config::StepSize;
 use alea_core::target::{EvaluationError, LogDensityGradient, PointState};
 use alea_math::{buffer::OwnedBuffer, metric::EuclideanMetric};
 use rand::{Rng, RngExt};
@@ -15,8 +16,8 @@ use crate::{
     Hmc,
     config::{SamplerConfigError, TreeDepth},
     hamiltonian::{Divergence, PhaseError, PhaseState, PhaseWorkspace, SignedStep},
-    hmc::{HmcConfigError, HmcError, StepSize},
-    integrator::{Integrator, Leapfrog},
+    hmc::{HmcConfigError, HmcError},
+    integrator::{Leapfrog, SymmetricSplitting},
 };
 
 /// Invalid immutable NUTS settings.
@@ -542,7 +543,9 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric> Nuts<'a, T, M> {
         Self::new_with_integrator(target, position, metric, options, Leapfrog)
     }
 }
-impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Nuts<'a, T, M, I> {
+impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: SymmetricSplitting>
+    Nuts<'a, T, M, I>
+{
     /// Construct with a sealed symmetric integrator; only macrostep endpoints enter trees.
     /// # Errors
     /// Rejects shape/evaluation failures or unaddressable workspace size.
@@ -901,7 +904,7 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Nuts
     }
 }
 
-impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> crate::MarkovChain
+impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: SymmetricSplitting> crate::MarkovChain
     for Nuts<'_, T, M, I>
 {
     type Error = NutsError<T::Error>;
@@ -916,3 +919,9 @@ impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> crate::M
 
 #[cfg(test)]
 mod tests;
+
+impl From<crate::config::InvalidScale> for NutsConfigError {
+    fn from(error: crate::config::InvalidScale) -> Self {
+        Self::Step(error.into())
+    }
+}

@@ -5,9 +5,10 @@
 use std::{error::Error, num::NonZeroUsize};
 
 use crate::canonical::{FixedStepControl, metropolis};
+use crate::config::{InvalidScale, StepSize};
 pub use crate::hamiltonian::Divergence;
 use crate::hamiltonian::{PhaseError, PhaseWorkspace};
-use crate::integrator::{Integrator, Leapfrog};
+use crate::integrator::{Leapfrog, SymmetricSplitting};
 use alea_core::target::{EvaluationError, LogDensityGradient, PointState};
 use alea_math::buffer::OwnedBuffer;
 use alea_math::metric::{EuclideanMetric, MetricError};
@@ -27,30 +28,6 @@ pub enum HmcConfigError {
     /// The absolute endpoint energy-error limit must be positive and finite.
     #[error("energy error limit must be finite and positive")]
     EnergyErrorLimit,
-}
-
-/// Finite, strictly positive integration step size.
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[must_use]
-pub struct StepSize(f64);
-
-impl TryFrom<f64> for StepSize {
-    type Error = HmcConfigError;
-
-    fn try_from(value: f64) -> Result<Self, Self::Error> {
-        if !value.is_finite() || value <= 0.0 {
-            return Err(HmcConfigError::StepSize);
-        }
-        Ok(Self(value))
-    }
-}
-
-impl StepSize {
-    /// The validated step size.
-    #[must_use]
-    pub fn value(self) -> f64 {
-        self.0
-    }
 }
 
 /// Validated immutable settings for a fixed-length trajectory.
@@ -107,7 +84,7 @@ impl HmcOptions {
 impl Default for HmcOptions {
     fn default() -> Self {
         Self {
-            step_size: StepSize(0.1),
+            step_size: StepSize::try_from(0.1).expect("positive default step"),
             integration_steps: NonZeroUsize::new(10).expect("ten is nonzero"),
             max_energy_error: 1000.0,
         }
@@ -247,7 +224,9 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric> Hmc<'a, T, M> {
     }
 }
 
-impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Hmc<'a, T, M, I> {
+impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: SymmetricSplitting>
+    Hmc<'a, T, M, I>
+{
     /// Validates dimensions, evaluates the initial point once, and allocates scratch.
     ///
     /// # Errors
@@ -441,7 +420,7 @@ impl<'a, T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> Hmc<
     }
 }
 
-impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> crate::MarkovChain
+impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: SymmetricSplitting> crate::MarkovChain
     for Hmc<'_, T, M, I>
 {
     type Error = HmcError<T::Error>;
@@ -451,6 +430,12 @@ impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric, I: Integrator> crate::M
     }
     fn step<R: Rng + ?Sized>(&mut self, rng: &mut R) -> Result<Self::Transition, Self::Error> {
         Hmc::step(self, rng)
+    }
+}
+
+impl From<InvalidScale> for HmcConfigError {
+    fn from(_: InvalidScale) -> Self {
+        Self::StepSize
     }
 }
 

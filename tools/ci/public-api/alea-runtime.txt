@@ -24,7 +24,7 @@ pub fn alea_runtime::chees::CheesWarmupReport::clone(&self) -> alea_runtime::che
 impl core::fmt::Debug for alea_runtime::chees::CheesWarmupReport
 pub fn alea_runtime::chees::CheesWarmupReport::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_runtime::chees::CheesWarmupReport
-pub fn alea_runtime::chees::warmup<T, I, S>(chains: &mut [alea_runtime::ensemble::Chain<alea_mcmc::chees::CheesHmc<'_, T, alea_math::metric::IdentityMetric, I>, S>], adapter: alea_mcmc::adapt::chees::CheesEnsembleAdapter, iterations: usize, execution: alea_runtime::ensemble::Execution<'_>) -> core::result::Result<(alea_mcmc::adapt::chees::FrozenCheesParameters, alea_runtime::chees::CheesWarmupReport), alea_runtime::chees::CheesWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + core::marker::Sync + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator + core::marker::Send, <T as alea_core::target::TargetSpace>::Error: core::marker::Send, S: core::marker::Send
+pub fn alea_runtime::chees::warmup<T, I, S>(chains: &mut [alea_runtime::ensemble::Chain<alea_mcmc::chees::CheesHmc<'_, T, alea_math::metric::IdentityMetric, I>, S>], adapter: alea_mcmc::adapt::chees::CheesEnsembleAdapter, iterations: usize, execution: alea_runtime::ensemble::Execution<'_>) -> core::result::Result<(alea_mcmc::adapt::chees::FrozenCheesParameters, alea_runtime::chees::CheesWarmupReport), alea_runtime::chees::CheesWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + core::marker::Sync + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting + core::marker::Send, <T as alea_core::target::TargetSpace>::Error: core::marker::Send, S: core::marker::Send
 pub mod alea_runtime::diagnostics
 pub mod alea_runtime::diagnostics::modern
 #[non_exhaustive] pub enum alea_runtime::diagnostics::modern::Error
@@ -373,18 +373,6 @@ pub alea_runtime::prelude::Execution::Sequential
 impl<'a> core::clone::Clone for alea_runtime::ensemble::Execution<'a>
 pub fn alea_runtime::ensemble::Execution<'a>::clone(&self) -> alea_runtime::ensemble::Execution<'a>
 impl<'a> core::marker::Copy for alea_runtime::ensemble::Execution<'a>
-#[non_exhaustive] pub enum alea_runtime::prelude::Kernel
-pub alea_runtime::prelude::Kernel::Hmc(alea_mcmc::hmc::HmcOptions)
-pub alea_runtime::prelude::Kernel::Nuts(alea_mcmc::nuts::NutsOptions)
-pub alea_runtime::prelude::Kernel::Rwmh(alea_mcmc::rwmh::RwmhOptions)
-impl core::clone::Clone for alea_runtime::session::Kernel
-pub fn alea_runtime::session::Kernel::clone(&self) -> alea_runtime::session::Kernel
-impl core::cmp::PartialEq for alea_runtime::session::Kernel
-pub fn alea_runtime::session::Kernel::eq(&self, other: &alea_runtime::session::Kernel) -> bool
-impl core::fmt::Debug for alea_runtime::session::Kernel
-pub fn alea_runtime::session::Kernel::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_runtime::session::Kernel
-impl core::marker::StructuralPartialEq for alea_runtime::session::Kernel
 #[non_exhaustive] pub enum alea_runtime::prelude::ModernDiagnosticError
 pub alea_runtime::prelude::ModernDiagnosticError::Nonfinite
 pub alea_runtime::prelude::ModernDiagnosticError::Shape
@@ -401,6 +389,18 @@ impl core::fmt::Display for alea_runtime::diagnostics::modern::Error
 pub fn alea_runtime::diagnostics::modern::Error::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_runtime::diagnostics::modern::Error
 impl core::marker::StructuralPartialEq for alea_runtime::diagnostics::modern::Error
+#[non_exhaustive] pub enum alea_runtime::prelude::SamplerConfig
+pub alea_runtime::prelude::SamplerConfig::Hmc(alea_mcmc::hmc::HmcOptions)
+pub alea_runtime::prelude::SamplerConfig::Nuts(alea_mcmc::nuts::NutsOptions)
+pub alea_runtime::prelude::SamplerConfig::Rwmh(alea_mcmc::rwmh::RwmhOptions)
+impl core::clone::Clone for alea_runtime::session::SamplerConfig
+pub fn alea_runtime::session::SamplerConfig::clone(&self) -> alea_runtime::session::SamplerConfig
+impl core::cmp::PartialEq for alea_runtime::session::SamplerConfig
+pub fn alea_runtime::session::SamplerConfig::eq(&self, other: &alea_runtime::session::SamplerConfig) -> bool
+impl core::fmt::Debug for alea_runtime::session::SamplerConfig
+pub fn alea_runtime::session::SamplerConfig::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_runtime::session::SamplerConfig
+impl core::marker::StructuralPartialEq for alea_runtime::session::SamplerConfig
 #[non_exhaustive] pub enum alea_runtime::prelude::Status
 pub alea_runtime::prelude::Status::BackendFailure
 pub alea_runtime::prelude::Status::Cancelled
@@ -481,12 +481,12 @@ pub fn alea_runtime::session::SessionBuilder::cancellation(self, cancel: tokio_u
 pub fn alea_runtime::session::SessionBuilder::collect(self, collect: bool) -> Self
 pub fn alea_runtime::session::SessionBuilder::diagnostics(self, diagnostics: alea_runtime::session::Diagnostics) -> Self
 pub fn alea_runtime::session::SessionBuilder::draws(self, draws: usize) -> Self
-pub fn alea_runtime::session::SessionBuilder::kernel(self, kernel: alea_runtime::session::Kernel) -> Self
 pub fn alea_runtime::session::SessionBuilder::new(target_id: impl core::convert::Into<alloc::string::String>, dimension: usize, initial: alloc::vec::Vec<alloc::vec::Vec<f64>>) -> Self
 pub fn alea_runtime::session::SessionBuilder::numerical_limit(self, limit: usize) -> Self
 pub fn alea_runtime::session::SessionBuilder::observables(self, observables: alloc::vec::Vec<alea_runtime::session::Observable>) -> Self
 pub fn alea_runtime::session::SessionBuilder::resources(self, resources: alea_runtime::session::Resources) -> Self
 pub fn alea_runtime::session::SessionBuilder::restart(self, checkpoints: alloc::vec::Vec<alea_runtime::session::Checkpoint>) -> Self
+pub fn alea_runtime::session::SessionBuilder::sampler(self, kernel: alea_runtime::session::SamplerConfig) -> Self
 pub fn alea_runtime::session::SessionBuilder::seed(self, seed: [u8; 32]) -> Self
 pub fn alea_runtime::session::SessionBuilder::wall_time(self, duration: core::time::Duration) -> Self
 pub fn alea_runtime::session::SessionBuilder::warmup(self, warmup: alea_runtime::session::Warmup) -> Self
@@ -633,18 +633,18 @@ pub fn alea_runtime::session::FrozenGeometry::eq(&self, other: &alea_runtime::se
 impl core::fmt::Debug for alea_runtime::session::FrozenGeometry
 pub fn alea_runtime::session::FrozenGeometry::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::StructuralPartialEq for alea_runtime::session::FrozenGeometry
-#[non_exhaustive] pub enum alea_runtime::session::Kernel
-pub alea_runtime::session::Kernel::Hmc(alea_mcmc::hmc::HmcOptions)
-pub alea_runtime::session::Kernel::Nuts(alea_mcmc::nuts::NutsOptions)
-pub alea_runtime::session::Kernel::Rwmh(alea_mcmc::rwmh::RwmhOptions)
-impl core::clone::Clone for alea_runtime::session::Kernel
-pub fn alea_runtime::session::Kernel::clone(&self) -> alea_runtime::session::Kernel
-impl core::cmp::PartialEq for alea_runtime::session::Kernel
-pub fn alea_runtime::session::Kernel::eq(&self, other: &alea_runtime::session::Kernel) -> bool
-impl core::fmt::Debug for alea_runtime::session::Kernel
-pub fn alea_runtime::session::Kernel::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_runtime::session::Kernel
-impl core::marker::StructuralPartialEq for alea_runtime::session::Kernel
+#[non_exhaustive] pub enum alea_runtime::session::SamplerConfig
+pub alea_runtime::session::SamplerConfig::Hmc(alea_mcmc::hmc::HmcOptions)
+pub alea_runtime::session::SamplerConfig::Nuts(alea_mcmc::nuts::NutsOptions)
+pub alea_runtime::session::SamplerConfig::Rwmh(alea_mcmc::rwmh::RwmhOptions)
+impl core::clone::Clone for alea_runtime::session::SamplerConfig
+pub fn alea_runtime::session::SamplerConfig::clone(&self) -> alea_runtime::session::SamplerConfig
+impl core::cmp::PartialEq for alea_runtime::session::SamplerConfig
+pub fn alea_runtime::session::SamplerConfig::eq(&self, other: &alea_runtime::session::SamplerConfig) -> bool
+impl core::fmt::Debug for alea_runtime::session::SamplerConfig
+pub fn alea_runtime::session::SamplerConfig::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_runtime::session::SamplerConfig
+impl core::marker::StructuralPartialEq for alea_runtime::session::SamplerConfig
 #[non_exhaustive] pub enum alea_runtime::session::Status
 pub alea_runtime::session::Status::BackendFailure
 pub alea_runtime::session::Status::Cancelled
@@ -697,10 +697,10 @@ impl alea_runtime::session::Checkpoint
 pub fn alea_runtime::session::Checkpoint::chain(&self) -> alea_runtime::output::ChainId
 pub fn alea_runtime::session::Checkpoint::completed(&self) -> usize
 pub fn alea_runtime::session::Checkpoint::geometry(&self) -> &alea_runtime::session::FrozenGeometry
-pub fn alea_runtime::session::Checkpoint::kernel(&self) -> alea_runtime::session::Kernel
 pub fn alea_runtime::session::Checkpoint::position(&self) -> &[f64]
 pub fn alea_runtime::session::Checkpoint::provenance(&self) -> &alea_runtime::session::Provenance
 pub fn alea_runtime::session::Checkpoint::read(path: impl core::convert::AsRef<std::path::Path>, maximum_bytes: usize) -> core::result::Result<Self, alea_runtime::session::CheckpointError>
+pub fn alea_runtime::session::Checkpoint::sampler(&self) -> alea_runtime::session::SamplerConfig
 pub fn alea_runtime::session::Checkpoint::write_new(&self, path: impl core::convert::AsRef<std::path::Path>, maximum_bytes: usize) -> core::result::Result<(), alea_runtime::session::CheckpointError>
 impl core::clone::Clone for alea_runtime::session::Checkpoint
 pub fn alea_runtime::session::Checkpoint::clone(&self) -> alea_runtime::session::Checkpoint
@@ -804,7 +804,7 @@ pub alea_runtime::session::RunPlan::collected: bool
 pub alea_runtime::session::RunPlan::diagnostics: alea_runtime::session::Diagnostics
 pub alea_runtime::session::RunPlan::draws: usize
 pub alea_runtime::session::RunPlan::initial: alloc::vec::Vec<alloc::vec::Vec<f64>>
-pub alea_runtime::session::RunPlan::kernel: alea_runtime::session::Kernel
+pub alea_runtime::session::RunPlan::kernel: alea_runtime::session::SamplerConfig
 pub alea_runtime::session::RunPlan::numerical_limit: usize
 pub alea_runtime::session::RunPlan::observables: alloc::vec::Vec<alea_runtime::session::Observable>
 pub alea_runtime::session::RunPlan::resources: alea_runtime::session::Resources
@@ -829,12 +829,12 @@ pub fn alea_runtime::session::SessionBuilder::cancellation(self, cancel: tokio_u
 pub fn alea_runtime::session::SessionBuilder::collect(self, collect: bool) -> Self
 pub fn alea_runtime::session::SessionBuilder::diagnostics(self, diagnostics: alea_runtime::session::Diagnostics) -> Self
 pub fn alea_runtime::session::SessionBuilder::draws(self, draws: usize) -> Self
-pub fn alea_runtime::session::SessionBuilder::kernel(self, kernel: alea_runtime::session::Kernel) -> Self
 pub fn alea_runtime::session::SessionBuilder::new(target_id: impl core::convert::Into<alloc::string::String>, dimension: usize, initial: alloc::vec::Vec<alloc::vec::Vec<f64>>) -> Self
 pub fn alea_runtime::session::SessionBuilder::numerical_limit(self, limit: usize) -> Self
 pub fn alea_runtime::session::SessionBuilder::observables(self, observables: alloc::vec::Vec<alea_runtime::session::Observable>) -> Self
 pub fn alea_runtime::session::SessionBuilder::resources(self, resources: alea_runtime::session::Resources) -> Self
 pub fn alea_runtime::session::SessionBuilder::restart(self, checkpoints: alloc::vec::Vec<alea_runtime::session::Checkpoint>) -> Self
+pub fn alea_runtime::session::SessionBuilder::sampler(self, kernel: alea_runtime::session::SamplerConfig) -> Self
 pub fn alea_runtime::session::SessionBuilder::seed(self, seed: [u8; 32]) -> Self
 pub fn alea_runtime::session::SessionBuilder::wall_time(self, duration: core::time::Duration) -> Self
 pub fn alea_runtime::session::SessionBuilder::warmup(self, warmup: alea_runtime::session::Warmup) -> Self

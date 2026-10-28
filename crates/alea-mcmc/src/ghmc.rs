@@ -8,6 +8,7 @@
 //! sign reversed. Target/backend failures do not publish either change.
 #![forbid(unsafe_code)]
 
+use crate::config::StepSize;
 use std::{error::Error, num::NonZeroUsize};
 
 use alea_core::target::{EvaluationError, LogDensityGradient, PointState};
@@ -22,8 +23,8 @@ use crate::{
     MarkovChain,
     canonical::metropolis,
     hamiltonian::{Divergence, PhaseError, PhaseState, PhaseWorkspace, SignedStep},
-    hmc::{Hmc, HmcConfigError, HmcError, HmcOptions, StepSize},
-    integrator::{Integrator, Leapfrog},
+    hmc::{Hmc, HmcConfigError, HmcError, HmcOptions},
+    integrator::{Leapfrog, SymmetricSplitting},
 };
 
 /// Invalid persistent-momentum kernel settings.
@@ -199,7 +200,7 @@ impl<'a, T, M, I> PersistentCore<'a, T, M, I>
 where
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
-    I: Integrator,
+    I: SymmetricSplitting,
 {
     fn new<R: Rng + ?Sized>(
         target: &'a T,
@@ -314,7 +315,7 @@ impl<'a, T, M, I> Ghmc<'a, T, M, I>
 where
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
-    I: Integrator,
+    I: SymmetricSplitting,
 {
     /// Constructs GHMC with a validated canonical integrator.
     ///
@@ -581,7 +582,7 @@ fn proposal_map<'a, T, M, I>(
 where
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
-    I: Integrator,
+    I: SymmetricSplitting,
 {
     let mut phase = match workspace.start_from_phase(start, metric) {
         Ok(phase) => phase,
@@ -694,7 +695,7 @@ impl<'a, T, M, I> DrGhmc<'a, T, M, I>
 where
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
-    I: Integrator,
+    I: SymmetricSplitting,
 {
     /// Constructs two-stage DR-G-HMC with a validated canonical integrator.
     ///
@@ -741,7 +742,7 @@ where
     pub(crate) fn set_step_size(&mut self, step: StepSize) -> Result<(), GhmcError<T::Error>> {
         let second = (step.value() / self.options.retry_scale)
             .try_into()
-            .map_err(GhmcError::Configuration)?;
+            .map_err(|error: crate::config::InvalidScale| GhmcError::Configuration(error.into()))?;
         self.options.first_step = step;
         self.options.second_step = second;
         Ok(())
@@ -866,7 +867,7 @@ impl<T, M, I> MarkovChain for DrGhmc<'_, T, M, I>
 where
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
-    I: Integrator,
+    I: SymmetricSplitting,
 {
     type Error = GhmcError<T::Error>;
     type Transition = DrGhmcTransition;
@@ -884,7 +885,7 @@ impl<T, M, I> MarkovChain for Ghmc<'_, T, M, I>
 where
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
-    I: Integrator,
+    I: SymmetricSplitting,
 {
     type Error = GhmcError<T::Error>;
     type Transition = GhmcTransition;
@@ -923,6 +924,12 @@ pub fn delayed_rejection_probability(
     }
     let log_probability = log_density_ratio + (-reverse_first).ln_1p() - (-forward_first).ln_1p();
     log_probability.min(0.0).exp()
+}
+
+impl From<crate::config::InvalidScale> for GhmcConfigError {
+    fn from(error: crate::config::InvalidScale) -> Self {
+        Self::Hmc(error.into())
+    }
 }
 
 #[cfg(test)]

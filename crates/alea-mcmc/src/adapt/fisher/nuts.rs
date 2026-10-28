@@ -57,7 +57,7 @@ impl<'a, T: LogDensityGradient + ?Sized> FisherNutsWarmup<'a, T> {
         Self::new_with_integrator(target, position, nuts, options, Leapfrog)
     }
 }
-impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> FisherNutsWarmup<'a, T, I> {
+impl<'a, T: LogDensityGradient + ?Sized, I: SymmetricSplitting> FisherNutsWarmup<'a, T, I> {
     /// Construct with a fixed sealed symmetric integrator.
     /// # Errors
     /// Propagates the same initial-state errors as [`Self::new`].

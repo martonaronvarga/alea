@@ -3,7 +3,7 @@ use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
     HmcOptions, Nuts, NutsOptions,
     adapt::{FisherHmcWarmup, FisherOptions, HmcWarmup, WarmupOptions},
-    integrator::{Integrator, Leapfrog, TwoStage},
+    integrator::{Leapfrog, SymmetricSplitting, TwoStage},
     nuts::{NutsError, NutsTermination},
 };
 use rand::{SeedableRng, rngs::SmallRng};
@@ -59,7 +59,7 @@ impl LogDensityGradient for Target {
         }
     }
 }
-fn failures<I: Integrator + Copy>(integrator: I) {
+fn failures<I: SymmetricSplitting + Copy>(integrator: I) {
     for (mode, position) in [(1, false), (2, false), (1, true), (2, true)] {
         for call in 1..=8 {
             let target = Target::new(false);

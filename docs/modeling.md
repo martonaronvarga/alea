@@ -174,3 +174,15 @@ is also available for compatible models that need compiled automatic derivatives
 
 For a complete model with shared population parameters and named group effects,
 see [Partial pooling with a hierarchical model](hierarchical-models.md).
+
+`TargetSpace` holds the coordinate dimension and error type shared by a target's
+capabilities. `LogDensity` evaluates only the log density; `LogDensityGradient`
+evaluates the value and score together. Implementing both does not force
+primal-only callers to calculate gradients. Higher derivative capabilities are
+named for the potential `U = -log_density`, including `PotentialHessianVector`.
+
+State-space models use the same time index for transition sampling and transition
+density evaluation. Observation likelihoods also receive time, and all three
+operations return typed errors. A particle proposal and an incremental importance
+weight have separate contracts; a general importance weight includes proposal
+corrections and cannot be replaced by the observation likelihood alone.

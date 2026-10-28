@@ -6,10 +6,11 @@
 //! randomized two-point WALNUTS-R2P local distributions both use the paper's
 //! forward/reverse probability correction.
 //!
-//! Local refinement is part of trajectory construction, not an `Integrator`:
+//! Local refinement is part of trajectory construction, not an `SymmetricSplitting`:
 //! only complete, reversibly selected macrostep endpoints can enter a tree.
 #![forbid(unsafe_code)]
 
+use crate::config::StepSize;
 use alea_core::target::{EvaluationError, LogDensityGradient, PointState};
 use alea_math::{buffer::OwnedBuffer, metric::EuclideanMetric};
 use rand::{Rng, RngExt};
@@ -18,7 +19,7 @@ use crate::{
     Hmc,
     config::{SamplerConfigError, TreeDepth},
     hamiltonian::{Divergence, PhaseError, PhaseState, PhaseWorkspace, SignedStep},
-    hmc::{HmcConfigError, HmcError, StepSize},
+    hmc::{HmcConfigError, HmcError},
     integrator::Leapfrog,
     trajectory_weight::Weight,
 };
@@ -967,3 +968,9 @@ impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric> crate::MarkovChain for 
 
 #[cfg(test)]
 mod tests;
+
+impl From<crate::config::InvalidScale> for WalnutsConfigError {
+    fn from(error: crate::config::InvalidScale) -> Self {
+        Self::MacroStep(error.into())
+    }
+}

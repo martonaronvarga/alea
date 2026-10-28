@@ -45,7 +45,7 @@ const OWNED_SCHEMA_VERSION: u32 = 1;
 /// Explicit reference kernel. NUTS uses native NUTS during covariance warmup.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
-pub enum Kernel {
+pub enum SamplerConfig {
     /// Frozen fixed-trajectory HMC.
     Hmc(HmcOptions),
     /// Frozen multinomial NUTS.
@@ -53,7 +53,7 @@ pub enum Kernel {
     /// Density-only random-walk Metropolis with identity proposal covariance.
     Rwmh(RwmhOptions),
 }
-impl Kernel {
+impl SamplerConfig {
     fn compatible(self, other: Self) -> bool {
         match (self, other) {
             (Self::Hmc(a), Self::Hmc(b)) => {
@@ -347,7 +347,7 @@ pub struct ChainOutcome<E: Error + 'static> {
 #[non_exhaustive]
 pub struct RunPlan {
     /// Requested kernel before any adaptation.
-    pub kernel: Kernel,
+    pub kernel: SamplerConfig,
     /// Requested finite adaptation policy.
     pub warmup: Warmup,
     /// Absolute retained end index.
@@ -395,7 +395,7 @@ pub struct SessionBuilder {
     target_id: String,
     dimension: usize,
     initial: Vec<Vec<f64>>,
-    kernel: Kernel,
+    kernel: SamplerConfig,
     warmup: Warmup,
     draws: usize,
     seed: [u8; 32],
@@ -416,7 +416,7 @@ impl SessionBuilder {
             target_id: target_id.into(),
             dimension,
             initial,
-            kernel: Kernel::Nuts(NutsOptions::new(0.1, 8).expect("valid default")),
+            kernel: SamplerConfig::Nuts(NutsOptions::new(0.1, 8).expect("valid default")),
             warmup: Warmup::None,
             draws: 1000,
             seed: [0; 32],
@@ -431,7 +431,7 @@ impl SessionBuilder {
         }
     }
     /// Select the explicit frozen reference kernel.
-    pub fn kernel(mut self, kernel: Kernel) -> Self {
+    pub fn sampler(mut self, kernel: SamplerConfig) -> Self {
         self.kernel = kernel;
         self
     }
@@ -502,11 +502,11 @@ impl SessionBuilder {
         let n = self.initial.len();
         let d = self.dimension;
         let depth = match self.kernel {
-            Kernel::Nuts(o) => o.max_depth().value(),
+            SamplerConfig::Nuts(o) => o.max_depth().value(),
             _ => 0,
         };
         let steps = match self.kernel {
-            Kernel::Hmc(o) => o.integration_steps().get(),
+            SamplerConfig::Hmc(o) => o.integration_steps().get(),
             _ => 1,
         };
         if d == 0
@@ -531,9 +531,12 @@ impl SessionBuilder {
         if !matches!(
             (self.kernel, self.warmup),
             (_, Warmup::None)
-                | (Kernel::Hmc(_) | Kernel::Nuts(_), Warmup::Covariance { .. })
-                | (Kernel::Nuts(_), Warmup::GradientDiagonal { .. })
-                | (Kernel::Rwmh(_), Warmup::RwmhScale { .. })
+                | (
+                    SamplerConfig::Hmc(_) | SamplerConfig::Nuts(_),
+                    Warmup::Covariance { .. }
+                )
+                | (SamplerConfig::Nuts(_), Warmup::GradientDiagonal { .. })
+                | (SamplerConfig::Rwmh(_), Warmup::RwmhScale { .. })
         ) {
             return Err(ConfigurationError);
         }
@@ -708,7 +711,7 @@ impl Session {
         E: Error + Send + 'static,
         S: Sink,
     {
-        if matches!(self.spec.kernel, Kernel::Rwmh(_)) {
+        if matches!(self.spec.kernel, SamplerConfig::Rwmh(_)) {
             return Err(ConfigurationError);
         }
         self.execute(execution, sink, |id, out, window, control| {
@@ -751,7 +754,7 @@ impl Session {
                     _ => WarmupOptions::new(0),
                 };
                 match self.spec.kernel {
-                    Kernel::Hmc(o) => {
+                    SamplerConfig::Hmc(o) => {
                         let result = HmcWarmup::new(
                             &target,
                             buffer(&self.spec.initial[id.0 as usize]),
@@ -769,7 +772,7 @@ impl Session {
                         out.warmup_completed = report.iterations;
                         GradientChain::Hmc(Box::new(chain))
                     }
-                    Kernel::Nuts(o) => {
+                    SamplerConfig::Nuts(o) => {
                         let mut warmup = NutsWarmup::new(
                             &target,
                             buffer(&self.spec.initial[id.0 as usize]),
@@ -814,7 +817,7 @@ impl Session {
         E: Error + Send + 'static,
         S: Sink,
     {
-        let Kernel::Rwmh(options) = self.spec.kernel else {
+        let SamplerConfig::Rwmh(options) = self.spec.kernel else {
             return Err(ConfigurationError);
         };
         self.execute(execution, sink, |id, out, window, control| {
@@ -825,7 +828,7 @@ impl Session {
             let mut rng = self.rng(id);
             let cp = self.spec.restart.get(id.0 as usize);
             let (q, options, normal) = if let Some(cp) = cp {
-                let Kernel::Rwmh(options) = cp.kernel else {
+                let SamplerConfig::Rwmh(options) = cp.kernel else {
                     return Err(Failure::RestartMismatch);
                 };
                 (
@@ -852,7 +855,7 @@ impl Session {
                     return Err(Failure::RestartMismatch);
                 }
             } else if let Warmup::RwmhScale { iterations, target } = self.spec.warmup {
-                let mut adapter = DualAveraging::new(options.step_size(), target);
+                let mut adapter = DualAveraging::new(options.proposal_scale().into(), target);
                 for _ in 0..iterations {
                     if control.stopped() {
                         out.cancelled = true;
@@ -860,14 +863,15 @@ impl Session {
                     }
                     let transition = chain.step(&mut rng)?;
                     out.warmup_completed += 1;
-                    chain.set_step_size(
+                    chain.set_proposal_scale(
                         adapter
                             .update(transition.acceptance_probability)
-                            .map_err(|e| Failure::Warmup(WarmupError::Adaptation(e)))?,
+                            .map_err(|e| Failure::Warmup(WarmupError::Adaptation(e)))?
+                            .into(),
                     );
                 }
                 if iterations > 0 {
-                    chain.set_step_size(adapter.finish());
+                    chain.set_proposal_scale(adapter.finish().into());
                 }
             }
             self.sample(DensityChain(chain), &mut rng, out, window, control, sink)
@@ -1138,11 +1142,11 @@ impl<'a, T: LogDensityGradient> GradientChain<'a, T> {
         target: &'a T,
         q: OwnedBuffer,
         metric: WarmupMetric,
-        kernel: Kernel,
+        kernel: SamplerConfig,
     ) -> Result<Self, Failure<T::Error>> {
         Ok(match kernel {
-            Kernel::Hmc(o) => Self::Hmc(Box::new(Hmc::new(target, q, metric, o)?)),
-            Kernel::Nuts(o) => Self::Nuts(Box::new(Nuts::new(target, q, metric, o)?)),
+            SamplerConfig::Hmc(o) => Self::Hmc(Box::new(Hmc::new(target, q, metric, o)?)),
+            SamplerConfig::Nuts(o) => Self::Nuts(Box::new(Nuts::new(target, q, metric, o)?)),
             _ => return Err(Failure::Contract),
         })
     }
@@ -1184,8 +1188,8 @@ impl<T: LogDensityGradient> Sampler<T::Error> for GradientChain<'_, T> {
         rng: &ChaCha12Rng,
     ) -> Checkpoint {
         let (kernel, metric) = match self {
-            Self::Hmc(c) => (Kernel::Hmc(c.options()), c.metric()),
-            Self::Nuts(c) => (Kernel::Nuts(c.options()), c.metric()),
+            Self::Hmc(c) => (SamplerConfig::Hmc(c.options()), c.metric()),
+            Self::Nuts(c) => (SamplerConfig::Nuts(c.options()), c.metric()),
         };
         Checkpoint {
             provenance,
@@ -1235,7 +1239,7 @@ impl<T: LogDensity> Sampler<T::Error> for DensityChain<'_, T> {
             chain: id,
             completed,
             word_position: rng.get_word_pos(),
-            kernel: Kernel::Rwmh(self.0.options()),
+            kernel: SamplerConfig::Rwmh(self.0.options()),
             geometry: FrozenGeometry::Identity(self.position().len()),
             position: self.position().to_vec(),
             logp: self.logp(),

@@ -253,7 +253,7 @@ impl ManifoldBayesTuner {
         let mut best_score = f64::NEG_INFINITY;
         for candidate in 0..self.candidates.len() {
             for observed in 0..self.candidates.len() {
-                self.kernel_vector[observed] = self.kernel(candidate, observed);
+                self.kernel_vector[observed] = self.sampler(candidate, observed);
             }
             solve_lower(
                 &self.lower,
@@ -360,7 +360,7 @@ impl ManifoldBayesTuner {
         for row in 0..count {
             self.rhs[row] = self.means[row];
             for column in 0..=row {
-                let mut value = self.kernel(row, column);
+                let mut value = self.sampler(row, column);
                 if row == column {
                     value += self.controls.observation_noise / self.counts[row] as f64;
                 }
@@ -374,7 +374,7 @@ impl ManifoldBayesTuner {
         Ok(())
     }
 
-    fn kernel(&self, left: usize, right: usize) -> f64 {
+    fn sampler(&self, left: usize, right: usize) -> f64 {
         let left = self.candidates[left];
         let right = self.candidates[right];
         let step_difference =

@@ -6,7 +6,7 @@ mod private {
 /// A complete palindromic, consistent separable-Hamiltonian map. Internal stages
 /// are never trajectory candidates. Geometry and coefficients stay fixed during
 /// a trajectory and after warmup. This is not WALNUTS's local-step controller.
-pub trait Integrator: private::Sealed {
+pub trait SymmetricSplitting: private::Sealed {
     /// Number of drifts/new fused evaluations on a successful macrostep.
     fn stages(&self) -> usize;
     /// Kick coefficient at a palindromic stage index.
@@ -18,7 +18,7 @@ pub trait Integrator: private::Sealed {
 /// One-stage symmetric velocity-Verlet integrator.
 pub struct Leapfrog;
 impl private::Sealed for Leapfrog {}
-impl Integrator for Leapfrog {
+impl SymmetricSplitting for Leapfrog {
     fn stages(&self) -> usize {
         1
     }
@@ -59,7 +59,7 @@ impl TwoStage {
     }
 }
 impl private::Sealed for TwoStage {}
-impl Integrator for TwoStage {
+impl SymmetricSplitting for TwoStage {
     fn stages(&self) -> usize {
         2
     }
@@ -234,7 +234,7 @@ impl ForceBudgetPlan {
     ///
     /// # Errors
     /// Rejects zero or indivisible budgets and nonfinite or nonpositive step sizes.
-    pub fn new<I: Integrator>(
+    pub fn new<I: SymmetricSplitting>(
         force_budget: usize,
         reference_step: f64,
         integrator: &I,

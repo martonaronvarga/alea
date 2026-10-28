@@ -50,6 +50,20 @@ impl VectorDomain for Real {
         transform.domain() == crate::transform::TransformDomain::Real
     }
 }
+impl domain_sealed::Sealed for Positive {}
+impl VectorDomain for Positive {
+    fn accepts(transform: Transform) -> bool {
+        Transform::positive(transform.constrained_dimension())
+            .is_ok_and(|expected| expected == transform)
+    }
+}
+impl domain_sealed::Sealed for UnitInterval {}
+impl VectorDomain for UnitInterval {
+    fn accepts(transform: Transform) -> bool {
+        Transform::interval(transform.constrained_dimension(), 0., 1.)
+            .is_ok_and(|expected| expected == transform)
+    }
+}
 domains!(Simplex => Simplex, UnitSphere => UnitSphere, Ordered => Ordered,
     PositiveOrdered => PositiveOrdered, CholeskyCovariance => CholeskyCovariance,
     CholeskyCorrelation => CholeskyCorrelation, PositiveDefinite => PositiveDefinite,

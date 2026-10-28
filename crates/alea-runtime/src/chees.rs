@@ -6,7 +6,7 @@ use alea_mcmc::{
     adapt::{CheesConfigError, CheesEnsembleAdapter, CheesUpdate, FrozenCheesParameters},
     chees::CheesHmc,
     hmc::HmcError,
-    integrator::Integrator,
+    integrator::SymmetricSplitting,
 };
 use rayon::prelude::*;
 
@@ -69,7 +69,7 @@ pub fn warmup<T, I, S>(
 ) -> Result<(FrozenCheesParameters, CheesWarmupReport), CheesWarmupError<T::Error>>
 where
     T: LogDensityGradient + Sync + ?Sized,
-    I: Integrator + Send,
+    I: SymmetricSplitting + Send,
     T::Error: Send,
     S: Send,
 {

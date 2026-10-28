@@ -8,5 +8,5 @@ pub use crate::diagnostics::{
 pub use crate::draws::{DrawError, Draws, collect_draws};
 pub use crate::ensemble::Execution;
 pub use crate::run_chain;
-pub use crate::session::{Kernel, Status, Warmup};
+pub use crate::session::{SamplerConfig, Status, Warmup};
 pub use crate::session::{Session, SessionBuilder};

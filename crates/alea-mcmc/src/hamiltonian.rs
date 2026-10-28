@@ -327,7 +327,11 @@ impl<'a, T: LogDensityGradient + ?Sized> PhaseWorkspace<'a, T> {
     /// Start one macrostep directly from an immutable admitted snapshot. The
     /// first kick/drift read it in place, avoiding copies of its q, gradient and p.
     /// No phase token escapes a failed stage; only scratch storage is dirtied.
-    pub(crate) fn step_from_phase<'w, M: EuclideanMetric, I: crate::integrator::Integrator>(
+    pub(crate) fn step_from_phase<
+        'w,
+        M: EuclideanMetric,
+        I: crate::integrator::SymmetricSplitting,
+    >(
         &'w mut self,
         state: &PhaseState<'a, T>,
         metric: &'w M,
@@ -359,7 +363,7 @@ impl<'a, T: LogDensityGradient + ?Sized> PhaseWorkspace<'a, T> {
         })
     }
 
-    fn advance<M: EuclideanMetric, I: crate::integrator::Integrator>(
+    fn advance<M: EuclideanMetric, I: crate::integrator::SymmetricSplitting>(
         &mut self,
         metric: &M,
         eps: f64,
@@ -455,7 +459,7 @@ impl<T: LogDensityGradient + ?Sized, M: EuclideanMetric> Phase<'_, '_, T, M> {
     /// or selected by a trajectory. Every drift refreshes the fused cache once.
     /// # Errors
     /// Any failed internal stage consumes the phase token, just like leapfrog.
-    pub fn step_with<I: crate::integrator::Integrator>(
+    pub fn step_with<I: crate::integrator::SymmetricSplitting>(
         self,
         step: SignedStep,
         integrator: &I,

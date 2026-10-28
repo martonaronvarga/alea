@@ -249,3 +249,20 @@ counting measure. The lower-level Wiener evaluators remain available for fused
 calculations and numerical diagnostics. A bound law validates its parameters and
 keeps them immutable; evaluating a support zero returns negative infinity, while
 invalid observations and numerical failures remain errors.
+
+```rust
+use alea::prelude::*;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let parameters = Wiener4Params {
+        alpha: 1.2, tau: 0.2, beta: 0.5, delta: 0.8,
+    };
+    let law = Wiener4Law::new(parameters, WienerOptions::new(1e-10))?;
+    let response = WienerObservation { rt: 0.7, boundary: Boundary::Upper };
+    let log_density = law.log_prob(&response)?;
+    let mut score = [0.0; 4]; // alpha, tau, beta, delta
+    law.parameter_score(&response, &mut score)?;
+    println!("log density = {log_density}, parameter score = {score:?}");
+    Ok(())
+}
+```

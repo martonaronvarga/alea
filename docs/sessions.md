@@ -14,7 +14,7 @@ use alea::distributions::StandardNormalTarget;
 use alea::sampling::{NutsOptions, adapt::MetricKind};
 use alea::{
     ensemble::Execution,
-    session::{Kernel, SessionBuilder, Warmup, storage::Discard},
+    session::{SamplerConfig, SessionBuilder, Warmup, storage::Discard},
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let session = SessionBuilder::new("standard-normal-2d-v1", 2, vec![vec![0.0; 2]; 4])
         .seed([17; 32])
         .draws(500)
-        .kernel(Kernel::Nuts(NutsOptions::new(0.2, 8)?))
+        .sampler(SamplerConfig::Nuts(NutsOptions::new(0.2, 8)?))
         .warmup(Warmup::Covariance {
             iterations: 300,
             metric: MetricKind::Diagonal,
@@ -78,7 +78,7 @@ use alea::sampling::{NutsOptions, adapt::MetricKind};
 use alea::{
     ensemble::Execution,
     session::{
-        Checkpoint, Kernel, OwnedDraw, SessionBuilder, Warmup,
+        Checkpoint, SamplerConfig, OwnedDraw, SessionBuilder, Warmup,
         storage::{DrawReader, DurableSink, Observer},
     },
 };
@@ -90,7 +90,7 @@ fn settings() -> Result<SessionBuilder, Box<dyn std::error::Error>> {
         SessionBuilder::new("normal-1d;data=none;build=1", 1, vec![vec![0.0]])
             .seed([15; 32])
             .draws(128)
-            .kernel(Kernel::Nuts(NutsOptions::new(0.1, 6)?)),
+            .sampler(SamplerConfig::Nuts(NutsOptions::new(0.1, 6)?)),
     )
 }
 

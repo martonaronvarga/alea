@@ -44,7 +44,7 @@ impl Wiener7 {
         {
             return e.exp();
         }
-        let bounds = Bounds::new(&core.xmin, &core.xmax);
+        let bounds = Bounds::try_new(&core.xmin, &core.xmax).expect("validated cubature bounds");
         let mut val = [0.0f64; 1];
         let mut err = [0.0f64; 1];
 
@@ -145,7 +145,7 @@ impl Wiener7 {
         };
         let status = hcubature_into(
             8,
-            Bounds::new(&core.xmin, &core.xmax),
+            Bounds::try_new(&core.xmin, &core.xmax).expect("validated cubature bounds"),
             options,
             &mut val,
             &mut err,

@@ -36,7 +36,7 @@ pub enum JointNutsWarmupError<E: Error + 'static> {
     Curvature(#[from] CurvatureProbeError<E>),
     /// The inflated oscillator bound is unrepresentable.
     #[error(transparent)]
-    Integrator(#[from] AdvancedIntegratorError),
+    SymmetricSplitting(#[from] AdvancedIntegratorError),
     /// Work counters overflowed.
     #[error("joint NUTS warmup counter overflow")]
     CounterOverflow,

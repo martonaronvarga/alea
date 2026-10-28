@@ -4,7 +4,7 @@ use alea_mcmc::prelude::RwmhOptions;
 use alea_runtime::{
     ensemble::Execution,
     session::{
-        Checkpoint, Kernel, SessionBuilder, Status,
+        Checkpoint, SamplerConfig, SessionBuilder, Status,
         storage::{Discard, DrawReader, DurableSink},
     },
 };
@@ -48,7 +48,7 @@ impl Drop for Directory {
 fn builder(draws: usize) -> SessionBuilder {
     SessionBuilder::new("release-normal-v1", 1, vec![vec![0.0]])
         .seed([17; 32])
-        .kernel(Kernel::Rwmh(RwmhOptions::new(0.5).unwrap()))
+        .sampler(SamplerConfig::Rwmh(RwmhOptions::new(0.5).unwrap()))
         .draws(draws)
         .collect(false)
 }

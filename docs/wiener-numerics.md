@@ -442,7 +442,7 @@ Wiener4/5 Alea requests were `1e-12`, and Wiener7 requests were `1e-9`.
 
 ## Complete model fits
 
-Kernel timings do not establish inference performance. A complete-fit comparison
+SamplerConfig timings do not establish inference performance. A complete-fit comparison
 used the public `alea` modeling and session APIs on the HDDM Cavanagh dataset
 (source commit `19feaa9849619931d306094b48d9803ef9c8d0bd`), retaining all 2,019
 unstimulated trials from 14 participants and both responses. Single-participant

@@ -3,7 +3,7 @@
 //! Channels apply fail-fast backpressure: a full queue is an explicit error with
 //! the undelivered draw returned in the run outcome. No numerical worker blocks
 //! on an async executor, subscriber or detached I/O thread.
-use super::{Checkpoint, CheckpointError, FrozenGeometry, Kernel, OwnedDraw, Provenance};
+use super::{Checkpoint, CheckpointError, FrozenGeometry, OwnedDraw, Provenance, SamplerConfig};
 use crate::output::{ChainId, Phase, TransitionStats};
 use alea_mcmc::{HmcOptions, NutsOptions, RwmhOptions};
 use std::{
@@ -426,14 +426,14 @@ impl<'a> Input<'a> {
             seed: self.take(32)?.try_into().ok()?,
         })
     }
-    fn kernel(&mut self) -> Option<Kernel> {
+    fn sampler(&mut self) -> Option<SamplerConfig> {
         let kind = self.byte()?;
         let step = self.f64()?;
         match kind {
             0 => {
                 let steps = self.usize()?;
                 let energy = self.f64()?;
-                Some(Kernel::Hmc(
+                Some(SamplerConfig::Hmc(
                     HmcOptions::new(step, steps)
                         .ok()?
                         .with_max_energy_error(energy)
@@ -449,7 +449,7 @@ impl<'a> Input<'a> {
                     1 => true,
                     _ => return None,
                 };
-                Some(Kernel::Nuts(
+                Some(SamplerConfig::Nuts(
                     NutsOptions::new(step, depth)
                         .ok()?
                         .with_max_energy_error(energy)
@@ -459,7 +459,7 @@ impl<'a> Input<'a> {
                         .with_position_turning(position),
                 ))
             }
-            2 => Some(Kernel::Rwmh(RwmhOptions::new(step).ok()?)),
+            2 => Some(SamplerConfig::Rwmh(RwmhOptions::new(step).ok()?)),
             _ => None,
         }
     }
@@ -513,7 +513,7 @@ impl<'a> Input<'a> {
             chain: ChainId(self.u64()?),
             completed: self.usize()?,
             word_position: u128::from_le_bytes(self.take(16)?.try_into().ok()?),
-            kernel: self.kernel()?,
+            kernel: self.sampler()?,
             geometry: self.geometry()?,
             position: self.vec()?,
             logp: self.f64()?,
@@ -531,13 +531,13 @@ fn checkpoint_payload(cp: &Checkpoint) -> Vec<u8> {
     put_usize(&mut out, cp.completed);
     out.extend_from_slice(&cp.word_position.to_le_bytes());
     match cp.kernel {
-        Kernel::Hmc(o) => {
+        SamplerConfig::Hmc(o) => {
             out.push(0);
             put_f64(&mut out, o.step_size().value());
             put_usize(&mut out, o.integration_steps().get());
             put_f64(&mut out, o.max_energy_error());
         }
-        Kernel::Nuts(o) => {
+        SamplerConfig::Nuts(o) => {
             out.push(1);
             put_f64(&mut out, o.step_size().value());
             put_usize(&mut out, o.max_depth().value());
@@ -545,9 +545,9 @@ fn checkpoint_payload(cp: &Checkpoint) -> Vec<u8> {
             put_f64(&mut out, o.step_size_jitter());
             out.push(u8::from(o.position_turning()));
         }
-        Kernel::Rwmh(o) => {
+        SamplerConfig::Rwmh(o) => {
             out.push(2);
-            put_f64(&mut out, o.step_size().value());
+            put_f64(&mut out, o.proposal_scale().value());
         }
     }
     match &cp.geometry {
@@ -644,7 +644,7 @@ mod tests {
             chain: ChainId(0),
             completed: 3,
             word_position: 25,
-            kernel: Kernel::Hmc(HmcOptions::new(0.2, 3).unwrap()),
+            kernel: SamplerConfig::Hmc(HmcOptions::new(0.2, 3).unwrap()),
             geometry: FrozenGeometry::Identity(1),
             position: vec![0.0],
             logp: 0.0,
@@ -689,7 +689,7 @@ mod tests {
             put_f64(&mut bytes, 1000.0);
             put_f64(&mut bytes, jitter);
             bytes.push(position);
-            assert!(Input(&bytes).kernel().is_none());
+            assert!(Input(&bytes).sampler().is_none());
         }
         let mut cp = checkpoint();
         cp.provenance.implementation = cp

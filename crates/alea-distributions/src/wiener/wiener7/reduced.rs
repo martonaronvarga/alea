@@ -130,7 +130,7 @@ impl Wiener7 {
         };
         hcubature_into(
             if SCORES { 8 } else { 1 },
-            Bounds::new(&[0.], &[1.]),
+            Bounds::try_new(&[0.], &[1.]).expect("validated cubature bounds"),
             core.opts,
             &mut val[..if SCORES { 8 } else { 1 }],
             &mut err[..if SCORES { 8 } else { 1 }],

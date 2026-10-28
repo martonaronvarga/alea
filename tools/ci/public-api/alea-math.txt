@@ -448,6 +448,7 @@ pub fn alea_math::numeric::first_nonfinite(values: &[f64]) -> core::option::Opti
 pub fn alea_math::numeric::log1m_sigmoid(x: f64) -> f64
 pub fn alea_math::numeric::log_sigmoid(x: f64) -> f64
 pub fn alea_math::numeric::logit(p: f64) -> f64
+pub fn alea_math::numeric::scaled_norm(values: &[f64]) -> f64
 pub fn alea_math::numeric::sigmoid(theta: f64) -> f64
 pub fn alea_math::numeric::softplus(x: f64) -> f64
 pub mod alea_math::prelude

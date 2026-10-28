@@ -3,7 +3,7 @@ use alea_math::{buffer::OwnedBuffer, metric::IdentityMetric};
 use alea_mcmc::{
     Hmc, HmcOptions,
     hamiltonian::{PhaseState, PhaseWorkspace, SignedStep},
-    integrator::{Integrator, Leapfrog, TwoStage},
+    integrator::{Leapfrog, SymmetricSplitting, TwoStage},
 };
 use rand::{SeedableRng, rngs::SmallRng};
 use std::{cell::Cell, convert::Infallible};
@@ -23,7 +23,7 @@ impl LogDensityGradient for Normal {
         Ok(-0.5 * q[0] * q[0])
     }
 }
-fn check<I: Integrator>(integrator: I) {
+fn check<I: SymmetricSplitting>(integrator: I) {
     let target = Normal {
         calls: Cell::new(0),
     };

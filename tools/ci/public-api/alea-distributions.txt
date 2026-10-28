@@ -205,23 +205,23 @@ pub trait alea_distributions::latent::WienerParameterMap<Context, Latent>
 pub fn alea_distributions::latent::WienerParameterMap::write_params(&self, context: &Context, latent: &Latent, t: usize, out: &mut alea_distributions::prelude::Wiener4Params) -> alea_distributions::wiener::Result<()>
 pub mod alea_distributions::mixture
 pub struct alea_distributions::mixture::FiniteMixture<D>
-impl<D: alea_core::distribution::Distribution<Error = alea_core::distribution::DistributionError>> alea_distributions::mixture::FiniteMixture<D>
+impl<D: alea_core::distribution::Distribution> alea_distributions::mixture::FiniteMixture<D>
 pub fn alea_distributions::mixture::FiniteMixture<D>::new(weights: alloc::vec::Vec<f64>, components: alloc::vec::Vec<D>) -> core::result::Result<Self, alea_core::distribution::DistributionError>
-impl<D: alea_core::distribution::Distribution<Error = alea_core::distribution::DistributionError>> alea_core::distribution::Distribution for alea_distributions::mixture::FiniteMixture<D>
-pub type alea_distributions::mixture::FiniteMixture<D>::Error = alea_core::distribution::DistributionError
+impl<D: alea_core::distribution::Distribution> alea_core::distribution::Distribution for alea_distributions::mixture::FiniteMixture<D>
+pub type alea_distributions::mixture::FiniteMixture<D>::Error = <D as alea_core::distribution::Distribution>::Error
 pub type alea_distributions::mixture::FiniteMixture<D>::Event = <D as alea_core::distribution::Distribution>::Event
 pub fn alea_distributions::mixture::FiniteMixture<D>::event_shape(&self) -> alea_core::distribution::EventShape
-pub fn alea_distributions::mixture::FiniteMixture<D>::log_prob(&self, x: &Self::Event) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::mixture::FiniteMixture<D>::log_prob(&self, x: &Self::Event) -> core::result::Result<f64, <D as alea_core::distribution::Distribution>::Error>
 pub fn alea_distributions::mixture::FiniteMixture<D>::reference_measure(&self) -> alea_core::distribution::ReferenceMeasure
 pub fn alea_distributions::mixture::FiniteMixture<D>::support(&self) -> alea_core::distribution::Support
-impl<D: alea_core::distribution::ParameterScore<Error = alea_core::distribution::DistributionError>> alea_core::distribution::ParameterScore for alea_distributions::mixture::FiniteMixture<D>
+impl<D: alea_core::distribution::ParameterScore> alea_core::distribution::ParameterScore for alea_distributions::mixture::FiniteMixture<D>
 pub fn alea_distributions::mixture::FiniteMixture<D>::parameter_count(&self) -> usize
-pub fn alea_distributions::mixture::FiniteMixture<D>::parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
-impl<D: alea_core::distribution::Sample<Error = alea_core::distribution::DistributionError>> alea_core::distribution::Sample for alea_distributions::mixture::FiniteMixture<D>
+pub fn alea_distributions::mixture::FiniteMixture<D>::parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> core::result::Result<(), <D as alea_core::distribution::Distribution>::Error>
+impl<D: alea_core::distribution::Sample> alea_core::distribution::Sample for alea_distributions::mixture::FiniteMixture<D>
 pub type alea_distributions::mixture::FiniteMixture<D>::Draw = <D as alea_core::distribution::Sample>::Draw
-pub fn alea_distributions::mixture::FiniteMixture<D>::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<Self::Draw, alea_core::distribution::DistributionError>
-impl<D: alea_core::distribution::ScalarEventScore<Error = alea_core::distribution::DistributionError>> alea_core::distribution::ScalarEventScore for alea_distributions::mixture::FiniteMixture<D>
-pub fn alea_distributions::mixture::FiniteMixture<D>::event_score(&self, x: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
+pub fn alea_distributions::mixture::FiniteMixture<D>::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<Self::Draw, <D as alea_core::distribution::Distribution>::Error>
+impl<D: alea_core::distribution::ScalarEventScore> alea_core::distribution::ScalarEventScore for alea_distributions::mixture::FiniteMixture<D>
+pub fn alea_distributions::mixture::FiniteMixture<D>::event_score(&self, x: f64) -> core::result::Result<f64, <D as alea_core::distribution::Distribution>::Error>
 impl<D: core::fmt::Debug> core::fmt::Debug for alea_distributions::mixture::FiniteMixture<D>
 pub fn alea_distributions::mixture::FiniteMixture<D>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub mod alea_distributions::modeling

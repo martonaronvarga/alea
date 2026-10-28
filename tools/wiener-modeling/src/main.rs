@@ -17,7 +17,7 @@ use alea::{
         NutsOptions,
         adapt::{MetricKind, SearchOptions},
     },
-    session::{Diagnostics, Kernel, SessionBuilder, Warmup, storage::Observer},
+    session::{Diagnostics, SamplerConfig, SessionBuilder, Warmup, storage::Observer},
     target::{EvaluationError, LogDensityGradient},
 };
 use rand::{SeedableRng, rngs::SmallRng};
@@ -425,7 +425,7 @@ fn fit(c: &Config, data: &[Trial], out: &Path) -> Result<(), AnyError> {
     let result = SessionBuilder::new(&c.name, dimension, starts)
         .seed([c.seed; 32])
         .draws(c.draws)
-        .kernel(Kernel::Nuts(NutsOptions::new(
+        .sampler(SamplerConfig::Nuts(NutsOptions::new(
             c.initial_step.unwrap_or(0.05),
             9,
         )?))

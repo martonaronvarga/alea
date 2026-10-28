@@ -9,7 +9,7 @@ posterior prediction, and checkpoint recovery.
 use alea::prelude::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let kernel = Kernel::Nuts(NutsOptions::new(0.2, 8)?);
+    let kernel = SamplerConfig::Nuts(NutsOptions::new(0.2, 8)?);
     let warmup = Warmup::Covariance {
         iterations: 1_000,
         metric: alea::sampling::adapt::MetricKind::Diagonal,

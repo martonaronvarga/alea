@@ -6,8 +6,8 @@ use alea_runtime::{
     ensemble::Execution,
     output::ChainId,
     session::{
-        Checkpoint, CheckpointError, Diagnostics, Failure, FrozenGeometry, Kernel, Resources,
-        SessionBuilder, Status, Warmup,
+        Checkpoint, CheckpointError, Diagnostics, Failure, FrozenGeometry, Resources,
+        SamplerConfig, SessionBuilder, Status, Warmup,
         storage::{ChannelSink, Discard, DrawReader, DurableSink, Observer, Sink, SinkError},
     },
 };
@@ -45,14 +45,14 @@ impl LogDensity for Normal {
         Ok(-0.5 * q.iter().map(|x| x * x).sum::<f64>())
     }
 }
-fn builder(kernel: Kernel, chains: usize, draws: usize) -> SessionBuilder {
+fn builder(kernel: SamplerConfig, chains: usize, draws: usize) -> SessionBuilder {
     SessionBuilder::new(
         "normal-v1;test-build",
         3,
         (0..chains).map(|i| vec![i as f64 * 0.1; 3]).collect(),
     )
     .seed([151; 32])
-    .kernel(kernel)
+    .sampler(kernel)
     .draws(draws)
     .diagnostics(Diagnostics {
         window: 64,
@@ -68,14 +68,14 @@ fn covariance(metric: MetricKind) -> Warmup {
         search: None,
     }
 }
-fn hmc() -> Kernel {
-    Kernel::Hmc(HmcOptions::new(0.25, 4).unwrap())
+fn hmc() -> SamplerConfig {
+    SamplerConfig::Hmc(HmcOptions::new(0.25, 4).unwrap())
 }
-fn nuts() -> Kernel {
-    Kernel::Nuts(NutsOptions::new(0.25, 5).unwrap())
+fn nuts() -> SamplerConfig {
+    SamplerConfig::Nuts(NutsOptions::new(0.25, 5).unwrap())
 }
-fn rwmh() -> Kernel {
-    Kernel::Rwmh(RwmhOptions::new(0.5).unwrap())
+fn rwmh() -> SamplerConfig {
+    SamplerConfig::Rwmh(RwmhOptions::new(0.5).unwrap())
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn nuts_session_native_warmup_reaches_a_narrow_posterior_from_distant_starts() {
         }
     }
     let session = SessionBuilder::new("narrow-native-warmup-v1", 1, vec![vec![0.]; 4])
-        .kernel(Kernel::Nuts(NutsOptions::new(0.1, 8).unwrap()))
+        .sampler(SamplerConfig::Nuts(NutsOptions::new(0.1, 8).unwrap()))
         .warmup(Warmup::Covariance {
             iterations: 512,
             metric: MetricKind::Diagonal,
@@ -125,7 +125,7 @@ fn serial_rayon_and_streamed_collected_outputs_match_for_all_reference_kernels()
         .unwrap();
     for kernel in [hmc(), nuts(), rwmh()] {
         let warmup = match kernel {
-            Kernel::Rwmh(_) => Warmup::RwmhScale {
+            SamplerConfig::Rwmh(_) => Warmup::RwmhScale {
                 iterations: 80,
                 target: 0.234.try_into().unwrap(),
             },
@@ -133,7 +133,7 @@ fn serial_rayon_and_streamed_collected_outputs_match_for_all_reference_kernels()
         };
         let session = builder(kernel, 4, 256).warmup(warmup).build().unwrap();
         let serial = match kernel {
-            Kernel::Rwmh(_) => session.run_density(
+            SamplerConfig::Rwmh(_) => session.run_density(
                 |_| Ok(Normal { dimension: 3 }),
                 Execution::Sequential,
                 &Discard,
@@ -156,7 +156,7 @@ fn serial_rayon_and_streamed_collected_outputs_match_for_all_reference_kernels()
             .build()
             .unwrap();
         let parallel = match kernel {
-            Kernel::Rwmh(_) => streamed.run_density(
+            SamplerConfig::Rwmh(_) => streamed.run_density(
                 |_| Ok(Normal { dimension: 3 }),
                 Execution::Parallel(&pool),
                 &observer,
@@ -203,7 +203,7 @@ fn cancelled_durable_checkpoints_replay_odd_dimensional_normal_cache_and_dense_m
     .into_iter()
     .enumerate()
     {
-        let warmup = if matches!(kernel, Kernel::Rwmh(_)) {
+        let warmup = if matches!(kernel, SamplerConfig::Rwmh(_)) {
             Warmup::RwmhScale {
                 iterations: 20,
                 target: 0.234.try_into().unwrap(),
@@ -212,7 +212,7 @@ fn cancelled_durable_checkpoints_replay_odd_dimensional_normal_cache_and_dense_m
             covariance(kind)
         };
         let full_session = builder(kernel, 2, 100).warmup(warmup).build().unwrap();
-        let full = if matches!(kernel, Kernel::Rwmh(_)) {
+        let full = if matches!(kernel, SamplerConfig::Rwmh(_)) {
             full_session.run_density(
                 |_| Ok(Normal { dimension: 3 }),
                 Execution::Sequential,
@@ -238,7 +238,7 @@ fn cancelled_durable_checkpoints_replay_odd_dimensional_normal_cache_and_dense_m
             .cancellation(cancel.clone())
             .build()
             .unwrap();
-        let partial = if matches!(kernel, Kernel::Rwmh(_)) {
+        let partial = if matches!(kernel, SamplerConfig::Rwmh(_)) {
             session.run_density(
                 |_| Ok(Normal { dimension: 3 }),
                 Execution::Sequential,
@@ -256,7 +256,7 @@ fn cancelled_durable_checkpoints_replay_odd_dimensional_normal_cache_and_dense_m
         // Replay chain zero with its original logical ID; sequential cancellation
         // prevented chain one from starting.
         let cp = partial.chains[0].checkpoint.as_ref().unwrap();
-        if !matches!(kernel, Kernel::Rwmh(_)) {
+        if !matches!(kernel, SamplerConfig::Rwmh(_)) {
             if kind == MetricKind::Dense {
                 assert!(matches!(cp.geometry(), FrozenGeometry::InverseDense { .. }));
             } else {
@@ -273,7 +273,7 @@ fn cancelled_durable_checkpoints_replay_odd_dimensional_normal_cache_and_dense_m
             .restart(vec![decoded])
             .build()
             .unwrap();
-        let rest = if matches!(kernel, Kernel::Rwmh(_)) {
+        let rest = if matches!(kernel, SamplerConfig::Rwmh(_)) {
             resumed.run_density(
                 |_| Ok(Normal { dimension: 3 }),
                 Execution::Parallel(&pool),
@@ -325,7 +325,7 @@ fn nuts_options_survive_durable_restart_and_reject_changed_policy() {
             .with_step_size_jitter(0.1)
             .unwrap()
             .with_position_turning(true);
-        let kernel = Kernel::Nuts(options);
+        let kernel = SamplerConfig::Nuts(options);
         let run = |draws| {
             builder(kernel, 1, draws)
                 .warmup(warmup)
@@ -341,7 +341,7 @@ fn nuts_options_survive_durable_restart_and_reject_changed_policy() {
         let full = run(80);
         let prefix = run(31);
         let checkpoint = prefix.chains[0].checkpoint.as_ref().unwrap();
-        let Kernel::Nuts(frozen) = checkpoint.kernel() else {
+        let SamplerConfig::Nuts(frozen) = checkpoint.sampler() else {
             panic!("NUTS checkpoint expected")
         };
         assert_eq!(frozen.step_size_jitter(), 0.1);
@@ -367,7 +367,7 @@ fn nuts_options_survive_durable_restart_and_reject_changed_policy() {
             options.with_step_size_jitter(0.0).unwrap(),
         ] {
             assert!(
-                builder(Kernel::Nuts(changed), 1, 80)
+                builder(SamplerConfig::Nuts(changed), 1, 80)
                     .restart(vec![restored.clone()])
                     .build()
                     .is_err()
@@ -655,10 +655,14 @@ fn bounded_channel_backpressure_subscriber_loss_and_observer_panics_return_pendi
 
 #[test]
 fn numerical_exhaustion_retains_rejected_states_without_invented_hamiltonian_stats() {
-    let session = builder(Kernel::Rwmh(RwmhOptions::new(f64::MAX).unwrap()), 1, 20)
-        .numerical_limit(3)
-        .build()
-        .unwrap();
+    let session = builder(
+        SamplerConfig::Rwmh(RwmhOptions::new(f64::MAX).unwrap()),
+        1,
+        20,
+    )
+    .numerical_limit(3)
+    .build()
+    .unwrap();
     let out = session
         .run_density(
             |_| Ok(Normal { dimension: 3 }),

@@ -11,7 +11,7 @@ use alea_math::{
 use rand::Rng;
 use thiserror::Error;
 
-use crate::{Hmc, hmc::HmcError, integrator::Integrator};
+use crate::{Hmc, hmc::HmcError, integrator::SymmetricSplitting};
 
 /// Validated bounded-memory transport fitting policy.
 #[derive(Debug, Clone, Copy)]
@@ -327,7 +327,7 @@ pub fn learn_affine_transport<T, M, I, R>(
 where
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
-    I: Integrator,
+    I: SymmetricSplitting,
     R: Rng + ?Sized,
 {
     learner.observe(chain.point().position())?;

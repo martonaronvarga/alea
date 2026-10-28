@@ -184,8 +184,8 @@ pub alea_mcmc::adapt::JointNutsWarmupError::Adaptation(alea_mcmc::adapt::Adaptat
 pub alea_mcmc::adapt::JointNutsWarmupError::CounterOverflow
 pub alea_mcmc::adapt::JointNutsWarmupError::Covariance(alea_mcmc::adapt::CovarianceError)
 pub alea_mcmc::adapt::JointNutsWarmupError::Curvature(alea_mcmc::adapt::CurvatureProbeError<E>)
-pub alea_mcmc::adapt::JointNutsWarmupError::Integrator(alea_mcmc::integrator::AdvancedIntegratorError)
 pub alea_mcmc::adapt::JointNutsWarmupError::Nuts(alea_mcmc::nuts::NutsError<E>)
+pub alea_mcmc::adapt::JointNutsWarmupError::SymmetricSplitting(alea_mcmc::integrator::AdvancedIntegratorError)
 pub alea_mcmc::adapt::JointNutsWarmupError::Warmup(alea_mcmc::adapt::NutsWarmupError<E>)
 impl<E: core::error::Error + 'static> core::convert::From<alea_mcmc::adapt::AdaptationError> for alea_mcmc::adapt::JointNutsWarmupError<E>
 pub fn alea_mcmc::adapt::JointNutsWarmupError<E>::from(source: alea_mcmc::adapt::AdaptationError) -> Self
@@ -211,8 +211,8 @@ pub alea_mcmc::adapt::JointWarmupError::CounterOverflow
 pub alea_mcmc::adapt::JointWarmupError::Covariance(alea_mcmc::adapt::CovarianceError)
 pub alea_mcmc::adapt::JointWarmupError::Curvature(alea_mcmc::adapt::CurvatureProbeError<E>)
 pub alea_mcmc::adapt::JointWarmupError::Hmc(alea_mcmc::hmc::HmcError<E>)
-pub alea_mcmc::adapt::JointWarmupError::Integrator(alea_mcmc::integrator::AdvancedIntegratorError)
 pub alea_mcmc::adapt::JointWarmupError::SearchExhausted
+pub alea_mcmc::adapt::JointWarmupError::SymmetricSplitting(alea_mcmc::integrator::AdvancedIntegratorError)
 impl<E: core::error::Error + 'static> core::convert::From<alea_mcmc::adapt::AdaptationError> for alea_mcmc::adapt::JointWarmupError<E>
 pub fn alea_mcmc::adapt::JointWarmupError<E>::from(source: alea_mcmc::adapt::AdaptationError) -> Self
 impl<E: core::error::Error + 'static> core::convert::From<alea_mcmc::adapt::CovarianceError> for alea_mcmc::adapt::JointWarmupError<E>
@@ -346,7 +346,7 @@ impl core::marker::StructuralPartialEq for alea_mcmc::adapt::PsisStatus
 #[non_exhaustive] pub enum alea_mcmc::adapt::StaticWarmupError<E: core::error::Error + 'static>
 pub alea_mcmc::adapt::StaticWarmupError::Adaptation(alea_mcmc::adapt::AdaptationError)
 pub alea_mcmc::adapt::StaticWarmupError::CounterOverflow
-pub alea_mcmc::adapt::StaticWarmupError::Kernel(E)
+pub alea_mcmc::adapt::StaticWarmupError::SamplerConfig(E)
 impl<E: core::error::Error + 'static> core::convert::From<alea_mcmc::adapt::AdaptationError> for alea_mcmc::adapt::StaticWarmupError<E>
 pub fn alea_mcmc::adapt::StaticWarmupError<E>::from(source: alea_mcmc::adapt::AdaptationError) -> Self
 impl<E: core::fmt::Debug + core::error::Error + 'static> core::fmt::Debug for alea_mcmc::adapt::StaticWarmupError<E>
@@ -482,7 +482,7 @@ pub fn alea_mcmc::adapt::AffineTransportLearner::fmt(&self, f: &mut core::fmt::F
 pub struct alea_mcmc::adapt::CheesEnsembleAdapter
 impl alea_mcmc::adapt::CheesEnsembleAdapter
 pub fn alea_mcmc::adapt::CheesEnsembleAdapter::finish(self) -> core::result::Result<alea_mcmc::adapt::FrozenCheesParameters, alea_mcmc::adapt::CheesConfigError>
-pub fn alea_mcmc::adapt::CheesEnsembleAdapter::new(dimension: usize, initial_step: alea_mcmc::hmc::StepSize, initial_trajectory_time: f64, min_trajectory_time: f64, max_trajectory_time: f64, criterion: alea_mcmc::adapt::CheesCriterion) -> core::result::Result<Self, alea_mcmc::adapt::CheesConfigError>
+pub fn alea_mcmc::adapt::CheesEnsembleAdapter::new(dimension: usize, initial_step: alea_mcmc::config::StepSize, initial_trajectory_time: f64, min_trajectory_time: f64, max_trajectory_time: f64, criterion: alea_mcmc::adapt::CheesCriterion) -> core::result::Result<Self, alea_mcmc::adapt::CheesConfigError>
 pub fn alea_mcmc::adapt::CheesEnsembleAdapter::next_plan(&mut self) -> core::result::Result<alea_mcmc::adapt::CheesPlan, alea_mcmc::adapt::CheesConfigError>
 pub fn alea_mcmc::adapt::CheesEnsembleAdapter::update(&mut self, observations: &[alea_mcmc::adapt::CheesObservation<'_>]) -> core::result::Result<alea_mcmc::adapt::CheesUpdate, alea_mcmc::adapt::CheesConfigError>
 pub fn alea_mcmc::adapt::CheesEnsembleAdapter::with_max_integration_steps(self, maximum: usize) -> core::result::Result<Self, alea_mcmc::adapt::CheesConfigError>
@@ -503,7 +503,7 @@ pub fn alea_mcmc::adapt::CheesObservation<'a>::fmt(&self, f: &mut core::fmt::For
 impl<'a> core::marker::Copy for alea_mcmc::adapt::CheesObservation<'a>
 pub struct alea_mcmc::adapt::CheesPlan
 pub alea_mcmc::adapt::CheesPlan::integration_steps: usize
-pub alea_mcmc::adapt::CheesPlan::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::adapt::CheesPlan::step_size: alea_mcmc::config::StepSize
 pub alea_mcmc::adapt::CheesPlan::trajectory_time: f64
 impl core::clone::Clone for alea_mcmc::adapt::CheesPlan
 pub fn alea_mcmc::adapt::CheesPlan::clone(&self) -> alea_mcmc::adapt::CheesPlan
@@ -517,7 +517,7 @@ pub struct alea_mcmc::adapt::CheesUpdate
 pub alea_mcmc::adapt::CheesUpdate::harmonic_acceptance: f64
 pub alea_mcmc::adapt::CheesUpdate::max_trajectory_time: f64
 pub alea_mcmc::adapt::CheesUpdate::objective: f64
-pub alea_mcmc::adapt::CheesUpdate::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::adapt::CheesUpdate::step_size: alea_mcmc::config::StepSize
 pub alea_mcmc::adapt::CheesUpdate::trajectory_gradient: f64
 impl core::clone::Clone for alea_mcmc::adapt::CheesUpdate
 pub fn alea_mcmc::adapt::CheesUpdate::clone(&self) -> alea_mcmc::adapt::CheesUpdate
@@ -564,15 +564,15 @@ pub fn alea_mcmc::adapt::DiminishingSchedule::fmt(&self, f: &mut core::fmt::Form
 impl core::marker::Copy for alea_mcmc::adapt::DiminishingSchedule
 pub struct alea_mcmc::adapt::DualAveraging
 impl alea_mcmc::adapt::DualAveraging
-pub fn alea_mcmc::adapt::DualAveraging::finish(self) -> alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::adapt::DualAveraging::new(initial: alea_mcmc::hmc::StepSize, target: alea_mcmc::config::AcceptanceTarget) -> Self
-pub fn alea_mcmc::adapt::DualAveraging::update(&mut self, acceptance: f64) -> core::result::Result<alea_mcmc::hmc::StepSize, alea_mcmc::adapt::AdaptationError>
+pub fn alea_mcmc::adapt::DualAveraging::finish(self) -> alea_mcmc::config::StepSize
+pub fn alea_mcmc::adapt::DualAveraging::new(initial: alea_mcmc::config::StepSize, target: alea_mcmc::config::AcceptanceTarget) -> Self
+pub fn alea_mcmc::adapt::DualAveraging::update(&mut self, acceptance: f64) -> core::result::Result<alea_mcmc::config::StepSize, alea_mcmc::adapt::AdaptationError>
 impl core::clone::Clone for alea_mcmc::adapt::DualAveraging
 pub fn alea_mcmc::adapt::DualAveraging::clone(&self) -> alea_mcmc::adapt::DualAveraging
 impl core::fmt::Debug for alea_mcmc::adapt::DualAveraging
 pub fn alea_mcmc::adapt::DualAveraging::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_mcmc::adapt::FisherHmcWarmup<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I>
-impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator> alea_mcmc::adapt::FisherHmcWarmup<'a, T, I>
+impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::adapt::FisherHmcWarmup<'a, T, I>
 pub fn alea_mcmc::adapt::FisherHmcWarmup<'a, T, I>::new_with_integrator(target: &'a T, position: alea_math::buffer::OwnedBuffer, hmc: alea_mcmc::hmc::HmcOptions, options: alea_mcmc::adapt::FisherOptions, integrator: I) -> core::result::Result<Self, alea_mcmc::adapt::FisherWarmupError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::adapt::FisherHmcWarmup<'a, T, I>::run<R: rand_core::Rng + ?core::marker::Sized>(self, rng: &mut R) -> alea_mcmc::adapt::FisherWarmupResult<'a, T, I>
 impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized> alea_mcmc::adapt::FisherHmcWarmup<'a, T>
@@ -590,7 +590,7 @@ pub fn alea_mcmc::adapt::FisherMetricAdapter::scales_into(&self, fallback: &[f64
 impl core::fmt::Debug for alea_mcmc::adapt::FisherMetricAdapter
 pub fn alea_mcmc::adapt::FisherMetricAdapter::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_mcmc::adapt::FisherNutsWarmup<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I>
-impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator> alea_mcmc::adapt::FisherNutsWarmup<'a, T, I>
+impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::adapt::FisherNutsWarmup<'a, T, I>
 pub fn alea_mcmc::adapt::FisherNutsWarmup<'a, T, I>::new_with_integrator(target: &'a T, position: alea_math::buffer::OwnedBuffer, nuts: alea_mcmc::nuts::NutsOptions, options: alea_mcmc::adapt::FisherOptions, integrator: I) -> core::result::Result<Self, alea_mcmc::adapt::FisherNutsWarmupError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::adapt::FisherNutsWarmup<'a, T, I>::run<R: rand_core::Rng + ?core::marker::Sized>(self, rng: &mut R) -> alea_mcmc::adapt::FisherNutsWarmupResult<'a, T, I>
 pub fn alea_mcmc::adapt::FisherNutsWarmup<'a, T, I>::run_observed<R: rand_core::Rng + ?core::marker::Sized>(self, rng: &mut R, observe: impl core::ops::function::FnMut(alea_mcmc::adapt::NutsWarmupObservation<'_>)) -> alea_mcmc::adapt::FisherNutsWarmupResult<'a, T, I>
@@ -616,7 +616,7 @@ pub struct alea_mcmc::adapt::FrozenCheesParameters
 impl alea_mcmc::adapt::FrozenCheesParameters
 pub fn alea_mcmc::adapt::FrozenCheesParameters::max_trajectory_time(self) -> f64
 pub fn alea_mcmc::adapt::FrozenCheesParameters::sample_plan<R: rand_core::Rng + ?core::marker::Sized>(self, rng: &mut R) -> alea_mcmc::adapt::CheesPlan
-pub fn alea_mcmc::adapt::FrozenCheesParameters::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::adapt::FrozenCheesParameters::step_size(self) -> alea_mcmc::config::StepSize
 impl core::clone::Clone for alea_mcmc::adapt::FrozenCheesParameters
 pub fn alea_mcmc::adapt::FrozenCheesParameters::clone(&self) -> alea_mcmc::adapt::FrozenCheesParameters
 impl core::cmp::PartialEq for alea_mcmc::adapt::FrozenCheesParameters
@@ -637,7 +637,7 @@ impl core::fmt::Debug for alea_mcmc::adapt::FrozenManifoldParameters
 pub fn alea_mcmc::adapt::FrozenManifoldParameters::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_mcmc::adapt::FrozenManifoldParameters
 pub struct alea_mcmc::adapt::HmcWarmup<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I>
-impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator> alea_mcmc::adapt::HmcWarmup<'a, T, I>
+impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::adapt::HmcWarmup<'a, T, I>
 pub fn alea_mcmc::adapt::HmcWarmup<'a, T, I>::new_with_integrator(target: &'a T, position: alea_math::buffer::OwnedBuffer, hmc: alea_mcmc::hmc::HmcOptions, options: alea_mcmc::adapt::WarmupOptions, integrator: I) -> core::result::Result<Self, alea_mcmc::adapt::WarmupError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::adapt::HmcWarmup<'a, T, I>::run<R: rand_core::Rng + ?core::marker::Sized>(self, rng: &mut R) -> alea_mcmc::adapt::HmcWarmupResult<'a, T, I>
 pub fn alea_mcmc::adapt::HmcWarmup<'a, T, I>::run_controlled<R: rand_core::Rng + ?core::marker::Sized>(self, rng: &mut R, proceed: impl core::ops::function::FnMut(usize) -> bool) -> alea_mcmc::adapt::ControlledHmcWarmupResult<'a, T, I>
@@ -652,7 +652,7 @@ pub alea_mcmc::adapt::HmcWarmupReport::integration_attempts: usize
 pub alea_mcmc::adapt::HmcWarmupReport::iterations: usize
 pub alea_mcmc::adapt::HmcWarmupReport::metric_updates: usize
 pub alea_mcmc::adapt::HmcWarmupReport::search_probes: usize
-pub alea_mcmc::adapt::HmcWarmupReport::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::adapt::HmcWarmupReport::step_size: alea_mcmc::config::StepSize
 impl core::clone::Clone for alea_mcmc::adapt::HmcWarmupReport
 pub fn alea_mcmc::adapt::HmcWarmupReport::clone(&self) -> alea_mcmc::adapt::HmcWarmupReport
 impl core::cmp::PartialEq for alea_mcmc::adapt::HmcWarmupReport
@@ -685,7 +685,7 @@ pub alea_mcmc::adapt::JointNutsWarmupReport::iterations: usize
 pub alea_mcmc::adapt::JointNutsWarmupReport::metric_updates: usize
 pub alea_mcmc::adapt::JointNutsWarmupReport::search_probes: usize
 pub alea_mcmc::adapt::JointNutsWarmupReport::selection_dimensionless_limit: f64
-pub alea_mcmc::adapt::JointNutsWarmupReport::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::adapt::JointNutsWarmupReport::step_size: alea_mcmc::config::StepSize
 pub alea_mcmc::adapt::JointNutsWarmupReport::two_stage_coefficient: f64
 impl core::clone::Clone for alea_mcmc::adapt::JointNutsWarmupReport
 pub fn alea_mcmc::adapt::JointNutsWarmupReport::clone(&self) -> alea_mcmc::adapt::JointNutsWarmupReport
@@ -711,7 +711,7 @@ pub alea_mcmc::adapt::JointWarmupReport::integration_attempts: usize
 pub alea_mcmc::adapt::JointWarmupReport::iterations: usize
 pub alea_mcmc::adapt::JointWarmupReport::metric_updates: usize
 pub alea_mcmc::adapt::JointWarmupReport::search_probes: usize
-pub alea_mcmc::adapt::JointWarmupReport::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::adapt::JointWarmupReport::step_size: alea_mcmc::config::StepSize
 pub alea_mcmc::adapt::JointWarmupReport::two_stage_coefficient: f64
 impl core::clone::Clone for alea_mcmc::adapt::JointWarmupReport
 pub fn alea_mcmc::adapt::JointWarmupReport::clone(&self) -> alea_mcmc::adapt::JointWarmupReport
@@ -765,7 +765,7 @@ pub alea_mcmc::adapt::MclmcWarmupReport::integration_attempts: usize
 pub alea_mcmc::adapt::MclmcWarmupReport::iterations: usize
 pub alea_mcmc::adapt::MclmcWarmupReport::observed_error_per_dimension: f64
 pub alea_mcmc::adapt::MclmcWarmupReport::recovered_numerical_failures: usize
-pub alea_mcmc::adapt::MclmcWarmupReport::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::adapt::MclmcWarmupReport::step_size: alea_mcmc::config::StepSize
 pub alea_mcmc::adapt::MclmcWarmupReport::target_per_dimension: f64
 impl core::clone::Clone for alea_mcmc::adapt::MclmcWarmupReport
 pub fn alea_mcmc::adapt::MclmcWarmupReport::clone(&self) -> alea_mcmc::adapt::MclmcWarmupReport
@@ -786,7 +786,7 @@ impl core::fmt::Debug for alea_mcmc::adapt::MultiPathfinderOptions
 pub fn alea_mcmc::adapt::MultiPathfinderOptions::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_mcmc::adapt::MultiPathfinderOptions
 pub struct alea_mcmc::adapt::NutsWarmup<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I>
-impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator> alea_mcmc::adapt::NutsWarmup<'a, T, I>
+impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::adapt::NutsWarmup<'a, T, I>
 pub fn alea_mcmc::adapt::NutsWarmup<'a, T, I>::new_with_integrator(target: &'a T, position: alea_math::buffer::OwnedBuffer, nuts: alea_mcmc::nuts::NutsOptions, options: alea_mcmc::adapt::WarmupOptions, integrator: I) -> core::result::Result<Self, alea_mcmc::adapt::NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::adapt::NutsWarmup<'a, T, I>::run<R: rand_core::Rng + ?core::marker::Sized>(self, rng: &mut R) -> alea_mcmc::adapt::NutsWarmupResult<'a, T, I>
 pub fn alea_mcmc::adapt::NutsWarmup<'a, T, I>::run_controlled<R: rand_core::Rng + ?core::marker::Sized>(self, rng: &mut R, proceed: impl core::ops::function::FnMut(usize) -> bool) -> alea_mcmc::adapt::ControlledNutsWarmupResult<'a, T, I>
@@ -802,7 +802,7 @@ pub alea_mcmc::adapt::NutsWarmupObservation::completed: usize
 pub alea_mcmc::adapt::NutsWarmupObservation::log_density: f64
 pub alea_mcmc::adapt::NutsWarmupObservation::position: &'a [f64]
 pub alea_mcmc::adapt::NutsWarmupObservation::stage: alea_mcmc::adapt::WarmupStage
-pub alea_mcmc::adapt::NutsWarmupObservation::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::adapt::NutsWarmupObservation::step_size: alea_mcmc::config::StepSize
 pub alea_mcmc::adapt::NutsWarmupObservation::transition: alea_mcmc::nuts::NutsTransition
 impl<'a> core::clone::Clone for alea_mcmc::adapt::NutsWarmupObservation<'a>
 pub fn alea_mcmc::adapt::NutsWarmupObservation<'a>::clone(&self) -> alea_mcmc::adapt::NutsWarmupObservation<'a>
@@ -822,7 +822,7 @@ pub alea_mcmc::adapt::NutsWarmupReport::metric_updates: usize
 pub alea_mcmc::adapt::NutsWarmupReport::minimum_log_density: f64
 pub alea_mcmc::adapt::NutsWarmupReport::moved: usize
 pub alea_mcmc::adapt::NutsWarmupReport::search_probes: usize
-pub alea_mcmc::adapt::NutsWarmupReport::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::adapt::NutsWarmupReport::step_size: alea_mcmc::config::StepSize
 impl core::clone::Clone for alea_mcmc::adapt::NutsWarmupReport
 pub fn alea_mcmc::adapt::NutsWarmupReport::clone(&self) -> alea_mcmc::adapt::NutsWarmupReport
 impl core::cmp::PartialEq for alea_mcmc::adapt::NutsWarmupReport
@@ -919,7 +919,7 @@ impl core::marker::Copy for alea_mcmc::adapt::SearchOptions
 impl core::marker::StructuralPartialEq for alea_mcmc::adapt::SearchOptions
 #[non_exhaustive] pub struct alea_mcmc::adapt::SearchResult
 pub alea_mcmc::adapt::SearchResult::probes: usize
-pub alea_mcmc::adapt::SearchResult::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::adapt::SearchResult::step_size: alea_mcmc::config::StepSize
 impl core::clone::Clone for alea_mcmc::adapt::SearchResult
 pub fn alea_mcmc::adapt::SearchResult::clone(&self) -> alea_mcmc::adapt::SearchResult
 impl core::cmp::PartialEq for alea_mcmc::adapt::SearchResult
@@ -931,7 +931,7 @@ impl core::marker::StructuralPartialEq for alea_mcmc::adapt::SearchResult
 pub struct alea_mcmc::adapt::StaticWarmupOptions
 impl alea_mcmc::adapt::StaticWarmupOptions
 pub fn alea_mcmc::adapt::StaticWarmupOptions::new(iterations: usize) -> Self
-pub fn alea_mcmc::adapt::StaticWarmupOptions::with_step_bounds(self, minimum: alea_mcmc::hmc::StepSize, maximum: alea_mcmc::hmc::StepSize) -> core::result::Result<Self, alea_mcmc::adapt::AdaptationError>
+pub fn alea_mcmc::adapt::StaticWarmupOptions::with_step_bounds(self, minimum: alea_mcmc::config::StepSize, maximum: alea_mcmc::config::StepSize) -> core::result::Result<Self, alea_mcmc::adapt::AdaptationError>
 pub fn alea_mcmc::adapt::StaticWarmupOptions::with_target(self, target: alea_mcmc::config::AcceptanceTarget) -> Self
 impl core::clone::Clone for alea_mcmc::adapt::StaticWarmupOptions
 pub fn alea_mcmc::adapt::StaticWarmupOptions::clone(&self) -> alea_mcmc::adapt::StaticWarmupOptions
@@ -947,7 +947,7 @@ pub alea_mcmc::adapt::StaticWarmupReport::first_stage_integration_steps: usize
 pub alea_mcmc::adapt::StaticWarmupReport::ghost_integration_steps: usize
 pub alea_mcmc::adapt::StaticWarmupReport::integration_attempts: usize
 pub alea_mcmc::adapt::StaticWarmupReport::iterations: usize
-pub alea_mcmc::adapt::StaticWarmupReport::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::adapt::StaticWarmupReport::step_size: alea_mcmc::config::StepSize
 impl core::clone::Clone for alea_mcmc::adapt::StaticWarmupReport
 pub fn alea_mcmc::adapt::StaticWarmupReport::clone(&self) -> alea_mcmc::adapt::StaticWarmupReport
 impl core::fmt::Debug for alea_mcmc::adapt::StaticWarmupReport
@@ -966,9 +966,9 @@ pub fn alea_mcmc::adapt::StepAdaptation::fmt(&self, f: &mut core::fmt::Formatter
 impl core::marker::Copy for alea_mcmc::adapt::StepAdaptation
 pub struct alea_mcmc::adapt::StepSizeController
 impl alea_mcmc::adapt::StepSizeController
-pub fn alea_mcmc::adapt::StepSizeController::finish(self) -> alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::adapt::StepSizeController::new(initial: alea_mcmc::hmc::StepSize, target: alea_mcmc::config::AcceptanceTarget, settings: alea_mcmc::adapt::StepAdaptation) -> Self
-pub fn alea_mcmc::adapt::StepSizeController::update(&mut self, observation: alea_mcmc::adapt::StepObservation) -> core::result::Result<alea_mcmc::hmc::StepSize, alea_mcmc::adapt::AdaptationError>
+pub fn alea_mcmc::adapt::StepSizeController::finish(self) -> alea_mcmc::config::StepSize
+pub fn alea_mcmc::adapt::StepSizeController::new(initial: alea_mcmc::config::StepSize, target: alea_mcmc::config::AcceptanceTarget, settings: alea_mcmc::adapt::StepAdaptation) -> Self
+pub fn alea_mcmc::adapt::StepSizeController::update(&mut self, observation: alea_mcmc::adapt::StepObservation) -> core::result::Result<alea_mcmc::config::StepSize, alea_mcmc::adapt::AdaptationError>
 impl core::clone::Clone for alea_mcmc::adapt::StepSizeController
 pub fn alea_mcmc::adapt::StepSizeController::clone(&self) -> alea_mcmc::adapt::StepSizeController
 impl core::fmt::Debug for alea_mcmc::adapt::StepSizeController
@@ -1016,7 +1016,7 @@ impl core::marker::StructuralPartialEq for alea_mcmc::adapt::WarmupOptions
 #[non_exhaustive] pub struct alea_mcmc::adapt::WarmupSummary
 pub alea_mcmc::adapt::WarmupSummary::accepted: usize
 pub alea_mcmc::adapt::WarmupSummary::iterations: usize
-pub alea_mcmc::adapt::WarmupSummary::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::adapt::WarmupSummary::proposal_scale: alea_mcmc::config::ProposalScale
 impl alea_mcmc::adapt::WarmupSummary
 pub fn alea_mcmc::adapt::WarmupSummary::acceptance_rate(self) -> f64
 impl core::clone::Clone for alea_mcmc::adapt::WarmupSummary
@@ -1050,15 +1050,15 @@ pub type alea_mcmc::adapt::WindowSchedule::Item = alea_mcmc::adapt::WarmupStage
 pub fn alea_mcmc::adapt::WindowSchedule::next(&mut self) -> core::option::Option<Self::Item>
 pub fn alea_mcmc::adapt::WindowSchedule::size_hint(&self) -> (usize, core::option::Option<usize>)
 impl core::iter::traits::marker::FusedIterator for alea_mcmc::adapt::WindowSchedule
-pub fn alea_mcmc::adapt::find_reasonable_nuts_step_size<T, M, R, I>(chain: &mut alea_mcmc::nuts::Nuts<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator
-pub fn alea_mcmc::adapt::find_reasonable_step_size<T, M, R, I>(chain: &mut alea_mcmc::hmc::Hmc<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::WarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator
-pub fn alea_mcmc::adapt::learn_affine_transport<T, M, I, R>(chain: &mut alea_mcmc::hmc::Hmc<'_, T, M, I>, learner: alea_mcmc::adapt::AffineTransportLearner, iterations: usize, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::TransportWarmupResult, alea_mcmc::adapt::TransportWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator, R: rand_core::Rng + ?core::marker::Sized
+pub fn alea_mcmc::adapt::find_reasonable_nuts_step_size<T, M, R, I>(chain: &mut alea_mcmc::nuts::Nuts<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting
+pub fn alea_mcmc::adapt::find_reasonable_step_size<T, M, R, I>(chain: &mut alea_mcmc::hmc::Hmc<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::WarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting
+pub fn alea_mcmc::adapt::learn_affine_transport<T, M, I, R>(chain: &mut alea_mcmc::hmc::Hmc<'_, T, M, I>, learner: alea_mcmc::adapt::AffineTransportLearner, iterations: usize, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::TransportWarmupResult, alea_mcmc::adapt::TransportWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting, R: rand_core::Rng + ?core::marker::Sized
 pub fn alea_mcmc::adapt::multi_pathfinder<T, R>(target: &T, initial_positions: &[f64], options: alea_mcmc::adapt::MultiPathfinderOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::PathfinderResult, alea_mcmc::adapt::PathfinderError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, R: rand_core::Rng + ?core::marker::Sized
 pub fn alea_mcmc::adapt::score_initialize<T: alea_core::target::LogDensityGradient + ?core::marker::Sized>(target: &T, initial: &[f64], options: alea_mcmc::adapt::ScoreInitializationOptions) -> core::result::Result<alea_mcmc::adapt::PathfinderResult, alea_mcmc::adapt::PathfinderError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::adapt::wang_diminishing_probability(iteration: usize, delay: usize) -> f64
-pub fn alea_mcmc::adapt::warmup_drghmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::ghmc::DrGhmc<'a, T, M, I>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::ghmc::DrGhmc<'a, T, M, I>, alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>>
-pub fn alea_mcmc::adapt::warmup_ghmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::ghmc::Ghmc<'a, T, M, I>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::ghmc::Ghmc<'a, T, M, I>, alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>>
-pub fn alea_mcmc::adapt::warmup_hmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::hmc::Hmc<'a, T, M, I>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::hmc::Hmc<'a, T, M, I>, alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>>
+pub fn alea_mcmc::adapt::warmup_drghmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::ghmc::DrGhmc<'a, T, M, I>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::ghmc::DrGhmc<'a, T, M, I>, alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>>
+pub fn alea_mcmc::adapt::warmup_ghmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::ghmc::Ghmc<'a, T, M, I>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::ghmc::Ghmc<'a, T, M, I>, alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>>
+pub fn alea_mcmc::adapt::warmup_hmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::hmc::Hmc<'a, T, M, I>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::hmc::Hmc<'a, T, M, I>, alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::adapt::warmup_mams_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::mams::Mams<'a, T>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::mams::Mams<'a, T>, alea_mcmc::mams::MamsError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::adapt::warmup_mclmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::mams::ApproximateMclmc<'a, T>, options: alea_mcmc::adapt::MclmcWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::MclmcWarmupResult<'a, T>
 pub fn alea_mcmc::adapt::warmup_rwmh<T, M, R>(chain: &mut alea_mcmc::rwmh::Rwmh<'_, T, M>, iterations: usize, target: core::option::Option<alea_mcmc::config::AcceptanceTarget>, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::WarmupSummary, alea_mcmc::rwmh::RwmhError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::density::LogDensity + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized
@@ -1131,7 +1131,7 @@ pub struct alea_mcmc::advanced::AdvancedHmcOptions
 impl alea_mcmc::advanced::AdvancedHmcOptions
 pub fn alea_mcmc::advanced::AdvancedHmcOptions::integration_steps(self) -> core::num::nonzero::NonZeroUsize
 pub fn alea_mcmc::advanced::AdvancedHmcOptions::new(step_size: f64, integration_steps: usize) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
-pub fn alea_mcmc::advanced::AdvancedHmcOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::advanced::AdvancedHmcOptions::step_size(self) -> alea_mcmc::config::StepSize
 pub fn alea_mcmc::advanced::AdvancedHmcOptions::with_max_energy_error(self, limit: f64) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
 impl core::clone::Clone for alea_mcmc::advanced::AdvancedHmcOptions
 pub fn alea_mcmc::advanced::AdvancedHmcOptions::clone(&self) -> alea_mcmc::advanced::AdvancedHmcOptions
@@ -1207,7 +1207,7 @@ impl alea_mcmc::mams::ApproximateMclmcOptions
 pub fn alea_mcmc::mams::ApproximateMclmcOptions::integration_steps(self) -> core::num::nonzero::NonZeroUsize
 pub fn alea_mcmc::mams::ApproximateMclmcOptions::new(step_size: f64, integration_steps: usize, refresh_length: core::option::Option<f64>) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
 pub fn alea_mcmc::mams::ApproximateMclmcOptions::refresh_length(self) -> core::option::Option<f64>
-pub fn alea_mcmc::mams::ApproximateMclmcOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::mams::ApproximateMclmcOptions::step_size(self) -> alea_mcmc::config::StepSize
 impl core::clone::Clone for alea_mcmc::mams::ApproximateMclmcOptions
 pub fn alea_mcmc::mams::ApproximateMclmcOptions::clone(&self) -> alea_mcmc::mams::ApproximateMclmcOptions
 impl core::fmt::Debug for alea_mcmc::mams::ApproximateMclmcOptions
@@ -1315,7 +1315,7 @@ impl<E: core::error::Error + 'static> core::convert::From<alea_mcmc::atlas_sampl
 pub fn alea_mcmc::atlas_sampler::AtlasError<E>::from(source: alea_mcmc::atlas_sampler::AtlasConfigError) -> Self
 pub struct alea_mcmc::atlas_sampler::AtlasOptions
 impl alea_mcmc::atlas_sampler::AtlasOptions
-pub fn alea_mcmc::atlas_sampler::AtlasOptions::baseline_step(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::atlas_sampler::AtlasOptions::baseline_step(self) -> alea_mcmc::config::StepSize
 pub fn alea_mcmc::atlas_sampler::AtlasOptions::maximum_steps(self) -> usize
 pub fn alea_mcmc::atlas_sampler::AtlasOptions::new(step: f64, maximum: usize) -> core::result::Result<Self, alea_mcmc::atlas_sampler::AtlasConfigError>
 impl core::clone::Clone for alea_mcmc::atlas_sampler::AtlasOptions
@@ -1409,9 +1409,9 @@ impl<'a, T: core::fmt::Debug + alea_core::capability::BatchLogDensityGradient + 
 pub fn alea_mcmc::batch::BatchedLeapfrog<'a, T>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub mod alea_mcmc::chees
 pub struct alea_mcmc::chees::CheesHmc<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M, I>
-impl<'a, T, I> alea_mcmc::chees::CheesHmc<'a, T, alea_math::metric::IdentityMetric, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator
+impl<'a, T, I> alea_mcmc::chees::CheesHmc<'a, T, alea_math::metric::IdentityMetric, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting
 pub fn alea_mcmc::chees::CheesHmc<'a, T, alea_math::metric::IdentityMetric, I>::observation<'s>(&'s self, transition: &alea_mcmc::chees::CheesHmcTransition) -> alea_mcmc::adapt::CheesObservation<'s>
-impl<'a, T, M, I> alea_mcmc::chees::CheesHmc<'a, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator
+impl<'a, T, M, I> alea_mcmc::chees::CheesHmc<'a, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting
 pub fn alea_mcmc::chees::CheesHmc<'a, T, M, I>::install_frozen(&mut self, frozen: alea_mcmc::adapt::FrozenCheesParameters)
 pub fn alea_mcmc::chees::CheesHmc<'a, T, M, I>::metric(&self) -> &M
 pub fn alea_mcmc::chees::CheesHmc<'a, T, M, I>::new_with_integrator(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::chees::CheesHmcOptions, integrator: I) -> core::result::Result<Self, alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>>
@@ -1421,7 +1421,7 @@ impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: ale
 pub fn alea_mcmc::chees::CheesHmc<'a, T, M>::new(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::chees::CheesHmcOptions) -> core::result::Result<Self, alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>>
 impl<'a, T: core::fmt::Debug + alea_core::target::LogDensityGradient + ?core::marker::Sized, M: core::fmt::Debug, I: core::fmt::Debug> core::fmt::Debug for alea_mcmc::chees::CheesHmc<'a, T, M, I>
 pub fn alea_mcmc::chees::CheesHmc<'a, T, M, I>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::chees::CheesHmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator
+impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::chees::CheesHmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting
 pub type alea_mcmc::chees::CheesHmc<'_, T, M, I>::Error = alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::chees::CheesHmc<'_, T, M, I>::Transition = alea_mcmc::chees::CheesHmcTransition
 pub fn alea_mcmc::chees::CheesHmc<'_, T, M, I>::position(&self) -> &[f64]
@@ -1453,32 +1453,6 @@ impl core::fmt::Debug for alea_mcmc::chees::CheesHmcTransition
 pub fn alea_mcmc::chees::CheesHmcTransition::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_mcmc::chees::CheesHmcTransition
 pub mod alea_mcmc::config
-#[non_exhaustive] pub enum alea_mcmc::config::HmcConfigError
-pub alea_mcmc::config::HmcConfigError::EnergyErrorLimit
-pub alea_mcmc::config::HmcConfigError::IntegrationCount
-pub alea_mcmc::config::HmcConfigError::StepSize
-impl core::clone::Clone for alea_mcmc::hmc::HmcConfigError
-pub fn alea_mcmc::hmc::HmcConfigError::clone(&self) -> alea_mcmc::hmc::HmcConfigError
-impl core::cmp::Eq for alea_mcmc::hmc::HmcConfigError
-impl core::cmp::PartialEq for alea_mcmc::hmc::HmcConfigError
-pub fn alea_mcmc::hmc::HmcConfigError::eq(&self, other: &alea_mcmc::hmc::HmcConfigError) -> bool
-impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::config::SamplerConfigError
-pub fn alea_mcmc::config::SamplerConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self
-impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::ghmc::GhmcConfigError
-pub fn alea_mcmc::ghmc::GhmcConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self
-impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::nuts::NutsConfigError
-pub fn alea_mcmc::nuts::NutsConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self
-impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::walnuts::WalnutsConfigError
-pub fn alea_mcmc::walnuts::WalnutsConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self
-impl core::error::Error for alea_mcmc::hmc::HmcConfigError
-impl core::fmt::Debug for alea_mcmc::hmc::HmcConfigError
-pub fn alea_mcmc::hmc::HmcConfigError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::fmt::Display for alea_mcmc::hmc::HmcConfigError
-pub fn alea_mcmc::hmc::HmcConfigError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_mcmc::hmc::HmcConfigError
-impl core::marker::StructuralPartialEq for alea_mcmc::hmc::HmcConfigError
-impl<E: core::error::Error + 'static> core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::ghmc::GhmcError<E>
-pub fn alea_mcmc::ghmc::GhmcError<E>::from(source: alea_mcmc::hmc::HmcConfigError) -> Self
 #[non_exhaustive] pub enum alea_mcmc::config::SamplerConfigError
 pub alea_mcmc::config::SamplerConfigError::AcceptanceTarget
 pub alea_mcmc::config::SamplerConfigError::DimensionOverflow
@@ -1487,19 +1461,19 @@ pub alea_mcmc::config::SamplerConfigError::EmptyDimension
 pub alea_mcmc::config::SamplerConfigError::StateDimension
 pub alea_mcmc::config::SamplerConfigError::StateDimension::actual: usize
 pub alea_mcmc::config::SamplerConfigError::StateDimension::expected: usize
-pub alea_mcmc::config::SamplerConfigError::StepSize(alea_mcmc::hmc::HmcConfigError)
+pub alea_mcmc::config::SamplerConfigError::StepSize(alea_mcmc::config::InvalidScale)
 pub alea_mcmc::config::SamplerConfigError::TreeDepth
 impl core::clone::Clone for alea_mcmc::config::SamplerConfigError
 pub fn alea_mcmc::config::SamplerConfigError::clone(&self) -> alea_mcmc::config::SamplerConfigError
 impl core::cmp::Eq for alea_mcmc::config::SamplerConfigError
 impl core::cmp::PartialEq for alea_mcmc::config::SamplerConfigError
 pub fn alea_mcmc::config::SamplerConfigError::eq(&self, other: &alea_mcmc::config::SamplerConfigError) -> bool
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::config::SamplerConfigError
+pub fn alea_mcmc::config::SamplerConfigError::from(source: alea_mcmc::config::InvalidScale) -> Self
 impl core::convert::From<alea_mcmc::config::SamplerConfigError> for alea_mcmc::nuts::NutsConfigError
 pub fn alea_mcmc::nuts::NutsConfigError::from(source: alea_mcmc::config::SamplerConfigError) -> Self
 impl core::convert::From<alea_mcmc::config::SamplerConfigError> for alea_mcmc::walnuts::WalnutsConfigError
 pub fn alea_mcmc::walnuts::WalnutsConfigError::from(source: alea_mcmc::config::SamplerConfigError) -> Self
-impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::config::SamplerConfigError
-pub fn alea_mcmc::config::SamplerConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self
 impl core::error::Error for alea_mcmc::config::SamplerConfigError
 pub fn alea_mcmc::config::SamplerConfigError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
 impl core::fmt::Debug for alea_mcmc::config::SamplerConfigError
@@ -1522,20 +1496,65 @@ impl core::fmt::Debug for alea_mcmc::config::AcceptanceTarget
 pub fn alea_mcmc::config::AcceptanceTarget::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_mcmc::config::AcceptanceTarget
 impl core::marker::StructuralPartialEq for alea_mcmc::config::AcceptanceTarget
+pub struct alea_mcmc::config::InvalidScale
+impl core::clone::Clone for alea_mcmc::config::InvalidScale
+pub fn alea_mcmc::config::InvalidScale::clone(&self) -> alea_mcmc::config::InvalidScale
+impl core::cmp::Eq for alea_mcmc::config::InvalidScale
+impl core::cmp::PartialEq for alea_mcmc::config::InvalidScale
+pub fn alea_mcmc::config::InvalidScale::eq(&self, other: &alea_mcmc::config::InvalidScale) -> bool
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::config::SamplerConfigError
+pub fn alea_mcmc::config::SamplerConfigError::from(source: alea_mcmc::config::InvalidScale) -> Self
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::ghmc::GhmcConfigError
+pub fn alea_mcmc::ghmc::GhmcConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::hmc::HmcConfigError
+pub fn alea_mcmc::hmc::HmcConfigError::from(_: alea_mcmc::config::InvalidScale) -> Self
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::nuts::NutsConfigError
+pub fn alea_mcmc::nuts::NutsConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::walnuts::WalnutsConfigError
+pub fn alea_mcmc::walnuts::WalnutsConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self
+impl core::error::Error for alea_mcmc::config::InvalidScale
+impl core::fmt::Debug for alea_mcmc::config::InvalidScale
+pub fn alea_mcmc::config::InvalidScale::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_mcmc::config::InvalidScale
+pub fn alea_mcmc::config::InvalidScale::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_mcmc::config::InvalidScale
+impl core::marker::StructuralPartialEq for alea_mcmc::config::InvalidScale
+pub struct alea_mcmc::config::ProposalScale(_)
+impl alea_mcmc::config::ProposalScale
+pub fn alea_mcmc::config::ProposalScale::value(self) -> f64
+impl core::clone::Clone for alea_mcmc::config::ProposalScale
+pub fn alea_mcmc::config::ProposalScale::clone(&self) -> alea_mcmc::config::ProposalScale
+impl core::cmp::PartialEq for alea_mcmc::config::ProposalScale
+pub fn alea_mcmc::config::ProposalScale::eq(&self, other: &alea_mcmc::config::ProposalScale) -> bool
+impl core::convert::From<alea_mcmc::config::ProposalScale> for alea_mcmc::config::StepSize
+pub fn alea_mcmc::config::StepSize::from(scale: alea_mcmc::config::ProposalScale) -> Self
+impl core::convert::From<alea_mcmc::config::StepSize> for alea_mcmc::config::ProposalScale
+pub fn alea_mcmc::config::ProposalScale::from(step: alea_mcmc::config::StepSize) -> Self
+impl core::convert::TryFrom<f64> for alea_mcmc::config::ProposalScale
+pub type alea_mcmc::config::ProposalScale::Error = alea_mcmc::config::InvalidScale
+pub fn alea_mcmc::config::ProposalScale::try_from(value: f64) -> core::result::Result<Self, Self::Error>
+impl core::fmt::Debug for alea_mcmc::config::ProposalScale
+pub fn alea_mcmc::config::ProposalScale::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_mcmc::config::ProposalScale
+impl core::marker::StructuralPartialEq for alea_mcmc::config::ProposalScale
 pub struct alea_mcmc::config::StepSize(_)
-impl alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::hmc::StepSize::value(self) -> f64
-impl core::clone::Clone for alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::hmc::StepSize::clone(&self) -> alea_mcmc::hmc::StepSize
-impl core::cmp::PartialEq for alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::hmc::StepSize::eq(&self, other: &alea_mcmc::hmc::StepSize) -> bool
-impl core::convert::TryFrom<f64> for alea_mcmc::hmc::StepSize
-pub type alea_mcmc::hmc::StepSize::Error = alea_mcmc::hmc::HmcConfigError
-pub fn alea_mcmc::hmc::StepSize::try_from(value: f64) -> core::result::Result<Self, Self::Error>
-impl core::fmt::Debug for alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::hmc::StepSize::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_mcmc::hmc::StepSize
-impl core::marker::StructuralPartialEq for alea_mcmc::hmc::StepSize
+impl alea_mcmc::config::StepSize
+pub fn alea_mcmc::config::StepSize::value(self) -> f64
+impl core::clone::Clone for alea_mcmc::config::StepSize
+pub fn alea_mcmc::config::StepSize::clone(&self) -> alea_mcmc::config::StepSize
+impl core::cmp::PartialEq for alea_mcmc::config::StepSize
+pub fn alea_mcmc::config::StepSize::eq(&self, other: &alea_mcmc::config::StepSize) -> bool
+impl core::convert::From<alea_mcmc::config::ProposalScale> for alea_mcmc::config::StepSize
+pub fn alea_mcmc::config::StepSize::from(scale: alea_mcmc::config::ProposalScale) -> Self
+impl core::convert::From<alea_mcmc::config::StepSize> for alea_mcmc::config::ProposalScale
+pub fn alea_mcmc::config::ProposalScale::from(step: alea_mcmc::config::StepSize) -> Self
+impl core::convert::TryFrom<f64> for alea_mcmc::config::StepSize
+pub type alea_mcmc::config::StepSize::Error = alea_mcmc::config::InvalidScale
+pub fn alea_mcmc::config::StepSize::try_from(value: f64) -> core::result::Result<Self, Self::Error>
+impl core::fmt::Debug for alea_mcmc::config::StepSize
+pub fn alea_mcmc::config::StepSize::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_mcmc::config::StepSize
+impl core::marker::StructuralPartialEq for alea_mcmc::config::StepSize
 pub struct alea_mcmc::config::TreeDepth(_)
 impl alea_mcmc::config::TreeDepth
 pub fn alea_mcmc::config::TreeDepth::max_integration_steps(self) -> usize
@@ -1562,6 +1581,8 @@ pub fn alea_mcmc::ghmc::GhmcConfigError::clone(&self) -> alea_mcmc::ghmc::GhmcCo
 impl core::cmp::Eq for alea_mcmc::ghmc::GhmcConfigError
 impl core::cmp::PartialEq for alea_mcmc::ghmc::GhmcConfigError
 pub fn alea_mcmc::ghmc::GhmcConfigError::eq(&self, other: &alea_mcmc::ghmc::GhmcConfigError) -> bool
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::ghmc::GhmcConfigError
+pub fn alea_mcmc::ghmc::GhmcConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self
 impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::ghmc::GhmcConfigError
 pub fn alea_mcmc::ghmc::GhmcConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self
 impl core::error::Error for alea_mcmc::ghmc::GhmcConfigError
@@ -1594,7 +1615,7 @@ pub fn alea_mcmc::ghmc::GhmcError<E>::fmt(&self, __formatter: &mut core::fmt::Fo
 impl<E: core::fmt::Debug + core::error::Error + 'static> core::fmt::Debug for alea_mcmc::ghmc::GhmcError<E>
 pub fn alea_mcmc::ghmc::GhmcError<E>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_mcmc::ghmc::DrGhmc<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M, I>
-impl<'a, T, M, I> alea_mcmc::ghmc::DrGhmc<'a, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator
+impl<'a, T, M, I> alea_mcmc::ghmc::DrGhmc<'a, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting
 pub fn alea_mcmc::ghmc::DrGhmc<'a, T, M, I>::momentum(&self) -> &[f64]
 pub fn alea_mcmc::ghmc::DrGhmc<'a, T, M, I>::new_with_integrator<R: rand_core::Rng + ?core::marker::Sized>(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::ghmc::DrGhmcOptions, integrator: I, rng: &mut R) -> core::result::Result<Self, alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::ghmc::DrGhmc<'a, T, M, I>::options(&self) -> alea_mcmc::ghmc::DrGhmcOptions
@@ -1604,19 +1625,19 @@ impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: ale
 pub fn alea_mcmc::ghmc::DrGhmc<'a, T, M>::new<R: rand_core::Rng + ?core::marker::Sized>(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::ghmc::DrGhmcOptions, rng: &mut R) -> core::result::Result<Self, alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>>
 impl<'a, T: core::fmt::Debug + alea_core::target::LogDensityGradient + ?core::marker::Sized, M: core::fmt::Debug, I: core::fmt::Debug> core::fmt::Debug for alea_mcmc::ghmc::DrGhmc<'a, T, M, I>
 pub fn alea_mcmc::ghmc::DrGhmc<'a, T, M, I>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::DrGhmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator
+impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::DrGhmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting
 pub type alea_mcmc::ghmc::DrGhmc<'_, T, M, I>::Error = alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::ghmc::DrGhmc<'_, T, M, I>::Transition = alea_mcmc::ghmc::DrGhmcTransition
 pub fn alea_mcmc::ghmc::DrGhmc<'_, T, M, I>::position(&self) -> &[f64]
 pub fn alea_mcmc::ghmc::DrGhmc<'_, T, M, I>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
 pub struct alea_mcmc::ghmc::DrGhmcOptions
 impl alea_mcmc::ghmc::DrGhmcOptions
-pub fn alea_mcmc::ghmc::DrGhmcOptions::first_step(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::ghmc::DrGhmcOptions::first_step(self) -> alea_mcmc::config::StepSize
 pub fn alea_mcmc::ghmc::DrGhmcOptions::integration_steps(self) -> core::num::nonzero::NonZeroUsize
 pub fn alea_mcmc::ghmc::DrGhmcOptions::new(first_step: f64, retry_scale: f64, persistence: f64) -> core::result::Result<Self, alea_mcmc::ghmc::GhmcConfigError>
 pub fn alea_mcmc::ghmc::DrGhmcOptions::persistence(self) -> f64
 pub fn alea_mcmc::ghmc::DrGhmcOptions::retry_scale(self) -> f64
-pub fn alea_mcmc::ghmc::DrGhmcOptions::second_step(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::ghmc::DrGhmcOptions::second_step(self) -> alea_mcmc::config::StepSize
 pub fn alea_mcmc::ghmc::DrGhmcOptions::with_integration_steps(self, steps: usize) -> core::result::Result<Self, alea_mcmc::ghmc::GhmcConfigError>
 pub fn alea_mcmc::ghmc::DrGhmcOptions::with_max_energy_error(self, limit: f64) -> core::result::Result<Self, alea_mcmc::ghmc::GhmcConfigError>
 impl core::clone::Clone for alea_mcmc::ghmc::DrGhmcOptions
@@ -1651,7 +1672,7 @@ impl core::fmt::Debug for alea_mcmc::ghmc::DrGhmcTransition
 pub fn alea_mcmc::ghmc::DrGhmcTransition::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_mcmc::ghmc::DrGhmcTransition
 pub struct alea_mcmc::ghmc::Ghmc<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M, I>
-impl<'a, T, M, I> alea_mcmc::ghmc::Ghmc<'a, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator
+impl<'a, T, M, I> alea_mcmc::ghmc::Ghmc<'a, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting
 pub fn alea_mcmc::ghmc::Ghmc<'a, T, M, I>::momentum(&self) -> &[f64]
 pub fn alea_mcmc::ghmc::Ghmc<'a, T, M, I>::new_with_integrator<R: rand_core::Rng + ?core::marker::Sized>(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::ghmc::GhmcOptions, integrator: I, rng: &mut R) -> core::result::Result<Self, alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::ghmc::Ghmc<'a, T, M, I>::options(&self) -> alea_mcmc::ghmc::GhmcOptions
@@ -1661,7 +1682,7 @@ impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: ale
 pub fn alea_mcmc::ghmc::Ghmc<'a, T, M>::new<R: rand_core::Rng + ?core::marker::Sized>(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::ghmc::GhmcOptions, rng: &mut R) -> core::result::Result<Self, alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>>
 impl<'a, T: core::fmt::Debug + alea_core::target::LogDensityGradient + ?core::marker::Sized, M: core::fmt::Debug, I: core::fmt::Debug> core::fmt::Debug for alea_mcmc::ghmc::Ghmc<'a, T, M, I>
 pub fn alea_mcmc::ghmc::Ghmc<'a, T, M, I>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::Ghmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator
+impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::Ghmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting
 pub type alea_mcmc::ghmc::Ghmc<'_, T, M, I>::Error = alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::ghmc::Ghmc<'_, T, M, I>::Transition = alea_mcmc::ghmc::GhmcTransition
 pub fn alea_mcmc::ghmc::Ghmc<'_, T, M, I>::position(&self) -> &[f64]
@@ -1672,7 +1693,7 @@ pub fn alea_mcmc::ghmc::GhmcOptions::integration_steps(self) -> core::num::nonze
 pub fn alea_mcmc::ghmc::GhmcOptions::max_energy_error(self) -> f64
 pub fn alea_mcmc::ghmc::GhmcOptions::new(step_size: f64, integration_steps: usize, persistence: f64) -> core::result::Result<Self, alea_mcmc::ghmc::GhmcConfigError>
 pub fn alea_mcmc::ghmc::GhmcOptions::persistence(self) -> f64
-pub fn alea_mcmc::ghmc::GhmcOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::ghmc::GhmcOptions::step_size(self) -> alea_mcmc::config::StepSize
 pub fn alea_mcmc::ghmc::GhmcOptions::with_max_energy_error(self, limit: f64) -> core::result::Result<Self, alea_mcmc::ghmc::GhmcConfigError>
 impl core::clone::Clone for alea_mcmc::ghmc::GhmcOptions
 pub fn alea_mcmc::ghmc::GhmcOptions::clone(&self) -> alea_mcmc::ghmc::GhmcOptions
@@ -1735,7 +1756,7 @@ pub fn alea_mcmc::hamiltonian::Phase<'_, 'a, T, M>::save_into(&self, destination
 impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric> alea_mcmc::hamiltonian::Phase<'_, '_, T, M>
 pub fn alea_mcmc::hamiltonian::Phase<'_, '_, T, M>::energy(&mut self) -> core::result::Result<f64, alea_mcmc::hamiltonian::PhaseError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::hamiltonian::Phase<'_, '_, T, M>::step(self, step: alea_mcmc::hamiltonian::SignedStep) -> core::result::Result<Self, alea_mcmc::hamiltonian::PhaseError<<T as alea_core::target::TargetSpace>::Error>>
-pub fn alea_mcmc::hamiltonian::Phase<'_, '_, T, M>::step_with<I: alea_mcmc::integrator::Integrator>(self, step: alea_mcmc::hamiltonian::SignedStep, integrator: &I) -> core::result::Result<Self, alea_mcmc::hamiltonian::PhaseError<<T as alea_core::target::TargetSpace>::Error>>
+pub fn alea_mcmc::hamiltonian::Phase<'_, '_, T, M>::step_with<I: alea_mcmc::integrator::SymmetricSplitting>(self, step: alea_mcmc::hamiltonian::SignedStep, integrator: &I) -> core::result::Result<Self, alea_mcmc::hamiltonian::PhaseError<<T as alea_core::target::TargetSpace>::Error>>
 pub struct alea_mcmc::hamiltonian::PhaseState<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized>
 impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized> alea_mcmc::hamiltonian::PhaseState<'a, T>
 pub fn alea_mcmc::hamiltonian::PhaseState<'a, T>::dimension(&self) -> usize
@@ -1793,8 +1814,8 @@ pub fn alea_mcmc::hmc::HmcConfigError::clone(&self) -> alea_mcmc::hmc::HmcConfig
 impl core::cmp::Eq for alea_mcmc::hmc::HmcConfigError
 impl core::cmp::PartialEq for alea_mcmc::hmc::HmcConfigError
 pub fn alea_mcmc::hmc::HmcConfigError::eq(&self, other: &alea_mcmc::hmc::HmcConfigError) -> bool
-impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::config::SamplerConfigError
-pub fn alea_mcmc::config::SamplerConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::hmc::HmcConfigError
+pub fn alea_mcmc::hmc::HmcConfigError::from(_: alea_mcmc::config::InvalidScale) -> Self
 impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::ghmc::GhmcConfigError
 pub fn alea_mcmc::ghmc::GhmcConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self
 impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::nuts::NutsConfigError
@@ -1840,7 +1861,7 @@ pub fn alea_mcmc::hmc::HmcError<E>::fmt(&self, __formatter: &mut core::fmt::Form
 impl<E: core::fmt::Debug + core::error::Error + 'static> core::fmt::Debug for alea_mcmc::hmc::HmcError<E>
 pub fn alea_mcmc::hmc::HmcError<E>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_mcmc::hmc::Hmc<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M, I>
-impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::hmc::Hmc<'a, T, M, I>
+impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::hmc::Hmc<'a, T, M, I>
 pub fn alea_mcmc::hmc::Hmc<'a, T, M, I>::metric(&self) -> &M
 pub fn alea_mcmc::hmc::Hmc<'a, T, M, I>::new_with_integrator(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::hmc::HmcOptions, integrator: I) -> core::result::Result<Self, alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::hmc::Hmc<'a, T, M, I>::options(&self) -> alea_mcmc::hmc::HmcOptions
@@ -1851,7 +1872,7 @@ impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: ale
 pub fn alea_mcmc::hmc::Hmc<'a, T, M>::new(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::hmc::HmcOptions) -> core::result::Result<Self, alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>>
 impl<'a, T: core::fmt::Debug + alea_core::target::LogDensityGradient + ?core::marker::Sized, M: core::fmt::Debug, I: core::fmt::Debug> core::fmt::Debug for alea_mcmc::hmc::Hmc<'a, T, M, I>
 pub fn alea_mcmc::hmc::Hmc<'a, T, M, I>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::MarkovChain for alea_mcmc::hmc::Hmc<'_, T, M, I>
+impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::MarkovChain for alea_mcmc::hmc::Hmc<'_, T, M, I>
 pub type alea_mcmc::hmc::Hmc<'_, T, M, I>::Error = alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::hmc::Hmc<'_, T, M, I>::Transition = alea_mcmc::hmc::HmcTransition
 pub fn alea_mcmc::hmc::Hmc<'_, T, M, I>::position(&self) -> &[f64]
@@ -1861,7 +1882,7 @@ impl alea_mcmc::hmc::HmcOptions
 pub fn alea_mcmc::hmc::HmcOptions::integration_steps(self) -> core::num::nonzero::NonZeroUsize
 pub fn alea_mcmc::hmc::HmcOptions::max_energy_error(self) -> f64
 pub fn alea_mcmc::hmc::HmcOptions::new(step_size: f64, integration_steps: usize) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
-pub fn alea_mcmc::hmc::HmcOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::hmc::HmcOptions::step_size(self) -> alea_mcmc::config::StepSize
 pub fn alea_mcmc::hmc::HmcOptions::with_max_energy_error(self, limit: f64) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
 impl core::clone::Clone for alea_mcmc::hmc::HmcOptions
 pub fn alea_mcmc::hmc::HmcOptions::clone(&self) -> alea_mcmc::hmc::HmcOptions
@@ -1891,20 +1912,6 @@ impl core::fmt::Debug for alea_mcmc::hmc::HmcTransition
 pub fn alea_mcmc::hmc::HmcTransition::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_mcmc::hmc::HmcTransition
 impl core::marker::StructuralPartialEq for alea_mcmc::hmc::HmcTransition
-pub struct alea_mcmc::hmc::StepSize(_)
-impl alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::hmc::StepSize::value(self) -> f64
-impl core::clone::Clone for alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::hmc::StepSize::clone(&self) -> alea_mcmc::hmc::StepSize
-impl core::cmp::PartialEq for alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::hmc::StepSize::eq(&self, other: &alea_mcmc::hmc::StepSize) -> bool
-impl core::convert::TryFrom<f64> for alea_mcmc::hmc::StepSize
-pub type alea_mcmc::hmc::StepSize::Error = alea_mcmc::hmc::HmcConfigError
-pub fn alea_mcmc::hmc::StepSize::try_from(value: f64) -> core::result::Result<Self, Self::Error>
-impl core::fmt::Debug for alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::hmc::StepSize::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_mcmc::hmc::StepSize
-impl core::marker::StructuralPartialEq for alea_mcmc::hmc::StepSize
 pub mod alea_mcmc::integrator
 pub enum alea_mcmc::integrator::AdvancedIntegratorError
 pub alea_mcmc::integrator::AdvancedIntegratorError::Curvature
@@ -1945,7 +1952,7 @@ pub alea_mcmc::integrator::ForceBudgetPlan::force_budget: usize
 pub alea_mcmc::integrator::ForceBudgetPlan::macrostep_size: f64
 pub alea_mcmc::integrator::ForceBudgetPlan::macrosteps: usize
 impl alea_mcmc::integrator::ForceBudgetPlan
-pub fn alea_mcmc::integrator::ForceBudgetPlan::new<I: alea_mcmc::integrator::Integrator>(force_budget: usize, reference_step: f64, integrator: &I) -> core::result::Result<Self, alea_mcmc::integrator::AdvancedIntegratorError>
+pub fn alea_mcmc::integrator::ForceBudgetPlan::new<I: alea_mcmc::integrator::SymmetricSplitting>(force_budget: usize, reference_step: f64, integrator: &I) -> core::result::Result<Self, alea_mcmc::integrator::AdvancedIntegratorError>
 impl core::clone::Clone for alea_mcmc::integrator::ForceBudgetPlan
 pub fn alea_mcmc::integrator::ForceBudgetPlan::clone(&self) -> alea_mcmc::integrator::ForceBudgetPlan
 impl core::cmp::PartialEq for alea_mcmc::integrator::ForceBudgetPlan
@@ -1968,7 +1975,7 @@ pub fn alea_mcmc::integrator::InvalidCoefficient::fmt(&self, __formatter: &mut c
 impl core::marker::Copy for alea_mcmc::integrator::InvalidCoefficient
 impl core::marker::StructuralPartialEq for alea_mcmc::integrator::InvalidCoefficient
 pub struct alea_mcmc::integrator::Leapfrog
-impl alea_mcmc::integrator::Integrator for alea_mcmc::integrator::Leapfrog
+impl alea_mcmc::integrator::SymmetricSplitting for alea_mcmc::integrator::Leapfrog
 pub fn alea_mcmc::integrator::Leapfrog::drift(&self, _: usize) -> f64
 pub fn alea_mcmc::integrator::Leapfrog::kick(&self, _: usize) -> f64
 pub fn alea_mcmc::integrator::Leapfrog::stages(&self) -> usize
@@ -1997,7 +2004,7 @@ pub const alea_mcmc::integrator::TwoStage::BCSS: Self
 pub const alea_mcmc::integrator::TwoStage::OMF: Self
 pub fn alea_mcmc::integrator::TwoStage::lambda(self) -> f64
 pub fn alea_mcmc::integrator::TwoStage::new(lambda: f64) -> core::result::Result<Self, alea_mcmc::integrator::InvalidCoefficient>
-impl alea_mcmc::integrator::Integrator for alea_mcmc::integrator::TwoStage
+impl alea_mcmc::integrator::SymmetricSplitting for alea_mcmc::integrator::TwoStage
 pub fn alea_mcmc::integrator::TwoStage::drift(&self, _: usize) -> f64
 pub fn alea_mcmc::integrator::TwoStage::kick(&self, index: usize) -> f64
 pub fn alea_mcmc::integrator::TwoStage::stages(&self) -> usize
@@ -2009,15 +2016,15 @@ impl core::fmt::Debug for alea_mcmc::integrator::TwoStage
 pub fn alea_mcmc::integrator::TwoStage::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_mcmc::integrator::TwoStage
 impl core::marker::StructuralPartialEq for alea_mcmc::integrator::TwoStage
-pub trait alea_mcmc::integrator::Integrator: alea_mcmc::integrator::private::Sealed
-pub fn alea_mcmc::integrator::Integrator::drift(&self, index: usize) -> f64
-pub fn alea_mcmc::integrator::Integrator::kick(&self, index: usize) -> f64
-pub fn alea_mcmc::integrator::Integrator::stages(&self) -> usize
-impl alea_mcmc::integrator::Integrator for alea_mcmc::integrator::Leapfrog
+pub trait alea_mcmc::integrator::SymmetricSplitting: alea_mcmc::integrator::private::Sealed
+pub fn alea_mcmc::integrator::SymmetricSplitting::drift(&self, index: usize) -> f64
+pub fn alea_mcmc::integrator::SymmetricSplitting::kick(&self, index: usize) -> f64
+pub fn alea_mcmc::integrator::SymmetricSplitting::stages(&self) -> usize
+impl alea_mcmc::integrator::SymmetricSplitting for alea_mcmc::integrator::Leapfrog
 pub fn alea_mcmc::integrator::Leapfrog::drift(&self, _: usize) -> f64
 pub fn alea_mcmc::integrator::Leapfrog::kick(&self, _: usize) -> f64
 pub fn alea_mcmc::integrator::Leapfrog::stages(&self) -> usize
-impl alea_mcmc::integrator::Integrator for alea_mcmc::integrator::TwoStage
+impl alea_mcmc::integrator::SymmetricSplitting for alea_mcmc::integrator::TwoStage
 pub fn alea_mcmc::integrator::TwoStage::drift(&self, _: usize) -> f64
 pub fn alea_mcmc::integrator::TwoStage::kick(&self, index: usize) -> f64
 pub fn alea_mcmc::integrator::TwoStage::stages(&self) -> usize
@@ -2066,7 +2073,7 @@ impl alea_mcmc::mams::ApproximateMclmcOptions
 pub fn alea_mcmc::mams::ApproximateMclmcOptions::integration_steps(self) -> core::num::nonzero::NonZeroUsize
 pub fn alea_mcmc::mams::ApproximateMclmcOptions::new(step_size: f64, integration_steps: usize, refresh_length: core::option::Option<f64>) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
 pub fn alea_mcmc::mams::ApproximateMclmcOptions::refresh_length(self) -> core::option::Option<f64>
-pub fn alea_mcmc::mams::ApproximateMclmcOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::mams::ApproximateMclmcOptions::step_size(self) -> alea_mcmc::config::StepSize
 impl core::clone::Clone for alea_mcmc::mams::ApproximateMclmcOptions
 pub fn alea_mcmc::mams::ApproximateMclmcOptions::clone(&self) -> alea_mcmc::mams::ApproximateMclmcOptions
 impl core::fmt::Debug for alea_mcmc::mams::ApproximateMclmcOptions
@@ -2112,7 +2119,7 @@ impl alea_mcmc::mams::MamsOptions
 pub fn alea_mcmc::mams::MamsOptions::integration_steps(self) -> core::num::nonzero::NonZeroUsize
 pub fn alea_mcmc::mams::MamsOptions::max_correction_error(self) -> f64
 pub fn alea_mcmc::mams::MamsOptions::new(step_size: f64, integration_steps: usize) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
-pub fn alea_mcmc::mams::MamsOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::mams::MamsOptions::step_size(self) -> alea_mcmc::config::StepSize
 pub fn alea_mcmc::mams::MamsOptions::with_max_correction_error(self, limit: f64) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
 pub fn alea_mcmc::mams::MamsOptions::with_trajectory_time(self, time: f64, maximum_steps: usize) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
 impl core::clone::Clone for alea_mcmc::mams::MamsOptions
@@ -2139,6 +2146,8 @@ pub mod alea_mcmc::nuts
 pub alea_mcmc::nuts::NutsConfigError::Depth(alea_mcmc::config::SamplerConfigError)
 pub alea_mcmc::nuts::NutsConfigError::Step(alea_mcmc::hmc::HmcConfigError)
 pub alea_mcmc::nuts::NutsConfigError::StepJitter
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::nuts::NutsConfigError
+pub fn alea_mcmc::nuts::NutsConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self
 impl core::convert::From<alea_mcmc::config::SamplerConfigError> for alea_mcmc::nuts::NutsConfigError
 pub fn alea_mcmc::nuts::NutsConfigError::from(source: alea_mcmc::config::SamplerConfigError) -> Self
 impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::nuts::NutsConfigError
@@ -2183,7 +2192,7 @@ pub fn alea_mcmc::nuts::NutsTermination::fmt(&self, f: &mut core::fmt::Formatter
 impl core::marker::Copy for alea_mcmc::nuts::NutsTermination
 impl core::marker::StructuralPartialEq for alea_mcmc::nuts::NutsTermination
 pub struct alea_mcmc::nuts::Nuts<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M, I>
-impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::nuts::Nuts<'a, T, M, I>
+impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::nuts::Nuts<'a, T, M, I>
 pub fn alea_mcmc::nuts::Nuts<'a, T, M, I>::from_hmc(chain: alea_mcmc::hmc::Hmc<'a, T, M, I>, max_depth: alea_mcmc::config::TreeDepth) -> core::result::Result<Self, alea_mcmc::nuts::NutsError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::nuts::Nuts<'a, T, M, I>::into_hmc(self, integration_steps: core::num::nonzero::NonZeroUsize) -> alea_mcmc::hmc::Hmc<'a, T, M, I>
 pub fn alea_mcmc::nuts::Nuts<'a, T, M, I>::metric(&self) -> &M
@@ -2196,7 +2205,7 @@ impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: ale
 pub fn alea_mcmc::nuts::Nuts<'a, T, M>::new(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::nuts::NutsOptions) -> core::result::Result<Self, alea_mcmc::nuts::NutsError<<T as alea_core::target::TargetSpace>::Error>>
 impl<'a, T: core::fmt::Debug + alea_core::target::LogDensityGradient + ?core::marker::Sized, M: core::fmt::Debug, I: core::fmt::Debug> core::fmt::Debug for alea_mcmc::nuts::Nuts<'a, T, M, I>
 pub fn alea_mcmc::nuts::Nuts<'a, T, M, I>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::MarkovChain for alea_mcmc::nuts::Nuts<'_, T, M, I>
+impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::MarkovChain for alea_mcmc::nuts::Nuts<'_, T, M, I>
 pub type alea_mcmc::nuts::Nuts<'_, T, M, I>::Error = alea_mcmc::nuts::NutsError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::nuts::Nuts<'_, T, M, I>::Transition = alea_mcmc::nuts::NutsTransition
 pub fn alea_mcmc::nuts::Nuts<'_, T, M, I>::position(&self) -> &[f64]
@@ -2207,7 +2216,7 @@ pub fn alea_mcmc::nuts::NutsOptions::max_depth(self) -> alea_mcmc::config::TreeD
 pub fn alea_mcmc::nuts::NutsOptions::max_energy_error(self) -> f64
 pub fn alea_mcmc::nuts::NutsOptions::new(step_size: f64, max_depth: usize) -> core::result::Result<Self, alea_mcmc::nuts::NutsConfigError>
 pub fn alea_mcmc::nuts::NutsOptions::position_turning(self) -> bool
-pub fn alea_mcmc::nuts::NutsOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::nuts::NutsOptions::step_size(self) -> alea_mcmc::config::StepSize
 pub fn alea_mcmc::nuts::NutsOptions::step_size_jitter(self) -> f64
 pub fn alea_mcmc::nuts::NutsOptions::with_max_energy_error(self, limit: f64) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
 pub fn alea_mcmc::nuts::NutsOptions::with_position_turning(self, enabled: bool) -> Self
@@ -2228,7 +2237,7 @@ pub alea_mcmc::nuts::NutsTransition::integration_steps: usize
 pub alea_mcmc::nuts::NutsTransition::max_energy_error: core::option::Option<f64>
 pub alea_mcmc::nuts::NutsTransition::proposal_energy: core::option::Option<f64>
 pub alea_mcmc::nuts::NutsTransition::selected_index: usize
-pub alea_mcmc::nuts::NutsTransition::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::nuts::NutsTransition::step_size: alea_mcmc::config::StepSize
 pub alea_mcmc::nuts::NutsTransition::termination: alea_mcmc::nuts::NutsTermination
 pub alea_mcmc::nuts::NutsTransition::tree_depth: usize
 pub alea_mcmc::nuts::NutsTransition::valid_states: usize
@@ -2330,8 +2339,8 @@ pub fn alea_mcmc::hmc::HmcConfigError::clone(&self) -> alea_mcmc::hmc::HmcConfig
 impl core::cmp::Eq for alea_mcmc::hmc::HmcConfigError
 impl core::cmp::PartialEq for alea_mcmc::hmc::HmcConfigError
 pub fn alea_mcmc::hmc::HmcConfigError::eq(&self, other: &alea_mcmc::hmc::HmcConfigError) -> bool
-impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::config::SamplerConfigError
-pub fn alea_mcmc::config::SamplerConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::hmc::HmcConfigError
+pub fn alea_mcmc::hmc::HmcConfigError::from(_: alea_mcmc::config::InvalidScale) -> Self
 impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::ghmc::GhmcConfigError
 pub fn alea_mcmc::ghmc::GhmcConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self
 impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::nuts::NutsConfigError
@@ -2406,6 +2415,8 @@ impl core::marker::StructuralPartialEq for alea_mcmc::rwmh::NumericalRejection
 pub alea_mcmc::prelude::NutsConfigError::Depth(alea_mcmc::config::SamplerConfigError)
 pub alea_mcmc::prelude::NutsConfigError::Step(alea_mcmc::hmc::HmcConfigError)
 pub alea_mcmc::prelude::NutsConfigError::StepJitter
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::nuts::NutsConfigError
+pub fn alea_mcmc::nuts::NutsConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self
 impl core::convert::From<alea_mcmc::config::SamplerConfigError> for alea_mcmc::nuts::NutsConfigError
 pub fn alea_mcmc::nuts::NutsConfigError::from(source: alea_mcmc::config::SamplerConfigError) -> Self
 impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::nuts::NutsConfigError
@@ -2496,19 +2507,19 @@ pub alea_mcmc::prelude::SamplerConfigError::EmptyDimension
 pub alea_mcmc::prelude::SamplerConfigError::StateDimension
 pub alea_mcmc::prelude::SamplerConfigError::StateDimension::actual: usize
 pub alea_mcmc::prelude::SamplerConfigError::StateDimension::expected: usize
-pub alea_mcmc::prelude::SamplerConfigError::StepSize(alea_mcmc::hmc::HmcConfigError)
+pub alea_mcmc::prelude::SamplerConfigError::StepSize(alea_mcmc::config::InvalidScale)
 pub alea_mcmc::prelude::SamplerConfigError::TreeDepth
 impl core::clone::Clone for alea_mcmc::config::SamplerConfigError
 pub fn alea_mcmc::config::SamplerConfigError::clone(&self) -> alea_mcmc::config::SamplerConfigError
 impl core::cmp::Eq for alea_mcmc::config::SamplerConfigError
 impl core::cmp::PartialEq for alea_mcmc::config::SamplerConfigError
 pub fn alea_mcmc::config::SamplerConfigError::eq(&self, other: &alea_mcmc::config::SamplerConfigError) -> bool
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::config::SamplerConfigError
+pub fn alea_mcmc::config::SamplerConfigError::from(source: alea_mcmc::config::InvalidScale) -> Self
 impl core::convert::From<alea_mcmc::config::SamplerConfigError> for alea_mcmc::nuts::NutsConfigError
 pub fn alea_mcmc::nuts::NutsConfigError::from(source: alea_mcmc::config::SamplerConfigError) -> Self
 impl core::convert::From<alea_mcmc::config::SamplerConfigError> for alea_mcmc::walnuts::WalnutsConfigError
 pub fn alea_mcmc::walnuts::WalnutsConfigError::from(source: alea_mcmc::config::SamplerConfigError) -> Self
-impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::config::SamplerConfigError
-pub fn alea_mcmc::config::SamplerConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self
 impl core::error::Error for alea_mcmc::config::SamplerConfigError
 pub fn alea_mcmc::config::SamplerConfigError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
 impl core::fmt::Debug for alea_mcmc::config::SamplerConfigError
@@ -2602,15 +2613,15 @@ impl core::marker::Copy for alea_mcmc::config::AcceptanceTarget
 impl core::marker::StructuralPartialEq for alea_mcmc::config::AcceptanceTarget
 pub struct alea_mcmc::prelude::DualAveraging
 impl alea_mcmc::adapt::DualAveraging
-pub fn alea_mcmc::adapt::DualAveraging::finish(self) -> alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::adapt::DualAveraging::new(initial: alea_mcmc::hmc::StepSize, target: alea_mcmc::config::AcceptanceTarget) -> Self
-pub fn alea_mcmc::adapt::DualAveraging::update(&mut self, acceptance: f64) -> core::result::Result<alea_mcmc::hmc::StepSize, alea_mcmc::adapt::AdaptationError>
+pub fn alea_mcmc::adapt::DualAveraging::finish(self) -> alea_mcmc::config::StepSize
+pub fn alea_mcmc::adapt::DualAveraging::new(initial: alea_mcmc::config::StepSize, target: alea_mcmc::config::AcceptanceTarget) -> Self
+pub fn alea_mcmc::adapt::DualAveraging::update(&mut self, acceptance: f64) -> core::result::Result<alea_mcmc::config::StepSize, alea_mcmc::adapt::AdaptationError>
 impl core::clone::Clone for alea_mcmc::adapt::DualAveraging
 pub fn alea_mcmc::adapt::DualAveraging::clone(&self) -> alea_mcmc::adapt::DualAveraging
 impl core::fmt::Debug for alea_mcmc::adapt::DualAveraging
 pub fn alea_mcmc::adapt::DualAveraging::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_mcmc::prelude::Hmc<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M, I>
-impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::hmc::Hmc<'a, T, M, I>
+impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::hmc::Hmc<'a, T, M, I>
 pub fn alea_mcmc::hmc::Hmc<'a, T, M, I>::metric(&self) -> &M
 pub fn alea_mcmc::hmc::Hmc<'a, T, M, I>::new_with_integrator(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::hmc::HmcOptions, integrator: I) -> core::result::Result<Self, alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::hmc::Hmc<'a, T, M, I>::options(&self) -> alea_mcmc::hmc::HmcOptions
@@ -2621,7 +2632,7 @@ impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: ale
 pub fn alea_mcmc::hmc::Hmc<'a, T, M>::new(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::hmc::HmcOptions) -> core::result::Result<Self, alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>>
 impl<'a, T: core::fmt::Debug + alea_core::target::LogDensityGradient + ?core::marker::Sized, M: core::fmt::Debug, I: core::fmt::Debug> core::fmt::Debug for alea_mcmc::hmc::Hmc<'a, T, M, I>
 pub fn alea_mcmc::hmc::Hmc<'a, T, M, I>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::MarkovChain for alea_mcmc::hmc::Hmc<'_, T, M, I>
+impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::MarkovChain for alea_mcmc::hmc::Hmc<'_, T, M, I>
 pub type alea_mcmc::hmc::Hmc<'_, T, M, I>::Error = alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::hmc::Hmc<'_, T, M, I>::Transition = alea_mcmc::hmc::HmcTransition
 pub fn alea_mcmc::hmc::Hmc<'_, T, M, I>::position(&self) -> &[f64]
@@ -2631,7 +2642,7 @@ impl alea_mcmc::hmc::HmcOptions
 pub fn alea_mcmc::hmc::HmcOptions::integration_steps(self) -> core::num::nonzero::NonZeroUsize
 pub fn alea_mcmc::hmc::HmcOptions::max_energy_error(self) -> f64
 pub fn alea_mcmc::hmc::HmcOptions::new(step_size: f64, integration_steps: usize) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
-pub fn alea_mcmc::hmc::HmcOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::hmc::HmcOptions::step_size(self) -> alea_mcmc::config::StepSize
 pub fn alea_mcmc::hmc::HmcOptions::with_max_energy_error(self, limit: f64) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
 impl core::clone::Clone for alea_mcmc::hmc::HmcOptions
 pub fn alea_mcmc::hmc::HmcOptions::clone(&self) -> alea_mcmc::hmc::HmcOptions
@@ -2662,7 +2673,7 @@ pub fn alea_mcmc::hmc::HmcTransition::fmt(&self, f: &mut core::fmt::Formatter<'_
 impl core::marker::Copy for alea_mcmc::hmc::HmcTransition
 impl core::marker::StructuralPartialEq for alea_mcmc::hmc::HmcTransition
 pub struct alea_mcmc::prelude::HmcWarmup<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I>
-impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator> alea_mcmc::adapt::HmcWarmup<'a, T, I>
+impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::adapt::HmcWarmup<'a, T, I>
 pub fn alea_mcmc::adapt::HmcWarmup<'a, T, I>::new_with_integrator(target: &'a T, position: alea_math::buffer::OwnedBuffer, hmc: alea_mcmc::hmc::HmcOptions, options: alea_mcmc::adapt::WarmupOptions, integrator: I) -> core::result::Result<Self, alea_mcmc::adapt::WarmupError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::adapt::HmcWarmup<'a, T, I>::run<R: rand_core::Rng + ?core::marker::Sized>(self, rng: &mut R) -> alea_mcmc::adapt::HmcWarmupResult<'a, T, I>
 pub fn alea_mcmc::adapt::HmcWarmup<'a, T, I>::run_controlled<R: rand_core::Rng + ?core::marker::Sized>(self, rng: &mut R, proceed: impl core::ops::function::FnMut(usize) -> bool) -> alea_mcmc::adapt::ControlledHmcWarmupResult<'a, T, I>
@@ -2677,7 +2688,7 @@ pub alea_mcmc::prelude::HmcWarmupReport::integration_attempts: usize
 pub alea_mcmc::prelude::HmcWarmupReport::iterations: usize
 pub alea_mcmc::prelude::HmcWarmupReport::metric_updates: usize
 pub alea_mcmc::prelude::HmcWarmupReport::search_probes: usize
-pub alea_mcmc::prelude::HmcWarmupReport::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::prelude::HmcWarmupReport::step_size: alea_mcmc::config::StepSize
 impl core::clone::Clone for alea_mcmc::adapt::HmcWarmupReport
 pub fn alea_mcmc::adapt::HmcWarmupReport::clone(&self) -> alea_mcmc::adapt::HmcWarmupReport
 impl core::cmp::PartialEq for alea_mcmc::adapt::HmcWarmupReport
@@ -2686,8 +2697,31 @@ impl core::fmt::Debug for alea_mcmc::adapt::HmcWarmupReport
 pub fn alea_mcmc::adapt::HmcWarmupReport::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_mcmc::adapt::HmcWarmupReport
 impl core::marker::StructuralPartialEq for alea_mcmc::adapt::HmcWarmupReport
+pub struct alea_mcmc::prelude::InvalidScale
+impl core::clone::Clone for alea_mcmc::config::InvalidScale
+pub fn alea_mcmc::config::InvalidScale::clone(&self) -> alea_mcmc::config::InvalidScale
+impl core::cmp::Eq for alea_mcmc::config::InvalidScale
+impl core::cmp::PartialEq for alea_mcmc::config::InvalidScale
+pub fn alea_mcmc::config::InvalidScale::eq(&self, other: &alea_mcmc::config::InvalidScale) -> bool
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::config::SamplerConfigError
+pub fn alea_mcmc::config::SamplerConfigError::from(source: alea_mcmc::config::InvalidScale) -> Self
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::ghmc::GhmcConfigError
+pub fn alea_mcmc::ghmc::GhmcConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::hmc::HmcConfigError
+pub fn alea_mcmc::hmc::HmcConfigError::from(_: alea_mcmc::config::InvalidScale) -> Self
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::nuts::NutsConfigError
+pub fn alea_mcmc::nuts::NutsConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::walnuts::WalnutsConfigError
+pub fn alea_mcmc::walnuts::WalnutsConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self
+impl core::error::Error for alea_mcmc::config::InvalidScale
+impl core::fmt::Debug for alea_mcmc::config::InvalidScale
+pub fn alea_mcmc::config::InvalidScale::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_mcmc::config::InvalidScale
+pub fn alea_mcmc::config::InvalidScale::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_mcmc::config::InvalidScale
+impl core::marker::StructuralPartialEq for alea_mcmc::config::InvalidScale
 pub struct alea_mcmc::prelude::Leapfrog
-impl alea_mcmc::integrator::Integrator for alea_mcmc::integrator::Leapfrog
+impl alea_mcmc::integrator::SymmetricSplitting for alea_mcmc::integrator::Leapfrog
 pub fn alea_mcmc::integrator::Leapfrog::drift(&self, _: usize) -> f64
 pub fn alea_mcmc::integrator::Leapfrog::kick(&self, _: usize) -> f64
 pub fn alea_mcmc::integrator::Leapfrog::stages(&self) -> usize
@@ -2699,7 +2733,7 @@ impl core::fmt::Debug for alea_mcmc::integrator::Leapfrog
 pub fn alea_mcmc::integrator::Leapfrog::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_mcmc::integrator::Leapfrog
 pub struct alea_mcmc::prelude::Nuts<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M, I>
-impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::nuts::Nuts<'a, T, M, I>
+impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::nuts::Nuts<'a, T, M, I>
 pub fn alea_mcmc::nuts::Nuts<'a, T, M, I>::from_hmc(chain: alea_mcmc::hmc::Hmc<'a, T, M, I>, max_depth: alea_mcmc::config::TreeDepth) -> core::result::Result<Self, alea_mcmc::nuts::NutsError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::nuts::Nuts<'a, T, M, I>::into_hmc(self, integration_steps: core::num::nonzero::NonZeroUsize) -> alea_mcmc::hmc::Hmc<'a, T, M, I>
 pub fn alea_mcmc::nuts::Nuts<'a, T, M, I>::metric(&self) -> &M
@@ -2712,7 +2746,7 @@ impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: ale
 pub fn alea_mcmc::nuts::Nuts<'a, T, M>::new(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::nuts::NutsOptions) -> core::result::Result<Self, alea_mcmc::nuts::NutsError<<T as alea_core::target::TargetSpace>::Error>>
 impl<'a, T: core::fmt::Debug + alea_core::target::LogDensityGradient + ?core::marker::Sized, M: core::fmt::Debug, I: core::fmt::Debug> core::fmt::Debug for alea_mcmc::nuts::Nuts<'a, T, M, I>
 pub fn alea_mcmc::nuts::Nuts<'a, T, M, I>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::MarkovChain for alea_mcmc::nuts::Nuts<'_, T, M, I>
+impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::MarkovChain for alea_mcmc::nuts::Nuts<'_, T, M, I>
 pub type alea_mcmc::nuts::Nuts<'_, T, M, I>::Error = alea_mcmc::nuts::NutsError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::nuts::Nuts<'_, T, M, I>::Transition = alea_mcmc::nuts::NutsTransition
 pub fn alea_mcmc::nuts::Nuts<'_, T, M, I>::position(&self) -> &[f64]
@@ -2723,7 +2757,7 @@ pub fn alea_mcmc::nuts::NutsOptions::max_depth(self) -> alea_mcmc::config::TreeD
 pub fn alea_mcmc::nuts::NutsOptions::max_energy_error(self) -> f64
 pub fn alea_mcmc::nuts::NutsOptions::new(step_size: f64, max_depth: usize) -> core::result::Result<Self, alea_mcmc::nuts::NutsConfigError>
 pub fn alea_mcmc::nuts::NutsOptions::position_turning(self) -> bool
-pub fn alea_mcmc::nuts::NutsOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::nuts::NutsOptions::step_size(self) -> alea_mcmc::config::StepSize
 pub fn alea_mcmc::nuts::NutsOptions::step_size_jitter(self) -> f64
 pub fn alea_mcmc::nuts::NutsOptions::with_max_energy_error(self, limit: f64) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
 pub fn alea_mcmc::nuts::NutsOptions::with_position_turning(self, enabled: bool) -> Self
@@ -2744,7 +2778,7 @@ pub alea_mcmc::prelude::NutsTransition::integration_steps: usize
 pub alea_mcmc::prelude::NutsTransition::max_energy_error: core::option::Option<f64>
 pub alea_mcmc::prelude::NutsTransition::proposal_energy: core::option::Option<f64>
 pub alea_mcmc::prelude::NutsTransition::selected_index: usize
-pub alea_mcmc::prelude::NutsTransition::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::prelude::NutsTransition::step_size: alea_mcmc::config::StepSize
 pub alea_mcmc::prelude::NutsTransition::termination: alea_mcmc::nuts::NutsTermination
 pub alea_mcmc::prelude::NutsTransition::tree_depth: usize
 pub alea_mcmc::prelude::NutsTransition::valid_states: usize
@@ -2757,7 +2791,7 @@ pub fn alea_mcmc::nuts::NutsTransition::fmt(&self, f: &mut core::fmt::Formatter<
 impl core::marker::Copy for alea_mcmc::nuts::NutsTransition
 impl core::marker::StructuralPartialEq for alea_mcmc::nuts::NutsTransition
 pub struct alea_mcmc::prelude::NutsWarmup<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I>
-impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator> alea_mcmc::adapt::NutsWarmup<'a, T, I>
+impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::adapt::NutsWarmup<'a, T, I>
 pub fn alea_mcmc::adapt::NutsWarmup<'a, T, I>::new_with_integrator(target: &'a T, position: alea_math::buffer::OwnedBuffer, nuts: alea_mcmc::nuts::NutsOptions, options: alea_mcmc::adapt::WarmupOptions, integrator: I) -> core::result::Result<Self, alea_mcmc::adapt::NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::adapt::NutsWarmup<'a, T, I>::run<R: rand_core::Rng + ?core::marker::Sized>(self, rng: &mut R) -> alea_mcmc::adapt::NutsWarmupResult<'a, T, I>
 pub fn alea_mcmc::adapt::NutsWarmup<'a, T, I>::run_controlled<R: rand_core::Rng + ?core::marker::Sized>(self, rng: &mut R, proceed: impl core::ops::function::FnMut(usize) -> bool) -> alea_mcmc::adapt::ControlledNutsWarmupResult<'a, T, I>
@@ -2773,7 +2807,7 @@ pub alea_mcmc::prelude::NutsWarmupObservation::completed: usize
 pub alea_mcmc::prelude::NutsWarmupObservation::log_density: f64
 pub alea_mcmc::prelude::NutsWarmupObservation::position: &'a [f64]
 pub alea_mcmc::prelude::NutsWarmupObservation::stage: alea_mcmc::adapt::WarmupStage
-pub alea_mcmc::prelude::NutsWarmupObservation::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::prelude::NutsWarmupObservation::step_size: alea_mcmc::config::StepSize
 pub alea_mcmc::prelude::NutsWarmupObservation::transition: alea_mcmc::nuts::NutsTransition
 impl<'a> core::clone::Clone for alea_mcmc::adapt::NutsWarmupObservation<'a>
 pub fn alea_mcmc::adapt::NutsWarmupObservation<'a>::clone(&self) -> alea_mcmc::adapt::NutsWarmupObservation<'a>
@@ -2793,7 +2827,7 @@ pub alea_mcmc::prelude::NutsWarmupReport::metric_updates: usize
 pub alea_mcmc::prelude::NutsWarmupReport::minimum_log_density: f64
 pub alea_mcmc::prelude::NutsWarmupReport::moved: usize
 pub alea_mcmc::prelude::NutsWarmupReport::search_probes: usize
-pub alea_mcmc::prelude::NutsWarmupReport::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::prelude::NutsWarmupReport::step_size: alea_mcmc::config::StepSize
 impl core::clone::Clone for alea_mcmc::adapt::NutsWarmupReport
 pub fn alea_mcmc::adapt::NutsWarmupReport::clone(&self) -> alea_mcmc::adapt::NutsWarmupReport
 impl core::cmp::PartialEq for alea_mcmc::adapt::NutsWarmupReport
@@ -2813,6 +2847,24 @@ pub fn alea_mcmc::adapt::OnlineCovariance::reset(&mut self)
 pub fn alea_mcmc::adapt::OnlineCovariance::update(&mut self, point: &[f64]) -> core::result::Result<(), alea_mcmc::adapt::CovarianceError>
 impl core::fmt::Debug for alea_mcmc::adapt::OnlineCovariance
 pub fn alea_mcmc::adapt::OnlineCovariance::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_mcmc::prelude::ProposalScale(_)
+impl alea_mcmc::config::ProposalScale
+pub fn alea_mcmc::config::ProposalScale::value(self) -> f64
+impl core::clone::Clone for alea_mcmc::config::ProposalScale
+pub fn alea_mcmc::config::ProposalScale::clone(&self) -> alea_mcmc::config::ProposalScale
+impl core::cmp::PartialEq for alea_mcmc::config::ProposalScale
+pub fn alea_mcmc::config::ProposalScale::eq(&self, other: &alea_mcmc::config::ProposalScale) -> bool
+impl core::convert::From<alea_mcmc::config::ProposalScale> for alea_mcmc::config::StepSize
+pub fn alea_mcmc::config::StepSize::from(scale: alea_mcmc::config::ProposalScale) -> Self
+impl core::convert::From<alea_mcmc::config::StepSize> for alea_mcmc::config::ProposalScale
+pub fn alea_mcmc::config::ProposalScale::from(step: alea_mcmc::config::StepSize) -> Self
+impl core::convert::TryFrom<f64> for alea_mcmc::config::ProposalScale
+pub type alea_mcmc::config::ProposalScale::Error = alea_mcmc::config::InvalidScale
+pub fn alea_mcmc::config::ProposalScale::try_from(value: f64) -> core::result::Result<Self, Self::Error>
+impl core::fmt::Debug for alea_mcmc::config::ProposalScale
+pub fn alea_mcmc::config::ProposalScale::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_mcmc::config::ProposalScale
+impl core::marker::StructuralPartialEq for alea_mcmc::config::ProposalScale
 pub struct alea_mcmc::prelude::Rwmh<'a, T: alea_core::density::LogDensity + ?core::marker::Sized, M>
 impl<'a, T: alea_core::density::LogDensity + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric> alea_mcmc::rwmh::Rwmh<'a, T, M>
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::new(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::rwmh::RwmhOptions) -> core::result::Result<Self, alea_mcmc::rwmh::RwmhError<<T as alea_core::target::TargetSpace>::Error>>
@@ -2820,7 +2872,7 @@ pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::normal_generator(&self) -> &alea_math::r
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::options(&self) -> alea_mcmc::rwmh::RwmhOptions
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::point(&self) -> &alea_core::density::DensityPoint<'a, T>
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::set_position(&mut self, position: &[f64]) -> core::result::Result<(), alea_mcmc::rwmh::RwmhError<<T as alea_core::target::TargetSpace>::Error>>
-pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::set_step_size(&mut self, step_size: alea_mcmc::hmc::StepSize)
+pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::set_proposal_scale(&mut self, proposal_scale: alea_mcmc::config::ProposalScale)
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<alea_mcmc::rwmh::RwmhTransition, alea_mcmc::rwmh::RwmhError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::with_normal_generator(self, normal: alea_math::random::NormalGenerator) -> Self
 impl<T: alea_core::density::LogDensity + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric> alea_mcmc::MarkovChain for alea_mcmc::rwmh::Rwmh<'_, T, M>
@@ -2830,8 +2882,8 @@ pub fn alea_mcmc::rwmh::Rwmh<'_, T, M>::position(&self) -> &[f64]
 pub fn alea_mcmc::rwmh::Rwmh<'_, T, M>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
 pub struct alea_mcmc::prelude::RwmhOptions
 impl alea_mcmc::rwmh::RwmhOptions
-pub fn alea_mcmc::rwmh::RwmhOptions::new(step_size: f64) -> core::result::Result<Self, alea_mcmc::config::SamplerConfigError>
-pub fn alea_mcmc::rwmh::RwmhOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::rwmh::RwmhOptions::new(proposal_scale: f64) -> core::result::Result<Self, alea_mcmc::config::SamplerConfigError>
+pub fn alea_mcmc::rwmh::RwmhOptions::proposal_scale(self) -> alea_mcmc::config::ProposalScale
 impl core::clone::Clone for alea_mcmc::rwmh::RwmhOptions
 pub fn alea_mcmc::rwmh::RwmhOptions::clone(&self) -> alea_mcmc::rwmh::RwmhOptions
 impl core::cmp::PartialEq for alea_mcmc::rwmh::RwmhOptions
@@ -2867,7 +2919,7 @@ impl core::marker::Copy for alea_mcmc::adapt::SearchOptions
 impl core::marker::StructuralPartialEq for alea_mcmc::adapt::SearchOptions
 #[non_exhaustive] pub struct alea_mcmc::prelude::SearchResult
 pub alea_mcmc::prelude::SearchResult::probes: usize
-pub alea_mcmc::prelude::SearchResult::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::prelude::SearchResult::step_size: alea_mcmc::config::StepSize
 impl core::clone::Clone for alea_mcmc::adapt::SearchResult
 pub fn alea_mcmc::adapt::SearchResult::clone(&self) -> alea_mcmc::adapt::SearchResult
 impl core::cmp::PartialEq for alea_mcmc::adapt::SearchResult
@@ -2877,19 +2929,23 @@ pub fn alea_mcmc::adapt::SearchResult::fmt(&self, f: &mut core::fmt::Formatter<'
 impl core::marker::Copy for alea_mcmc::adapt::SearchResult
 impl core::marker::StructuralPartialEq for alea_mcmc::adapt::SearchResult
 pub struct alea_mcmc::prelude::StepSize(_)
-impl alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::hmc::StepSize::value(self) -> f64
-impl core::clone::Clone for alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::hmc::StepSize::clone(&self) -> alea_mcmc::hmc::StepSize
-impl core::cmp::PartialEq for alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::hmc::StepSize::eq(&self, other: &alea_mcmc::hmc::StepSize) -> bool
-impl core::convert::TryFrom<f64> for alea_mcmc::hmc::StepSize
-pub type alea_mcmc::hmc::StepSize::Error = alea_mcmc::hmc::HmcConfigError
-pub fn alea_mcmc::hmc::StepSize::try_from(value: f64) -> core::result::Result<Self, Self::Error>
-impl core::fmt::Debug for alea_mcmc::hmc::StepSize
-pub fn alea_mcmc::hmc::StepSize::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_mcmc::hmc::StepSize
-impl core::marker::StructuralPartialEq for alea_mcmc::hmc::StepSize
+impl alea_mcmc::config::StepSize
+pub fn alea_mcmc::config::StepSize::value(self) -> f64
+impl core::clone::Clone for alea_mcmc::config::StepSize
+pub fn alea_mcmc::config::StepSize::clone(&self) -> alea_mcmc::config::StepSize
+impl core::cmp::PartialEq for alea_mcmc::config::StepSize
+pub fn alea_mcmc::config::StepSize::eq(&self, other: &alea_mcmc::config::StepSize) -> bool
+impl core::convert::From<alea_mcmc::config::ProposalScale> for alea_mcmc::config::StepSize
+pub fn alea_mcmc::config::StepSize::from(scale: alea_mcmc::config::ProposalScale) -> Self
+impl core::convert::From<alea_mcmc::config::StepSize> for alea_mcmc::config::ProposalScale
+pub fn alea_mcmc::config::ProposalScale::from(step: alea_mcmc::config::StepSize) -> Self
+impl core::convert::TryFrom<f64> for alea_mcmc::config::StepSize
+pub type alea_mcmc::config::StepSize::Error = alea_mcmc::config::InvalidScale
+pub fn alea_mcmc::config::StepSize::try_from(value: f64) -> core::result::Result<Self, Self::Error>
+impl core::fmt::Debug for alea_mcmc::config::StepSize
+pub fn alea_mcmc::config::StepSize::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_mcmc::config::StepSize
+impl core::marker::StructuralPartialEq for alea_mcmc::config::StepSize
 pub struct alea_mcmc::prelude::TreeDepth(_)
 impl alea_mcmc::config::TreeDepth
 pub fn alea_mcmc::config::TreeDepth::max_integration_steps(self) -> usize
@@ -2923,7 +2979,7 @@ impl core::marker::StructuralPartialEq for alea_mcmc::adapt::WarmupOptions
 #[non_exhaustive] pub struct alea_mcmc::prelude::WarmupSummary
 pub alea_mcmc::prelude::WarmupSummary::accepted: usize
 pub alea_mcmc::prelude::WarmupSummary::iterations: usize
-pub alea_mcmc::prelude::WarmupSummary::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::prelude::WarmupSummary::proposal_scale: alea_mcmc::config::ProposalScale
 impl alea_mcmc::adapt::WarmupSummary
 pub fn alea_mcmc::adapt::WarmupSummary::acceptance_rate(self) -> f64
 impl core::clone::Clone for alea_mcmc::adapt::WarmupSummary
@@ -2947,34 +3003,22 @@ pub type alea_mcmc::adapt::WindowSchedule::Item = alea_mcmc::adapt::WarmupStage
 pub fn alea_mcmc::adapt::WindowSchedule::next(&mut self) -> core::option::Option<Self::Item>
 pub fn alea_mcmc::adapt::WindowSchedule::size_hint(&self) -> (usize, core::option::Option<usize>)
 impl core::iter::traits::marker::FusedIterator for alea_mcmc::adapt::WindowSchedule
-pub trait alea_mcmc::prelude::Integrator: alea_mcmc::integrator::private::Sealed
-pub fn alea_mcmc::prelude::Integrator::drift(&self, index: usize) -> f64
-pub fn alea_mcmc::prelude::Integrator::kick(&self, index: usize) -> f64
-pub fn alea_mcmc::prelude::Integrator::stages(&self) -> usize
-impl alea_mcmc::integrator::Integrator for alea_mcmc::integrator::Leapfrog
-pub fn alea_mcmc::integrator::Leapfrog::drift(&self, _: usize) -> f64
-pub fn alea_mcmc::integrator::Leapfrog::kick(&self, _: usize) -> f64
-pub fn alea_mcmc::integrator::Leapfrog::stages(&self) -> usize
-impl alea_mcmc::integrator::Integrator for alea_mcmc::integrator::TwoStage
-pub fn alea_mcmc::integrator::TwoStage::drift(&self, _: usize) -> f64
-pub fn alea_mcmc::integrator::TwoStage::kick(&self, index: usize) -> f64
-pub fn alea_mcmc::integrator::TwoStage::stages(&self) -> usize
 pub trait alea_mcmc::prelude::MarkovChain
 pub type alea_mcmc::prelude::MarkovChain::Error: core::error::Error + 'static
 pub type alea_mcmc::prelude::MarkovChain::Transition
 pub fn alea_mcmc::prelude::MarkovChain::position(&self) -> &[f64]
 pub fn alea_mcmc::prelude::MarkovChain::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
-impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::chees::CheesHmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator
+impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::chees::CheesHmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting
 pub type alea_mcmc::chees::CheesHmc<'_, T, M, I>::Error = alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::chees::CheesHmc<'_, T, M, I>::Transition = alea_mcmc::chees::CheesHmcTransition
 pub fn alea_mcmc::chees::CheesHmc<'_, T, M, I>::position(&self) -> &[f64]
 pub fn alea_mcmc::chees::CheesHmc<'_, T, M, I>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
-impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::DrGhmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator
+impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::DrGhmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting
 pub type alea_mcmc::ghmc::DrGhmc<'_, T, M, I>::Error = alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::ghmc::DrGhmc<'_, T, M, I>::Transition = alea_mcmc::ghmc::DrGhmcTransition
 pub fn alea_mcmc::ghmc::DrGhmc<'_, T, M, I>::position(&self) -> &[f64]
 pub fn alea_mcmc::ghmc::DrGhmc<'_, T, M, I>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
-impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::Ghmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator
+impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::Ghmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting
 pub type alea_mcmc::ghmc::Ghmc<'_, T, M, I>::Error = alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::ghmc::Ghmc<'_, T, M, I>::Transition = alea_mcmc::ghmc::GhmcTransition
 pub fn alea_mcmc::ghmc::Ghmc<'_, T, M, I>::position(&self) -> &[f64]
@@ -3009,12 +3053,12 @@ pub type alea_mcmc::rwmh::Rwmh<'_, T, M>::Error = alea_mcmc::rwmh::RwmhError<<T 
 pub type alea_mcmc::rwmh::Rwmh<'_, T, M>::Transition = alea_mcmc::rwmh::RwmhTransition
 pub fn alea_mcmc::rwmh::Rwmh<'_, T, M>::position(&self) -> &[f64]
 pub fn alea_mcmc::rwmh::Rwmh<'_, T, M>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
-impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::MarkovChain for alea_mcmc::hmc::Hmc<'_, T, M, I>
+impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::MarkovChain for alea_mcmc::hmc::Hmc<'_, T, M, I>
 pub type alea_mcmc::hmc::Hmc<'_, T, M, I>::Error = alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::hmc::Hmc<'_, T, M, I>::Transition = alea_mcmc::hmc::HmcTransition
 pub fn alea_mcmc::hmc::Hmc<'_, T, M, I>::position(&self) -> &[f64]
 pub fn alea_mcmc::hmc::Hmc<'_, T, M, I>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
-impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::MarkovChain for alea_mcmc::nuts::Nuts<'_, T, M, I>
+impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::MarkovChain for alea_mcmc::nuts::Nuts<'_, T, M, I>
 pub type alea_mcmc::nuts::Nuts<'_, T, M, I>::Error = alea_mcmc::nuts::NutsError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::nuts::Nuts<'_, T, M, I>::Transition = alea_mcmc::nuts::NutsTransition
 pub fn alea_mcmc::nuts::Nuts<'_, T, M, I>::position(&self) -> &[f64]
@@ -3034,8 +3078,20 @@ pub type alea_mcmc::mams::Mams<'_, T>::Error = alea_mcmc::mams::MamsError<<T as 
 pub type alea_mcmc::mams::Mams<'_, T>::Transition = alea_mcmc::mams::MamsTransition
 pub fn alea_mcmc::mams::Mams<'_, T>::position(&self) -> &[f64]
 pub fn alea_mcmc::mams::Mams<'_, T>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
-pub fn alea_mcmc::prelude::find_reasonable_nuts_step_size<T, M, R, I>(chain: &mut alea_mcmc::nuts::Nuts<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator
-pub fn alea_mcmc::prelude::find_reasonable_step_size<T, M, R, I>(chain: &mut alea_mcmc::hmc::Hmc<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::WarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator
+pub trait alea_mcmc::prelude::SymmetricSplitting: alea_mcmc::integrator::private::Sealed
+pub fn alea_mcmc::prelude::SymmetricSplitting::drift(&self, index: usize) -> f64
+pub fn alea_mcmc::prelude::SymmetricSplitting::kick(&self, index: usize) -> f64
+pub fn alea_mcmc::prelude::SymmetricSplitting::stages(&self) -> usize
+impl alea_mcmc::integrator::SymmetricSplitting for alea_mcmc::integrator::Leapfrog
+pub fn alea_mcmc::integrator::Leapfrog::drift(&self, _: usize) -> f64
+pub fn alea_mcmc::integrator::Leapfrog::kick(&self, _: usize) -> f64
+pub fn alea_mcmc::integrator::Leapfrog::stages(&self) -> usize
+impl alea_mcmc::integrator::SymmetricSplitting for alea_mcmc::integrator::TwoStage
+pub fn alea_mcmc::integrator::TwoStage::drift(&self, _: usize) -> f64
+pub fn alea_mcmc::integrator::TwoStage::kick(&self, index: usize) -> f64
+pub fn alea_mcmc::integrator::TwoStage::stages(&self) -> usize
+pub fn alea_mcmc::prelude::find_reasonable_nuts_step_size<T, M, R, I>(chain: &mut alea_mcmc::nuts::Nuts<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting
+pub fn alea_mcmc::prelude::find_reasonable_step_size<T, M, R, I>(chain: &mut alea_mcmc::hmc::Hmc<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::WarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting
 pub fn alea_mcmc::prelude::warmup_rwmh<T, M, R>(chain: &mut alea_mcmc::rwmh::Rwmh<'_, T, M>, iterations: usize, target: core::option::Option<alea_mcmc::config::AcceptanceTarget>, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::WarmupSummary, alea_mcmc::rwmh::RwmhError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::density::LogDensity + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized
 pub type alea_mcmc::prelude::ControlledHmcWarmupResult<'a, T, I> = core::result::Result<core::option::Option<(alea_mcmc::hmc::Hmc<'a, T, alea_mcmc::adapt::WarmupMetric, I>, alea_mcmc::adapt::HmcWarmupReport)>, alea_mcmc::adapt::WarmupError<<T as alea_core::target::TargetSpace>::Error>>
 pub type alea_mcmc::prelude::ControlledNutsWarmupResult<'a, T, I> = core::result::Result<core::option::Option<(alea_mcmc::nuts::Nuts<'a, T, alea_mcmc::adapt::WarmupMetric, I>, alea_mcmc::adapt::NutsWarmupReport)>, alea_mcmc::adapt::NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>>
@@ -3330,7 +3386,7 @@ pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::normal_generator(&self) -> &alea_math::r
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::options(&self) -> alea_mcmc::rwmh::RwmhOptions
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::point(&self) -> &alea_core::density::DensityPoint<'a, T>
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::set_position(&mut self, position: &[f64]) -> core::result::Result<(), alea_mcmc::rwmh::RwmhError<<T as alea_core::target::TargetSpace>::Error>>
-pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::set_step_size(&mut self, step_size: alea_mcmc::hmc::StepSize)
+pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::set_proposal_scale(&mut self, proposal_scale: alea_mcmc::config::ProposalScale)
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<alea_mcmc::rwmh::RwmhTransition, alea_mcmc::rwmh::RwmhError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::with_normal_generator(self, normal: alea_math::random::NormalGenerator) -> Self
 impl<T: alea_core::density::LogDensity + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric> alea_mcmc::MarkovChain for alea_mcmc::rwmh::Rwmh<'_, T, M>
@@ -3340,8 +3396,8 @@ pub fn alea_mcmc::rwmh::Rwmh<'_, T, M>::position(&self) -> &[f64]
 pub fn alea_mcmc::rwmh::Rwmh<'_, T, M>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
 pub struct alea_mcmc::rwmh::RwmhOptions
 impl alea_mcmc::rwmh::RwmhOptions
-pub fn alea_mcmc::rwmh::RwmhOptions::new(step_size: f64) -> core::result::Result<Self, alea_mcmc::config::SamplerConfigError>
-pub fn alea_mcmc::rwmh::RwmhOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::rwmh::RwmhOptions::new(proposal_scale: f64) -> core::result::Result<Self, alea_mcmc::config::SamplerConfigError>
+pub fn alea_mcmc::rwmh::RwmhOptions::proposal_scale(self) -> alea_mcmc::config::ProposalScale
 impl core::clone::Clone for alea_mcmc::rwmh::RwmhOptions
 pub fn alea_mcmc::rwmh::RwmhOptions::clone(&self) -> alea_mcmc::rwmh::RwmhOptions
 impl core::cmp::PartialEq for alea_mcmc::rwmh::RwmhOptions
@@ -3375,6 +3431,8 @@ pub fn alea_mcmc::walnuts::WalnutsConfigError::clone(&self) -> alea_mcmc::walnut
 impl core::cmp::Eq for alea_mcmc::walnuts::WalnutsConfigError
 impl core::cmp::PartialEq for alea_mcmc::walnuts::WalnutsConfigError
 pub fn alea_mcmc::walnuts::WalnutsConfigError::eq(&self, other: &alea_mcmc::walnuts::WalnutsConfigError) -> bool
+impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::walnuts::WalnutsConfigError
+pub fn alea_mcmc::walnuts::WalnutsConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self
 impl core::convert::From<alea_mcmc::config::SamplerConfigError> for alea_mcmc::walnuts::WalnutsConfigError
 pub fn alea_mcmc::walnuts::WalnutsConfigError::from(source: alea_mcmc::config::SamplerConfigError) -> Self
 impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::walnuts::WalnutsConfigError
@@ -3483,7 +3541,7 @@ impl core::fmt::Debug for alea_mcmc::walnuts::WalnutsTransition
 pub fn alea_mcmc::walnuts::WalnutsTransition::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_mcmc::walnuts::WalnutsTransition
 pub struct alea_mcmc::Hmc<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M, I>
-impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::hmc::Hmc<'a, T, M, I>
+impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::hmc::Hmc<'a, T, M, I>
 pub fn alea_mcmc::hmc::Hmc<'a, T, M, I>::metric(&self) -> &M
 pub fn alea_mcmc::hmc::Hmc<'a, T, M, I>::new_with_integrator(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::hmc::HmcOptions, integrator: I) -> core::result::Result<Self, alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::hmc::Hmc<'a, T, M, I>::options(&self) -> alea_mcmc::hmc::HmcOptions
@@ -3494,7 +3552,7 @@ impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: ale
 pub fn alea_mcmc::hmc::Hmc<'a, T, M>::new(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::hmc::HmcOptions) -> core::result::Result<Self, alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>>
 impl<'a, T: core::fmt::Debug + alea_core::target::LogDensityGradient + ?core::marker::Sized, M: core::fmt::Debug, I: core::fmt::Debug> core::fmt::Debug for alea_mcmc::hmc::Hmc<'a, T, M, I>
 pub fn alea_mcmc::hmc::Hmc<'a, T, M, I>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::MarkovChain for alea_mcmc::hmc::Hmc<'_, T, M, I>
+impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::MarkovChain for alea_mcmc::hmc::Hmc<'_, T, M, I>
 pub type alea_mcmc::hmc::Hmc<'_, T, M, I>::Error = alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::hmc::Hmc<'_, T, M, I>::Transition = alea_mcmc::hmc::HmcTransition
 pub fn alea_mcmc::hmc::Hmc<'_, T, M, I>::position(&self) -> &[f64]
@@ -3504,7 +3562,7 @@ impl alea_mcmc::hmc::HmcOptions
 pub fn alea_mcmc::hmc::HmcOptions::integration_steps(self) -> core::num::nonzero::NonZeroUsize
 pub fn alea_mcmc::hmc::HmcOptions::max_energy_error(self) -> f64
 pub fn alea_mcmc::hmc::HmcOptions::new(step_size: f64, integration_steps: usize) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
-pub fn alea_mcmc::hmc::HmcOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::hmc::HmcOptions::step_size(self) -> alea_mcmc::config::StepSize
 pub fn alea_mcmc::hmc::HmcOptions::with_max_energy_error(self, limit: f64) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
 impl core::clone::Clone for alea_mcmc::hmc::HmcOptions
 pub fn alea_mcmc::hmc::HmcOptions::clone(&self) -> alea_mcmc::hmc::HmcOptions
@@ -3535,7 +3593,7 @@ pub fn alea_mcmc::hmc::HmcTransition::fmt(&self, f: &mut core::fmt::Formatter<'_
 impl core::marker::Copy for alea_mcmc::hmc::HmcTransition
 impl core::marker::StructuralPartialEq for alea_mcmc::hmc::HmcTransition
 pub struct alea_mcmc::Nuts<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M, I>
-impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::nuts::Nuts<'a, T, M, I>
+impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::nuts::Nuts<'a, T, M, I>
 pub fn alea_mcmc::nuts::Nuts<'a, T, M, I>::from_hmc(chain: alea_mcmc::hmc::Hmc<'a, T, M, I>, max_depth: alea_mcmc::config::TreeDepth) -> core::result::Result<Self, alea_mcmc::nuts::NutsError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::nuts::Nuts<'a, T, M, I>::into_hmc(self, integration_steps: core::num::nonzero::NonZeroUsize) -> alea_mcmc::hmc::Hmc<'a, T, M, I>
 pub fn alea_mcmc::nuts::Nuts<'a, T, M, I>::metric(&self) -> &M
@@ -3548,7 +3606,7 @@ impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: ale
 pub fn alea_mcmc::nuts::Nuts<'a, T, M>::new(target: &'a T, position: alea_math::buffer::OwnedBuffer, metric: M, options: alea_mcmc::nuts::NutsOptions) -> core::result::Result<Self, alea_mcmc::nuts::NutsError<<T as alea_core::target::TargetSpace>::Error>>
 impl<'a, T: core::fmt::Debug + alea_core::target::LogDensityGradient + ?core::marker::Sized, M: core::fmt::Debug, I: core::fmt::Debug> core::fmt::Debug for alea_mcmc::nuts::Nuts<'a, T, M, I>
 pub fn alea_mcmc::nuts::Nuts<'a, T, M, I>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::MarkovChain for alea_mcmc::nuts::Nuts<'_, T, M, I>
+impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::MarkovChain for alea_mcmc::nuts::Nuts<'_, T, M, I>
 pub type alea_mcmc::nuts::Nuts<'_, T, M, I>::Error = alea_mcmc::nuts::NutsError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::nuts::Nuts<'_, T, M, I>::Transition = alea_mcmc::nuts::NutsTransition
 pub fn alea_mcmc::nuts::Nuts<'_, T, M, I>::position(&self) -> &[f64]
@@ -3559,7 +3617,7 @@ pub fn alea_mcmc::nuts::NutsOptions::max_depth(self) -> alea_mcmc::config::TreeD
 pub fn alea_mcmc::nuts::NutsOptions::max_energy_error(self) -> f64
 pub fn alea_mcmc::nuts::NutsOptions::new(step_size: f64, max_depth: usize) -> core::result::Result<Self, alea_mcmc::nuts::NutsConfigError>
 pub fn alea_mcmc::nuts::NutsOptions::position_turning(self) -> bool
-pub fn alea_mcmc::nuts::NutsOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::nuts::NutsOptions::step_size(self) -> alea_mcmc::config::StepSize
 pub fn alea_mcmc::nuts::NutsOptions::step_size_jitter(self) -> f64
 pub fn alea_mcmc::nuts::NutsOptions::with_max_energy_error(self, limit: f64) -> core::result::Result<Self, alea_mcmc::hmc::HmcConfigError>
 pub fn alea_mcmc::nuts::NutsOptions::with_position_turning(self, enabled: bool) -> Self
@@ -3580,7 +3638,7 @@ pub alea_mcmc::NutsTransition::integration_steps: usize
 pub alea_mcmc::NutsTransition::max_energy_error: core::option::Option<f64>
 pub alea_mcmc::NutsTransition::proposal_energy: core::option::Option<f64>
 pub alea_mcmc::NutsTransition::selected_index: usize
-pub alea_mcmc::NutsTransition::step_size: alea_mcmc::hmc::StepSize
+pub alea_mcmc::NutsTransition::step_size: alea_mcmc::config::StepSize
 pub alea_mcmc::NutsTransition::termination: alea_mcmc::nuts::NutsTermination
 pub alea_mcmc::NutsTransition::tree_depth: usize
 pub alea_mcmc::NutsTransition::valid_states: usize
@@ -3599,7 +3657,7 @@ pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::normal_generator(&self) -> &alea_math::r
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::options(&self) -> alea_mcmc::rwmh::RwmhOptions
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::point(&self) -> &alea_core::density::DensityPoint<'a, T>
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::set_position(&mut self, position: &[f64]) -> core::result::Result<(), alea_mcmc::rwmh::RwmhError<<T as alea_core::target::TargetSpace>::Error>>
-pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::set_step_size(&mut self, step_size: alea_mcmc::hmc::StepSize)
+pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::set_proposal_scale(&mut self, proposal_scale: alea_mcmc::config::ProposalScale)
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<alea_mcmc::rwmh::RwmhTransition, alea_mcmc::rwmh::RwmhError<<T as alea_core::target::TargetSpace>::Error>>
 pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::with_normal_generator(self, normal: alea_math::random::NormalGenerator) -> Self
 impl<T: alea_core::density::LogDensity + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric> alea_mcmc::MarkovChain for alea_mcmc::rwmh::Rwmh<'_, T, M>
@@ -3609,8 +3667,8 @@ pub fn alea_mcmc::rwmh::Rwmh<'_, T, M>::position(&self) -> &[f64]
 pub fn alea_mcmc::rwmh::Rwmh<'_, T, M>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
 pub struct alea_mcmc::RwmhOptions
 impl alea_mcmc::rwmh::RwmhOptions
-pub fn alea_mcmc::rwmh::RwmhOptions::new(step_size: f64) -> core::result::Result<Self, alea_mcmc::config::SamplerConfigError>
-pub fn alea_mcmc::rwmh::RwmhOptions::step_size(self) -> alea_mcmc::hmc::StepSize
+pub fn alea_mcmc::rwmh::RwmhOptions::new(proposal_scale: f64) -> core::result::Result<Self, alea_mcmc::config::SamplerConfigError>
+pub fn alea_mcmc::rwmh::RwmhOptions::proposal_scale(self) -> alea_mcmc::config::ProposalScale
 impl core::clone::Clone for alea_mcmc::rwmh::RwmhOptions
 pub fn alea_mcmc::rwmh::RwmhOptions::clone(&self) -> alea_mcmc::rwmh::RwmhOptions
 impl core::cmp::PartialEq for alea_mcmc::rwmh::RwmhOptions
@@ -3636,17 +3694,17 @@ pub type alea_mcmc::MarkovChain::Error: core::error::Error + 'static
 pub type alea_mcmc::MarkovChain::Transition
 pub fn alea_mcmc::MarkovChain::position(&self) -> &[f64]
 pub fn alea_mcmc::MarkovChain::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
-impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::chees::CheesHmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator
+impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::chees::CheesHmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting
 pub type alea_mcmc::chees::CheesHmc<'_, T, M, I>::Error = alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::chees::CheesHmc<'_, T, M, I>::Transition = alea_mcmc::chees::CheesHmcTransition
 pub fn alea_mcmc::chees::CheesHmc<'_, T, M, I>::position(&self) -> &[f64]
 pub fn alea_mcmc::chees::CheesHmc<'_, T, M, I>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
-impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::DrGhmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator
+impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::DrGhmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting
 pub type alea_mcmc::ghmc::DrGhmc<'_, T, M, I>::Error = alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::ghmc::DrGhmc<'_, T, M, I>::Transition = alea_mcmc::ghmc::DrGhmcTransition
 pub fn alea_mcmc::ghmc::DrGhmc<'_, T, M, I>::position(&self) -> &[f64]
 pub fn alea_mcmc::ghmc::DrGhmc<'_, T, M, I>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
-impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::Ghmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator
+impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::Ghmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting
 pub type alea_mcmc::ghmc::Ghmc<'_, T, M, I>::Error = alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::ghmc::Ghmc<'_, T, M, I>::Transition = alea_mcmc::ghmc::GhmcTransition
 pub fn alea_mcmc::ghmc::Ghmc<'_, T, M, I>::position(&self) -> &[f64]
@@ -3681,12 +3739,12 @@ pub type alea_mcmc::rwmh::Rwmh<'_, T, M>::Error = alea_mcmc::rwmh::RwmhError<<T 
 pub type alea_mcmc::rwmh::Rwmh<'_, T, M>::Transition = alea_mcmc::rwmh::RwmhTransition
 pub fn alea_mcmc::rwmh::Rwmh<'_, T, M>::position(&self) -> &[f64]
 pub fn alea_mcmc::rwmh::Rwmh<'_, T, M>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
-impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::MarkovChain for alea_mcmc::hmc::Hmc<'_, T, M, I>
+impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::MarkovChain for alea_mcmc::hmc::Hmc<'_, T, M, I>
 pub type alea_mcmc::hmc::Hmc<'_, T, M, I>::Error = alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::hmc::Hmc<'_, T, M, I>::Transition = alea_mcmc::hmc::HmcTransition
 pub fn alea_mcmc::hmc::Hmc<'_, T, M, I>::position(&self) -> &[f64]
 pub fn alea_mcmc::hmc::Hmc<'_, T, M, I>::step<R: rand_core::Rng + ?core::marker::Sized>(&mut self, rng: &mut R) -> core::result::Result<Self::Transition, Self::Error>
-impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::MarkovChain for alea_mcmc::nuts::Nuts<'_, T, M, I>
+impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::MarkovChain for alea_mcmc::nuts::Nuts<'_, T, M, I>
 pub type alea_mcmc::nuts::Nuts<'_, T, M, I>::Error = alea_mcmc::nuts::NutsError<<T as alea_core::target::TargetSpace>::Error>
 pub type alea_mcmc::nuts::Nuts<'_, T, M, I>::Transition = alea_mcmc::nuts::NutsTransition
 pub fn alea_mcmc::nuts::Nuts<'_, T, M, I>::position(&self) -> &[f64]

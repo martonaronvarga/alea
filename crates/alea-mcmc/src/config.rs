@@ -2,7 +2,50 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-pub use crate::hmc::{HmcConfigError, StepSize};
+/// A scale must be finite and strictly positive.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[error("scale must be finite and positive")]
+pub struct InvalidScale;
+macro_rules! scale {
+    ($name:ident, $doc:literal) => {
+        #[doc=$doc]
+        #[derive(Debug, Clone, Copy, PartialEq)]
+        #[must_use]
+        pub struct $name(f64);
+        impl TryFrom<f64> for $name {
+            type Error = InvalidScale;
+            fn try_from(value: f64) -> Result<Self, Self::Error> {
+                if value.is_finite() && value > 0. {
+                    Ok(Self(value))
+                } else {
+                    Err(InvalidScale)
+                }
+            }
+        }
+        impl $name {
+            /// The validated positive scalar.
+            pub fn value(self) -> f64 {
+                self.0
+            }
+        }
+    };
+}
+scale!(StepSize, "Finite positive integration step size.");
+scale!(
+    ProposalScale,
+    "Finite positive random-walk proposal scale, not an integration step."
+);
+// Explicit retagging permits shared scalar adaptation without conflating APIs.
+impl From<StepSize> for ProposalScale {
+    fn from(step: StepSize) -> Self {
+        Self(step.value())
+    }
+}
+impl From<ProposalScale> for StepSize {
+    fn from(scale: ProposalScale) -> Self {
+        Self(scale.value())
+    }
+}
 
 /// Configuration/shape errors detected before allocation, evaluation, or RNG use.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -10,7 +53,7 @@ pub use crate::hmc::{HmcConfigError, StepSize};
 pub enum SamplerConfigError {
     #[error(transparent)]
     /// Invalid integration or proposal step size.
-    StepSize(#[from] HmcConfigError),
+    StepSize(#[from] InvalidScale),
     #[error("acceptance target must be finite and strictly between zero and one")]
     /// Acceptance target must be finite and strictly between zero and one.
     AcceptanceTarget,

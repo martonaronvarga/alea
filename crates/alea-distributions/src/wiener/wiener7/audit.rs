@@ -70,7 +70,7 @@ impl Wiener7 {
             xmax[dim - 1] = clip; // τ‑dimension, either index 0 or 1
         }
 
-        let bounds = Bounds::new(&xmin, &xmax);
+        let bounds = Bounds::try_new(&xmin, &xmax).expect("validated cubature bounds");
         let eps_series = eps;
 
         // relative error = 0.9 * precision  (Stan’s choice)
@@ -160,7 +160,8 @@ impl Wiener7 {
             if xmax_tau[0] <= 0.0 {
                 grad[5] = 0.0;
             } else {
-                let bounds_tau = Bounds::new(&[0.0], &xmax_tau);
+                let bounds_tau =
+                    Bounds::try_new(&[0.0], &xmax_tau).expect("validated cubature bounds");
                 let mut val_sw = [0.0f64; 1];
                 let mut err_sw = [0.0f64; 1];
                 let integrand_sw = |x: &[f64], fv: &mut [f64]| -> i32 {
@@ -202,7 +203,8 @@ impl Wiener7 {
                     f_end = Self::wiener5_density(obs, &p5, eps_series);
                 } else {
                     // integrate over ω at τ = t0 + st0
-                    let bounds_w = Bounds::new(&[0.0], &[1.0]);
+                    let bounds_w =
+                        Bounds::try_new(&[0.0], &[1.0]).expect("validated cubature bounds");
                     let mut val_f = [0.0f64; 1];
                     let mut err_f = [0.0f64; 1];
                     let integrand_f = |x: &[f64], fv: &mut [f64]| -> i32 {

@@ -66,7 +66,7 @@ impl Estimate {
     }
 }
 
-impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> NutsWarmup<'a, T, I> {
+impl<'a, T: LogDensityGradient + ?Sized, I: SymmetricSplitting> NutsWarmup<'a, T, I> {
     pub(super) fn drive_gradient<R: Rng + ?Sized>(
         mut self,
         mut estimate: Estimate,

@@ -3,7 +3,7 @@ use alea_ffi::{Bounds, Options, hcubature_into};
 
 #[test]
 fn successful_closure_boundary_has_no_rust_heap_allocations() {
-    let bounds = Bounds::new(&[0.0], &[1.0]);
+    let bounds = Bounds::try_new(&[0.0], &[1.0]).expect("validated cubature bounds");
     let mut val = [0.0; 1];
     let mut err = [0.0; 1];
     let mut calls = 0;

@@ -5,6 +5,7 @@
 //! complete endpoint; model failures and numerical divergences never mutate the
 //! live cached point.
 
+use crate::config::StepSize;
 use std::{error::Error, num::NonZeroUsize};
 
 use alea_core::{
@@ -21,12 +22,7 @@ use alea_math::{
 };
 use rand::{Rng, RngExt};
 
-use crate::{
-    MarkovChain,
-    canonical::metropolis,
-    hamiltonian::Divergence,
-    hmc::{HmcConfigError, StepSize},
-};
+use crate::{MarkovChain, canonical::metropolis, hamiltonian::Divergence, hmc::HmcConfigError};
 
 /// Validated fixed-trajectory settings shared by advanced integration kernels.
 #[derive(Debug, Clone, Copy)]

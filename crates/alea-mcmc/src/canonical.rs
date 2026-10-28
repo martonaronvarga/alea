@@ -2,8 +2,8 @@
 //! Canonical phase dynamics remain in `hamiltonian`; this module neither retries
 //! failed paths nor generalizes Metropolis to non-volume-preserving dynamics.
 use crate::{
+    config::StepSize,
     hamiltonian::{Divergence, SignedStep},
-    hmc::StepSize,
 };
 
 /// Geometry-independent constant step control, shared by probes and trajectories.

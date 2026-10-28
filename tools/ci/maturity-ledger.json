@@ -954,12 +954,6 @@
     },
     {
       "crate": "alea-ffi",
-      "item": "IntegrandFn",
-      "profile": "validated_utility_opt_in",
-      "summary": "Function-backed safe cubature integrand."
-    },
-    {
-      "crate": "alea-ffi",
       "item": "Options",
       "profile": "validated_utility_opt_in",
       "summary": "Validated cubature configuration."
@@ -2127,6 +2121,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::Positive",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::PositiveDefinite",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -2146,6 +2146,12 @@
     {
       "crate": "alea-core",
       "item": "impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::Simplex",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::UnitInterval",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -5491,6 +5497,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Positive::accepts(transform: alea_core::transform::Transform) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::Positive::clone(&self) -> alea_core::model::assembly::Positive",
       "profile": "validated_component_opt_in"
     },
@@ -5566,6 +5578,12 @@
     {
       "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::Simplex::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::UnitInterval::accepts(transform: alea_core::transform::Transform) -> bool",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -10752,31 +10770,31 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "impl<D: alea_core::distribution::Distribution<Error = alea_core::distribution::DistributionError>> alea_core::distribution::Distribution for alea_distributions::mixture::FiniteMixture<D>",
+      "item": "impl<D: alea_core::distribution::Distribution> alea_core::distribution::Distribution for alea_distributions::mixture::FiniteMixture<D>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "impl<D: alea_core::distribution::Distribution<Error = alea_core::distribution::DistributionError>> alea_distributions::mixture::FiniteMixture<D>",
+      "item": "impl<D: alea_core::distribution::Distribution> alea_distributions::mixture::FiniteMixture<D>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "impl<D: alea_core::distribution::ParameterScore<Error = alea_core::distribution::DistributionError>> alea_core::distribution::ParameterScore for alea_distributions::mixture::FiniteMixture<D>",
+      "item": "impl<D: alea_core::distribution::ParameterScore> alea_core::distribution::ParameterScore for alea_distributions::mixture::FiniteMixture<D>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "impl<D: alea_core::distribution::Sample<Error = alea_core::distribution::DistributionError>> alea_core::distribution::Sample for alea_distributions::mixture::FiniteMixture<D>",
+      "item": "impl<D: alea_core::distribution::Sample> alea_core::distribution::Sample for alea_distributions::mixture::FiniteMixture<D>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "impl<D: alea_core::distribution::ScalarEventScore<Error = alea_core::distribution::DistributionError>> alea_core::distribution::ScalarEventScore for alea_distributions::mixture::FiniteMixture<D>",
+      "item": "impl<D: alea_core::distribution::ScalarEventScore> alea_core::distribution::ScalarEventScore for alea_distributions::mixture::FiniteMixture<D>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -11839,8 +11857,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::mixture::FiniteMixture<D>::event_score(&self, x: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::mixture::FiniteMixture<D>::event_score(&self, x: f64) -> core::result::Result<f64, <D as alea_core::distribution::Distribution>::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -11854,8 +11873,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::mixture::FiniteMixture<D>::log_prob(&self, x: &Self::Event) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::mixture::FiniteMixture<D>::log_prob(&self, x: &Self::Event) -> core::result::Result<f64, <D as alea_core::distribution::Distribution>::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -11869,8 +11889,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::mixture::FiniteMixture<D>::parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::mixture::FiniteMixture<D>::parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> core::result::Result<(), <D as alea_core::distribution::Distribution>::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -11880,8 +11901,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::mixture::FiniteMixture<D>::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<Self::Draw, alea_core::distribution::DistributionError>",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_distributions::mixture::FiniteMixture<D>::sample<R: rand_core::Rng + ?core::marker::Sized>(&self, rng: &mut R) -> core::result::Result<Self::Draw, <D as alea_core::distribution::Distribution>::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -17966,7 +17988,7 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub type alea_distributions::mixture::FiniteMixture<D>::Error = alea_core::distribution::DistributionError",
+      "item": "pub type alea_distributions::mixture::FiniteMixture<D>::Error = <D as alea_core::distribution::Distribution>::Error",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -19411,11 +19433,6 @@
     },
     {
       "crate": "alea-ffi",
-      "item": "pub fn alea_ffi::Bounds<'a>::new(xmin: &'a [f64], xmax: &'a [f64]) -> Self",
-      "profile": "validated_utility_opt_in"
-    },
-    {
-      "crate": "alea-ffi",
       "item": "pub fn alea_ffi::Bounds<'a>::try_new(xmin: &'a [f64], xmax: &'a [f64]) -> alea_ffi::CubatureResult<Self>",
       "profile": "validated_utility_opt_in"
     },
@@ -19497,11 +19514,6 @@
     {
       "crate": "alea-ffi",
       "item": "pub type alea_ffi::Integrand = core::option::Option<fn(ndim: std::os::raw::c_uint, x: *const f64, arg1: *mut std::os::raw::c_void, fdim: std::os::raw::c_uint, fval: *mut f64) -> std::os::raw::c_int>",
-      "profile": "validated_utility_opt_in"
-    },
-    {
-      "crate": "alea-ffi",
-      "item": "pub type alea_ffi::IntegrandFn<'a> = (dyn core::ops::function::FnMut(&[f64], &mut [f64]) -> std::os::raw::c_int + 'a)",
       "profile": "validated_utility_opt_in"
     },
     {
@@ -21577,6 +21589,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub fn alea_math::numeric::scaled_norm(values: &[f64]) -> f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub fn alea_math::numeric::sigmoid(theta: f64) -> f64",
       "profile": "validated_utility_reference"
     },
@@ -21931,11 +21949,6 @@
       "item": "#[non_exhaustive] pub enum alea_mcmc::atlas_sampler::AtlasError<E: core::error::Error + 'static>",
       "profile": "research_exact",
       "promotion_gate": "Broaden independent nonlinear prefix and descriptive posterior evidence; remain opt-in research."
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "#[non_exhaustive] pub enum alea_mcmc::config::HmcConfigError",
-      "profile": "validated_component_reference"
     },
     {
       "crate": "alea-mcmc",
@@ -22437,6 +22450,18 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "impl alea_mcmc::config::ProposalScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "impl alea_mcmc::config::TreeDepth",
       "profile": "validated_component_reference"
     },
@@ -22464,11 +22489,6 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl alea_mcmc::hmc::StepSize",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
       "item": "impl alea_mcmc::integrator::CurvatureBound",
       "profile": "research_mixed",
       "promotion_gate": "Separate validated kernels from policies with unresolved end-to-end evidence."
@@ -22481,13 +22501,15 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl alea_mcmc::integrator::Integrator for alea_mcmc::integrator::Leapfrog",
-      "profile": "validated_component_reference"
+      "item": "impl alea_mcmc::integrator::SymmetricSplitting for alea_mcmc::integrator::Leapfrog",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl alea_mcmc::integrator::Integrator for alea_mcmc::integrator::TwoStage",
-      "profile": "validated_component_reference"
+      "item": "impl alea_mcmc::integrator::SymmetricSplitting for alea_mcmc::integrator::TwoStage",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -22922,8 +22944,26 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "impl core::clone::Clone for alea_mcmc::config::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::clone::Clone for alea_mcmc::config::ProposalScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "impl core::clone::Clone for alea_mcmc::config::SamplerConfigError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::clone::Clone for alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -22989,11 +23029,6 @@
     {
       "crate": "alea-mcmc",
       "item": "impl core::clone::Clone for alea_mcmc::hmc::HmcTransition",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "impl core::clone::Clone for alea_mcmc::hmc::StepSize",
       "profile": "validated_exact_reference"
     },
     {
@@ -23320,6 +23355,12 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "impl core::cmp::Eq for alea_mcmc::config::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "impl core::cmp::Eq for alea_mcmc::config::SamplerConfigError",
       "profile": "validated_component_reference"
     },
@@ -23618,8 +23659,26 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "impl core::cmp::PartialEq for alea_mcmc::config::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::cmp::PartialEq for alea_mcmc::config::ProposalScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "impl core::cmp::PartialEq for alea_mcmc::config::SamplerConfigError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::cmp::PartialEq for alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -23650,11 +23709,6 @@
     {
       "crate": "alea-mcmc",
       "item": "impl core::cmp::PartialEq for alea_mcmc::hmc::HmcTransition",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "impl core::cmp::PartialEq for alea_mcmc::hmc::StepSize",
       "profile": "validated_exact_reference"
     },
     {
@@ -23824,6 +23878,42 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::config::SamplerConfigError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::ghmc::GhmcConfigError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::hmc::HmcConfigError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::nuts::NutsConfigError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::convert::From<alea_mcmc::config::InvalidScale> for alea_mcmc::walnuts::WalnutsConfigError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::convert::From<alea_mcmc::config::ProposalScale> for alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "impl core::convert::From<alea_mcmc::config::SamplerConfigError> for alea_mcmc::nuts::NutsConfigError",
       "profile": "validated_exact_recommended"
     },
@@ -23835,8 +23925,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl core::convert::From<alea_mcmc::hmc::HmcConfigError> for alea_mcmc::config::SamplerConfigError",
-      "profile": "validated_component_reference"
+      "item": "impl core::convert::From<alea_mcmc::config::StepSize> for alea_mcmc::config::ProposalScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -23862,8 +23953,15 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl core::convert::TryFrom<f64> for alea_mcmc::hmc::StepSize",
-      "profile": "validated_exact_reference"
+      "item": "impl core::convert::TryFrom<f64> for alea_mcmc::config::ProposalScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::convert::TryFrom<f64> for alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -24012,6 +24110,12 @@
       "item": "impl core::error::Error for alea_mcmc::atlas_sampler::AtlasConfigError",
       "profile": "research_exact",
       "promotion_gate": "Broaden independent nonlinear prefix and descriptive posterior evidence; remain opt-in research."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::error::Error for alea_mcmc::config::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -24486,8 +24590,26 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "impl core::fmt::Debug for alea_mcmc::config::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::fmt::Debug for alea_mcmc::config::ProposalScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "impl core::fmt::Debug for alea_mcmc::config::SamplerConfigError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::fmt::Debug for alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -24553,11 +24675,6 @@
     {
       "crate": "alea-mcmc",
       "item": "impl core::fmt::Debug for alea_mcmc::hmc::HmcTransition",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "impl core::fmt::Debug for alea_mcmc::hmc::StepSize",
       "profile": "validated_exact_reference"
     },
     {
@@ -24834,6 +24951,12 @@
       "item": "impl core::fmt::Display for alea_mcmc::atlas_sampler::AtlasConfigError",
       "profile": "research_exact",
       "promotion_gate": "Broaden independent nonlinear prefix and descriptive posterior evidence; remain opt-in research."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::fmt::Display for alea_mcmc::config::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -25243,8 +25366,26 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "impl core::marker::Copy for alea_mcmc::config::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::marker::Copy for alea_mcmc::config::ProposalScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "impl core::marker::Copy for alea_mcmc::config::SamplerConfigError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::marker::Copy for alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -25310,11 +25451,6 @@
     {
       "crate": "alea-mcmc",
       "item": "impl core::marker::Copy for alea_mcmc::hmc::HmcTransition",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "impl core::marker::Copy for alea_mcmc::hmc::StepSize",
       "profile": "validated_exact_reference"
     },
     {
@@ -25711,8 +25847,26 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "impl core::marker::StructuralPartialEq for alea_mcmc::config::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::marker::StructuralPartialEq for alea_mcmc::config::ProposalScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "impl core::marker::StructuralPartialEq for alea_mcmc::config::SamplerConfigError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl core::marker::StructuralPartialEq for alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -25743,11 +25897,6 @@
     {
       "crate": "alea-mcmc",
       "item": "impl core::marker::StructuralPartialEq for alea_mcmc::hmc::HmcTransition",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "impl core::marker::StructuralPartialEq for alea_mcmc::hmc::StepSize",
       "profile": "validated_exact_reference"
     },
     {
@@ -25882,25 +26031,27 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<'a, T, I> alea_mcmc::chees::CheesHmc<'a, T, alea_math::metric::IdentityMetric, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator",
-      "profile": "validated_exact_opt_in"
+      "item": "impl<'a, T, I> alea_mcmc::chees::CheesHmc<'a, T, alea_math::metric::IdentityMetric, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<'a, T, M, I> alea_mcmc::chees::CheesHmc<'a, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator",
-      "profile": "validated_exact_opt_in"
+      "item": "impl<'a, T, M, I> alea_mcmc::chees::CheesHmc<'a, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<'a, T, M, I> alea_mcmc::ghmc::DrGhmc<'a, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator",
-      "profile": "research_exact",
-      "promotion_gate": "Broaden stationarity, delayed-rejection, and tuning-cost validation."
+      "item": "impl<'a, T, M, I> alea_mcmc::ghmc::DrGhmc<'a, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<'a, T, M, I> alea_mcmc::ghmc::Ghmc<'a, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator",
-      "profile": "research_exact",
-      "promotion_gate": "Broaden stationarity, delayed-rejection, and tuning-cost validation."
+      "item": "impl<'a, T, M, I> alea_mcmc::ghmc::Ghmc<'a, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -25975,35 +26126,39 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator> alea_mcmc::adapt::FisherHmcWarmup<'a, T, I>",
-      "profile": "research_mixed",
-      "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator> alea_mcmc::adapt::FisherNutsWarmup<'a, T, I>",
+      "item": "impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::adapt::FisherHmcWarmup<'a, T, I>",
       "profile": "research_component",
-      "promotion_gate": "Broaden the named finite warmup/initialization workflow evidence; no reference adoption."
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator> alea_mcmc::adapt::HmcWarmup<'a, T, I>",
-      "profile": "validated_component_reference"
+      "item": "impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::adapt::FisherNutsWarmup<'a, T, I>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator> alea_mcmc::adapt::NutsWarmup<'a, T, I>",
-      "profile": "validated_component_reference"
+      "item": "impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::adapt::HmcWarmup<'a, T, I>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::hmc::Hmc<'a, T, M, I>",
-      "profile": "validated_exact_reference"
+      "item": "impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::adapt::NutsWarmup<'a, T, I>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::nuts::Nuts<'a, T, M, I>",
-      "profile": "validated_exact_recommended"
+      "item": "impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::hmc::Hmc<'a, T, M, I>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "impl<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::nuts::Nuts<'a, T, M, I>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -26902,20 +27057,21 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::chees::CheesHmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator",
-      "profile": "validated_exact_opt_in"
+      "item": "impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::chees::CheesHmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::DrGhmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator",
-      "profile": "research_exact",
-      "promotion_gate": "Broaden stationarity, delayed-rejection, and tuning-cost validation."
+      "item": "impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::DrGhmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::Ghmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator",
-      "profile": "research_exact",
-      "promotion_gate": "Broaden stationarity, delayed-rejection, and tuning-cost validation."
+      "item": "impl<T, M, I> alea_mcmc::MarkovChain for alea_mcmc::ghmc::Ghmc<'_, T, M, I> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -26960,13 +27116,15 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::MarkovChain for alea_mcmc::hmc::Hmc<'_, T, M, I>",
-      "profile": "validated_exact_reference"
+      "item": "impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::MarkovChain for alea_mcmc::hmc::Hmc<'_, T, M, I>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator> alea_mcmc::MarkovChain for alea_mcmc::nuts::Nuts<'_, T, M, I>",
-      "profile": "validated_exact_recommended"
+      "item": "impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting> alea_mcmc::MarkovChain for alea_mcmc::nuts::Nuts<'_, T, M, I>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -27112,9 +27270,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::NutsTransition::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "validated_component_reference",
-      "summary": "Explicit independent trajectory step jitter, actual step observation, or gradient warmup final-restart control; default covariance and zero-jitter trajectories unchanged."
+      "item": "pub alea_mcmc::NutsTransition::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -27263,9 +27421,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::CheesPlan::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "research_mixed",
-      "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
+      "item": "pub alea_mcmc::adapt::CheesPlan::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -27293,9 +27451,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::CheesUpdate::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "research_mixed",
-      "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
+      "item": "pub alea_mcmc::adapt::CheesUpdate::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -27454,8 +27612,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::HmcWarmupReport::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "validated_component_reference"
+      "item": "pub alea_mcmc::adapt::HmcWarmupReport::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -27495,15 +27654,15 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::JointNutsWarmupError::Integrator(alea_mcmc::integrator::AdvancedIntegratorError)",
+      "item": "pub alea_mcmc::adapt::JointNutsWarmupError::Nuts(alea_mcmc::nuts::NutsError<E>)",
       "profile": "research_component",
       "promotion_gate": "Broaden the named finite warmup/initialization workflow evidence; no reference adoption."
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::JointNutsWarmupError::Nuts(alea_mcmc::nuts::NutsError<E>)",
+      "item": "pub alea_mcmc::adapt::JointNutsWarmupError::SymmetricSplitting(alea_mcmc::integrator::AdvancedIntegratorError)",
       "profile": "research_component",
-      "promotion_gate": "Broaden the named finite warmup/initialization workflow evidence; no reference adoption."
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -27579,9 +27738,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::JointNutsWarmupReport::step_size: alea_mcmc::hmc::StepSize",
+      "item": "pub alea_mcmc::adapt::JointNutsWarmupReport::step_size: alea_mcmc::config::StepSize",
       "profile": "research_component",
-      "promotion_gate": "Broaden the named finite warmup/initialization workflow evidence; no reference adoption."
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -27621,15 +27780,15 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::JointWarmupError::Integrator(alea_mcmc::integrator::AdvancedIntegratorError)",
+      "item": "pub alea_mcmc::adapt::JointWarmupError::SearchExhausted",
       "profile": "research_mixed",
       "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::JointWarmupError::SearchExhausted",
-      "profile": "research_mixed",
-      "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
+      "item": "pub alea_mcmc::adapt::JointWarmupError::SymmetricSplitting(alea_mcmc::integrator::AdvancedIntegratorError)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -27693,9 +27852,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::JointWarmupReport::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "research_mixed",
-      "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
+      "item": "pub alea_mcmc::adapt::JointWarmupReport::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -27801,9 +27960,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::MclmcWarmupReport::step_size: alea_mcmc::hmc::StepSize",
+      "item": "pub alea_mcmc::adapt::MclmcWarmupReport::step_size: alea_mcmc::config::StepSize",
       "profile": "research_component",
-      "promotion_gate": "Broaden the named finite warmup/initialization workflow evidence; no reference adoption."
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -27880,8 +28039,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::NutsWarmupObservation::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "validated_component_reference"
+      "item": "pub alea_mcmc::adapt::NutsWarmupObservation::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -27950,8 +28110,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::NutsWarmupReport::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "validated_component_reference"
+      "item": "pub alea_mcmc::adapt::NutsWarmupReport::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -28146,8 +28307,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::SearchResult::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "validated_component_reference"
+      "item": "pub alea_mcmc::adapt::SearchResult::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -28163,9 +28325,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::StaticWarmupError::Kernel(E)",
+      "item": "pub alea_mcmc::adapt::StaticWarmupError::SamplerConfig(E)",
       "profile": "research_component",
-      "promotion_gate": "Broaden the named finite warmup/initialization workflow evidence; no reference adoption."
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -28217,9 +28379,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::StaticWarmupReport::step_size: alea_mcmc::hmc::StepSize",
+      "item": "pub alea_mcmc::adapt::StaticWarmupReport::step_size: alea_mcmc::config::StepSize",
       "profile": "research_component",
-      "promotion_gate": "Broaden the named finite warmup/initialization workflow evidence; no reference adoption."
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -28412,9 +28574,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::adapt::WarmupSummary::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "research_mixed",
-      "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
+      "item": "pub alea_mcmc::adapt::WarmupSummary::proposal_scale: alea_mcmc::config::ProposalScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -28903,21 +29065,6 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::config::HmcConfigError::EnergyErrorLimit",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::config::HmcConfigError::IntegrationCount",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::config::HmcConfigError::StepSize",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-mcmc",
       "item": "pub alea_mcmc::config::SamplerConfigError::AcceptanceTarget",
       "profile": "validated_component_reference"
     },
@@ -28953,8 +29100,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::config::SamplerConfigError::StepSize(alea_mcmc::hmc::HmcConfigError)",
-      "profile": "validated_component_reference"
+      "item": "pub alea_mcmc::config::SamplerConfigError::StepSize(alea_mcmc::config::InvalidScale)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -29582,9 +29730,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::nuts::NutsTransition::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "validated_component_reference",
-      "summary": "Explicit independent trajectory step jitter, actual step observation, or gradient warmup final-restart control; default covariance and zero-jitter trajectories unchanged."
+      "item": "pub alea_mcmc::nuts::NutsTransition::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -29828,8 +29976,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::prelude::HmcWarmupReport::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "validated_reference_mixed"
+      "item": "pub alea_mcmc::prelude::HmcWarmupReport::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -29944,9 +30093,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::prelude::NutsTransition::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "validated_component_reference",
-      "summary": "Explicit independent trajectory step jitter, actual step observation, or gradient warmup final-restart control; default covariance and zero-jitter trajectories unchanged."
+      "item": "pub alea_mcmc::prelude::NutsTransition::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -30010,8 +30159,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::prelude::NutsWarmupObservation::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "validated_component_reference"
+      "item": "pub alea_mcmc::prelude::NutsWarmupObservation::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -30080,8 +30230,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::prelude::NutsWarmupReport::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "validated_component_reference"
+      "item": "pub alea_mcmc::prelude::NutsWarmupReport::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -30165,8 +30316,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::prelude::SamplerConfigError::StepSize(alea_mcmc::hmc::HmcConfigError)",
-      "profile": "validated_reference_mixed"
+      "item": "pub alea_mcmc::prelude::SamplerConfigError::StepSize(alea_mcmc::config::InvalidScale)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -30180,8 +30332,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::prelude::SearchResult::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "validated_reference_mixed"
+      "item": "pub alea_mcmc::prelude::SearchResult::step_size: alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -30270,8 +30423,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub alea_mcmc::prelude::WarmupSummary::step_size: alea_mcmc::hmc::StepSize",
-      "profile": "validated_reference_mixed"
+      "item": "pub alea_mcmc::prelude::WarmupSummary::proposal_scale: alea_mcmc::config::ProposalScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -31254,9 +31408,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::CheesEnsembleAdapter::new(dimension: usize, initial_step: alea_mcmc::hmc::StepSize, initial_trajectory_time: f64, min_trajectory_time: f64, max_trajectory_time: f64, criterion: alea_mcmc::adapt::CheesCriterion) -> core::result::Result<Self, alea_mcmc::adapt::CheesConfigError>",
-      "profile": "research_mixed",
-      "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
+      "item": "pub fn alea_mcmc::adapt::CheesEnsembleAdapter::new(dimension: usize, initial_step: alea_mcmc::config::StepSize, initial_trajectory_time: f64, min_trajectory_time: f64, max_trajectory_time: f64, criterion: alea_mcmc::adapt::CheesCriterion) -> core::result::Result<Self, alea_mcmc::adapt::CheesConfigError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -31468,8 +31622,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::DualAveraging::finish(self) -> alea_mcmc::hmc::StepSize",
-      "profile": "validated_component_reference"
+      "item": "pub fn alea_mcmc::adapt::DualAveraging::finish(self) -> alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -31478,13 +31633,15 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::DualAveraging::new(initial: alea_mcmc::hmc::StepSize, target: alea_mcmc::config::AcceptanceTarget) -> Self",
-      "profile": "validated_component_reference"
+      "item": "pub fn alea_mcmc::adapt::DualAveraging::new(initial: alea_mcmc::config::StepSize, target: alea_mcmc::config::AcceptanceTarget) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::DualAveraging::update(&mut self, acceptance: f64) -> core::result::Result<alea_mcmc::hmc::StepSize, alea_mcmc::adapt::AdaptationError>",
-      "profile": "validated_component_reference"
+      "item": "pub fn alea_mcmc::adapt::DualAveraging::update(&mut self, acceptance: f64) -> core::result::Result<alea_mcmc::config::StepSize, alea_mcmc::adapt::AdaptationError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -31770,9 +31927,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::FrozenCheesParameters::step_size(self) -> alea_mcmc::hmc::StepSize",
-      "profile": "research_mixed",
-      "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
+      "item": "pub fn alea_mcmc::adapt::FrozenCheesParameters::step_size(self) -> alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -32677,9 +32834,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::StaticWarmupOptions::with_step_bounds(self, minimum: alea_mcmc::hmc::StepSize, maximum: alea_mcmc::hmc::StepSize) -> core::result::Result<Self, alea_mcmc::adapt::AdaptationError>",
+      "item": "pub fn alea_mcmc::adapt::StaticWarmupOptions::with_step_bounds(self, minimum: alea_mcmc::config::StepSize, maximum: alea_mcmc::config::StepSize) -> core::result::Result<Self, alea_mcmc::adapt::AdaptationError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden the named finite warmup/initialization workflow evidence; no reference adoption."
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -32755,9 +32912,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::StepSizeController::finish(self) -> alea_mcmc::hmc::StepSize",
-      "profile": "research_mixed",
-      "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
+      "item": "pub fn alea_mcmc::adapt::StepSizeController::finish(self) -> alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -32767,15 +32924,15 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::StepSizeController::new(initial: alea_mcmc::hmc::StepSize, target: alea_mcmc::config::AcceptanceTarget, settings: alea_mcmc::adapt::StepAdaptation) -> Self",
-      "profile": "research_mixed",
-      "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
+      "item": "pub fn alea_mcmc::adapt::StepSizeController::new(initial: alea_mcmc::config::StepSize, target: alea_mcmc::config::AcceptanceTarget, settings: alea_mcmc::adapt::StepAdaptation) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::StepSizeController::update(&mut self, observation: alea_mcmc::adapt::StepObservation) -> core::result::Result<alea_mcmc::hmc::StepSize, alea_mcmc::adapt::AdaptationError>",
-      "profile": "research_mixed",
-      "promotion_gate": "Split and freeze the validated warmup surface independently of research learners."
+      "item": "pub fn alea_mcmc::adapt::StepSizeController::update(&mut self, observation: alea_mcmc::adapt::StepObservation) -> core::result::Result<alea_mcmc::config::StepSize, alea_mcmc::adapt::AdaptationError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -33124,19 +33281,19 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::find_reasonable_nuts_step_size<T, M, R, I>(chain: &mut alea_mcmc::nuts::Nuts<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator",
+      "item": "pub fn alea_mcmc::adapt::find_reasonable_nuts_step_size<T, M, R, I>(chain: &mut alea_mcmc::nuts::Nuts<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::find_reasonable_step_size<T, M, R, I>(chain: &mut alea_mcmc::hmc::Hmc<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::WarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator",
+      "item": "pub fn alea_mcmc::adapt::find_reasonable_step_size<T, M, R, I>(chain: &mut alea_mcmc::hmc::Hmc<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::WarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::learn_affine_transport<T, M, I, R>(chain: &mut alea_mcmc::hmc::Hmc<'_, T, M, I>, learner: alea_mcmc::adapt::AffineTransportLearner, iterations: usize, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::TransportWarmupResult, alea_mcmc::adapt::TransportWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator, R: rand_core::Rng + ?core::marker::Sized",
+      "item": "pub fn alea_mcmc::adapt::learn_affine_transport<T, M, I, R>(chain: &mut alea_mcmc::hmc::Hmc<'_, T, M, I>, learner: alea_mcmc::adapt::AffineTransportLearner, iterations: usize, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::TransportWarmupResult, alea_mcmc::adapt::TransportWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting, R: rand_core::Rng + ?core::marker::Sized",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -33160,19 +33317,19 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::warmup_drghmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::ghmc::DrGhmc<'a, T, M, I>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::ghmc::DrGhmc<'a, T, M, I>, alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>>",
+      "item": "pub fn alea_mcmc::adapt::warmup_drghmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::ghmc::DrGhmc<'a, T, M, I>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::ghmc::DrGhmc<'a, T, M, I>, alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::warmup_ghmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::ghmc::Ghmc<'a, T, M, I>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::ghmc::Ghmc<'a, T, M, I>, alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>>",
+      "item": "pub fn alea_mcmc::adapt::warmup_ghmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::ghmc::Ghmc<'a, T, M, I>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::ghmc::Ghmc<'a, T, M, I>, alea_mcmc::ghmc::GhmcError<<T as alea_core::target::TargetSpace>::Error>>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::adapt::warmup_hmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::Integrator, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::hmc::Hmc<'a, T, M, I>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::hmc::Hmc<'a, T, M, I>, alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>>",
+      "item": "pub fn alea_mcmc::adapt::warmup_hmc_step_size<'a, T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, I: alea_mcmc::integrator::SymmetricSplitting, R: rand_core::Rng + ?core::marker::Sized>(chain: alea_mcmc::hmc::Hmc<'a, T, M, I>, options: alea_mcmc::adapt::StaticWarmupOptions, rng: &mut R) -> alea_mcmc::adapt::StaticWarmupResult<alea_mcmc::hmc::Hmc<'a, T, M, I>, alea_mcmc::hmc::HmcError<<T as alea_core::target::TargetSpace>::Error>>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -33286,9 +33443,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::advanced::AdvancedHmcOptions::step_size(self) -> alea_mcmc::hmc::StepSize",
+      "item": "pub fn alea_mcmc::advanced::AdvancedHmcOptions::step_size(self) -> alea_mcmc::config::StepSize",
       "profile": "research_component",
-      "promotion_gate": "Resolve resonance failures and add representative split-model evidence."
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -33556,9 +33713,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::atlas_sampler::AtlasOptions::baseline_step(self) -> alea_mcmc::hmc::StepSize",
-      "profile": "research_exact",
-      "promotion_gate": "Broaden independent nonlinear prefix and descriptive posterior evidence; remain opt-in research."
+      "item": "pub fn alea_mcmc::atlas_sampler::AtlasOptions::baseline_step(self) -> alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -33878,6 +34035,66 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::InvalidScale::clone(&self) -> alea_mcmc::config::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::InvalidScale::eq(&self, other: &alea_mcmc::config::InvalidScale) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::InvalidScale::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::InvalidScale::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::ProposalScale::clone(&self) -> alea_mcmc::config::ProposalScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::ProposalScale::eq(&self, other: &alea_mcmc::config::ProposalScale) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::ProposalScale::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::ProposalScale::from(step: alea_mcmc::config::StepSize) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::ProposalScale::try_from(value: f64) -> core::result::Result<Self, Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::ProposalScale::value(self) -> f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "pub fn alea_mcmc::config::SamplerConfigError::clone(&self) -> alea_mcmc::config::SamplerConfigError",
       "profile": "validated_component_reference"
     },
@@ -33898,13 +34115,50 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::config::SamplerConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self",
-      "profile": "validated_component_reference"
+      "item": "pub fn alea_mcmc::config::SamplerConfigError::from(source: alea_mcmc::config::InvalidScale) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
       "item": "pub fn alea_mcmc::config::SamplerConfigError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::StepSize::clone(&self) -> alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::StepSize::eq(&self, other: &alea_mcmc::config::StepSize) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::StepSize::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::StepSize::from(scale: alea_mcmc::config::ProposalScale) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::StepSize::try_from(value: f64) -> core::result::Result<Self, Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::config::StepSize::value(self) -> f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -33997,9 +34251,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::ghmc::DrGhmcOptions::first_step(self) -> alea_mcmc::hmc::StepSize",
-      "profile": "research_exact",
-      "promotion_gate": "Broaden stationarity, delayed-rejection, and tuning-cost validation."
+      "item": "pub fn alea_mcmc::ghmc::DrGhmcOptions::first_step(self) -> alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -34033,9 +34287,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::ghmc::DrGhmcOptions::second_step(self) -> alea_mcmc::hmc::StepSize",
-      "profile": "research_exact",
-      "promotion_gate": "Broaden stationarity, delayed-rejection, and tuning-cost validation."
+      "item": "pub fn alea_mcmc::ghmc::DrGhmcOptions::second_step(self) -> alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -34159,6 +34413,12 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::ghmc::GhmcConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "pub fn alea_mcmc::ghmc::GhmcConfigError::from(source: alea_mcmc::hmc::HmcConfigError) -> Self",
       "profile": "research_exact",
       "promotion_gate": "Broaden stationarity, delayed-rejection, and tuning-cost validation."
@@ -34248,9 +34508,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::ghmc::GhmcOptions::step_size(self) -> alea_mcmc::hmc::StepSize",
-      "profile": "research_exact",
-      "promotion_gate": "Broaden stationarity, delayed-rejection, and tuning-cost validation."
+      "item": "pub fn alea_mcmc::ghmc::GhmcOptions::step_size(self) -> alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -34305,7 +34565,7 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::hamiltonian::Phase<'_, '_, T, M>::step_with<I: alea_mcmc::integrator::Integrator>(self, step: alea_mcmc::hamiltonian::SignedStep, integrator: &I) -> core::result::Result<Self, alea_mcmc::hamiltonian::PhaseError<<T as alea_core::target::TargetSpace>::Error>>",
+      "item": "pub fn alea_mcmc::hamiltonian::Phase<'_, '_, T, M>::step_with<I: alea_mcmc::integrator::SymmetricSplitting>(self, step: alea_mcmc::hamiltonian::SignedStep, integrator: &I) -> core::result::Result<Self, alea_mcmc::hamiltonian::PhaseError<<T as alea_core::target::TargetSpace>::Error>>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -34500,6 +34760,12 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::hmc::HmcConfigError::from(_: alea_mcmc::config::InvalidScale) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "pub fn alea_mcmc::hmc::HmcError<E>::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "validated_exact_reference"
     },
@@ -34555,8 +34821,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::hmc::HmcOptions::step_size(self) -> alea_mcmc::hmc::StepSize",
-      "profile": "validated_exact_reference"
+      "item": "pub fn alea_mcmc::hmc::HmcOptions::step_size(self) -> alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -34576,31 +34843,6 @@
     {
       "crate": "alea-mcmc",
       "item": "pub fn alea_mcmc::hmc::HmcTransition::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::hmc::StepSize::clone(&self) -> alea_mcmc::hmc::StepSize",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::hmc::StepSize::eq(&self, other: &alea_mcmc::hmc::StepSize) -> bool",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::hmc::StepSize::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::hmc::StepSize::try_from(value: f64) -> core::result::Result<Self, Self::Error>",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::hmc::StepSize::value(self) -> f64",
       "profile": "validated_exact_reference"
     },
     {
@@ -34689,24 +34931,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::integrator::ForceBudgetPlan::new<I: alea_mcmc::integrator::Integrator>(force_budget: usize, reference_step: f64, integrator: &I) -> core::result::Result<Self, alea_mcmc::integrator::AdvancedIntegratorError>",
-      "profile": "research_mixed",
-      "promotion_gate": "Separate validated kernels from policies with unresolved end-to-end evidence."
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::integrator::Integrator::drift(&self, index: usize) -> f64",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::integrator::Integrator::kick(&self, index: usize) -> f64",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::integrator::Integrator::stages(&self) -> usize",
-      "profile": "validated_component_reference"
+      "item": "pub fn alea_mcmc::integrator::ForceBudgetPlan::new<I: alea_mcmc::integrator::SymmetricSplitting>(force_budget: usize, reference_step: f64, integrator: &I) -> core::result::Result<Self, alea_mcmc::integrator::AdvancedIntegratorError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -34775,6 +35002,24 @@
       "item": "pub fn alea_mcmc::integrator::SaiaTwoStageSelection::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_mixed",
       "promotion_gate": "Separate validated kernels from policies with unresolved end-to-end evidence."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::integrator::SymmetricSplitting::drift(&self, index: usize) -> f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::integrator::SymmetricSplitting::kick(&self, index: usize) -> f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::integrator::SymmetricSplitting::stages(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -34902,9 +35147,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::mams::ApproximateMclmcOptions::step_size(self) -> alea_mcmc::hmc::StepSize",
-      "profile": "research_mixed",
-      "promotion_gate": "Separate corrected and approximate isokinetic validation; do not infer an exact MCLMC target."
+      "item": "pub fn alea_mcmc::mams::ApproximateMclmcOptions::step_size(self) -> alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -35052,9 +35297,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::mams::MamsOptions::step_size(self) -> alea_mcmc::hmc::StepSize",
-      "profile": "research_mixed",
-      "promotion_gate": "Separate exact and approximate public interfaces and broaden validation."
+      "item": "pub fn alea_mcmc::mams::MamsOptions::step_size(self) -> alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -35157,6 +35402,12 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::nuts::NutsConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "pub fn alea_mcmc::nuts::NutsConfigError::from(source: alea_mcmc::config::SamplerConfigError) -> Self",
       "profile": "validated_exact_recommended"
     },
@@ -35228,8 +35479,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::nuts::NutsOptions::step_size(self) -> alea_mcmc::hmc::StepSize",
-      "profile": "validated_exact_recommended"
+      "item": "pub fn alea_mcmc::nuts::NutsOptions::step_size(self) -> alea_mcmc::config::StepSize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -35286,21 +35538,6 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::prelude::Integrator::drift(&self, index: usize) -> f64",
-      "profile": "validated_reference_mixed"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::prelude::Integrator::kick(&self, index: usize) -> f64",
-      "profile": "validated_reference_mixed"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::prelude::Integrator::stages(&self) -> usize",
-      "profile": "validated_reference_mixed"
-    },
-    {
-      "crate": "alea-mcmc",
       "item": "pub fn alea_mcmc::prelude::MarkovChain::position(&self) -> &[f64]",
       "profile": "validated_reference_mixed"
     },
@@ -35311,13 +35548,31 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::prelude::find_reasonable_nuts_step_size<T, M, R, I>(chain: &mut alea_mcmc::nuts::Nuts<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator",
+      "item": "pub fn alea_mcmc::prelude::SymmetricSplitting::drift(&self, index: usize) -> f64",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::prelude::find_reasonable_step_size<T, M, R, I>(chain: &mut alea_mcmc::hmc::Hmc<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::WarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator",
+      "item": "pub fn alea_mcmc::prelude::SymmetricSplitting::kick(&self, index: usize) -> f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::prelude::SymmetricSplitting::stages(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::prelude::find_reasonable_nuts_step_size<T, M, R, I>(chain: &mut alea_mcmc::nuts::Nuts<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::NutsWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::prelude::find_reasonable_step_size<T, M, R, I>(chain: &mut alea_mcmc::hmc::Hmc<'_, T, M, I>, options: alea_mcmc::adapt::SearchOptions, rng: &mut R) -> core::result::Result<alea_mcmc::adapt::SearchResult, alea_mcmc::adapt::WarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + ?core::marker::Sized, M: alea_math::metric::EuclideanMetric, R: rand_core::Rng + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -35825,8 +36080,9 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::set_step_size(&mut self, step_size: alea_mcmc::hmc::StepSize)",
-      "profile": "validated_exact_reference"
+      "item": "pub fn alea_mcmc::rwmh::Rwmh<'a, T, M>::set_proposal_scale(&mut self, proposal_scale: alea_mcmc::config::ProposalScale)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -35881,13 +36137,15 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::rwmh::RwmhOptions::new(step_size: f64) -> core::result::Result<Self, alea_mcmc::config::SamplerConfigError>",
-      "profile": "validated_exact_reference"
+      "item": "pub fn alea_mcmc::rwmh::RwmhOptions::new(proposal_scale: f64) -> core::result::Result<Self, alea_mcmc::config::SamplerConfigError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub fn alea_mcmc::rwmh::RwmhOptions::step_size(self) -> alea_mcmc::hmc::StepSize",
-      "profile": "validated_exact_reference"
+      "item": "pub fn alea_mcmc::rwmh::RwmhOptions::proposal_scale(self) -> alea_mcmc::config::ProposalScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -35987,6 +36245,12 @@
       "item": "pub fn alea_mcmc::walnuts::WalnutsConfigError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_exact",
       "promotion_gate": "Close the recorded target-call and held-out efficiency gates."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub fn alea_mcmc::walnuts::WalnutsConfigError::from(error: alea_mcmc::config::InvalidScale) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -36674,6 +36938,18 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "pub struct alea_mcmc::config::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub struct alea_mcmc::config::ProposalScale(_)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "pub struct alea_mcmc::config::StepSize(_)",
       "profile": "validated_component_reference"
     },
@@ -36752,11 +37028,6 @@
     {
       "crate": "alea-mcmc",
       "item": "pub struct alea_mcmc::hmc::HmcOptions",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub struct alea_mcmc::hmc::StepSize(_)",
       "profile": "validated_exact_reference"
     },
     {
@@ -36871,6 +37142,12 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "pub struct alea_mcmc::prelude::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "pub struct alea_mcmc::prelude::Leapfrog",
       "profile": "validated_reference_mixed"
     },
@@ -36893,6 +37170,12 @@
       "crate": "alea-mcmc",
       "item": "pub struct alea_mcmc::prelude::OnlineCovariance",
       "profile": "validated_reference_mixed"
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub struct alea_mcmc::prelude::ProposalScale(_)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -37018,18 +37301,20 @@
     },
     {
       "crate": "alea-mcmc",
-      "item": "pub trait alea_mcmc::integrator::Integrator: alea_mcmc::integrator::private::Sealed",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub trait alea_mcmc::prelude::Integrator: alea_mcmc::integrator::private::Sealed",
-      "profile": "validated_reference_mixed"
+      "item": "pub trait alea_mcmc::integrator::SymmetricSplitting: alea_mcmc::integrator::private::Sealed",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
       "item": "pub trait alea_mcmc::prelude::MarkovChain",
       "profile": "validated_reference_mixed"
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub trait alea_mcmc::prelude::SymmetricSplitting: alea_mcmc::integrator::private::Sealed",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-mcmc",
@@ -37180,6 +37465,18 @@
     },
     {
       "crate": "alea-mcmc",
+      "item": "pub type alea_mcmc::config::ProposalScale::Error = alea_mcmc::config::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
+      "item": "pub type alea_mcmc::config::StepSize::Error = alea_mcmc::config::InvalidScale",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-mcmc",
       "item": "pub type alea_mcmc::config::TreeDepth::Error = alea_mcmc::config::SamplerConfigError",
       "profile": "validated_component_reference"
     },
@@ -37216,11 +37513,6 @@
     {
       "crate": "alea-mcmc",
       "item": "pub type alea_mcmc::hmc::Hmc<'_, T, M, I>::Transition = alea_mcmc::hmc::HmcTransition",
-      "profile": "validated_exact_reference"
-    },
-    {
-      "crate": "alea-mcmc",
-      "item": "pub type alea_mcmc::hmc::StepSize::Error = alea_mcmc::hmc::HmcConfigError",
       "profile": "validated_exact_reference"
     },
     {
@@ -37377,13 +37669,14 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "#[non_exhaustive] pub enum alea_runtime::prelude::Kernel",
+      "item": "#[non_exhaustive] pub enum alea_runtime::prelude::ModernDiagnosticError",
       "profile": "validated_component_reference"
     },
     {
       "crate": "alea-runtime",
-      "item": "#[non_exhaustive] pub enum alea_runtime::prelude::ModernDiagnosticError",
-      "profile": "validated_component_reference"
+      "item": "#[non_exhaustive] pub enum alea_runtime::prelude::SamplerConfig",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -37412,8 +37705,9 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "#[non_exhaustive] pub enum alea_runtime::session::Kernel",
-      "profile": "validated_component_reference"
+      "item": "#[non_exhaustive] pub enum alea_runtime::session::SamplerConfig",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -37687,11 +37981,6 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "impl core::clone::Clone for alea_runtime::session::Kernel",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
       "item": "impl core::clone::Clone for alea_runtime::session::Observable",
       "profile": "validated_component_reference"
     },
@@ -37714,6 +38003,12 @@
       "crate": "alea-runtime",
       "item": "impl core::clone::Clone for alea_runtime::session::RunPlan",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::clone::Clone for alea_runtime::session::SamplerConfig",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -37857,11 +38152,6 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "impl core::cmp::PartialEq for alea_runtime::session::Kernel",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
       "item": "impl core::cmp::PartialEq for alea_runtime::session::Observable",
       "profile": "validated_component_reference"
     },
@@ -37874,6 +38164,12 @@
       "crate": "alea-runtime",
       "item": "impl core::cmp::PartialEq for alea_runtime::session::Provenance",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::cmp::PartialEq for alea_runtime::session::SamplerConfig",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -38067,11 +38363,6 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "impl core::fmt::Debug for alea_runtime::session::Kernel",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
       "item": "impl core::fmt::Debug for alea_runtime::session::Observable",
       "profile": "validated_component_reference"
     },
@@ -38094,6 +38385,12 @@
       "crate": "alea-runtime",
       "item": "impl core::fmt::Debug for alea_runtime::session::RunPlan",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::fmt::Debug for alea_runtime::session::SamplerConfig",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -38212,13 +38509,14 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "impl core::marker::Copy for alea_runtime::session::Kernel",
+      "item": "impl core::marker::Copy for alea_runtime::session::Resources",
       "profile": "validated_component_reference"
     },
     {
       "crate": "alea-runtime",
-      "item": "impl core::marker::Copy for alea_runtime::session::Resources",
-      "profile": "validated_component_reference"
+      "item": "impl core::marker::Copy for alea_runtime::session::SamplerConfig",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -38302,11 +38600,6 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "impl core::marker::StructuralPartialEq for alea_runtime::session::Kernel",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
       "item": "impl core::marker::StructuralPartialEq for alea_runtime::session::Observable",
       "profile": "validated_component_reference"
     },
@@ -38319,6 +38612,12 @@
       "crate": "alea-runtime",
       "item": "impl core::marker::StructuralPartialEq for alea_runtime::session::Provenance",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::marker::StructuralPartialEq for alea_runtime::session::SamplerConfig",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -38962,21 +39261,6 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "pub alea_runtime::prelude::Kernel::Hmc(alea_mcmc::hmc::HmcOptions)",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
-      "item": "pub alea_runtime::prelude::Kernel::Nuts(alea_mcmc::nuts::NutsOptions)",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
-      "item": "pub alea_runtime::prelude::Kernel::Rwmh(alea_mcmc::rwmh::RwmhOptions)",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
       "item": "pub alea_runtime::prelude::ModernDiagnosticError::Nonfinite",
       "profile": "validated_component_reference"
     },
@@ -39029,6 +39313,24 @@
       "crate": "alea-runtime",
       "item": "pub alea_runtime::prelude::ModernSummary::tail_ess: f64",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::prelude::SamplerConfig::Hmc(alea_mcmc::hmc::HmcOptions)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::prelude::SamplerConfig::Nuts(alea_mcmc::nuts::NutsOptions)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::prelude::SamplerConfig::Rwmh(alea_mcmc::rwmh::RwmhOptions)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -39307,21 +39609,6 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "pub alea_runtime::session::Kernel::Hmc(alea_mcmc::hmc::HmcOptions)",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
-      "item": "pub alea_runtime::session::Kernel::Nuts(alea_mcmc::nuts::NutsOptions)",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
-      "item": "pub alea_runtime::session::Kernel::Rwmh(alea_mcmc::rwmh::RwmhOptions)",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
       "item": "pub alea_runtime::session::Observable::coordinate: usize",
       "profile": "validated_component_reference"
     },
@@ -39487,8 +39774,9 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "pub alea_runtime::session::RunPlan::kernel: alea_runtime::session::Kernel",
-      "profile": "validated_component_reference"
+      "item": "pub alea_runtime::session::RunPlan::kernel: alea_runtime::session::SamplerConfig",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -39519,6 +39807,24 @@
       "crate": "alea-runtime",
       "item": "pub alea_runtime::session::RunPlan::warmup: alea_runtime::session::Warmup",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::session::SamplerConfig::Hmc(alea_mcmc::hmc::HmcOptions)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::session::SamplerConfig::Nuts(alea_mcmc::nuts::NutsOptions)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::session::SamplerConfig::Rwmh(alea_mcmc::rwmh::RwmhOptions)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -39772,7 +40078,7 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::chees::warmup<T, I, S>(chains: &mut [alea_runtime::ensemble::Chain<alea_mcmc::chees::CheesHmc<'_, T, alea_math::metric::IdentityMetric, I>, S>], adapter: alea_mcmc::adapt::chees::CheesEnsembleAdapter, iterations: usize, execution: alea_runtime::ensemble::Execution<'_>) -> core::result::Result<(alea_mcmc::adapt::chees::FrozenCheesParameters, alea_runtime::chees::CheesWarmupReport), alea_runtime::chees::CheesWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + core::marker::Sync + ?core::marker::Sized, I: alea_mcmc::integrator::Integrator + core::marker::Send, <T as alea_core::target::TargetSpace>::Error: core::marker::Send, S: core::marker::Send",
+      "item": "pub fn alea_runtime::chees::warmup<T, I, S>(chains: &mut [alea_runtime::ensemble::Chain<alea_mcmc::chees::CheesHmc<'_, T, alea_math::metric::IdentityMetric, I>, S>], adapter: alea_mcmc::adapt::chees::CheesEnsembleAdapter, iterations: usize, execution: alea_runtime::ensemble::Execution<'_>) -> core::result::Result<(alea_mcmc::adapt::chees::FrozenCheesParameters, alea_runtime::chees::CheesWarmupReport), alea_runtime::chees::CheesWarmupError<<T as alea_core::target::TargetSpace>::Error>> where T: alea_core::target::LogDensityGradient + core::marker::Sync + ?core::marker::Sized, I: alea_mcmc::integrator::SymmetricSplitting + core::marker::Send, <T as alea_core::target::TargetSpace>::Error: core::marker::Send, S: core::marker::Send",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -40268,11 +40574,6 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::session::Checkpoint::kernel(&self) -> alea_runtime::session::Kernel",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
       "item": "pub fn alea_runtime::session::Checkpoint::position(&self) -> &[f64]",
       "profile": "validated_component_reference"
     },
@@ -40285,6 +40586,12 @@
       "crate": "alea-runtime",
       "item": "pub fn alea_runtime::session::Checkpoint::read(path: impl core::convert::AsRef<std::path::Path>, maximum_bytes: usize) -> core::result::Result<Self, alea_runtime::session::CheckpointError>",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::session::Checkpoint::sampler(&self) -> alea_runtime::session::SamplerConfig",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -40408,21 +40715,6 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::session::Kernel::clone(&self) -> alea_runtime::session::Kernel",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::session::Kernel::eq(&self, other: &alea_runtime::session::Kernel) -> bool",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::session::Kernel::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
       "item": "pub fn alea_runtime::session::Observable::clone(&self) -> alea_runtime::session::Observable",
       "profile": "validated_component_reference"
     },
@@ -40498,6 +40790,24 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::session::SamplerConfig::clone(&self) -> alea_runtime::session::SamplerConfig",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::session::SamplerConfig::eq(&self, other: &alea_runtime::session::SamplerConfig) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::session::SamplerConfig::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "pub fn alea_runtime::session::Session::observables(&self) -> &[alea_runtime::session::Observable]",
       "profile": "validated_component_reference"
     },
@@ -40548,11 +40858,6 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::session::SessionBuilder::kernel(self, kernel: alea_runtime::session::Kernel) -> Self",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-runtime",
       "item": "pub fn alea_runtime::session::SessionBuilder::new(target_id: impl core::convert::Into<alloc::string::String>, dimension: usize, initial: alloc::vec::Vec<alloc::vec::Vec<f64>>) -> Self",
       "profile": "validated_component_reference"
     },
@@ -40575,6 +40880,12 @@
       "crate": "alea-runtime",
       "item": "pub fn alea_runtime::session::SessionBuilder::restart(self, checkpoints: alloc::vec::Vec<alea_runtime::session::Checkpoint>) -> Self",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::session::SessionBuilder::sampler(self, kernel: alea_runtime::session::SamplerConfig) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",

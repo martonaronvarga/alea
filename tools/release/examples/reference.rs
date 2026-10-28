@@ -4,7 +4,7 @@ use alea::target::LogDensityGradient;
 use alea::{
     ensemble::Execution,
     session::SessionBuilder,
-    session::{Kernel, Status, Warmup, storage::Discard},
+    session::{SamplerConfig, Status, Warmup, storage::Discard},
 };
 use std::convert::Infallible;
 
@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let session = SessionBuilder::new("analytic-normal-v1", 2, vec![vec![0.0; 2]; 4])
         .seed([17; 32])
         .draws(256)
-        .kernel(Kernel::Nuts(NutsOptions::new(0.2, 6)?))
+        .sampler(SamplerConfig::Nuts(NutsOptions::new(0.2, 6)?))
         .warmup(Warmup::Covariance {
             iterations: 150,
             metric: MetricKind::Diagonal,

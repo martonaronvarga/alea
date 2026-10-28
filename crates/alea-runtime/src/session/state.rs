@@ -1,5 +1,5 @@
 //! Frozen checkpoint values; adaptive state is deliberately not representable.
-use super::{Kernel, buffer};
+use super::{SamplerConfig, buffer};
 use crate::output::ChainId;
 use alea_math::metric::{
     CholeskyFactor, DenseMetric, DiagonalMetric, EuclideanMetric, IdentityMetric,
@@ -135,7 +135,7 @@ pub struct Checkpoint {
     pub(super) chain: ChainId,
     pub(super) completed: usize,
     pub(super) word_position: u128,
-    pub(super) kernel: Kernel,
+    pub(super) kernel: SamplerConfig,
     pub(super) geometry: FrozenGeometry,
     pub(super) position: Vec<f64>,
     pub(super) logp: f64,
@@ -161,7 +161,7 @@ impl Checkpoint {
         &self.position
     }
     /// Frozen kernel settings, including adapted step size.
-    pub fn kernel(&self) -> Kernel {
+    pub fn sampler(&self) -> SamplerConfig {
         self.kernel
     }
     /// Frozen momentum/proposal geometry.
@@ -203,7 +203,7 @@ impl Checkpoint {
             && self.numerical_streak <= self.completed
             && self.normal_spare.is_none_or(f64::is_finite)
             && match self.kernel {
-                Kernel::Rwmh(_) => {
+                SamplerConfig::Rwmh(_) => {
                     self.gradient.is_empty() && matches!(self.geometry, FrozenGeometry::Identity(_))
                 }
                 _ => {

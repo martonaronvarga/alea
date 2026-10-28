@@ -3,7 +3,7 @@ use alea::{
     ensemble::Execution,
     sampling::{NutsOptions, adapt::MetricKind},
     session::{
-        Checkpoint, Kernel, OwnedDraw, SessionBuilder, Warmup,
+        Checkpoint, OwnedDraw, SamplerConfig, SessionBuilder, Warmup,
         storage::{Discard, DrawReader, DurableSink, Observer, Sink},
     },
 };
@@ -39,7 +39,7 @@ fn settings() -> Result<SessionBuilder, Box<dyn std::error::Error>> {
     )
     .seed([73; 32])
     .draws(96)
-    .kernel(Kernel::Nuts(NutsOptions::new(0.12, 7)?)))
+    .sampler(SamplerConfig::Nuts(NutsOptions::new(0.12, 7)?)))
 }
 
 #[test]

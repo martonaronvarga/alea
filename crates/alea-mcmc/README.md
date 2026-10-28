@@ -8,10 +8,10 @@ retained sampling.
 
 ```rust
 use alea::sampling::{NutsOptions, adapt::MetricKind};
-use alea::session::{Kernel, Warmup};
+use alea::session::{SamplerConfig, Warmup};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let kernel = Kernel::Nuts(NutsOptions::new(0.2, 8)?);
+    let kernel = SamplerConfig::Nuts(NutsOptions::new(0.2, 8)?);
     let warmup = Warmup::Covariance {
         iterations: 1_000,
         metric: MetricKind::Diagonal,

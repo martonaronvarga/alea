@@ -15,7 +15,7 @@ use super::{
 use crate::{
     Nuts, NutsOptions, NutsTransition,
     config::StepSize,
-    integrator::{Integrator, Leapfrog},
+    integrator::{Leapfrog, SymmetricSplitting},
     nuts::{NutsError, NutsTermination},
 };
 mod gradient;
@@ -118,7 +118,7 @@ where
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
     R: Rng + ?Sized,
-    I: Integrator,
+    I: SymmetricSplitting,
 {
     let mut step = chain
         .options()
@@ -176,7 +176,7 @@ impl<'a, T: LogDensityGradient + ?Sized> NutsWarmup<'a, T> {
     }
 }
 
-impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> NutsWarmup<'a, T, I> {
+impl<'a, T: LogDensityGradient + ?Sized, I: SymmetricSplitting> NutsWarmup<'a, T, I> {
     /// Construct with a fixed sealed symmetric integrator.
     /// # Errors
     /// Same initial-state and storage errors as [`Self::new`].

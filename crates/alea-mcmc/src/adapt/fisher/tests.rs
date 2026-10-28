@@ -71,7 +71,7 @@ fn metric_bits(metric: &LowRankDiagonalMetric) -> Vec<u64> {
         .collect()
 }
 
-fn check_schedule<I: Integrator>(
+fn check_schedule<I: SymmetricSplitting>(
     n: usize,
     rank: usize,
     integrator: I,
@@ -80,7 +80,7 @@ fn check_schedule<I: Integrator>(
     check_schedule_target(n, rank, integrator, initialization, 0.8.try_into().unwrap());
 }
 
-fn check_schedule_target<I: Integrator>(
+fn check_schedule_target<I: SymmetricSplitting>(
     n: usize,
     rank: usize,
     integrator: I,

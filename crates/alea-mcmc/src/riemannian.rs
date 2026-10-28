@@ -21,7 +21,7 @@ use alea_core::{
 use alea_math::buffer::OwnedBuffer;
 use rand::{Rng, RngExt};
 
-use crate::{MarkovChain, canonical::metropolis, hamiltonian::Divergence, hmc::StepSize};
+use crate::{MarkovChain, canonical::metropolis, config::StepSize, hamiltonian::Divergence};
 
 pub use fisher::{FisherMetricConfigError, HierarchicalNormalFisherMetric, LogisticFisherMetric};
 pub use softabs::{SoftAbsConfigError, SoftAbsError, SoftAbsMetric, SoftAbsOptions};

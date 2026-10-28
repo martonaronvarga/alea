@@ -5,7 +5,7 @@ use crate::{
     config::{AcceptanceTarget, StepSize},
     ghmc::{DrGhmc, Ghmc},
     hmc::HmcError,
-    integrator::Integrator,
+    integrator::SymmetricSplitting,
 };
 use alea_core::target::LogDensityGradient;
 use alea_math::metric::EuclideanMetric;
@@ -83,7 +83,7 @@ pub struct StaticWarmupReport {
 pub enum StaticWarmupError<E: Error + 'static> {
     /// A kernel/target/metric operation failed.
     #[error("static warmup kernel failed: {0}")]
-    Kernel(#[source] E),
+    SamplerConfig(#[source] E),
     /// Invalid acceptance or controller arithmetic.
     #[error(transparent)]
     Adaptation(#[from] AdaptationError),
@@ -130,7 +130,7 @@ pub(super) fn drive<R: Rng + ?Sized, E: Error + 'static>(
     };
     let mut current = initial;
     for _ in 0..options.iterations {
-        let o = step(current, rng).map_err(StaticWarmupError::Kernel)?;
+        let o = step(current, rng).map_err(StaticWarmupError::SamplerConfig)?;
         report.iterations += 1;
         report.accepted += usize::from(o.accepted);
         report.divergences += usize::from(o.divergent);
@@ -174,7 +174,7 @@ pub fn warmup_hmc_step_size<
     'a,
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
-    I: Integrator,
+    I: SymmetricSplitting,
     R: Rng + ?Sized,
 >(
     mut chain: Hmc<'a, T, M, I>,
@@ -204,7 +204,7 @@ pub fn warmup_ghmc_step_size<
     'a,
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
-    I: Integrator,
+    I: SymmetricSplitting,
     R: Rng + ?Sized,
 >(
     mut chain: Ghmc<'a, T, M, I>,
@@ -236,7 +236,7 @@ pub fn warmup_drghmc_step_size<
     'a,
     T: LogDensityGradient + ?Sized,
     M: EuclideanMetric,
-    I: Integrator,
+    I: SymmetricSplitting,
     R: Rng + ?Sized,
 >(
     mut chain: DrGhmc<'a, T, M, I>,
@@ -257,6 +257,6 @@ pub fn warmup_drghmc_step_size<
     })?;
     chain
         .set_step_size(report.step_size)
-        .map_err(StaticWarmupError::Kernel)?;
+        .map_err(StaticWarmupError::SamplerConfig)?;
     Ok((chain, report))
 }

@@ -50,11 +50,11 @@ fn warmup_is_explicit_then_scale_is_frozen_and_draws_keep_shape() {
         &mut rng,
     )
     .unwrap();
-    assert_eq!(empty.step_size.value(), 0.3);
+    assert_eq!(empty.proposal_scale.value(), 0.3);
     assert_eq!(empty.acceptance_rate(), 0.0);
     assert_eq!(rng, before);
     let fixed = warmup_rwmh(&mut chain, 4, None, &mut rng).unwrap();
-    assert_eq!(fixed.step_size.value(), 0.3);
+    assert_eq!(fixed.proposal_scale.value(), 0.3);
     let adapted = warmup_rwmh(
         &mut chain,
         4,
@@ -65,7 +65,7 @@ fn warmup_is_explicit_then_scale_is_frozen_and_draws_keep_shape() {
     assert_eq!(adapted.iterations, 4);
     for _ in 0..8 {
         let _ = chain.step(&mut rng).unwrap();
-        assert_eq!(chain.options().step_size(), adapted.step_size);
+        assert_eq!(chain.options().proposal_scale(), adapted.proposal_scale);
         assert_eq!(chain.point().position().len(), 2);
         assert!(chain.point().position().iter().all(|x| x.is_finite()));
     }

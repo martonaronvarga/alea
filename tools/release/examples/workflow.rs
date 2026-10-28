@@ -10,7 +10,7 @@ use alea::sampling::{NutsOptions, adapt::MetricKind};
 use alea::{
     ensemble::Execution,
     session::{
-        Checkpoint, Diagnostics, Kernel, SessionBuilder, Status, Warmup,
+        Checkpoint, Diagnostics, SamplerConfig, SessionBuilder, Status, Warmup,
         storage::{Discard, DrawReader, DurableSink, Observer},
     },
 };
@@ -114,7 +114,7 @@ fn spec(draws: usize, chains: usize) -> SessionBuilder {
     )
     .seed([73; 32])
     .draws(draws)
-    .kernel(Kernel::Nuts(options()))
+    .sampler(SamplerConfig::Nuts(options()))
     .diagnostics(Diagnostics {
         window: 2048,
         maximum_rhat: 1.03,
@@ -137,7 +137,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             NutsOptions::new(0.2, 8)?
         };
         let result = spec(2048, 4)
-            .kernel(Kernel::Nuts(kernel))
+            .sampler(SamplerConfig::Nuts(kernel))
             .warmup(warmup(fast))
             .build()?
             .run(|_| factory(), Execution::Sequential, &Discard)?;
@@ -167,7 +167,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let gamma = SessionBuilder::new("candidate-gamma-3-2-v1", 1, vec![vec![0.0]; 4])
         .seed([81; 32])
         .draws(2048)
-        .kernel(Kernel::Nuts(NutsOptions::new(0.2, 8)?))
+        .sampler(SamplerConfig::Nuts(NutsOptions::new(0.2, 8)?))
         .warmup(warmup(false))
         .diagnostics(Diagnostics {
             window: 2048,
@@ -267,7 +267,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .seed([dataset + 3; 32])
         .draws(512)
-        .kernel(Kernel::Nuts(NutsOptions::new(0.2, 8)?))
+        .sampler(SamplerConfig::Nuts(NutsOptions::new(0.2, 8)?))
         .warmup(warmup(false))
         .build()?
         .run(

@@ -6,7 +6,7 @@ use super::{
 mod nuts;
 mod weighted;
 use crate::config::AcceptanceTarget;
-use crate::integrator::{Integrator, Leapfrog};
+use crate::integrator::{Leapfrog, SymmetricSplitting};
 use crate::{Hmc, HmcOptions};
 use alea_core::target::LogDensityGradient;
 use alea_math::{
@@ -422,7 +422,7 @@ impl<'a, T: LogDensityGradient + ?Sized> FisherHmcWarmup<'a, T> {
         Self::new_with_integrator(target, position, hmc, options, Leapfrog)
     }
 }
-impl<'a, T: LogDensityGradient + ?Sized, I: Integrator> FisherHmcWarmup<'a, T, I> {
+impl<'a, T: LogDensityGradient + ?Sized, I: SymmetricSplitting> FisherHmcWarmup<'a, T, I> {
     /// Initialize identity geometry by default; clipped-score initialization is an
     /// explicit experiment, separate from subsequent paired Fisher estimation.
     /// # Errors

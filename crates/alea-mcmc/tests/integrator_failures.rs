@@ -5,7 +5,7 @@ use alea_mcmc::{
     Hmc, HmcOptions,
     hamiltonian::{Divergence, PhaseError, PhaseState, PhaseWorkspace, SignedStep},
     hmc::HmcError,
-    integrator::{Integrator, Leapfrog, TwoStage},
+    integrator::{Leapfrog, SymmetricSplitting, TwoStage},
 };
 use rand::{SeedableRng, rngs::SmallRng};
 use std::{
@@ -105,7 +105,7 @@ fn divergence(fault: Fault) -> Divergence {
     }
 }
 
-fn phase_failures<I: Integrator>(integrator: I) {
+fn phase_failures<I: SymmetricSplitting>(integrator: I) {
     for sign in [-1.0, 1.0] {
         for stage in 1..=integrator.stages() {
             for fault in FAULTS {
@@ -167,7 +167,7 @@ fn each_internal_stage_failure_consumes_phase_and_restart_discards_partial_work(
     phase_failures(TwoStage::BCSS);
 }
 
-fn chain_failures<I: Integrator + Copy>(integrator: I) {
+fn chain_failures<I: SymmetricSplitting + Copy>(integrator: I) {
     for evaluation in 1..=3 * integrator.stages() {
         for fault in FAULTS {
             let target = Target::default();

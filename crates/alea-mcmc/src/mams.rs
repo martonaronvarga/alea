@@ -5,6 +5,8 @@
 //! unit norm and each analytic score kick contributes the isokinetic Jacobian /
 //! kinetic correction derived for microcanonical dynamics.
 
+use crate::config::StepSize;
+use alea_math::numeric::scaled_norm;
 use std::{error::Error, num::NonZeroUsize};
 
 use alea_core::target::{EvaluationError, EvaluationWorkspace, LogDensityGradient, PointState};
@@ -14,7 +16,7 @@ use thiserror::Error;
 
 use crate::{
     MarkovChain,
-    hmc::{HmcConfigError, HmcOptions, StepSize},
+    hmc::{HmcConfigError, HmcOptions},
 };
 
 /// Validated exact/approximate isokinetic trajectory settings.
@@ -608,21 +610,6 @@ fn isokinetic_kick(direction: &mut [f64], score: &[f64], step: f64) -> Option<f6
     }
     let correction = (delta + relative.ln_1p()) * (direction.len() as f64 - 1.0);
     correction.is_finite().then_some(correction)
-}
-
-fn scaled_norm(values: &[f64]) -> f64 {
-    let scale = values
-        .iter()
-        .fold(0.0_f64, |scale, value| scale.max(value.abs()));
-    if scale == 0.0 {
-        return 0.0;
-    }
-    scale
-        * values
-            .iter()
-            .map(|value| (value / scale) * (value / scale))
-            .sum::<f64>()
-            .sqrt()
 }
 
 fn normalize(values: &mut [f64]) -> Result<(), ()> {

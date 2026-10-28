@@ -47,7 +47,6 @@ pub alea_ffi::Bounds::xmax: &'a [f64]
 pub alea_ffi::Bounds::xmin: &'a [f64]
 impl<'a> alea_ffi::Bounds<'a>
 pub fn alea_ffi::Bounds<'a>::dimension(self) -> usize
-pub fn alea_ffi::Bounds<'a>::new(xmin: &'a [f64], xmax: &'a [f64]) -> Self
 pub fn alea_ffi::Bounds<'a>::try_new(xmin: &'a [f64], xmax: &'a [f64]) -> alea_ffi::CubatureResult<Self>
 impl<'a> core::clone::Clone for alea_ffi::Bounds<'a>
 pub fn alea_ffi::Bounds<'a>::clone(&self) -> alea_ffi::Bounds<'a>
@@ -73,4 +72,3 @@ pub fn alea_ffi::hcubature_into<F: core::ops::function::FnMut(&[f64], &mut [f64]
 pub unsafe fn alea_ffi::hcubature_ptr(fdim: u32, f: alea_ffi::Integrand, fdata: *mut std::os::raw::c_void, bounds: alea_ffi::Bounds<'_>, opts: alea_ffi::Options, val: &mut [f64], err: &mut [f64]) -> alea_ffi::CubatureResult<()>
 pub type alea_ffi::CubatureResult<T> = core::result::Result<T, alea_ffi::CubatureError>
 pub type alea_ffi::Integrand = core::option::Option<fn(ndim: std::os::raw::c_uint, x: *const f64, arg1: *mut std::os::raw::c_void, fdim: std::os::raw::c_uint, fval: *mut f64) -> std::os::raw::c_int>
-pub type alea_ffi::IntegrandFn<'a> = (dyn core::ops::function::FnMut(&[f64], &mut [f64]) -> std::os::raw::c_int + 'a)

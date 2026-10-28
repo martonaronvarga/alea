@@ -12,7 +12,7 @@ use alea::{
         assembly::{AssemblyError, CompiledModel, ModelBuilder},
     },
     sampling::{NutsOptions, adapt::MetricKind},
-    session::{Kernel, SessionBuilder, Warmup, storage::Discard},
+    session::{SamplerConfig, SessionBuilder, Warmup, storage::Discard},
     target::EvaluationError,
 };
 use rand::{SeedableRng, rngs::SmallRng};
@@ -95,7 +95,7 @@ fn hierarchical_wiener_fit_matches_analytic_posterior_and_predicts_joint_events(
     )
     .seed([74; 32])
     .draws(1500)
-    .kernel(Kernel::Nuts(NutsOptions::new(0.15, 8)?))
+    .sampler(SamplerConfig::Nuts(NutsOptions::new(0.15, 8)?))
     .warmup(Warmup::Covariance {
         iterations: 700,
         metric: MetricKind::Dense,

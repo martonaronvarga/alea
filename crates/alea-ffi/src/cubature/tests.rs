@@ -91,7 +91,7 @@ fn wrong_callback_dimension_never_calls_closure() {
 
 #[test]
 fn invalid_inputs_fail_before_foreign_calls_or_output_mutation() {
-    let bounds = Bounds::new(&[0.0], &[1.0]);
+    let bounds = Bounds::try_new(&[0.0], &[1.0]).expect("validated cubature bounds");
     let opts = Options::default();
     let mut value = [42.0];
     let mut error = [43.0];
@@ -151,7 +151,7 @@ fn dimensions_and_bounds_cover_backend_integer_limits() {
     for dim in 0..=65 {
         let lo = vec![0.0; dim];
         let hi = vec![1.0; dim];
-        let bounds = Bounds::new(&lo, &hi);
+        let bounds = Bounds::try_new(&lo, &hi).expect("validated cubature bounds");
         let result = validate(1, bounds, Options::default());
         if dim <= 20 {
             assert!(result.is_ok(), "dimension {dim}");
@@ -184,7 +184,7 @@ fn dimensions_and_bounds_cover_backend_integer_limits() {
     ignore = "native cubature C execution; trampoline tested separately under Miri"
 )]
 fn native_panics_errors_and_partial_outputs_return_through_c() {
-    let bounds = Bounds::new(&[0.0], &[1.0]);
+    let bounds = Bounds::try_new(&[0.0], &[1.0]).expect("validated cubature bounds");
     let opts = Options::default();
     assert!(
         catch_unwind(|| hcubature(1, bounds, opts, |_, _| panic!("native roundtrip"))).is_err()
@@ -207,11 +207,16 @@ fn native_panics_errors_and_partial_outputs_return_through_c() {
     .unwrap();
     assert!((value[0] - 1.0 / 3.0).abs() < 1e-12);
     assert!(error[0] < 1e-8);
-    let (value, _) = hcubature(1, Bounds::new(&[], &[]), opts, |x, out| {
-        assert!(x.is_empty());
-        out[0] = 7.0;
-        0
-    })
+    let (value, _) = hcubature(
+        1,
+        Bounds::try_new(&[], &[]).expect("validated cubature bounds"),
+        opts,
+        |x, out| {
+            assert!(x.is_empty());
+            out[0] = 7.0;
+            0
+        },
+    )
     .unwrap();
     assert_eq!(value, [7.0]);
 }
