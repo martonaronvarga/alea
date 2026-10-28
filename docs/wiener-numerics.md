@@ -5,6 +5,84 @@ the lower response changes the drift sign and the relative starting point.
 The formulas below use `q` for distance to the selected boundary, `a` for
 boundary separation, `t` for decision time, and `u = t / a²`.
 
+## Density and score evaluation
+
+Use `log_prob` or `try_log_prob` when only a likelihood is needed. Wiener4,
+Wiener5 and Wiener7 have separate density paths; they do not calculate scores
+and then discard them. Fused evaluation remains available when an inference
+algorithm needs the likelihood and its parameter derivatives together.
+
+Wiener5 reuses the normalized Wiener4 density series with its analytically
+marginalized drift factor. Wiener7 uses density-only Wiener5 evaluations at
+quadrature nodes and density-only versions of its analytic averages. Its
+adaptive density integration measures density error rather than requiring
+unused score components to converge. Fused evaluation retains its componentwise
+score checks.
+
+A finite log-density need not have representable scores. For example, a very
+small boundary separation and decision time can give a finite log-density while
+the non-decision-time score overflows. Checked density evaluation accepts the
+finite likelihood; checked fused evaluation reports the score failure. Density
+evaluation leaves the gradient fields of the result unevaluated (`NaN`).
+
+The density series retains conservative spectral term counts near absorbing
+boundaries. Removing derivative arithmetic does not justify dropping harmonics:
+an endpoint regression exposed a log-density error of about `1.6e-7` with a
+less conservative count.
+
+### Measured cost of the separation
+
+The October 28 comparison used source `207bc56` against `b7c2430`, before the
+density separation. Both binaries used the same compiler, pinned CPU and inputs.
+There were 676 cases, three alternating process pairs and eleven timing batches
+per operation. Every density and fused result passed the independent
+ball-reference gate `1e-9 * (1 + abs(reference))`, in scalar and SIMD builds.
+The following are median scalar speedups, calculated from paired case timings.
+Values above one mean the separated implementation is faster.
+
+| Operation | Speedup |
+| --- | ---: |
+| Wiener4 density | 1.10× |
+| Wiener5 density | 1.08× |
+| Wiener7 without variability | 1.04× |
+| Wiener7 start variability only | 2.14–3.54× |
+| Wiener7 time variability only | 1.00–1.12× |
+| Wiener7 both variability dimensions | 2.03–3.81× |
+
+Fused group medians stayed close to their previous costs, from 0.975× to 1.032×
+outside the two-case extreme joint group. Existing 32-observation batch paths
+changed little. These group summaries do not imply every input improved: one
+of the two extreme joint density cases was about 3.2× slower, while the other
+was about 19× faster. That small group cannot support a general speed claim.
+
+A separate scalar comparison used nine alternating pairs and 31 timing batches
+on 78 ordinary cases against Stan Math `68c6801`, which includes the October 9
+Wiener underflow fix. All 78 density pairs passed the same reference gate.
+On the selected six Wiener4 cases, Alea density was about 1.09× slower than
+Stan; its fused evaluation was 5.90× faster. On twelve Wiener5 cases, density
+was 3.31× faster and fused evaluation 6.88× faster. For the selected joint
+Wiener7 groups, density speedups were 98–305× and fused speedups 146–376×.
+These compare scalar primitive likelihoods and full automatic-differentiation
+evaluations, including Stan tape handling, rather than complete model fits.
+Thirty Stan fused vectors at zero time-variability width were rejected by the
+reference gate and excluded from fused ratios; all denominators are retained.
+The few cases per group and differing implementations limit generalization.
+
+### Coverage checks
+
+An Atlasz campaign at `334675f` independently evaluated density and fused paths
+over all 42,611,184 inputs of the full support grid, at its three tolerances.
+All 512 shards completed with zero finite-output failures in either path.
+Source archive, executable, per-shard summaries, stdout and task completion
+were checked before aggregation. The subsequent `207bc56` change adds only
+inlining attributes; its local accuracy and timing checks are separate from
+that campaign.
+
+Independent density regressions also cover 312 Wiener4/5 ball-reference cases,
+648 extreme endpoint lookup cases and 552 Wiener7 ball-reference cases, plus
+closed-form cases with overflowing scores. Finite output on the full grid is
+coverage evidence, not an accuracy certificate or proof over continuous support.
+
 ## Series tails and scores
 
 For the spectral Gaussian moment

@@ -81,6 +81,14 @@ in each path on the same grid. Per-index comparisons found every original
 failure recovered and no new failures. Intermediate results and their failures
 were retained; see [Wiener numerical methods](../../docs/wiener-numerics.md).
 
+The density-separated implementation at `334675f` also completed all 512 shards,
+with 42,611,184 finite results in each path and no failures. The result archive
+was checked against its transfer hash, source archive and build executable;
+each shard's executable hash, stdout summary and completed Slurm task were
+verified before aggregation. The later `207bc56` change adds inlining attributes
+only. Its local reference checks and paired timings are documented separately
+in the numerical methods page.
+
 This is a finite-output result on the upper-response grid at the three declared
 tolerances. It is separate from the smaller independent accuracy tests, and does
 not establish accuracy everywhere on the continuous support. The timing grid

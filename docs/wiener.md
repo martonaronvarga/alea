@@ -21,8 +21,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         boundary: Boundary::Upper,
     };
     let parameters = Wiener4Params::with_params(1.2, 0.2, 0.5, 0.7)?;
+    let density = Wiener4.try_log_prob(&observation, &parameters, WienerOptions::default())?;
+    println!("log likelihood = {}", density.log_prob);
+
+    // Calculate parameter scores when an inference algorithm needs them.
     let evaluation = Wiener4.try_fused(&observation, &parameters, WienerOptions::default())?;
-    println!("log likelihood = {}", evaluation.log_prob);
     println!("drift derivative = {}", evaluation.grad.delta);
     Ok(())
 }
@@ -31,6 +34,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 The log likelihood is for the joint observation of this time and boundary.
 Do not replace lower-boundary observations by upper-boundary observations without
 also accounting for the model's boundary convention.
+
+`try_log_prob` evaluates only the density. `try_fused` evaluates the density and
+all parameter scores together. This distinction applies to Wiener4, Wiener5 and
+Wiener7, including their quadrature and analytic averaging paths. Gradient fields
+in a density-only result are unevaluated (`NaN`); use the fused result for scores.
 
 ## Choose the model
 
@@ -110,22 +118,20 @@ possible parameter combination. Extremely tight tolerances can fail. Fixed
 Gauss-Legendre quadrature is available when you deliberately want a fixed-order
 approximation; it should be checked against adaptive evaluation on your data.
 
-Alea does not expose an exact reaction-time random sampler for these models.
-The likelihood and boundary-choice prediction capabilities should not be mistaken
-for a complete generative reaction-time API.
-
 ## Boundary-adjacent observations
 
 A valid parameter can still produce an extremely small density. The log density
 can remain finite even when the density itself would underflow. Keep likelihoods
-in log form, and use the checked `try_fused` interface to distinguish numerical
-failure from an observation outside support.
+in log form, and use the checked `try_log_prob` or `try_fused` interface to
+distinguish numerical failure from an observation outside support. Density-only
+evaluation can succeed when a score is too large to represent; fused evaluation
+reports that score failure.
 
 Near either starting-point boundary, Alea retains both endpoint distances and
 pairs image terms before subtracting them. This avoids losing a small distance
 through reflection or cancellation. The near-boundary path also tightens its
 series tolerance because a small denominator amplifies error in a score ratio.
-The ordinary path remains a fused value-and-score evaluation.
+Density-only calls retain the stable endpoint formulas without computing scores.
 
 The numerical precision option controls series truncation and integration work.
 It is not a certified absolute bound on every log-density derivative. The
