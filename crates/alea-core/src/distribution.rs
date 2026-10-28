@@ -22,6 +22,10 @@ pub enum Support {
     Real,
     Positive,
     UnitInterval,
+    /// Unit sphere with respect to surface area.
+    UnitSphere,
+    /// Unit ball with respect to volume.
+    UnitBall,
     Count,
     /// Signed integers with counting measure.
     Integer,

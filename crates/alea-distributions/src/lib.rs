@@ -1,6 +1,7 @@
 //! Analytic distributions and DDM observation models.
 #![cfg_attr(feature = "simd", feature(portable_simd))]
 #![cfg_attr(feature = "branch-hints", feature(likely_unlikely))]
+pub mod directional;
 mod error;
 pub mod gaussian;
 pub mod latent;

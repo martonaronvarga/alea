@@ -46,3 +46,6 @@ pub mod hierarchical_models {}
 #[doc = include_str!("../../../crates/alea/examples/hierarchical_logistic.rs")]
 #[doc = "```"]
 pub mod hierarchical_logistic {}
+
+#[doc = include_str!("../../../docs/directional-distributions.md")]
+pub mod directional_distributions {}

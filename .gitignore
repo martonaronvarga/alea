@@ -35,6 +35,7 @@ tools/stan-reference/stantest
 !/docs/README.md
 !/docs/diagnostics.md
 !/docs/distributions.md
+!/docs/directional-distributions.md
 !/docs/enzyme-native-models.md
 !/docs/hierarchical-models.md
 !/docs/getting-started.md
