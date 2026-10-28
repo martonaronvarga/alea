@@ -24,7 +24,7 @@ impl Wiener7 {
             return e;
         }
         let e = self.integrate_fused_adaptive(core, obs);
-        if e.log_prob.is_finite() && e.grad_array().iter().all(|g| g.is_finite()) {
+        if likely(e.log_prob.is_finite() && e.grad_array().iter().all(|g| g.is_finite())) {
             e
         } else {
             self.scaled_adaptive(core, obs)
@@ -55,7 +55,7 @@ impl Wiener7 {
             fv[0] = lp.exp();
             0
         };
-        if hcubature_into(1, bounds, core.opts, &mut val, &mut err, integrand).is_err() {
+        if unlikely(hcubature_into(1, bounds, core.opts, &mut val, &mut err, integrand).is_err()) {
             return 0.0;
         }
         val[0]
@@ -92,12 +92,13 @@ impl Wiener7 {
             // The midpoint can overestimate a score, particularly on clipped
             // support. Recalibrate once from the computed integrals instead of
             // weakening the final ratio budget or repeatedly splitting boxes.
-            if value[0] <= 0. || value.iter().any(|x| !x.is_finite()) {
+            std::hint::cold_path();
+            if unlikely(value[0] <= 0. || value.iter().any(|x| !x.is_finite())) {
                 return fail_eval_7();
             }
             norms = std::array::from_fn(|i| (value[i + 1] / value[0]).abs().max(1.0));
             log_scale += value[0].ln() - volume.ln();
-            if !log_scale.is_finite() || norms.iter().any(|x| !x.is_finite()) {
+            if unlikely(!log_scale.is_finite() || norms.iter().any(|x| !x.is_finite())) {
                 return fail_eval_7();
             }
         }
@@ -150,7 +151,7 @@ impl Wiener7 {
             &mut err,
             integrand,
         );
-        if status.is_err() {
+        if unlikely(status.is_err()) {
             return None;
         }
         for i in 0..7 {

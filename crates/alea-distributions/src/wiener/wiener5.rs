@@ -47,7 +47,7 @@ fn wiener5_bucket(core: Wiener5Core) -> BatchEntry {
     let base = core.base;
     let ks_density = Wiener4::k_s(base.t_prime, base.w_eff, base.log_eps_eff);
     let kl_density = Wiener4::k_l(base.t_prime, base.log_eps_eff);
-    let (bucket, k) = if unlikely(ks_density.saturating_mul(2) <= kl_density) {
+    let (bucket, k) = if ks_density.saturating_mul(2) <= kl_density {
         match ks_density {
             2 => (W5_SMALL_K2, 2),
             3 => (W5_SMALL_K3, 3),
@@ -163,7 +163,7 @@ impl Wiener5 {
         };
         let distance = w_eff.min(q_eff);
         let mut log_eps_eff = (eps.ln() - pref).min(-10.0);
-        if distance < 1e-5 {
+        if unlikely(distance < 1e-5) {
             // Absolute series tolerance alone does not control a ratio whose
             // denominator vanishes linearly at a boundary.
             log_eps_eff += distance.ln();
@@ -301,7 +301,7 @@ impl Wiener5 {
         let base = core.base;
         let ks_density = Wiener4::k_s(base.t_prime, base.w_eff, base.log_eps_eff);
         let kl_density = Wiener4::k_l(base.t_prime, base.log_eps_eff);
-        let k = if unlikely(ks_density.saturating_mul(2) <= kl_density) {
+        let k = if ks_density.saturating_mul(2) <= kl_density {
             (SeriesBranch::SmallTime, ks_density)
         } else {
             (
@@ -397,7 +397,7 @@ impl Wiener5 {
         let dp_dv = dq_dv;
         let dp_dsv = -0.5 * lam_inv * dlam_dsv + dq_dsv;
 
-        let eval = if base.w_eff.min(base.q_eff) < 1e-5 {
+        let eval = if unlikely(base.w_eff.min(base.q_eff) < 1e-5) {
             series::endpoint_fused(t_prime, w_eff, base.q_eff, k, branch)
         } else {
             match branch {

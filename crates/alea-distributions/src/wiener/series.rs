@@ -653,6 +653,8 @@ pub(super) fn large_branch_fused(t_prime: f64, w: f64, k: usize) -> Option<(f64,
 /// Endpoint-aware evaluation. Both distances are retained from the caller:
 /// subtracting a reflected coordinate from one can erase its relative precision.
 /// This is a stable finite sum, not a certified bound on score error.
+#[cold]
+#[inline(never)]
 pub(super) fn endpoint_fused(
     t: f64,
     w: f64,

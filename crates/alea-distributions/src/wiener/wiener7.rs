@@ -181,7 +181,7 @@ impl Wiener7 {
             };
         }
         let density = self.eval_density_adaptive(&core, obs);
-        let log_prob = if density.is_normal() && density > 0.0 {
+        let log_prob = if likely(density.is_normal() && density > 0.0) {
             density.ln()
         } else {
             self.scaled_density(&core, obs).log_prob
@@ -271,7 +271,7 @@ impl Wiener7 {
                 self.eval_density_fixed_order(&core, obs, order)
             }
         };
-        let log_prob = if density.is_normal() && density > 0.0 {
+        let log_prob = if likely(density.is_normal() && density > 0.0) {
             density.ln()
         } else {
             match options.quadrature {
@@ -281,7 +281,7 @@ impl Wiener7 {
                 }
             }
         };
-        if log_prob.is_finite() {
+        if likely(log_prob.is_finite()) {
             Ok(Wiener7Eval {
                 log_prob,
                 grad: NAN_GRAD_7,

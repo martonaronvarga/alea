@@ -37,6 +37,11 @@ pub(super) fn likely(value: bool) -> bool {
     }
     #[cfg(not(feature = "branch-hints"))]
     {
+        // Stable since the workspace MSRV (1.95). Keep failure blocks cold
+        // without requiring the optional nightly probability intrinsics.
+        if !value {
+            std::hint::cold_path();
+        }
         value
     }
 }
@@ -49,6 +54,9 @@ pub(super) fn unlikely(value: bool) -> bool {
     }
     #[cfg(not(feature = "branch-hints"))]
     {
+        if value {
+            std::hint::cold_path();
+        }
         value
     }
 }
