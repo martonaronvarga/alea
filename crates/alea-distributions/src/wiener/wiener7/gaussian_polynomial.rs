@@ -46,8 +46,7 @@ pub(super) fn plan(a: f64, b: f64) -> Option<(usize, [f64; 4])> {
     } else {
         256
     };
-    let contour =
-        (2. * terms as f64 / (b + (b * b + 8. * a * terms as f64).sqrt())).clamp(1., 16.);
+    let contour = (2. * terms as f64 / (b + (b * b + 8. * a * terms as f64).sqrt())).clamp(1., 16.);
     let ratio = 0.5 / contour;
     let remainder =
         (a * contour * contour + b * contour + terms as f64 * ratio.ln() - (-ratio).ln_1p()).exp();

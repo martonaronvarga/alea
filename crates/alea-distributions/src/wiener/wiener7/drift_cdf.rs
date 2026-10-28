@@ -87,7 +87,10 @@ fn image(t: f64, a: f64, q: f64, v: f64, s: f64, j: f64) -> Option<(f64, [f64; 5
 }
 
 pub(super) fn evaluate(t: f64, core: &Wiener7Core, boundary: Boundary, eps: f64) -> Option<Cdf> {
-    if t <= 0. || !t.is_finite() || t / (core.alpha * core.alpha) >= 2. {
+    // The integrated-image tail proof only needs the omitted-distance
+    // monotonicity check below, not the density branch crossover. Bound
+    // planning work in long time; conditioning checks still gate every result.
+    if t <= 0. || !t.is_finite() || t / (core.alpha * core.alpha) >= 128. {
         return None;
     }
     let p = Wiener5Params::from_array([core.alpha, 0., core.beta0, core.delta, core.sv]);

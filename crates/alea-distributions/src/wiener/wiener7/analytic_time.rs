@@ -129,3 +129,49 @@ impl Wiener7 {
         })
     }
 }
+
+#[cfg(test)]
+mod long_cdf_tests {
+    use super::*;
+    #[test]
+    fn long_time_cdf_marginalization_matches_ball_integrals() {
+        let mut count = 0;
+        for line in include_str!("../../../tests/support/wiener7_long_cdf_balls.csv")
+            .lines()
+            .skip(1)
+        {
+            let x: Vec<f64> = line.split(',').map(|s| s.parse().unwrap()).collect();
+            let obs = WienerObservation {
+                rt: x[0],
+                boundary: if x[8] == 1. {
+                    Boundary::Lower
+                } else {
+                    Boundary::Upper
+                },
+            };
+            let p = Wiener7Params::with_params(x[1], x[2], x[3], x[4], x[6], x[7], x[5]).unwrap();
+            let core = Wiener7.core(&obs, &p, 1e-8).unwrap();
+            let value = if x[6] == 0. {
+                Wiener7
+                    .analytic_time(&core, &obs)
+                    .unwrap_or_else(|| panic!("CDF fallback row {count}"))
+            } else {
+                Wiener7
+                    .try_fused(&obs, &p, WienerOptions::new(1e-8))
+                    .unwrap_or_else(|e| panic!("row {count}: {e:?}"))
+            };
+            for (i, actual) in std::iter::once(value.log_prob)
+                .chain(value.grad_array())
+                .enumerate()
+            {
+                let reference = x[9 + 2 * i];
+                assert!(
+                    (actual - reference).abs() <= x[10 + 2 * i] + 1e-8 * reference.abs().max(1.),
+                    "row {count}, component {i}: {actual} vs {reference}"
+                );
+            }
+            count += 1;
+        }
+        assert_eq!(count, 24);
+    }
+}
