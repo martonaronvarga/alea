@@ -190,12 +190,21 @@ pub(super) fn small_time_series_raw(t_prime: f64, w: f64, k: usize) -> Option<f6
         return Some(a);
     }
 
+    match k {
+        2 => small_time_density_raw::<2>(t_prime, a, k),
+        3 => small_time_density_raw::<3>(t_prime, a, k),
+        _ => small_time_density_raw::<0>(t_prime, a, k),
+    }
+}
+
+#[inline]
+fn small_time_density_raw<const PAIRS: usize>(t_prime: f64, a: f64, k: usize) -> Option<f64> {
     let inv_t = t_prime.recip();
     // Kahan compensation for the alternating accumulation
     let mut sum = a;
     let mut c = 0.0;
 
-    for j in 1..=k {
+    for j in 1..=if PAIRS == 0 { k } else { PAIRS } {
         let jf = usize_to_f64(j);
         let two_j = 2.0 * jf;
         let xp = two_j + a;
@@ -669,8 +678,7 @@ pub(super) fn large_branch_fused(t_prime: f64, w: f64, k: usize) -> Option<(f64,
 /// Endpoint-aware evaluation. Both distances are retained from the caller:
 /// subtracting a reflected coordinate from one can erase its relative precision.
 /// This is a stable finite sum, not a certified bound on score error.
-#[cold]
-#[inline(never)]
+#[inline(always)]
 fn endpoint_components<const SCORES: bool>(
     t: f64,
     w: f64,
@@ -792,6 +800,12 @@ pub(super) fn endpoint_fused(
     endpoint_components::<true>(t, w, q, k, branch)
 }
 
+#[cold]
+#[inline(never)]
+fn endpoint_density(t: f64, w: f64, q: f64, k: usize, branch: super::SeriesBranch) -> Option<f64> {
+    endpoint_components::<false>(t, w, q, k, branch).map(|x| x.0)
+}
+
 /// Log density of the normalized zero-drift law, without score accumulation.
 #[inline]
 pub(super) fn log_density(
@@ -802,7 +816,7 @@ pub(super) fn log_density(
     branch: super::SeriesBranch,
 ) -> Option<f64> {
     if super::unlikely(w.min(q) < 1e-5) {
-        return endpoint_components::<false>(t, w, q, k, branch).map(|x| x.0);
+        return endpoint_density(t, w, q, k, branch);
     }
     match branch {
         super::SeriesBranch::SmallTime => {

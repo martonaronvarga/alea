@@ -132,8 +132,8 @@ impl Wiener7 {
             if SCORES { 8 } else { 1 },
             Bounds::new(&[0.], &[1.]),
             core.opts,
-            &mut val,
-            &mut err,
+            &mut val[..if SCORES { 8 } else { 1 }],
+            &mut err[..if SCORES { 8 } else { 1 }],
             integrand,
         )
         .ok()?;
@@ -157,6 +157,21 @@ impl Wiener7 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn density_reduction_uses_scalar_cubature_buffers() {
+        let obs = WienerObservation {
+            rt: 0.01,
+            boundary: Boundary::Upper,
+        };
+        let params = Wiener7Params::with_params(1., 0., 0.5, 2., 0.4, 0.001, 0.5).unwrap();
+        let core = Wiener7.core(&obs, &params, 1e-9).unwrap();
+        let value = Wiener7
+            .reduced_time_density(&core, &obs)
+            .expect("supported scalar reduction");
+        let reference = Wiener7.reduced_time_integral(&core, &obs).unwrap();
+        assert!((value - reference.log_prob).abs() < 1e-9);
+    }
+
     #[test]
     fn one_dimensional_reduction_matches_independent_two_dimensional_rule() {
         let mut successes = 0;
