@@ -1,7 +1,7 @@
 # Installation
 
 Alea requires Rust 1.95 or later and Cargo. The default build compiles
-with stable Rust and do not require a C compiler, BLAS, Enzyme, or Nix.
+with stable Rust and does not require a C compiler, BLAS, Enzyme, or Nix.
 
 ## Add Alea to a project
 
@@ -16,11 +16,12 @@ Add these entries to its `Cargo.toml`:
 
 ```toml
 [dependencies]
-alea = { git = "https://github.com/martonaronvarga/alea", rev = "717053a49172a0179b8c759914ea8ac1fc9e8979" }
+alea = { git = "https://github.com/martonaronvarga/alea", branch = "main" }
 ```
 
-The tag pins a specific source version. Keep the generated `Cargo.lock` with your
-application so that dependency updates do not silently change a saved analysis.
+Cargo records the resolved Git revision in `Cargo.lock`. Keep that file with your
+application and use `cargo build --locked` for saved analyses. For an explicit
+source pin, use the revision recorded in the lockfile as the dependency’s `rev`.
 Alea is installed from Git or a source checkout, rather than crates.io.
 
 Copy the program in [Your first model](getting-started.md) into `src/main.rs`, then
@@ -38,7 +39,7 @@ for debugging, but its execution time does not represent sampling performance.
 Enable distribution laws and typed likelihood factors on the same dependency:
 
 ```toml
-alea = { git = "https://github.com/martonaronvarga/alea", rev = "717053a49172a0179b8c759914ea8ac1fc9e8979", features = ["distributions"] }
+alea = { git = "https://github.com/martonaronvarga/alea", branch = "main", features = ["distributions"] }
 rand = "0.10.1"
 ```
 
@@ -89,7 +90,7 @@ Start with the default build. Add a backend when your workload needs it.
 | Feature | Requirements | Typical use |
 |---|---|---|
 | `analysis` | Stable Rust | Named CSV/JSON sampling artifacts |
-| `faer` | Stable Rust | Optional matrix operations and fitted geometry |
+| `faer` | Stable Rust | Optional matrix operations, fitted geometry and Gaussian rank/residual assessment |
 | `openblas` | LP64 OpenBLAS headers and libraries | BLAS-backed matrix operations |
 | `simd` | Pinned nightly Rust | Portable SIMD kernels |
 | `branch-hints` | Pinned nightly Rust | Additional branch-probability hints |
@@ -101,7 +102,7 @@ Wiener kernels already mark rare recovery paths as cold on stable Rust. The
 For example, enable Faer:
 
 ```toml
-alea = { git = "https://github.com/martonaronvarga/alea", rev = "717053a49172a0179b8c759914ea8ac1fc9e8979", features = ["faer"] }
+alea = { git = "https://github.com/martonaronvarga/alea", branch = "main", features = ["faer"] }
 ```
 
 The checkout includes pinned Nix environments for optional compilers and native

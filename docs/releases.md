@@ -47,7 +47,7 @@ on stable Rust. Select optional capabilities on the `alea` dependency:
 | `distributions` | A C compiler | Probability laws, model factors, and Wiener likelihoods |
 | `autodiff` | Stable Rust | Derivative adapters and Enzyme source export |
 | `analysis` | Stable Rust | Named CSV/JSON sampling artifacts, typed data arrays and predictive bindings |
-| `faer` | Stable Rust | Optional matrix operations and geometry fitting |
+| `faer` | Stable Rust | Optional matrix operations, geometry fitting and Gaussian rank/residual assessment |
 | `openblas` | LP64 OpenBLAS headers and libraries | BLAS-backed matrix operations |
 | `simd` | Pinned nightly Rust | Portable SIMD kernels |
 | `branch-hints` | Pinned nightly Rust | Additional Wiener probability hints; enables distributions |

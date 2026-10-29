@@ -1,4 +1,4 @@
-//! Streaming and independent-chain orchestration. Numerical algorithms live in `alea-mcmc`.
+//! Inference execution, diagnostics and bounded local optimization.
 #![forbid(unsafe_code)]
 #[cfg(feature = "analysis")]
 pub mod analysis;

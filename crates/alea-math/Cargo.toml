@@ -21,6 +21,8 @@ workspace = true
 aligned-vec.workspace = true
 rand.workspace = true
 thiserror.workspace = true
+num-bigint.workspace = true
+libm = { workspace = true, optional = true }
 pulp.workspace = true
 
 faer = { workspace = true, optional = true }
@@ -38,7 +40,7 @@ allocation-counter.workspace = true
 [features]
 default = []
 simd = []
-faer = ["dep:faer"]
+faer = ["dep:faer", "dep:libm"]
 openblas = ["dep:cblas", "dep:cc", "dep:pkg-config"]
 
 [[bench]]

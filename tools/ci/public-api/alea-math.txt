@@ -82,6 +82,23 @@ pub struct alea_math::buffer::VecViewMut<'a, T>
 impl<'a, T> alea_math::buffer::VecViewMut<'a, T>
 pub fn alea_math::buffer::VecViewMut<'a, T>::as_mut_slice(&mut self) -> &mut [T]
 pub fn alea_math::buffer::VecViewMut<'a, T>::as_slice(&self) -> &[T]
+pub mod alea_math::exact
+pub enum alea_math::exact::ExactDotError
+pub alea_math::exact::ExactDotError::NonFinite
+pub alea_math::exact::ExactDotError::Shape
+impl core::clone::Clone for alea_math::exact::ExactDotError
+pub fn alea_math::exact::ExactDotError::clone(&self) -> alea_math::exact::ExactDotError
+impl core::cmp::Eq for alea_math::exact::ExactDotError
+impl core::cmp::PartialEq for alea_math::exact::ExactDotError
+pub fn alea_math::exact::ExactDotError::eq(&self, other: &alea_math::exact::ExactDotError) -> bool
+impl core::error::Error for alea_math::exact::ExactDotError
+impl core::fmt::Debug for alea_math::exact::ExactDotError
+pub fn alea_math::exact::ExactDotError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_math::exact::ExactDotError
+pub fn alea_math::exact::ExactDotError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::exact::ExactDotError
+impl core::marker::StructuralPartialEq for alea_math::exact::ExactDotError
+pub fn alea_math::exact::dot_sign(left: &[f64], right: &[f64]) -> core::result::Result<core::cmp::Ordering, alea_math::exact::ExactDotError>
 pub mod alea_math::interpolation
 pub enum alea_math::interpolation::InterpolationError
 pub alea_math::interpolation::InterpolationError::Knots
@@ -455,6 +472,7 @@ pub fn alea_math::numeric::CompensatedSum::default() -> alea_math::numeric::Comp
 impl core::fmt::Debug for alea_math::numeric::CompensatedSum
 pub fn alea_math::numeric::CompensatedSum::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_math::numeric::CompensatedSum
+pub fn alea_math::numeric::euclidean_norm(values: &[f64]) -> f64
 pub fn alea_math::numeric::first_nonfinite(values: &[f64]) -> core::option::Option<usize>
 pub fn alea_math::numeric::log1m_sigmoid(x: f64) -> f64
 pub fn alea_math::numeric::log_sigmoid(x: f64) -> f64

@@ -130,6 +130,8 @@ dependencies = [
  "cc",
  "criterion",
  "faer",
+ "libm",
+ "num-bigint",
  "pkg-config",
  "pulp",
  "rand 0.10.1",

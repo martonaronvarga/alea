@@ -13,7 +13,7 @@ use alea_math::numeric::{CompensatedSum, first_nonfinite, sigmoid};
 use std::sync::Arc;
 use thiserror::Error;
 
-/// Invalid fixed regression data; no rows are silently dropped.
+/// Invalid fixed regression data or diagnostic input; no rows are silently dropped.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum RegressionDataError {
     /// At least one observation is required.
@@ -22,10 +22,10 @@ pub enum RegressionDataError {
     /// Design storage or offsets do not match response dimensions.
     #[error("regression data dimensions do not agree")]
     Shape,
-    /// A predictor, offset or real response is not finite.
+    /// A predictor, offset, real response or diagnostic direction is not finite.
     #[error("nonfinite regression {field} at index {index}")]
     NonFinite {
-        /// Predictor, offset or observation.
+        /// Predictor, offset, observation or diagnostic direction.
         field: &'static str,
         /// Flat index in that field.
         index: usize,
@@ -247,3 +247,6 @@ fn finish(total: CompensatedSum, scores: &[CompensatedSum], g: &mut [f64]) -> Re
     }
     Ok(value)
 }
+
+/// Likelihood-specific existence diagnostics, separate from numerical convergence.
+pub mod diagnostics;

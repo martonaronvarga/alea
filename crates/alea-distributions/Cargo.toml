@@ -36,6 +36,7 @@ allocation-counter.workspace = true
 
 [features]
 default = []
+faer = ["alea-math/faer"]
 simd = ["alea-math/simd"]
 branch-hints = []
 

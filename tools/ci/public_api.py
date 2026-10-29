@@ -54,6 +54,7 @@ FEATURE_SNAPSHOTS = {
     "alea+autodiff": {"package": "alea", "features": ["alea/autodiff"]},
     "alea+faer": {"package": "alea", "features": ["alea/faer"]},
     "alea+distributions+autodiff+faer": {"package": "alea", "features": ["alea/distributions", "alea/autodiff", "alea/faer"]},
+    "alea-distributions+faer": {"package": "alea-distributions", "features": ["alea-distributions/faer"]},
     "alea-math+faer": {"package": "alea-math", "features": ["alea-math/faer"]},
     "alea-mcmc+faer": {"package": "alea-mcmc", "features": ["alea-mcmc/faer"]},
 }

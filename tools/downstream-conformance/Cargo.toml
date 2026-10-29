@@ -11,3 +11,7 @@ publish = false
 alea = { path = "../../crates/alea", features = ["distributions", "analysis"] }
 rand = "0.10.1"
 tokio-util = { version = "0.7", features = ["rt"] }
+
+[features]
+default = []
+faer = ["alea/faer"]

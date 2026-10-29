@@ -103,3 +103,20 @@ likelihood/gradient/estimates and the same satisfied stopping criterion; failed
 searches remain in the report without a favorable ratio. RSS includes the entire
 benchmark process, not just the graph. These are CPU measurements of two explicit
 predictors on one host, not comparisons with other inference libraries.
+
+
+`tests/regression_assessment.rs` checks likelihood recession witnesses and shows
+why a small rounded score does not establish a finite MLE. With this package's
+`faer` feature it also exercises Gaussian rank/residual assessment through the
+facade. The optional analysis gate compares tall/wide/rank-deficient least squares
+against NumPy's independent LAPACK-backed implementation:
+
+```sh
+nix develop .#analysis --command bash tools/ci/analysis.sh
+```
+
+Native witness and Faer tests need neither Python nor NumPy. The exact dot-sign
+predicate has an independent Python Fraction fixture in math tests; Gaussian
+rank and vanishing-residual warnings retain their explicit numerical tolerances.
+Coordinate-direction screening is intentionally incomplete and never reports a
+failed search as proof of overlap.

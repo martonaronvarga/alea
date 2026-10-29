@@ -263,6 +263,18 @@
       "promotion_gate": "Qualify problematic estimator existence/rank, independent optimizer comparisons and broader workloads; no automatic pointwise splitting or Enzyme source export."
     },
     {
+      "path": "crates/alea-distributions/src/modeling/regression/diagnostics.rs",
+      "profile": "research_component",
+      "summary": "Exact recession-direction witnesses and deliberately incomplete coordinate screening for unconstrained Bernoulli/Poisson likelihoods.",
+      "promotion_gate": "Implement and independently qualify general bounded direction search; absence of a witness remains unresolved."
+    },
+    {
+      "path": "crates/alea-distributions/src/modeling/regression/diagnostics/gaussian.rs",
+      "profile": "research_component",
+      "summary": "Optional Gaussian numerical rank/residual/scale assessment distinct from optimization convergence.",
+      "promotion_gate": "Broaden numerical rank/residual policy qualification; no exact rank, finite-estimator or covariance certificate."
+    },
+    {
       "path": "crates/alea-distributions/src/multivariate.rs",
       "profile": "validated_component_opt_in",
       "summary": "Vector and matrix probability laws with explicit reference measures and parameter coordinate conventions."
@@ -425,6 +437,12 @@
       "summary": "Aligned initialized storage contracts."
     },
     {
+      "path": "crates/alea-math/src/exact.rs",
+      "profile": "research_component",
+      "summary": "Exact finite-binary64 dyadic dot signs using integer arithmetic; independent rational fixtures.",
+      "promotion_gate": "Broaden cross-platform predicate checks; exact stored-data signs do not certify pre-conversion observations."
+    },
+    {
       "path": "crates/alea-math/src/fisher.rs",
       "profile": "validated_component_opt_in",
       "summary": "Analytic Fisher metric formulas in their declared families."
@@ -433,6 +451,12 @@
       "path": "crates/alea-math/src/interpolation.rs",
       "profile": "validated_component_reference",
       "summary": "Grid and linear interpolation primitives."
+    },
+    {
+      "path": "crates/alea-math/src/least_squares.rs",
+      "profile": "research_component",
+      "summary": "Optional sequential Faer thin-SVD least squares with explicit numerical rank cutoff and scaled residual evidence.",
+      "promotion_gate": "Broaden independent conditioning/extreme-data qualification; numerical rank is not exact algebraic rank or statistical covariance."
     },
     {
       "path": "crates/alea-math/src/lib.rs",
@@ -1223,6 +1247,13 @@
       "feature": "default",
       "profile": "validated_component_reference",
       "summary": "Portable scalar distribution baseline."
+    },
+    {
+      "crate": "alea-distributions",
+      "feature": "faer",
+      "profile": "research_utility",
+      "summary": "Optional Faer-backed Gaussian rank and residual assessment.",
+      "promotion_gate": "Broaden independent numerical and applied-model qualification before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -8647,6 +8678,30 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl alea_distributions::modeling::regression::RegressionData<bool>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl alea_distributions::modeling::regression::RegressionData<f64>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl alea_distributions::modeling::regression::RegressionData<u64>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl alea_distributions::modeling::regression::diagnostics::RecessionWitness",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl alea_distributions::multivariate::Categorical",
       "profile": "validated_component_opt_in"
     },
@@ -9138,6 +9193,36 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::DirectionAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::GaussianAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::GaussianIssue",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::RecessionKind",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::RecessionWitness",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::clone::Clone for alea_distributions::multivariate::Categorical",
       "profile": "validated_component_opt_in"
     },
@@ -9567,6 +9652,18 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::cmp::Eq for alea_distributions::modeling::regression::diagnostics::GaussianIssue",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::cmp::Eq for alea_distributions::modeling::regression::diagnostics::RecessionKind",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::cmp::Eq for alea_distributions::prelude::BatchStrategy",
       "profile": "validated_component_reference"
     },
@@ -9624,6 +9721,18 @@
     {
       "crate": "alea-distributions",
       "item": "impl core::cmp::PartialEq for alea_distributions::modeling::regression::RegressionDataError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::cmp::PartialEq for alea_distributions::modeling::regression::diagnostics::GaussianIssue",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::cmp::PartialEq for alea_distributions::modeling::regression::diagnostics::RecessionKind",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -10124,6 +10233,36 @@
     {
       "crate": "alea-distributions",
       "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::RegressionDataError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::DirectionAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::GaussianAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::GaussianIssue",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::RecessionKind",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::RecessionWitness",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -10645,6 +10784,18 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::marker::Copy for alea_distributions::modeling::regression::diagnostics::GaussianIssue",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::marker::Copy for alea_distributions::modeling::regression::diagnostics::RecessionKind",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::marker::Copy for alea_distributions::multivariate::Lkj",
       "profile": "validated_component_opt_in"
     },
@@ -11040,6 +11191,18 @@
     {
       "crate": "alea-distributions",
       "item": "impl core::marker::StructuralPartialEq for alea_distributions::modeling::regression::RegressionDataError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::marker::StructuralPartialEq for alea_distributions::modeling::regression::diagnostics::GaussianIssue",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::marker::StructuralPartialEq for alea_distributions::modeling::regression::diagnostics::RecessionKind",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -11729,6 +11892,102 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::NotWitness",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::NotWitness::flat_rows: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::NotWitness::improving_rows: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::NotWitness::violating_rows: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::Witness(alea_distributions::modeling::regression::diagnostics::RecessionWitness)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::GaussianAssessment::issues: alloc::vec::Vec<alea_distributions::modeling::regression::diagnostics::GaussianIssue>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::GaussianAssessment::least_squares: alea_math::least_squares::LeastSquares",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::GaussianAssessment::relative_residual_tolerance: f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::GaussianAssessment::residual_cutoff: f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::GaussianAssessment::scale_candidate: core::option::Option<f64>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::GaussianIssue::NumericalRankDeficiency",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::GaussianIssue::ScaleNotRepresentable",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::GaussianIssue::VanishingResidual",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::RecessionKind::CompleteSeparation",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::RecessionKind::PoissonBoundary",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::RecessionKind::QuasiCompleteSeparation",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub alea_distributions::prelude::BatchStrategy::BranchBuckets",
       "profile": "validated_component_reference"
     },
@@ -12196,6 +12455,24 @@
     {
       "crate": "alea-distributions",
       "item": "pub enum alea_distributions::modeling::regression::RegressionDataError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub enum alea_distributions::modeling::regression::diagnostics::DirectionAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub enum alea_distributions::modeling::regression::diagnostics::GaussianIssue",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub enum alea_distributions::modeling::regression::diagnostics::RecessionKind",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -12800,6 +13077,36 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<bool>::bernoulli_coordinate_recession(&self) -> core::result::Result<core::option::Option<alea_distributions::modeling::regression::diagnostics::RecessionWitness>, alea_distributions::modeling::regression::RegressionDataError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<bool>::bernoulli_recession(&self, direction: &[f64]) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::DirectionAssessment, alea_distributions::modeling::regression::RegressionDataError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<f64>::gaussian_assessment(&self, relative_rank_tolerance: f64, relative_residual_tolerance: f64) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::GaussianAssessment, alea_math::least_squares::LeastSquaresError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<u64>::poisson_coordinate_recession(&self) -> core::result::Result<core::option::Option<alea_distributions::modeling::regression::diagnostics::RecessionWitness>, alea_distributions::modeling::regression::RegressionDataError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<u64>::poisson_recession(&self, direction: &[f64]) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::DirectionAssessment, alea_distributions::modeling::regression::RegressionDataError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::regression::RegressionDataError::clone(&self) -> alea_distributions::modeling::regression::RegressionDataError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -12825,6 +13132,102 @@
     {
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::regression::bernoulli_logit_regression(builder: &mut alea_core::model::assembly::ModelBuilder, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::DirectionAssessment::clone(&self) -> alea_distributions::modeling::regression::diagnostics::DirectionAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::DirectionAssessment::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::GaussianAssessment::clone(&self) -> alea_distributions::modeling::regression::diagnostics::GaussianAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::GaussianAssessment::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::GaussianIssue::clone(&self) -> alea_distributions::modeling::regression::diagnostics::GaussianIssue",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::GaussianIssue::eq(&self, other: &alea_distributions::modeling::regression::diagnostics::GaussianIssue) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::GaussianIssue::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RecessionKind::clone(&self) -> alea_distributions::modeling::regression::diagnostics::RecessionKind",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RecessionKind::eq(&self, other: &alea_distributions::modeling::regression::diagnostics::RecessionKind) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RecessionKind::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::clone(&self) -> alea_distributions::modeling::regression::diagnostics::RecessionWitness",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::direction(&self) -> &[f64]",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::flat_rows(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::improving_rows(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::kind(&self) -> alea_distributions::modeling::regression::diagnostics::RecessionKind",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -17843,6 +18246,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub mod alea_distributions::modeling::regression::diagnostics",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub mod alea_distributions::multivariate",
       "profile": "validated_component_opt_in"
     },
@@ -17932,6 +18341,18 @@
     {
       "crate": "alea-distributions",
       "item": "pub struct alea_distributions::modeling::regression::RegressionData<Y>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub struct alea_distributions::modeling::regression::diagnostics::GaussianAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub struct alea_distributions::modeling::regression::diagnostics::RecessionWitness",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -20596,6 +21017,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::exact::ExactDotError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::clone::Clone for alea_math::interpolation::InterpolationError",
       "profile": "validated_component_reference"
     },
@@ -20608,6 +21035,18 @@
       "crate": "alea-math",
       "item": "impl core::clone::Clone for alea_math::interpolation::UniformGrid",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::least_squares::LeastSquares",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::least_squares::LeastSquaresError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -20686,8 +21125,20 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::cmp::Eq for alea_math::exact::ExactDotError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::cmp::Eq for alea_math::interpolation::InterpolationError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::Eq for alea_math::least_squares::LeastSquaresError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -20730,8 +21181,20 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::cmp::PartialEq for alea_math::exact::ExactDotError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::cmp::PartialEq for alea_math::interpolation::InterpolationError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::PartialEq for alea_math::least_squares::LeastSquaresError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -20815,6 +21278,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::error::Error for alea_math::exact::ExactDotError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::error::Error for alea_math::fisher::FisherFitError",
       "profile": "validated_component_opt_in"
     },
@@ -20822,6 +21291,12 @@
       "crate": "alea-math",
       "item": "impl core::error::Error for alea_math::interpolation::InterpolationError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::error::Error for alea_math::least_squares::LeastSquaresError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -20852,6 +21327,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::exact::ExactDotError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::fmt::Debug for alea_math::fisher::FisherFitError",
       "profile": "validated_component_opt_in"
     },
@@ -20869,6 +21350,18 @@
       "crate": "alea-math",
       "item": "impl core::fmt::Debug for alea_math::interpolation::UniformGrid",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::least_squares::LeastSquares",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::least_squares::LeastSquaresError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -20967,6 +21460,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::fmt::Display for alea_math::exact::ExactDotError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::fmt::Display for alea_math::fisher::FisherFitError",
       "profile": "validated_component_opt_in"
     },
@@ -20974,6 +21473,12 @@
       "crate": "alea-math",
       "item": "impl core::fmt::Display for alea_math::interpolation::InterpolationError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Display for alea_math::least_squares::LeastSquaresError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -21004,6 +21509,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::exact::ExactDotError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::marker::Copy for alea_math::interpolation::InterpolationError",
       "profile": "validated_component_reference"
     },
@@ -21011,6 +21522,12 @@
       "crate": "alea-math",
       "item": "impl core::marker::Copy for alea_math::interpolation::UniformGrid",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::least_squares::LeastSquaresError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -21059,8 +21576,20 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::exact::ExactDotError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::marker::StructuralPartialEq for alea_math::interpolation::InterpolationError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::least_squares::LeastSquaresError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -21267,6 +21796,18 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub alea_math::exact::ExactDotError::NonFinite",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::exact::ExactDotError::Shape",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub alea_math::fisher::FisherFitError::Metric(alea_math::metric::MetricError)",
       "profile": "validated_component_opt_in"
     },
@@ -21304,6 +21845,72 @@
       "crate": "alea-math",
       "item": "pub alea_math::interpolation::InterpolationError::Values",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::least_squares::LeastSquares::coefficients: alloc::vec::Vec<f64>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::least_squares::LeastSquares::design_scale: f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::least_squares::LeastSquares::numerical_rank: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::least_squares::LeastSquares::relative_tolerance: f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::least_squares::LeastSquares::residual_degrees_of_freedom: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::least_squares::LeastSquares::residual_norm: f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::least_squares::LeastSquares::scaled_cutoff: f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::least_squares::LeastSquares::scaled_singular_values: alloc::vec::Vec<f64>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::least_squares::LeastSquaresError::NonFinite",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::least_squares::LeastSquaresError::Numerical",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::least_squares::LeastSquaresError::Shape",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -21565,6 +22172,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub enum alea_math::exact::ExactDotError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub enum alea_math::fisher::FisherFitError",
       "profile": "validated_component_opt_in"
     },
@@ -21572,6 +22185,12 @@
       "crate": "alea-math",
       "item": "pub enum alea_math::interpolation::InterpolationError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub enum alea_math::least_squares::LeastSquaresError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -21792,6 +22411,36 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub fn alea_math::exact::ExactDotError::clone(&self) -> alea_math::exact::ExactDotError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::exact::ExactDotError::eq(&self, other: &alea_math::exact::ExactDotError) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::exact::ExactDotError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::exact::ExactDotError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::exact::dot_sign(left: &[f64], right: &[f64]) -> core::result::Result<core::cmp::Ordering, alea_math::exact::ExactDotError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub fn alea_math::fisher::FisherFitError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "validated_component_opt_in"
     },
@@ -21899,6 +22548,48 @@
       "crate": "alea-math",
       "item": "pub fn alea_math::interpolation::UniformGrid::spacing(self) -> f64",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::least_squares::LeastSquares::clone(&self) -> alea_math::least_squares::LeastSquares",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::least_squares::LeastSquares::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::least_squares::LeastSquaresError::clone(&self) -> alea_math::least_squares::LeastSquaresError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::least_squares::LeastSquaresError::eq(&self, other: &alea_math::least_squares::LeastSquaresError) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::least_squares::LeastSquaresError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::least_squares::LeastSquaresError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::least_squares::solve(rows: usize, columns: usize, design: &[f64], response: &[f64], relative_tolerance: f64) -> core::result::Result<alea_math::least_squares::LeastSquares, alea_math::least_squares::LeastSquaresError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -22604,6 +23295,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub fn alea_math::numeric::euclidean_norm(values: &[f64]) -> f64",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub fn alea_math::numeric::first_nonfinite(values: &[f64]) -> core::option::Option<usize>",
       "profile": "validated_utility_reference",
       "summary": "Checked owned point exchange, finite-value indexing, factored vector energy, or explicit fixed-geometry position turning."
@@ -22752,6 +23449,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub mod alea_math::exact",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub mod alea_math::fisher",
       "profile": "validated_component_opt_in"
     },
@@ -22759,6 +23462,12 @@
       "crate": "alea-math",
       "item": "pub mod alea_math::interpolation",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub mod alea_math::least_squares",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -22821,6 +23530,12 @@
       "crate": "alea-math",
       "item": "pub struct alea_math::interpolation::UniformGrid",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub struct alea_math::least_squares::LeastSquares",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",

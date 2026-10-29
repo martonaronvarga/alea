@@ -374,6 +374,107 @@ existence. Perfect Gaussian fits, separated binary outcomes and all-zero Poisson
 counts need problem-specific assessment. A small score in such a problem is not
 proof of a finite MLE. No standard errors are inferred from L-BFGS history.
 
+## Check estimator existence separately
+
+Numerical convergence and existence of an estimator answer different questions.
+For example, a separated logistic model can produce a rounded zero score at a
+large coefficient even though its likelihood has no finite maximum.
+
+The regression diagnostics check proposed directions of the unconstrained
+coefficient vector. For Bernoulli-logit likelihoods, a direction `d` is an
+improving ray when every signed margin `(2*y_i - 1) * (X_i d)` is nonnegative
+and at least one is positive. All-positive margins give complete separation;
+zero margins give quasi-complete separation. For Poisson-log likelihoods, positive
+counts must have `X_i d = 0`, zero counts must have `X_i d <= 0`, and at least one
+zero-count predictor must decrease strictly. Along either checked ray the
+likelihood improves for every finite starting coefficient, so no finite maximum
+exists. Finite offsets do not change these conditions. See
+[Albert and Anderson](https://doi.org/10.1093/biomet/71.1.1) and
+[Santos Silva and Tenreyro](https://doi.org/10.1016/j.econlet.2010.02.020).
+
+```rust
+use alea::distributions::modeling::regression::{
+    RegressionData, diagnostics::{DirectionAssessment, RecessionKind},
+};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = RegressionData::new(1, vec![-1.0, 1.0], vec![false, true])?;
+    match data.bernoulli_recession(&[1.0])? {
+        DirectionAssessment::Witness(witness) => {
+            assert_eq!(witness.kind(), RecessionKind::CompleteSeparation);
+            println!("no finite logistic MLE along {:?}", witness.direction());
+        }
+        DirectionAssessment::NotWitness { .. } => {
+            println!("this direction does not settle existence");
+        }
+    }
+    Ok(())
+}
+```
+
+`bernoulli_coordinate_recession()` and `poisson_coordinate_recession()` screen
+only the positive and negative coordinate axes. A returned witness is checked;
+`None` is unresolved, not evidence of overlap. A supplied combination of columns
+may reveal separation that this simple screen misses. Dot-product signs use exact
+dyadic integer arithmetic on the stored binary64 data and direction, including
+cancelling or underflowing products. Every finite binary64 value is an integer
+multiple of 2^-1074, so dot-product signs can be evaluated with integer sums
+on the common product scale 2^-2148. This is an allocating diagnostic, not part
+of hot likelihood evaluation. Keep the checked dataset's identity with a saved
+direction and recheck it if the data change.
+
+These checks assume independent unconstrained coefficients and a likelihood
+without priors. Parameter restrictions, shared/nonlinear coefficient expressions
+or a proper prior require a different assessment. They do not prevent using a
+separated likelihood in a Bayesian model.
+
+All-zero Poisson counts alone do not prove a boundary estimate. With an intercept,
+a negative intercept direction is a witness. With no intercept and predictors
+`[-1, 1]`, the log likelihood is `-exp(-beta)-exp(beta)`, which has its finite
+maximum at zero. The diagnostic checks the actual design rather than flagging
+zero responses automatically.
+
+### Gaussian rank and residual scale
+
+Enable Alea's `faer` feature for `gaussian_assessment`. It uses the existing
+Faer thin-SVD backend, not normal equations, with an explicit relative singular-
+value cutoff. The same least-squares calculation is available independently as
+`alea::math::least_squares::solve`.
+
+```rust
+use alea::distributions::modeling::regression::RegressionData;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = RegressionData::new(
+        2,
+        vec![1.0, -1.0, 1.0, 0.0, 1.0, 1.0],
+        vec![0.0, 2.0, 2.0],
+    )?;
+    let assessment = data.gaussian_assessment(1e-12, 1e-12)?;
+    println!("coefficients: {:?}", assessment.least_squares.coefficients);
+    println!("issues: {:?}", assessment.issues);
+    assert!(assessment.issues.is_empty());
+    assert!((assessment.scale_candidate.ok_or("unqualified scale")?
+        - (2.0_f64 / 9.0).sqrt()).abs() < 1e-12);
+    Ok(())
+}
+```
+
+The first tolerance selects retained singular directions relative to the largest
+singular value. Numerical rank depends on units and this policy; it is not an
+exact rank certificate. Coefficients are the minimum-norm solution in the retained
+subspace, including for wide or numerically rank-deficient designs.
+
+The second tolerance flags a residual norm at or below that fraction of the
+offset-adjusted response norm. Exact and near-perfect fits produce
+`VanishingResidual`; no positive residual-scale candidate is then qualified.
+Rank and residual issues can appear together. Otherwise `scale_candidate` is the
+retained-fit residual norm divided by `sqrt(n)`, not `sqrt(n-p)`. Discarded singular
+directions and other issues must still be assessed before calling it an MLE.
+Residual degrees of freedom are reported separately; no standard errors or
+covariance matrix are inferred. These numerical cutoffs are not confidence levels
+or rigorous roundoff enclosures.
+
 ## Pointwise likelihoods and predictive units
 
 For predictive comparison, choose what an omitted unit means before evaluating

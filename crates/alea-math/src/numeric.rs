@@ -233,3 +233,23 @@ impl CompensatedSum {
         self.sum + self.correction
     }
 }
+
+/// Euclidean norm using max-absolute scaling and compensated squared ratios.
+/// Avoids squaring large values or repeatedly rounding tiny partial norms.
+/// Empty/zero vectors give zero, NaN propagates, and an infinite input or a
+/// nonrepresentable final norm gives infinity. This is not a rigorous enclosure.
+pub fn euclidean_norm(values: &[f64]) -> f64 {
+    if values.iter().any(|x| x.is_nan()) {
+        return f64::NAN;
+    }
+    let scale = values.iter().fold(0_f64, |m, x| m.max(x.abs()));
+    if scale == 0. || scale.is_infinite() {
+        return scale;
+    }
+    let mut squares = CompensatedSum::default();
+    for x in values {
+        let ratio = x / scale;
+        squares.add(ratio * ratio);
+    }
+    scale * squares.total().sqrt()
+}

@@ -226,6 +226,40 @@ impl<D: core::fmt::Debug> core::fmt::Debug for alea_distributions::mixture::Fini
 pub fn alea_distributions::mixture::FiniteMixture<D>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub mod alea_distributions::modeling
 pub mod alea_distributions::modeling::regression
+pub mod alea_distributions::modeling::regression::diagnostics
+pub enum alea_distributions::modeling::regression::diagnostics::DirectionAssessment
+pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::NotWitness
+pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::NotWitness::flat_rows: usize
+pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::NotWitness::improving_rows: usize
+pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::NotWitness::violating_rows: usize
+pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::Witness(alea_distributions::modeling::regression::diagnostics::RecessionWitness)
+impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::DirectionAssessment
+pub fn alea_distributions::modeling::regression::diagnostics::DirectionAssessment::clone(&self) -> alea_distributions::modeling::regression::diagnostics::DirectionAssessment
+impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::DirectionAssessment
+pub fn alea_distributions::modeling::regression::diagnostics::DirectionAssessment::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub enum alea_distributions::modeling::regression::diagnostics::RecessionKind
+pub alea_distributions::modeling::regression::diagnostics::RecessionKind::CompleteSeparation
+pub alea_distributions::modeling::regression::diagnostics::RecessionKind::PoissonBoundary
+pub alea_distributions::modeling::regression::diagnostics::RecessionKind::QuasiCompleteSeparation
+impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::RecessionKind
+pub fn alea_distributions::modeling::regression::diagnostics::RecessionKind::clone(&self) -> alea_distributions::modeling::regression::diagnostics::RecessionKind
+impl core::cmp::Eq for alea_distributions::modeling::regression::diagnostics::RecessionKind
+impl core::cmp::PartialEq for alea_distributions::modeling::regression::diagnostics::RecessionKind
+pub fn alea_distributions::modeling::regression::diagnostics::RecessionKind::eq(&self, other: &alea_distributions::modeling::regression::diagnostics::RecessionKind) -> bool
+impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::RecessionKind
+pub fn alea_distributions::modeling::regression::diagnostics::RecessionKind::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::modeling::regression::diagnostics::RecessionKind
+impl core::marker::StructuralPartialEq for alea_distributions::modeling::regression::diagnostics::RecessionKind
+pub struct alea_distributions::modeling::regression::diagnostics::RecessionWitness
+impl alea_distributions::modeling::regression::diagnostics::RecessionWitness
+pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::direction(&self) -> &[f64]
+pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::flat_rows(&self) -> usize
+pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::improving_rows(&self) -> usize
+pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::kind(&self) -> alea_distributions::modeling::regression::diagnostics::RecessionKind
+impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::RecessionWitness
+pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::clone(&self) -> alea_distributions::modeling::regression::diagnostics::RecessionWitness
+impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::RecessionWitness
+pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub enum alea_distributions::modeling::regression::RegressionDataError
 pub alea_distributions::modeling::regression::RegressionDataError::CountPrecision
 pub alea_distributions::modeling::regression::RegressionDataError::CountPrecision::index: usize
@@ -247,6 +281,12 @@ pub fn alea_distributions::modeling::regression::RegressionDataError::fmt(&self,
 impl core::marker::Copy for alea_distributions::modeling::regression::RegressionDataError
 impl core::marker::StructuralPartialEq for alea_distributions::modeling::regression::RegressionDataError
 pub struct alea_distributions::modeling::regression::RegressionData<Y>
+impl alea_distributions::modeling::regression::RegressionData<bool>
+pub fn alea_distributions::modeling::regression::RegressionData<bool>::bernoulli_coordinate_recession(&self) -> core::result::Result<core::option::Option<alea_distributions::modeling::regression::diagnostics::RecessionWitness>, alea_distributions::modeling::regression::RegressionDataError>
+pub fn alea_distributions::modeling::regression::RegressionData<bool>::bernoulli_recession(&self, direction: &[f64]) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::DirectionAssessment, alea_distributions::modeling::regression::RegressionDataError>
+impl alea_distributions::modeling::regression::RegressionData<u64>
+pub fn alea_distributions::modeling::regression::RegressionData<u64>::poisson_coordinate_recession(&self) -> core::result::Result<core::option::Option<alea_distributions::modeling::regression::diagnostics::RecessionWitness>, alea_distributions::modeling::regression::RegressionDataError>
+pub fn alea_distributions::modeling::regression::RegressionData<u64>::poisson_recession(&self, direction: &[f64]) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::DirectionAssessment, alea_distributions::modeling::regression::RegressionDataError>
 impl<Y> alea_distributions::modeling::regression::RegressionData<Y>
 pub fn alea_distributions::modeling::regression::RegressionData<Y>::columns(&self) -> usize
 pub fn alea_distributions::modeling::regression::RegressionData<Y>::design(&self) -> &[f64]

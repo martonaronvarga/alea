@@ -8,9 +8,12 @@
 )]
 pub mod affine;
 pub mod buffer;
+pub mod exact;
 #[cfg(feature = "faer")]
 pub mod fisher;
 pub mod interpolation;
+#[cfg(feature = "faer")]
+pub mod least_squares;
 pub mod matrix;
 pub mod metric;
 pub mod numeric;
