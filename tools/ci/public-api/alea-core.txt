@@ -291,8 +291,12 @@ pub alea_core::model::assembly::AssemblyError::MissingPrimal
 pub alea_core::model::assembly::AssemblyError::MissingPrimal::node: usize
 pub alea_core::model::assembly::AssemblyError::Name
 pub alea_core::model::assembly::AssemblyError::Numerical
+pub alea_core::model::assembly::AssemblyError::PosteriorPotential
+pub alea_core::model::assembly::AssemblyError::PosteriorPotential::index: usize
 pub alea_core::model::assembly::AssemblyError::Shape
 pub alea_core::model::assembly::AssemblyError::Transform(alea_core::transform::TransformError)
+pub alea_core::model::assembly::AssemblyError::UnclassifiedFactor
+pub alea_core::model::assembly::AssemblyError::UnclassifiedFactor::index: usize
 pub alea_core::model::assembly::AssemblyError::WorkspaceBusy
 impl core::convert::From<alea_core::transform::TransformError> for alea_core::model::assembly::AssemblyError
 pub fn alea_core::model::assembly::AssemblyError::from(source: alea_core::transform::TransformError) -> Self
@@ -334,6 +338,20 @@ pub fn alea_core::model::assembly::DynamicDomain::clone(&self) -> alea_core::mod
 impl core::fmt::Debug for alea_core::model::assembly::DynamicDomain
 pub fn alea_core::model::assembly::DynamicDomain::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_core::model::assembly::DynamicDomain
+pub enum alea_core::model::assembly::FactorRole
+pub alea_core::model::assembly::FactorRole::Likelihood
+pub alea_core::model::assembly::FactorRole::Potential
+pub alea_core::model::assembly::FactorRole::Prior
+pub alea_core::model::assembly::FactorRole::Unclassified
+impl core::clone::Clone for alea_core::model::assembly::FactorRole
+pub fn alea_core::model::assembly::FactorRole::clone(&self) -> alea_core::model::assembly::FactorRole
+impl core::cmp::Eq for alea_core::model::assembly::FactorRole
+impl core::cmp::PartialEq for alea_core::model::assembly::FactorRole
+pub fn alea_core::model::assembly::FactorRole::eq(&self, other: &alea_core::model::assembly::FactorRole) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::FactorRole
+pub fn alea_core::model::assembly::FactorRole::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::model::assembly::FactorRole
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::FactorRole
 pub enum alea_core::model::assembly::Ordered
 impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::Ordered
 pub fn alea_core::model::assembly::Ordered::accepts(transform: alea_core::transform::Transform) -> bool
@@ -405,6 +423,12 @@ pub fn alea_core::model::assembly::CompiledModel::into_objective(self) -> core::
 pub fn alea_core::model::assembly::CompiledModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
 pub fn alea_core::model::assembly::CompiledModel::layout(&self) -> &alea_core::transform::ParameterLayout
 impl alea_core::model::assembly::CompiledModel
+pub fn alea_core::model::assembly::CompiledModel::factors(&self) -> &[alea_core::model::assembly::FactorMetadata]
+pub fn alea_core::model::assembly::CompiledModel::select_all(self) -> Self
+pub fn alea_core::model::assembly::CompiledModel::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::CompiledModel::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::CompiledModel::selected_factors(&self) -> impl core::iter::traits::iterator::Iterator<Item = &alea_core::model::assembly::FactorMetadata>
+impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_validation(&self) -> alloc::string::String
 pub fn alea_core::model::assembly::CompiledModel::rust_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
@@ -436,6 +460,18 @@ impl core::fmt::Debug for alea_core::model::assembly::Expr
 pub fn alea_core::model::assembly::Expr::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_core::model::assembly::Expr
 impl core::marker::StructuralPartialEq for alea_core::model::assembly::Expr
+pub struct alea_core::model::assembly::FactorMetadata
+impl alea_core::model::assembly::FactorMetadata
+pub fn alea_core::model::assembly::FactorMetadata::name(&self) -> core::option::Option<&str>
+pub fn alea_core::model::assembly::FactorMetadata::role(&self) -> alea_core::model::assembly::FactorRole
+impl core::clone::Clone for alea_core::model::assembly::FactorMetadata
+pub fn alea_core::model::assembly::FactorMetadata::clone(&self) -> alea_core::model::assembly::FactorMetadata
+impl core::cmp::Eq for alea_core::model::assembly::FactorMetadata
+impl core::cmp::PartialEq for alea_core::model::assembly::FactorMetadata
+pub fn alea_core::model::assembly::FactorMetadata::eq(&self, other: &alea_core::model::assembly::FactorMetadata) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::FactorMetadata
+pub fn alea_core::model::assembly::FactorMetadata::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::FactorMetadata
 pub struct alea_core::model::assembly::ModelBuilder
 impl alea_core::model::assembly::ModelBuilder
 pub fn alea_core::model::assembly::ModelBuilder::add(&mut self, a: alea_core::model::assembly::Expr, b: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
@@ -455,6 +491,10 @@ pub fn alea_core::model::assembly::ModelBuilder::real(&mut self, name: &str) -> 
 pub fn alea_core::model::assembly::ModelBuilder::sum(&mut self, values: &[alea_core::model::assembly::Expr]) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::unit_interval(&mut self, name: &str) -> core::result::Result<alea_core::model::assembly::Parameter<alea_core::model::assembly::UnitInterval>, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::vector<S: alea_core::model::assembly::VectorDomain>(&mut self, name: &str, dimension: &str, labels: &[&str], block: &str, transform: alea_core::transform::Transform) -> core::result::Result<alea_core::model::assembly::VectorParameter<S>, alea_core::model::assembly::AssemblyError>
+impl alea_core::model::assembly::ModelBuilder
+pub fn alea_core::model::assembly::ModelBuilder::likelihood(&mut self, name: &str, factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::potential(&mut self, name: &str, factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::prior(&mut self, name: &str, factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
 impl core::default::Default for alea_core::model::assembly::ModelBuilder
 pub fn alea_core::model::assembly::ModelBuilder::default() -> Self
 pub struct alea_core::model::assembly::Parameter<S>
@@ -587,6 +627,7 @@ pub fn alea_core::model::AnalyticModel<F>::dimension(&self) -> usize
 pub fn alea_core::model::AnalyticModel<F>::logp_grad(&self, parameters: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, E>
 pub struct alea_core::model::ComposedObjective<M>
 impl<M: alea_core::model::ConstrainedModel> alea_core::model::ComposedObjective<M>
+pub fn alea_core::model::ComposedObjective<M>::into_model(self) -> M
 pub fn alea_core::model::ComposedObjective<M>::layout(&self) -> &alea_core::transform::ParameterLayout
 pub fn alea_core::model::ComposedObjective<M>::model(&self) -> &M
 pub fn alea_core::model::ComposedObjective<M>::new(model: M, layout: alea_core::transform::ParameterLayout) -> core::result::Result<Self, alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>>
@@ -609,6 +650,7 @@ pub fn alea_core::model::SumModel<A, B>::dimension(&self) -> usize
 pub fn alea_core::model::SumModel<A, B>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
 pub struct alea_core::model::TransformedTarget<M>
 impl<M: alea_core::model::ConstrainedModel> alea_core::model::TransformedTarget<M>
+pub fn alea_core::model::TransformedTarget<M>::into_model(self) -> M
 pub fn alea_core::model::TransformedTarget<M>::layout(&self) -> &alea_core::transform::ParameterLayout
 pub fn alea_core::model::TransformedTarget<M>::model(&self) -> &M
 pub fn alea_core::model::TransformedTarget<M>::new(model: M, layout: alea_core::transform::ParameterLayout) -> core::result::Result<Self, alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>>
@@ -723,6 +765,12 @@ pub fn alea_core::model::assembly::CompiledModel::into_objective(self) -> core::
 pub fn alea_core::model::assembly::CompiledModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
 pub fn alea_core::model::assembly::CompiledModel::layout(&self) -> &alea_core::transform::ParameterLayout
 impl alea_core::model::assembly::CompiledModel
+pub fn alea_core::model::assembly::CompiledModel::factors(&self) -> &[alea_core::model::assembly::FactorMetadata]
+pub fn alea_core::model::assembly::CompiledModel::select_all(self) -> Self
+pub fn alea_core::model::assembly::CompiledModel::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::CompiledModel::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::CompiledModel::selected_factors(&self) -> impl core::iter::traits::iterator::Iterator<Item = &alea_core::model::assembly::FactorMetadata>
+impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_validation(&self) -> alloc::string::String
 pub fn alea_core::model::assembly::CompiledModel::rust_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
@@ -733,6 +781,7 @@ pub fn alea_core::model::assembly::CompiledModel::dimension(&self) -> usize
 pub fn alea_core::model::assembly::CompiledModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
 pub struct alea_core::prelude::ComposedObjective<M>
 impl<M: alea_core::model::ConstrainedModel> alea_core::model::ComposedObjective<M>
+pub fn alea_core::model::ComposedObjective<M>::into_model(self) -> M
 pub fn alea_core::model::ComposedObjective<M>::layout(&self) -> &alea_core::transform::ParameterLayout
 pub fn alea_core::model::ComposedObjective<M>::model(&self) -> &M
 pub fn alea_core::model::ComposedObjective<M>::new(model: M, layout: alea_core::transform::ParameterLayout) -> core::result::Result<Self, alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>>
@@ -797,6 +846,10 @@ pub fn alea_core::model::assembly::ModelBuilder::real(&mut self, name: &str) -> 
 pub fn alea_core::model::assembly::ModelBuilder::sum(&mut self, values: &[alea_core::model::assembly::Expr]) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::unit_interval(&mut self, name: &str) -> core::result::Result<alea_core::model::assembly::Parameter<alea_core::model::assembly::UnitInterval>, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::vector<S: alea_core::model::assembly::VectorDomain>(&mut self, name: &str, dimension: &str, labels: &[&str], block: &str, transform: alea_core::transform::Transform) -> core::result::Result<alea_core::model::assembly::VectorParameter<S>, alea_core::model::assembly::AssemblyError>
+impl alea_core::model::assembly::ModelBuilder
+pub fn alea_core::model::assembly::ModelBuilder::likelihood(&mut self, name: &str, factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::potential(&mut self, name: &str, factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::prior(&mut self, name: &str, factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
 impl core::default::Default for alea_core::model::assembly::ModelBuilder
 pub fn alea_core::model::assembly::ModelBuilder::default() -> Self
 pub struct alea_core::prelude::ParameterBlock

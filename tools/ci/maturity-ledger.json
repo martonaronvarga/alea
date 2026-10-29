@@ -157,6 +157,12 @@
       "summary": "Typed immutable expression lowering, shared-parameter reverse derivatives and one transform boundary."
     },
     {
+      "path": "crates/alea-core/src/model/assembly/factors.rs",
+      "profile": "research_component",
+      "summary": "Explicit mathematical contract or representation with scoped regression coverage.",
+      "promotion_gate": "Broaden independent downstream and numerical validation before promotion."
+    },
+    {
       "path": "crates/alea-core/src/model/assembly/source.rs",
       "profile": "research_utility",
       "summary": "Scalar Rust primal and numerical-admission source export from typed native models.",
@@ -2092,6 +2098,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl alea_core::model::assembly::FactorMetadata",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl alea_core::model::assembly::ModelBuilder",
       "profile": "validated_component_opt_in"
     },
@@ -2268,6 +2280,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::FactorMetadata",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::FactorRole",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::clone::Clone for alea_core::model::assembly::Ordered",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -2404,6 +2428,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::FactorMetadata",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::FactorRole",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::cmp::Eq for alea_core::model::prediction::PredictiveOrigin",
       "profile": "validated_component_opt_in"
     },
@@ -2477,6 +2513,18 @@
       "crate": "alea-core",
       "item": "impl core::cmp::PartialEq for alea_core::model::assembly::Expr",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::FactorMetadata",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::FactorRole",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -2651,6 +2699,18 @@
       "crate": "alea-core",
       "item": "impl core::fmt::Debug for alea_core::model::assembly::Expr",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::FactorMetadata",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::FactorRole",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -2846,6 +2906,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::marker::Copy for alea_core::model::assembly::FactorRole",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::marker::Copy for alea_core::model::assembly::Ordered",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -2969,6 +3035,18 @@
       "crate": "alea-core",
       "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::Expr",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::FactorMetadata",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::FactorRole",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -3953,6 +4031,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::PosteriorPotential",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::PosteriorPotential::index: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub alea_core::model::assembly::AssemblyError::Shape",
       "profile": "validated_component_opt_in"
     },
@@ -3960,6 +4050,18 @@
       "crate": "alea-core",
       "item": "pub alea_core::model::assembly::AssemblyError::Transform(alea_core::transform::TransformError)",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::UnclassifiedFactor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::UnclassifiedFactor::index: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -3985,6 +4087,30 @@
       "crate": "alea-core",
       "item": "pub alea_core::model::assembly::Coordinate::name: alloc::string::String",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::FactorRole::Likelihood",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::FactorRole::Potential",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::FactorRole::Prior",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::FactorRole::Unclassified",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -4526,6 +4652,12 @@
     {
       "crate": "alea-core",
       "item": "pub enum alea_core::model::assembly::DynamicDomain",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub enum alea_core::model::assembly::FactorRole",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -5124,6 +5256,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::ComposedObjective<M>::into_model(self) -> M",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::ComposedObjective<M>::layout(&self) -> &alea_core::transform::ParameterLayout",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -5243,6 +5381,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::TransformedTarget<M>::into_model(self) -> M",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::TransformedTarget<M>::layout(&self) -> &alea_core::transform::ParameterLayout",
       "profile": "validated_component_reference"
     },
@@ -5329,6 +5473,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::factors(&self) -> &[alea_core::model::assembly::FactorMetadata]",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::CompiledModel::into_objective(self) -> core::result::Result<alea_core::model::ComposedObjective<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -5371,6 +5521,30 @@
       "item": "pub fn alea_core::model::assembly::CompiledModel::rust_validation(&self) -> alloc::string::String",
       "profile": "research_utility",
       "promotion_gate": "Broaden generated-source, compiler-version and external-primal portability evidence."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::select_all(self) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::selected_factors(&self) -> impl core::iter::traits::iterator::Iterator<Item = &alea_core::model::assembly::FactorMetadata>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -5440,6 +5614,54 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FactorMetadata::clone(&self) -> alea_core::model::assembly::FactorMetadata",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FactorMetadata::eq(&self, other: &alea_core::model::assembly::FactorMetadata) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FactorMetadata::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FactorMetadata::name(&self) -> core::option::Option<&str>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FactorMetadata::role(&self) -> alea_core::model::assembly::FactorRole",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FactorRole::clone(&self) -> alea_core::model::assembly::FactorRole",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FactorRole::eq(&self, other: &alea_core::model::assembly::FactorRole) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FactorRole::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ModelBuilder::add(&mut self, a: alea_core::model::assembly::Expr, b: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
       "profile": "validated_component_opt_in"
     },
@@ -5485,6 +5707,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::likelihood(&mut self, name: &str, factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ModelBuilder::log(&mut self, a: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
       "profile": "validated_component_opt_in"
     },
@@ -5507,6 +5735,18 @@
       "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ModelBuilder::positive(&mut self, name: &str) -> core::result::Result<alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, alea_core::model::assembly::AssemblyError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::potential(&mut self, name: &str, factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::prior(&mut self, name: &str, factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -6427,6 +6667,12 @@
       "crate": "alea-core",
       "item": "pub struct alea_core::model::assembly::Expr",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::FactorMetadata",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",

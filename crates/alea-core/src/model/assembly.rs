@@ -13,7 +13,9 @@ use std::{
     },
 };
 
+mod factors;
 mod source;
+pub use factors::{FactorMetadata, FactorRole};
 
 static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 /// Unconstrained real scalar parameter marker.
@@ -132,7 +134,13 @@ pub struct Coordinate {
 pub enum AssemblyError {
     #[error("parameter or expression belongs to another model")]
     ForeignHandle,
-    #[error("duplicate or empty parameter name")]
+    /// A named statistical view cannot infer the meaning of an unclassified factor.
+    #[error("factor {index} has no declared statistical role")]
+    UnclassifiedFactor { index: usize },
+    /// An arbitrary potential is not automatically a prior density.
+    #[error("factor {index} is an arbitrary potential, not a declared posterior term")]
+    PosteriorPotential { index: usize },
+    #[error("duplicate or empty parameter or factor name")]
     Name,
     #[error("model dimension or plate shape mismatch")]
     Shape,
@@ -173,6 +181,7 @@ pub struct ModelBuilder {
     transforms: Vec<Transform>,
     coordinates: Vec<Coordinate>,
     factors: Vec<usize>,
+    factor_metadata: Vec<FactorMetadata>,
     local_count: usize,
     max_inputs: usize,
     // Cold metadata stays out of the retained operation-tape stride.
@@ -208,6 +217,7 @@ impl ModelBuilder {
             transforms: Vec::new(),
             coordinates: Vec::new(),
             factors: Vec::new(),
+            factor_metadata: Vec::new(),
             local_count: 0,
             max_inputs: 0,
             primals: Vec::new(),
@@ -431,6 +441,7 @@ impl ModelBuilder {
     pub fn factor(&mut self, log_factor: Expr) -> Result<(), AssemblyError> {
         let i = self.index(log_factor)?;
         self.factors.push(i);
+        self.factor_metadata.push(FactorMetadata::unclassified());
         Ok(())
     }
     /// Expands an independent plate at construction, with no retained iterator state.
@@ -474,6 +485,10 @@ impl ModelBuilder {
         Ok(CompiledModel {
             nodes: self.nodes,
             factors: self.factors,
+            factor_metadata: self.factor_metadata,
+            active_nodes: None,
+            active_factors: None,
+            selection: factors::Selection::All,
             coordinates: self.coordinates.into(),
             layout,
             workspace,
@@ -492,7 +507,11 @@ struct PlanWorkspace {
 #[must_use = "a compiled model must be evaluated or lowered to a target"]
 pub struct CompiledModel {
     nodes: Vec<Op>,
+    active_nodes: Option<Vec<bool>>,
+    active_factors: Option<Vec<usize>>,
+    selection: factors::Selection,
     factors: Vec<usize>,
+    factor_metadata: Vec<FactorMetadata>,
     coordinates: Arc<[Coordinate]>,
     layout: ParameterLayout,
     workspace: RefCell<PlanWorkspace>,
@@ -505,9 +524,9 @@ impl CompiledModel {
     pub fn layout(&self) -> &ParameterLayout {
         &self.layout
     }
-    /// Composes all declared factors with their parameter charts without density
-    /// Jacobians. This selects no factors: priors/penalties already in the graph
-    /// remain present, so a likelihood objective must be assembled explicitly.
+    /// Composes the active factor sum with its parameter charts without density
+    /// Jacobians. This does not change the statistical selection: use
+    /// `select_likelihood` or `select_posterior` explicitly when appropriate.
     /// # Errors
     /// Rejects a model/layout dimension mismatch.
     pub fn into_objective(
@@ -530,6 +549,19 @@ impl ConstrainedModel for CompiledModel {
         self.layout.constrained_dimension()
     }
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, AssemblyError> {
+        if self.active_nodes.is_some() {
+            self.evaluate_selected::<true>(q, g)
+        } else {
+            self.evaluate_selected::<false>(q, g)
+        }
+    }
+}
+impl CompiledModel {
+    fn evaluate_selected<const FILTERED: bool>(
+        &self,
+        q: &[f64],
+        g: &mut [f64],
+    ) -> Result<f64, AssemblyError> {
         if q.len() != self.dimension() || g.len() != q.len() {
             return Err(AssemblyError::Shape);
         }
@@ -548,6 +580,9 @@ impl ConstrainedModel for CompiledModel {
             gradient,
         } = &mut *work;
         for (i, op) in self.nodes.iter().enumerate() {
+            if FILTERED && !self.active_nodes.as_ref().expect("selected graph")[i] {
+                continue;
+            }
             values[i] = match op {
                 Op::Parameter(s) => q[*s],
                 Op::Constant(x) => *x,
@@ -580,11 +615,14 @@ impl ConstrainedModel for CompiledModel {
         adjoints.fill(0.0);
         gradient.fill(0.0);
         let mut total = 0.0;
-        for i in &self.factors {
+        for i in self.retained_factors() {
             total += values[*i];
             adjoints[*i] += 1.0;
         }
         for (i, op) in self.nodes.iter().enumerate().rev() {
+            if FILTERED && !self.active_nodes.as_ref().expect("selected graph")[i] {
+                continue;
+            }
             let a = adjoints[i];
             match op {
                 Op::Parameter(s) => gradient[*s] += a,

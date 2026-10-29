@@ -296,7 +296,9 @@ fn objective_generated_scores_and_curvature_match_every_chart() {
         correlation,
         covariance3,
         correlation3,
-        gaussian16
+        gaussian16,
+        selected_likelihood,
+        selected_posterior
     );
 }
 

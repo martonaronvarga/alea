@@ -29,5 +29,7 @@ generated!(
     correlation,
     covariance3,
     correlation3,
-    gaussian16
+    gaussian16,
+    selected_likelihood,
+    selected_posterior
 );

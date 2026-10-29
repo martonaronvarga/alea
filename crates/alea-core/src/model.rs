@@ -118,6 +118,10 @@ impl<M: ConstrainedModel> TransformedTarget<M> {
     pub fn model(&self) -> &M {
         &self.model
     }
+    /// Returns the owned model, releasing the adapter's chart workspace.
+    pub fn into_model(self) -> M {
+        self.model
+    }
 }
 impl<M: ConstrainedModel> crate::target::TargetSpace for TransformedTarget<M> {
     type Error = ModelError<M::Error>;
@@ -198,6 +202,10 @@ impl<M: ConstrainedModel> ComposedObjective<M> {
     }
     pub fn model(&self) -> &M {
         self.coordinates.model()
+    }
+    /// Returns the model so another statistical view can reuse its graph/data.
+    pub fn into_model(self) -> M {
+        self.coordinates.into_model()
     }
 }
 impl<M: ConstrainedModel> TargetSpace for ComposedObjective<M> {

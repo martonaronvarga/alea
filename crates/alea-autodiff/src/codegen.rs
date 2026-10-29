@@ -21,8 +21,8 @@ pub fn enzyme_source(model: &CompiledModel) -> Result<String, AssemblyError> {
 }
 
 /// Emits `value` and `objective` functions for f(T(q)), without transform
-/// Jacobians in the value or any derivative. All model factors are retained;
-/// the caller specifies whether these define a likelihood or a MAP objective.
+/// Jacobians in the value or any derivative. The model's selected factors are
+/// retained; use explicit statistical selection for likelihood or MAP views.
 /// The returned higher derivatives are of negative objective, as required by
 /// `PotentialHessianDerivative`. Uses the same bounded, allocation-free generated
 /// derivative path as `enzyme_source`.

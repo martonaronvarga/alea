@@ -27,16 +27,16 @@ fn model(observations: &[f64]) -> Result<CompiledModel, AssemblyError> {
     let zero = builder.constant(0.0)?;
     let two = builder.constant(2.0)?;
     let mean_prior = normal(&mut builder, mean.expr(), zero, two)?;
-    builder.factor(mean_prior)?;
+    builder.prior("mean prior", mean_prior)?;
 
     // log Exponential(scale | rate = 1) = -scale for scale > 0.
     let minus_one = builder.constant(-1.0)?;
     let scale_prior = builder.multiply(minus_one, scale.expr())?;
-    builder.factor(scale_prior)?;
+    builder.prior("scale prior", scale_prior)?;
 
-    for &observation in observations {
+    for (i, &observation) in observations.iter().enumerate() {
         let likelihood = normal_observation(&mut builder, observation, mean.expr(), &scale)?;
-        builder.factor(likelihood)?;
+        builder.likelihood(&format!("observation {i}"), likelihood)?;
     }
     builder.compile()
 }
@@ -44,7 +44,7 @@ fn model(observations: &[f64]) -> Result<CompiledModel, AssemblyError> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let compiled = model(&[1.2, 0.9, 1.4, 1.1])?;
     let layout = compiled.layout().clone();
-    let target = compiled.into_target()?;
+    let target = compiled.select_posterior()?.into_target()?;
     let q = [1.0, 0.0];
     let mut gradient = [0.0; 2];
     let logp = target.logp_grad(&q, &mut gradient)?;
@@ -61,9 +61,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-`factor` adds a term to the total log density. Creating an expression alone does
-not make it part of the model. The same parameter handle may be used in many
-factors; their derivative contributions accumulate into that parameter.
+`prior` and `likelihood` add named terms to the total log density. `factor`
+adds a generic term without assigning a statistical role. Creating an expression
+alone does not make it part of the model. The same parameter handle may be used
+in many factors; their derivative contributions accumulate into that parameter.
 
 Build one compiled model per chain. Its structure is fixed after `compile`, and
 its scratch storage is reused during evaluation. A session's target factory is a
@@ -104,16 +105,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let slope = builder.real("slope")?;
     let zero = builder.constant(0.0)?;
     let two = builder.constant(2.0)?;
-    for parameter in [intercept.expr(), slope.expr()] {
+    for (name, parameter) in [
+        ("intercept prior", intercept.expr()),
+        ("slope prior", slope.expr()),
+    ] {
         let prior = normal(&mut builder, parameter, zero, two)?;
-        builder.factor(prior)?;
+        builder.prior(name, prior)?;
     }
-    for (x, event) in [(-1.0, false), (0.0, false), (1.0, true), (2.0, true)] {
+    let observations = [(-1.0, false), (0.0, false), (1.0, true), (2.0, true)];
+    for (i, (x, event)) in observations.into_iter().enumerate() {
         let x = builder.constant(x)?;
         let effect = builder.multiply(slope.expr(), x)?;
         let log_odds = builder.add(intercept.expr(), effect)?;
         let likelihood = bernoulli_logit(&mut builder, event, log_odds)?;
-        builder.factor(likelihood)?;
+        builder.likelihood(&format!("observation {i}"), likelihood)?;
     }
     let model = builder.compile()?;
     assert_eq!(model.coordinates().len(), 2);
@@ -190,9 +195,10 @@ corrections and cannot be replaced by the observation likelihood alone.
 ## Likelihood objectives and parameter coordinates
 
 A likelihood can use the same parameter declarations and distribution factors as
-a Bayesian model. Include only the observation factors when you want a likelihood
-objective. `into_objective()` evaluates their sum after converting free
-coordinates into the declared parameter domains. It applies the chain rule to
+a Bayesian model. Declare observation terms with `likelihood`, prior densities
+with `prior`, and arbitrary penalties with `potential`. Use `select_likelihood()`
+to keep the observation terms explicitly. `into_objective()` evaluates their sum
+after converting free coordinates into the declared parameter domains. It applies the chain rule to
 the gradient, without a density-change Jacobian.
 
 ```rust
@@ -204,15 +210,15 @@ fn likelihood() -> Result<CompiledModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let mean = b.real("mean")?;
     let sigma = b.positive("sigma")?;
-    for y in [-1.0, 0.0, 2.0] {
+    for (i, y) in [-1.0, 0.0, 2.0].into_iter().enumerate() {
         let observation = normal_observation(&mut b, y, mean.expr(), &sigma)?;
-        b.factor(observation)?;
+        b.likelihood(&format!("observation {i}"), observation)?;
     }
     b.compile()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let objective = likelihood()?.into_objective()?;
+    let objective = likelihood()?.select_likelihood()?.into_objective()?;
     let q = [0.3, 0.5_f64.ln()]; // mean, log(sigma)
     let mut score = [0.0; 2];
     let log_likelihood = objective.logp_grad(&q, &mut score)?;
@@ -225,12 +231,29 @@ The returned value is the likelihood at `sigma = exp(q[1])`. This evaluates the
 objective; a numerical optimization procedure is needed to find its maximum.
 The named parameter metadata remains available through `objective.model()`.
 
-`into_objective()` retains every factor already in the model. If you add prior
-densities, it evaluates that posterior objective relative to the prior's declared
-parameter measure. It does not automatically select likelihood factors or remove
-priors. A MAP estimate depends on that reference measure.
+`into_objective()` evaluates the active sum. Without a selection, it retains all
+factors, including prior densities or penalties. It does not automatically select
+likelihood factors or remove priors. A posterior objective is evaluated relative
+to the prior's declared parameter measure. A MAP estimate depends on that reference measure.
 
 For sampling, use `into_target()`. It adds the log-Jacobian and its gradient once,
 so the density is expressed in the sampler's coordinates. For example, a positive
 scale contributes `log(sigma)` to that sampling density. That term changes an
 optimization objective and must not be added for MLE in the original parameters.
+
+`select_posterior()` retains likelihoods and priors. Convert that view with
+`into_objective()` to evaluate a mode objective in the declared parameter measure,
+or with `into_target()` for sampling. Unclassified `factor` terms cause both
+statistical selections to fail. An arbitrary `potential` is deliberately excluded
+from a likelihood view and rejected by a posterior selection. Generic objectives
+and sampling targets can still evaluate the complete sum with `select_all()`.
+These declarations state your interpretation; they do not prove normalization or
+posterior propriety.
+
+Selection consumes the model without copying its data or callbacks. Recover it
+with `objective.into_model()` or `target.into_model()` to select another view.
+The original factors, parameter names and parameter coordinates remain available;
+`factors()` lists all declarations and `selected_factors()` lists the active sum.
+A parameter used only by a prior can become unidentified in the likelihood view.
+A factor name can describe a joint data block and does not by itself define a
+pointwise leave-out unit for cross-validation.

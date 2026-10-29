@@ -16,14 +16,14 @@ impl CompiledModel {
     /// target for inclusion from a build script on the pinned Enzyme compiler.
     ///
     /// # Errors
-    /// Returns [`AssemblyError::MissingPrimal`] for any opaque node without an
+    /// Returns [`AssemblyError::MissingPrimal`] for any active opaque node without an
     /// explicit Rust primal. There is no analytic or finite-difference fallback.
     pub fn rust_primal(&self) -> Result<String, AssemblyError> {
         self.rust_mapped_primal(true)
     }
 
     /// Emits the scalar composed objective f(T(q)), with no log-Jacobian code.
-    /// All factors are retained; this does not classify them as likelihoods.
+    /// The active factor sum is retained without changing its statistical selection.
     /// # Errors
     /// Rejects opaque nodes without an explicit primal, as `rust_primal` does.
     pub fn rust_objective_primal(&self) -> Result<String, AssemblyError> {
@@ -43,6 +43,9 @@ impl CompiledModel {
             ));
         }
         for (i, op) in self.nodes.iter().enumerate() {
+            if self.active_nodes.as_ref().is_some_and(|active| !active[i]) {
+                continue;
+            }
             let expression = match op {
                 Op::Parameter(slot) => format!("x{slot}"),
                 Op::Constant(value) => format!("{value:?}_f64"),
@@ -77,7 +80,7 @@ impl CompiledModel {
             .unwrap();
         }
         source.push_str("let mut total = 0.0_f64;\n");
-        for i in &self.factors {
+        for i in self.retained_factors() {
             writeln!(source, "total += n{i};").unwrap();
         }
         source.push_str(if density {

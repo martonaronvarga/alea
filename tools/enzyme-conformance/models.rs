@@ -89,11 +89,35 @@ pub fn transformed(transform: Transform) -> Result<CompiledModel, AssemblyError>
     b.compile()
 }
 
+fn statistical(posterior: bool) -> Result<CompiledModel, AssemblyError> {
+    let mut b = ModelBuilder::new();
+    let theta = b.positive("theta")?.expr();
+    let event = b.constant(2.)?;
+    let one = b.constant(1.)?;
+    let data = normal(&mut b, event, theta, one)?;
+    b.likelihood("observed data", data)?;
+    let prior = if posterior {
+        normal(&mut b, theta, one, one)?
+    } else {
+        // An excluded opaque prior must not require a differentiable primal.
+        b.custom(&[theta], |_, _| Err(AssemblyError::Numerical))?
+    };
+    b.prior("prior", prior)?;
+    let model = b.compile()?;
+    if posterior {
+        model.select_posterior()
+    } else {
+        model.select_likelihood()
+    }
+}
+
 pub fn all() -> Result<Vec<(&'static str, CompiledModel)>, AssemblyError> {
     let mut models = vec![
         ("polynomial", polynomial()?),
         ("regression", regression()?),
         ("logistic", logistic()?),
+        ("selected_likelihood", statistical(false)?),
+        ("selected_posterior", statistical(true)?),
     ];
     for (name, transform) in [
         ("interval", Transform::interval(1, -2.0, 3.0)?),
