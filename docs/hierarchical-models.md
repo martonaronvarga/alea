@@ -47,9 +47,13 @@ a derived expression. Do not add a Jacobian for this expression. If you instead
 declare a positive `tau` and assign a density to `tau`, its change of coordinates
 must be handled by the parameter transform, as explained in [Modeling](modeling.md).
 
-The program represents each trial as a Bernoulli observation. Event ordering does
-not affect the posterior in this model. A binomial likelihood for the counts
-would add a data-only combinatorial constant; predictions below concern counts.
+Every trial in a group shares the same logit. The program therefore evaluates
+one Bernoulli success term and one failure term, weighted by their observed
+counts. This preserves the likelihood of the original trial sequence while
+avoiding a graph node for every observation. Zero counts are skipped. It adds no
+binomial combinatorial constant; predictions below still concern event counts.
+Only combine trials that share the same logit expression throughout the parameter
+domain. Matching fitted probabilities alone is not sufficient.
 
 ## Keep names and groups attached
 
@@ -162,3 +166,36 @@ checks that the supplied transform reaches the requested domain before changing
 the builder. The handle's `transform()` retains ambient and free dimensions.
 For a chart selected at runtime, use the explicit `DynamicDomain` marker and
 inspect that validated transform rather than assuming a static domain.
+
+## Repeated trials with identical logits
+
+If a group has `k` observed events among `n` trials, its contribution to the
+original trial-sequence log likelihood is
+
+\[
+k\log\operatorname{logistic}(\eta)
+ +(n-k)\log\operatorname{logistic}(-\eta).
+\]
+
+Build the two Bernoulli terms with `bernoulli_logit`, multiply by their nonzero
+counts, and add them as factors. This uses the existing stable tail formulas and
+reverse derivatives. It also keeps the original likelihood constant; a normalized
+binomial count likelihood instead includes `log choose(n, k)`. Choose the likelihood
+that matches the recorded observation. If individual observations are predictive
+units for model comparison, retain their individual reporting information even
+when their total fitting likelihood is summarized.
+
+A two-group benchmark compared expanded trials with this representation at 12,
+1,000 and 10,000 trials per group. Two separately retained cohorts of 18 processes
+each passed independent 70-digit checks of initial and final densities and scores.
+On the tested host, target evaluation improved by about 2 times, 100 times and
+over 1,000 times respectively. The count representation's graph size stays fixed
+as the number of trials grows. These gains come from sufficient-count reduction;
+they do not apply when logits differ between observations.
+
+The attributed cohort met its declared score tolerance in both representations at
+12 and 1,000 trials, with median mode-fitting ratios of about 1.3 and 42. At 10,000
+trials neither representation met that tolerance; those six failed searches remain
+recorded and have no qualified fitting-speed ratio. This is posterior-mode timing
+in explicitly declared sampled coordinates, not a NUTS efficiency or cross-engine
+performance comparison. Three repetitions on one host are not a speed guarantee.

@@ -47,9 +47,7 @@ pub fn regression(data: &[(f64, f64)]) -> CompiledModel {
     .unwrap();
     b.compile().unwrap()
 }
-/// Noncentered two-group hierarchy. Parameter order: `mu`, `tau`, `z[0]`, `z[1]`.
-/// tau has LogNormal(-.7,.3), mu has Normal(0,.7), z have independent Normal(0,1).
-pub fn hierarchy(data: &[Observation]) -> CompiledModel {
+fn hierarchy_base() -> (ModelBuilder, Vec<Expr>) {
     let mut b = ModelBuilder::new();
     let mu = b.real("mu").unwrap();
     let tau = b.positive("tau").unwrap();
@@ -71,6 +69,13 @@ pub fn hierarchy(data: &[Observation]) -> CompiledModel {
         let scaled = b.multiply(tau.expr(), z.expr()).unwrap();
         effects.push(b.add(mu.expr(), scaled).unwrap());
     }
+    (b, effects)
+}
+
+/// Noncentered two-group hierarchy. Parameter order: `mu`, `tau`, `z[0]`, `z[1]`.
+/// tau has LogNormal(-.7,.3), mu has Normal(0,.7), z have independent Normal(0,1).
+pub fn hierarchy(data: &[Observation]) -> CompiledModel {
+    let (mut b, effects) = hierarchy_base();
     let alpha = b.constant(1.2).unwrap();
     let ndt = b.constant(0.15).unwrap();
     let beta = b.constant(0.5).unwrap();
@@ -86,5 +91,25 @@ pub fn hierarchy(data: &[Observation]) -> CompiledModel {
         ),
     })
     .unwrap();
+    b.compile().unwrap()
+}
+
+/// Same two-group hierarchy, summarizing trials with identical logits.
+/// Each entry is (events, trials). This preserves the likelihood of the original
+/// Bernoulli sequence; no binomial combinatorial constant is introduced.
+/// Panics for inconsistent counts or counts above the exact f64 integer range.
+pub fn hierarchy_counts(groups: &[(usize, usize); 2]) -> CompiledModel {
+    let (mut b, effects) = hierarchy_base();
+    for (&(events, trials), eta) in groups.iter().zip(effects) {
+        assert!(events <= trials && trials as u128 <= (1_u128 << 53));
+        for (event, count) in [(true, events), (false, trials - events)] {
+            if count != 0 {
+                let term = modeling::bernoulli_logit(&mut b, event, eta).unwrap();
+                let weight = b.constant(count as f64).unwrap();
+                let term = b.multiply(weight, term).unwrap();
+                factor(&mut b, term);
+            }
+        }
+    }
     b.compile().unwrap()
 }

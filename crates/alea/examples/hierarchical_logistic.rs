@@ -51,9 +51,17 @@ fn model() -> Result<CompiledModel, AssemblyError> {
         b.factor(prior)?;
         let deviation = b.multiply(tau, zi)?;
         let log_odds = b.add(mu.expr(), deviation)?;
-        for trial in 0..*trials {
-            let likelihood = bernoulli_logit(&mut b, trial < *events, log_odds)?;
-            b.factor(likelihood)?;
+        // Every trial in this group has the same logit. Weight the two
+        // Bernoulli outcomes instead of expanding one node per observation.
+        // This preserves the trial-sequence likelihood, without a binomial
+        // combinatorial constant. Skip zero weights explicitly.
+        for (event, count) in [(true, *events), (false, trials - events)] {
+            if count > 0 {
+                let likelihood = bernoulli_logit(&mut b, event, log_odds)?;
+                let weight = b.constant(count as f64)?;
+                let likelihood = b.multiply(weight, likelihood)?;
+                b.factor(likelihood)?;
+            }
         }
     }
     b.compile()
