@@ -1085,3 +1085,41 @@ on one host do not establish a universal crossover. An earlier cohort with a
 one-worker-pool baseline is retained separately and was not pooled into this
 comparison. Thread budgets must also account for any parallel work inside a
 user-supplied target; these native regression targets use no nested BLAS pool.
+
+### Errors and cancellation in a fit batch
+
+Set the worker count to the smaller of the requested parallelism and the number
+of model workspaces you can keep live. Build each model inside its task and keep
+its input ID with the complete optimizer outcome. Collect individual results
+rather than short-circuiting the batch on the first returned error.
+
+Cancellation is cooperative. `maximize_with_cancel` checks before its initial
+evaluation and between trials; it does not interrupt model construction or a
+backend call already in progress. A cancelled fit may therefore have no candidate,
+or may retain a complete accepted candidate. Neither cancellation nor a returned
+backend error should be reported as convergence. Panics propagate separately.
+
+The downstream `fit_batches` checks exercise this composition with different
+Gaussian regression dimensions and observation counts. The design consists of
+orthogonal group indicators, with equally many observations at each group mean
+minus one and plus one. For `m` pairs per group, the residual sum of squares is
+
+\[
+\operatorname{RSS}(\beta)=2m\sum_j\bigl[(\beta_j-\mu_j)^2+1\bigr].
+\]
+
+Thus the independent MLE is `beta[j] = mu[j]` and `sigma = 1`. This also supplies
+closed-form values and scores for checking every retained candidate, including
+those left by errors or cancellation. The checks cover first-call and later-call
+backend failures, dirty trial gradients, cancellation before evaluation and during
+an in-flight call, stable input IDs, and workspace release during unwinding.
+A four-worker request capped at two workspaces reaches two overlapping reservations
+without exceeding the cap. Sequential and parallel searches retain identical
+numerical outcomes and work counts for deterministic per-fit policies.
+
+One larger ordinary fit stops at `LineSearchFailed` on the tested host despite
+estimates within about `2e-9` of its analytic MLE. Its score remains above the
+requested `2e-7` tolerance. That failure is retained in both execution policies;
+accurate estimates do not turn an unsuccessful stopping condition into
+`ScoreTolerance`. These are execution and numerical conformance checks, not a
+claim of statistical convergence or a general-purpose batch scheduler.
