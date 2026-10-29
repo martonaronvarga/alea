@@ -526,6 +526,133 @@ Residual degrees of freedom are reported separately; no standard errors or
 covariance matrix are inferred. These numerical cutoffs are not confidence levels
 or rigorous roundoff enclosures.
 
+## Keeping fit evidence together
+
+An optimizer outcome answers a numerical question: why did this search stop?
+Regression assessment answers different questions: does a finite MLE exist under
+these assumptions, and which design directions are numerically identified?
+Keep both records, even when their conclusions differ.
+
+```rust
+use alea::{
+    distributions::modeling::regression::{
+        RegressionData, bernoulli_logit_regression,
+        diagnostics::{ConeSearchOptions, RegressionEvidence, MleExistence},
+    },
+    model::{assembly::ModelBuilder, prediction::NamedOutput},
+    optimize::{maximize, LbfgsOptions, NamedFit, ObjectiveDescription, ObjectiveKind},
+};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = RegressionData::new(1, vec![1.0; 4], vec![false, true, true, true])?;
+    let evidence = data.assess_bernoulli(&["intercept"], ConeSearchOptions::default())?;
+    let mut builder = ModelBuilder::new();
+    let intercept = builder.real("intercept")?;
+    let likelihood = bernoulli_logit_regression(&mut builder, &[intercept.expr()], data)?;
+    builder.likelihood("responses", likelihood)?;
+    let model = builder.compile()?;
+    let names = NamedOutput::new(model.coordinates(), model.layout().clone(), ())?;
+    let objective = model.select_likelihood()?.into_objective()?;
+    let result = maximize(&objective, &[0.0], ObjectiveDescription {
+        kind: ObjectiveKind::Likelihood,
+        measure: "unconstrained intercept".into(),
+        model: "intercept-only logistic regression".into(),
+        data: "four responses".into(),
+        source: "example".into(),
+    }, LbfgsOptions::new(100, 1000)?)?;
+    let fit = NamedFit::new(names, result)?.with_assessment(evidence);
+    println!("intercept: {:?}", fit.estimate("intercept"));
+    println!("termination: {:?}", fit.result().termination);
+    println!("search failure: {:?}", fit.result().line_search_failure);
+    assert!(matches!(fit.assessment().evidence(),
+        RegressionEvidence::BernoulliLogit(MleExistence::FiniteMaximum)));
+    Ok(())
+}
+```
+
+`with_assessment` attaches evidence; it does not inspect or validate an arbitrary
+model. Here the same data and explicitly named coefficient column define both
+the assessment and the likelihood. If you add priors, penalties, coefficient
+constraints, shared/nonlinear coefficients or weights, these fixed-design MLE
+assumptions no longer describe the fitted objective. Matching names alone is not
+proof that the evidence belongs to a fit.
+
+Use `assess_poisson` for Poisson-log models. With `faer`,
+`assess_bernoulli_with_rank` and `assess_poisson_with_rank` additionally accept an
+explicit relative singular-value cutoff. `assess_gaussian` accepts both rank and
+residual tolerances and retains the Gaussian least-squares evidence.
+`coefficient_names()` records design-column order; `search_options()` records the
+exact-search budget. Missing `design_rank()` means rank was not assessed.
+A finite maximum can be nonunique through a design nullspace. An unresolved
+search remains unresolved, including when the optimizer meets its score tolerance.
+
+`LineSearchFailed` retains either `BacktrackLimit` or `NoRepresentableStep` in
+`line_search_failure`. The first means that no allowed trial was accepted; the
+second means the next trial rounded to the current position. Neither proves
+that the maximum or the score tolerance was reached. A large dataset or a large
+constant in the objective can make strict objective improvements unresolvable
+before a stringent score tolerance is met. Alea does not accept equal-valued
+steps or silently loosen the tolerance in that situation.
+
+### Validation and performance
+
+The source checkout includes `regression_fit` and the independent
+`tools/downstream-conformance/python/check_regression_fits.py` reference check.
+It evaluates Gaussian, logistic and Poisson likelihoods and scores with 60-digit
+Decimal arithmetic and independently solves the reference equations. Its
+cohort includes offsets, scaled and nearly collinear designs, duplicate columns,
+separation, Poisson boundaries, perfect Gaussian fits, and the original strict
+100k-row optimization controls. Repeated runs are execution checks, not independent
+simulated datasets or statistical calibration.
+
+On October 29, 2026, all 108 planned executions completed, including three
+perfect-fit Gaussian evaluation failures retained as outcomes. All 78 required
+candidate-accuracy checks passed: maximum predictor error and Gaussian log-scale
+error were below `5e-6`. This comparison tolerance does not replace the optimizer's
+stopping rule. Only 39 executions met that rule, including nine boundary/separated
+fits whose small scores do not establish a finite MLE.
+
+The stress cohort remains partly unqualified. Six ill-conditioned Gaussian runs
+failed the score-comparison threshold (`5e-11` times the row count), with errors
+around `5.6e-7`. Large cancelling coefficients amplify predictor-product rounding;
+an independent calculation using the rounded predictors reproduces the scores to
+about `1e-14`. Six ill-conditioned Poisson candidates failed the predictor-accuracy
+check. The reference runner retains these failures and exits unsuccessfully for
+the full stress cohort. Centering and scaling deserve attention before interpreting
+coefficients or tightening numerical tolerances.
+
+The separate scalar/batch benchmark completed all 54 planned runs at 10, 1,000
+and 1,000,000 rows. All nine family/size comparisons met the declared numerical
+and agreement gates. The optimizer used the original absolute score tolerance
+`n * 1e-7` in both paths, not the default `1e-8`. The table shows median ratios of
+scalar time or memory to batch time or memory at one million rows, from three
+fresh processes per path on one Linux host.
+
+| Likelihood | Construction | Evaluation | Fitting | Peak process memory |
+| --- | ---: | ---: | ---: | ---: |
+| Gaussian | 6.41 | 3.67 | 3.69 | 8.26 |
+| Bernoulli-logit | 7.07 | 1.54 | 1.63 | 7.45 |
+| Poisson-log | 3.74 | 4.29 | 4.18 | 8.12 |
+
+Poisson graph construction was slower in the batch path at ten rows (a scalar/
+batch ratio of 0.64), and faster at 1,000 rows (5.23). Those measurements bracket
+a construction crossover on these inputs; they do not locate a universal threshold.
+
+These are exploratory workload measurements, not universal speedups or comparisons
+with another library. At one million rows, batch graphs contained three or four
+expressions; scalar graphs contained four to five million. Peak batch memory was
+about 57 MiB, compared with 423–469 MiB for scalar graphs. Graph construction is
+bounded in the batch path; the stored observations and design still require memory
+proportional to the data size.
+
+The original million-row scalar Gaussian control failed its score condition.
+Independent reference evaluation identified inaccurate accumulation of its many
+factor values. Native graph evaluation now uses Alea's compensated accumulator;
+the corrected control reaches the unchanged tolerance and matches the batch
+coefficients and objective. This correction covers the native factor sum, not
+arbitrary intermediate expressions, every reverse accumulation, or generated
+Enzyme code. It does not provide a floating-point error certificate.
+
 ## Pointwise likelihoods and predictive units
 
 For predictive comparison, choose what an omitted unit means before evaluating

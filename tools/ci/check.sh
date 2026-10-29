@@ -28,6 +28,7 @@ if [[ "$scope" == all ]]; then
   cargo fetch --manifest-path tools/compile-fail/Cargo.toml --locked
   cargo test --manifest-path tools/downstream-conformance/Cargo.toml --locked --offline
   cargo test --manifest-path tools/downstream-conformance/Cargo.toml --features tracing --test tracing --locked --offline
+  cargo test --manifest-path tools/downstream-conformance/Cargo.toml --features faer --test fit_assessment --locked --offline
   python3 -m unittest discover -s tools/downstream-conformance/python
   cargo test --manifest-path crates/Cargo.toml -p alea-runtime --features analysis --test analysis --locked --offline
   cargo test --manifest-path crates/Cargo.toml -p alea-runtime --features tracing,analysis --locked --offline

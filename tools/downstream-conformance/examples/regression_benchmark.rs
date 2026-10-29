@@ -126,8 +126,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .as_ref()
         .ok_or("no benchmark candidate")?
         .gradient;
+    let final_value = result
+        .candidate
+        .as_ref()
+        .ok_or("no benchmark candidate")?
+        .value;
+    let score_tolerance = result.options.score_tolerance();
+    let line_search_failure = result.line_search_failure;
     println!(
-        "{{\"family\":\"{family}\",\"mode\":\"{mode}\",\"rows\":{n},\"repetitions\":{repetitions},\"expressions\":{expressions},\"construction_seconds\":{construction_seconds},\"evaluation_seconds\":{evaluation_seconds},\"fit_seconds\":{fit_seconds},\"peak_rss_kib\":{rss},\"value\":{value},\"gradient\":{gradient:?},\"final_gradient\":{final_gradient:?},\"termination\":\"{:?}\",\"evaluations\":{},\"iterations\":{},\"estimate_free\":{:?}}}",
+        "{{\"family\":\"{family}\",\"mode\":\"{mode}\",\"rows\":{n},\"repetitions\":{repetitions},\"expressions\":{expressions},\"construction_seconds\":{construction_seconds},\"evaluation_seconds\":{evaluation_seconds},\"fit_seconds\":{fit_seconds},\"peak_rss_kib\":{rss},\"value\":{value},\"gradient\":{gradient:?},\"final_gradient\":{final_gradient:?},\"final_value\":{final_value},\"score_tolerance\":{score_tolerance},\"line_search_failure\":\"{line_search_failure:?}\",\"termination\":\"{:?}\",\"evaluations\":{},\"iterations\":{},\"estimate_free\":{:?}}}",
         result.termination,
         result.evaluations,
         result.iterations,

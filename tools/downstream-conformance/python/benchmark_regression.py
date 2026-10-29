@@ -22,6 +22,12 @@ def eligible_pair(b, s):
     """Scientific gates are independent of timing; failed searches remain ineligible."""
     return (
         b["termination"] == s["termination"] == "ScoreTolerance"
+        and b["score_tolerance"] == s["score_tolerance"]
+        and math.isfinite(b["score_tolerance"]) and b["score_tolerance"] > 0
+        and all(math.isfinite(r["final_value"]) and math.isfinite(r["value"]) and len(r["final_gradient"]) == len(r["estimate_free"]) and
+                all(math.isfinite(g) and abs(g) <= r["score_tolerance"] for g in r["final_gradient"])
+                for r in (b, s))
+        and math.isclose(b["final_value"], s["final_value"], rel_tol=1e-10, abs_tol=1e-9)
         and math.isclose(b["value"], s["value"], rel_tol=1e-10, abs_tol=1e-9)
         and len(b["gradient"]) == len(s["gradient"])
         and len(b["estimate_free"]) == len(s["estimate_free"])

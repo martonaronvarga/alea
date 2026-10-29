@@ -2,7 +2,7 @@
   "schema_version": 1,
   "base_revision": "bfb4e1b6b2087080e68f2950797f1c3a7ff957f5",
   "decision": "pre_release_break",
-  "rationale": "Add explicit line-search failure evidence and typed NamedFit assessments, with named fixed-design Gaussian/GLM diagnostics. Generic payload attachment does not validate model identity or promote convergence, existence or uncertainty. Default score tolerances, strict Armijo acceptance, numerical algorithms and RNG behavior are unchanged. No compatibility aliases are maintained.",
+  "rationale": "Add explicit line-search failure evidence and typed NamedFit assessments, with named fixed-design Gaussian/GLM diagnostics. Generic payload attachment does not validate model identity or promote convergence, existence or uncertainty. Default score tolerances and strict Armijo acceptance are unchanged. A separately reproduced native factor-sum defect is corrected using the existing compensated accumulator, without changing the objective definition. No compatibility aliases are maintained.",
   "packages": {
     "alea+analysis": {
       "before": "7b792d8351d7f93d9678035dc8dcbfa55c10f6bf353cbe567442e4ad7847b55b",
