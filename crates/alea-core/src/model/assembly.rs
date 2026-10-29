@@ -520,6 +520,11 @@ pub struct CompiledModel {
     primals: Vec<(usize, &'static str)>,
 }
 impl CompiledModel {
+    /// Number of scalar expressions, including opaque batch nodes.
+    /// Captured dataset bytes are not counted as expressions.
+    pub fn expression_count(&self) -> usize {
+        self.nodes.len()
+    }
     pub fn coordinates(&self) -> Arc<[Coordinate]> {
         Arc::clone(&self.coordinates)
     }

@@ -1,4 +1,5 @@
-//! Distribution-backed scalar factors for typed model assembly.
+//! Distribution-backed factors for typed model assembly.
+pub mod regression;
 use crate::{
     scalar::{Bernoulli, Normal},
     wiener::{Wiener4, Wiener4Params, WienerObservation, WienerOptions},

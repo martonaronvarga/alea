@@ -6,6 +6,10 @@
 //! statistical meaning, establish existence/global optimality or estimate covariance.
 #![deny(missing_docs)]
 use alea_core::target::{DimensionError, EvaluationError, LogDensityGradient};
+use alea_core::{
+    model::{assembly::Coordinate, prediction::NamedOutput},
+    transform::TransformError,
+};
 use alea_math::quasi_newton::lbfgs_inverse_product;
 use std::error::Error;
 use thiserror::Error;
@@ -165,6 +169,8 @@ pub enum OptimizationTermination {
 /// Point-estimation outcome, distinct from draws and Pathfinder approximations.
 #[derive(Debug, Clone)]
 pub struct OptimizationResult {
+    /// Dimension of the free-coordinate objective, even when no candidate exists.
+    pub dimension: usize,
     /// Complete numerical policy, including scales and stopping budgets.
     pub options: LbfgsOptions,
     /// Explicit objective identity/measure, not inferred from a trait name.
@@ -251,6 +257,7 @@ pub fn maximize_with_cancel<T: LogDensityGradient + ?Sized>(
         return Err(InvalidOptimization.into());
     }
     let mut result = OptimizationResult {
+        dimension: n,
         options: options.clone(),
         objective,
         candidate: None,
@@ -456,4 +463,97 @@ fn trial<T: LogDensityGradient + ?Sized>(
         return Err(EvaluationError::NonFiniteGradient { index });
     }
     Ok(Some(value))
+}
+
+/// Named, constrained point estimates together with their original numerical outcome.
+/// Metadata is supplied explicitly: matching dimensions do not prove model identity.
+/// Construction never turns a score condition into an existence/global-optimum claim.
+#[derive(Debug, Clone)]
+pub struct NamedFit {
+    parameters: NamedOutput<()>,
+    result: OptimizationResult,
+    estimates: Option<Vec<f64>>,
+}
+/// Projection failure retaining the unmodified optimization result.
+#[derive(Debug, Error)]
+#[error("cannot name optimization result: {source}")]
+pub struct FitProjectionError {
+    /// Invalid dimensions, candidate values or a parameter-chart failure.
+    #[source]
+    pub source: TransformError,
+    /// Original outcome, including its candidate and failure/termination evidence.
+    pub result: Box<OptimizationResult>,
+}
+impl NamedFit {
+    /// Attaches parameter metadata and constrains the candidate without a Jacobian.
+    /// An outcome without a candidate retains `None` estimates. Free-coordinate
+    /// gradients remain in the original report, not relabeled as constrained scores.
+    /// # Errors
+    /// Rejects mismatched dimensions, nonfinite candidate fields and failed transforms.
+    /// Failure retains the original numerical result without publishing partial estimates.
+    pub fn new(
+        parameters: NamedOutput<()>,
+        result: OptimizationResult,
+    ) -> Result<Self, FitProjectionError> {
+        let project = || -> Result<Option<Vec<f64>>, TransformError> {
+            let n = parameters.layout().unconstrained_dimension();
+            if n != result.dimension {
+                return Err(TransformError::Dimension {
+                    expected: n,
+                    actual: result.dimension,
+                });
+            }
+            let Some(candidate) = &result.candidate else {
+                return Ok(None);
+            };
+            if candidate.position.len() != n || candidate.gradient.len() != n {
+                return Err(TransformError::InvalidDimension);
+            }
+            if !candidate.value.is_finite() || candidate.gradient.iter().any(|x| !x.is_finite()) {
+                return Err(TransformError::NonFiniteOutput { index: 0 });
+            }
+            let mut values = vec![0.; parameters.layout().constrained_dimension()];
+            let mut scratch = vec![0.; parameters.layout().scratch_dimension()];
+            parameters
+                .layout()
+                .constrain_values(&candidate.position, &mut values, &mut scratch)?;
+            Ok(Some(values))
+        };
+        match project() {
+            Ok(estimates) => Ok(Self {
+                parameters,
+                result,
+                estimates,
+            }),
+            Err(source) => Err(FitProjectionError {
+                source,
+                result: Box::new(result),
+            }),
+        }
+    }
+    /// Names, transform blocks and constrained-coordinate labels.
+    pub fn parameters(&self) -> &NamedOutput<()> {
+        &self.parameters
+    }
+    /// Original numerical result, with free-coordinate gradients and termination.
+    pub fn result(&self) -> &OptimizationResult {
+        &self.result
+    }
+    /// Constrained estimates in parameter metadata order, if a candidate exists.
+    pub fn estimates(&self) -> Option<&[f64]> {
+        self.estimates.as_deref()
+    }
+    /// A constrained estimate by its exact parameter name.
+    pub fn estimate(&self, name: &str) -> Option<f64> {
+        let index = self
+            .parameters
+            .coordinates()
+            .iter()
+            .position(|c: &Coordinate| c.name == name)?;
+        self.estimates.as_ref().map(|v| v[index])
+    }
+    /// Recovers the original numerical result without parameter-chart reinterpretation.
+    pub fn into_result(self) -> OptimizationResult {
+        self.result
+    }
 }

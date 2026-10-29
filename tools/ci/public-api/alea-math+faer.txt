@@ -460,6 +460,17 @@ pub fn alea_math::metric::SparseCholeskyMetric::log_det(&self) -> f64
 pub fn alea_math::metric::SparseCholeskyMetric::sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
 pub fn alea_math::metric::SparseCholeskyMetric::velocity(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
 pub mod alea_math::numeric
+pub struct alea_math::numeric::CompensatedSum
+impl alea_math::numeric::CompensatedSum
+pub fn alea_math::numeric::CompensatedSum::add(&mut self, value: f64)
+pub fn alea_math::numeric::CompensatedSum::total(self) -> f64
+impl core::clone::Clone for alea_math::numeric::CompensatedSum
+pub fn alea_math::numeric::CompensatedSum::clone(&self) -> alea_math::numeric::CompensatedSum
+impl core::default::Default for alea_math::numeric::CompensatedSum
+pub fn alea_math::numeric::CompensatedSum::default() -> alea_math::numeric::CompensatedSum
+impl core::fmt::Debug for alea_math::numeric::CompensatedSum
+pub fn alea_math::numeric::CompensatedSum::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::numeric::CompensatedSum
 pub fn alea_math::numeric::first_nonfinite(values: &[f64]) -> core::option::Option<usize>
 pub fn alea_math::numeric::log1m_sigmoid(x: f64) -> f64
 pub fn alea_math::numeric::log_sigmoid(x: f64) -> f64

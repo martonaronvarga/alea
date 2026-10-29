@@ -209,3 +209,27 @@ mod finite_tests {
         assert!(scaled_norm(&[f64::NAN]).is_nan());
     }
 }
+
+/// Neumaier-compensated scalar accumulation. This reduces cancellation error;
+/// it is not a rigorous floating-point enclosure. Nonfinite arithmetic propagates.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct CompensatedSum {
+    sum: f64,
+    correction: f64,
+}
+impl CompensatedSum {
+    /// Adds one term without discarding the smaller addition's rounding residual.
+    pub fn add(&mut self, value: f64) {
+        let next = self.sum + value;
+        self.correction += if self.sum.abs() >= value.abs() {
+            (self.sum - next) + value
+        } else {
+            (value - next) + self.sum
+        };
+        self.sum = next;
+    }
+    /// Returns the compensated total; does not reset this accumulator.
+    pub fn total(self) -> f64 {
+        self.sum + self.correction
+    }
+}

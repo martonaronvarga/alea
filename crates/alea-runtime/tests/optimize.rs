@@ -436,3 +436,107 @@ fn unrepresentable_direction_is_explicit_and_keeps_finite_initial_data() {
         Err(MaximizeError::Invalid(_))
     ));
 }
+
+#[test]
+fn named_projection_keeps_free_scores_and_checked_constrained_values() {
+    use alea_core::{
+        model::{assembly::Coordinate, prediction::NamedOutput},
+        transform::{ParameterLayout, Transform},
+    };
+    let schema = || {
+        NamedOutput::new(
+            vec![
+                Coordinate {
+                    name: "mean".into(),
+                    dimension: None,
+                    coordinate: None,
+                    block: None,
+                },
+                Coordinate {
+                    name: "scale".into(),
+                    dimension: None,
+                    coordinate: None,
+                    block: None,
+                },
+            ]
+            .into(),
+            ParameterLayout::new([
+                Transform::identity(1).unwrap(),
+                Transform::positive(1).unwrap(),
+            ])
+            .unwrap(),
+            (),
+        )
+        .unwrap()
+    };
+    let r = maximize(
+        &Gaussian,
+        &[0., 0.],
+        identity(),
+        LbfgsOptions::new(10, 1).unwrap(),
+    )
+    .unwrap();
+    let g = r.candidate.as_ref().unwrap().gradient.clone();
+    let named = NamedFit::new(schema(), r).unwrap();
+    assert_eq!(named.estimate("mean"), Some(0.));
+    assert_eq!(named.estimate("scale"), Some(1.));
+    assert_eq!(named.estimate("missing"), None);
+    assert_eq!(named.estimates(), Some([0., 1.].as_slice()));
+    assert_eq!(named.result().candidate.as_ref().unwrap().gradient, g);
+    assert_eq!(
+        named.result().termination,
+        OptimizationTermination::EvaluationLimit
+    );
+    let empty = maximize_with_cancel(
+        &Gaussian,
+        &[0., 0.],
+        identity(),
+        LbfgsOptions::new(1, 1).unwrap(),
+        || true,
+    )
+    .unwrap();
+    assert!(
+        NamedFit::new(schema(), empty)
+            .unwrap()
+            .estimates()
+            .is_none()
+    );
+    let mut malformed = named.into_result();
+    malformed.candidate.as_mut().unwrap().position[1] = 1000.;
+    let e = NamedFit::new(schema(), malformed).unwrap_err();
+    assert_eq!(e.result.candidate.as_ref().unwrap().position[1], 1000.);
+}
+
+#[test]
+fn named_projection_respects_dimension_reducing_simplex_coordinates() {
+    use alea_core::{
+        model::{assembly::Coordinate, prediction::NamedOutput},
+        transform::{ParameterLayout, Transform},
+    };
+    let r = maximize(
+        &Gaussian,
+        &[0., 0.],
+        identity(),
+        LbfgsOptions::new(1, 1).unwrap(),
+    )
+    .unwrap();
+    let coordinates = (0..3)
+        .map(|i| Coordinate {
+            name: format!("weight[{i}]"),
+            dimension: Some("component".into()),
+            coordinate: Some(i.to_string()),
+            block: Some("weights".into()),
+        })
+        .collect::<Vec<_>>()
+        .into();
+    let schema = NamedOutput::new(
+        coordinates,
+        ParameterLayout::new([Transform::simplex(3).unwrap()]).unwrap(),
+        (),
+    )
+    .unwrap();
+    let fit = NamedFit::new(schema, r).unwrap();
+    assert_eq!(fit.estimates().unwrap().len(), 3);
+    assert!((fit.estimates().unwrap().iter().sum::<f64>() - 1.).abs() < 1e-15);
+    assert_eq!(fit.result().candidate.as_ref().unwrap().gradient.len(), 2);
+}

@@ -81,3 +81,25 @@ against analytic results, the distinct transformed-density mode, and a conjugate
 posterior mode. Optimizer fault/budget/cancellation and nonlinear tests live in
 runtime `tests/optimize.rs`; the shared inverse-BFGS action has an independent
 dense-update oracle in math `tests/quasi_newton.rs`.
+
+The fixed-design batch factors are checked against scalar assembly and finite
+differences in `crates/alea-distributions/tests/regression.rs`. Named fitted
+Gaussian/Bernoulli/Poisson examples use analytic coefficient solutions, including
+explicit Poisson log exposures. A release-build scalar/batch benchmark is available:
+
+```sh
+cargo build --manifest-path tools/downstream-conformance/Cargo.toml --release \
+  --example regression_benchmark --locked
+python3 tools/downstream-conformance/python/benchmark_regression.py \
+  tools/downstream-conformance/target/release/examples/regression_benchmark results-new.json
+```
+
+Run measurements without concurrent build/test jobs. The default plan has three
+fresh-process runs per family/mode at 10, 1,000 and 1,000,000 rows. It records graph
+expressions, construction, fused evaluation, local fitting, work counters, final
+scores, exact binary/source hashes and Linux peak process RSS. Synthetic data and
+per-observation score tolerances are fixed in the source. Ratios require matching
+likelihood/gradient/estimates and the same satisfied stopping criterion; failed
+searches remain in the report without a favorable ratio. RSS includes the entire
+benchmark process, not just the graph. These are CPU measurements of two explicit
+predictors on one host, not comparisons with other inference libraries.

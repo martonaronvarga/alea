@@ -441,6 +441,7 @@ impl core::marker::Copy for alea_core::model::assembly::UnitSphere
 pub struct alea_core::model::assembly::CompiledModel
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::coordinates(&self) -> alloc::sync::Arc<[alea_core::model::assembly::Coordinate]>
+pub fn alea_core::model::assembly::CompiledModel::expression_count(&self) -> usize
 pub fn alea_core::model::assembly::CompiledModel::into_objective(self) -> core::result::Result<alea_core::model::ComposedObjective<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
 pub fn alea_core::model::assembly::CompiledModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
 pub fn alea_core::model::assembly::CompiledModel::layout(&self) -> &alea_core::transform::ParameterLayout
@@ -804,6 +805,7 @@ pub fn alea_core::model::prediction::PredictionError<E>::from(source: alea_core:
 pub struct alea_core::prelude::CompiledModel
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::coordinates(&self) -> alloc::sync::Arc<[alea_core::model::assembly::Coordinate]>
+pub fn alea_core::model::assembly::CompiledModel::expression_count(&self) -> usize
 pub fn alea_core::model::assembly::CompiledModel::into_objective(self) -> core::result::Result<alea_core::model::ComposedObjective<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
 pub fn alea_core::model::assembly::CompiledModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
 pub fn alea_core::model::assembly::CompiledModel::layout(&self) -> &alea_core::transform::ParameterLayout

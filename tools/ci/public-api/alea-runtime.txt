@@ -301,6 +301,15 @@ impl core::fmt::Debug for alea_runtime::optimize::OptimizationTermination
 pub fn alea_runtime::optimize::OptimizationTermination::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_runtime::optimize::OptimizationTermination
 impl core::marker::StructuralPartialEq for alea_runtime::optimize::OptimizationTermination
+pub struct alea_runtime::optimize::FitProjectionError
+pub alea_runtime::optimize::FitProjectionError::result: alloc::boxed::Box<alea_runtime::optimize::OptimizationResult>
+pub alea_runtime::optimize::FitProjectionError::source: alea_core::error::TransformError
+impl core::error::Error for alea_runtime::optimize::FitProjectionError
+pub fn alea_runtime::optimize::FitProjectionError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl core::fmt::Debug for alea_runtime::optimize::FitProjectionError
+pub fn alea_runtime::optimize::FitProjectionError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_runtime::optimize::FitProjectionError
+pub fn alea_runtime::optimize::FitProjectionError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_runtime::optimize::InvalidOptimization
 impl core::clone::Clone for alea_runtime::optimize::InvalidOptimization
 pub fn alea_runtime::optimize::InvalidOptimization::clone(&self) -> alea_runtime::optimize::InvalidOptimization
@@ -333,6 +342,18 @@ impl core::clone::Clone for alea_runtime::optimize::LbfgsOptions
 pub fn alea_runtime::optimize::LbfgsOptions::clone(&self) -> alea_runtime::optimize::LbfgsOptions
 impl core::fmt::Debug for alea_runtime::optimize::LbfgsOptions
 pub fn alea_runtime::optimize::LbfgsOptions::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_runtime::optimize::NamedFit
+impl alea_runtime::optimize::NamedFit
+pub fn alea_runtime::optimize::NamedFit::estimate(&self, name: &str) -> core::option::Option<f64>
+pub fn alea_runtime::optimize::NamedFit::estimates(&self) -> core::option::Option<&[f64]>
+pub fn alea_runtime::optimize::NamedFit::into_result(self) -> alea_runtime::optimize::OptimizationResult
+pub fn alea_runtime::optimize::NamedFit::new(parameters: alea_core::model::prediction::NamedOutput<()>, result: alea_runtime::optimize::OptimizationResult) -> core::result::Result<Self, alea_runtime::optimize::FitProjectionError>
+pub fn alea_runtime::optimize::NamedFit::parameters(&self) -> &alea_core::model::prediction::NamedOutput<()>
+pub fn alea_runtime::optimize::NamedFit::result(&self) -> &alea_runtime::optimize::OptimizationResult
+impl core::clone::Clone for alea_runtime::optimize::NamedFit
+pub fn alea_runtime::optimize::NamedFit::clone(&self) -> alea_runtime::optimize::NamedFit
+impl core::fmt::Debug for alea_runtime::optimize::NamedFit
+pub fn alea_runtime::optimize::NamedFit::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_runtime::optimize::ObjectiveDescription
 pub alea_runtime::optimize::ObjectiveDescription::data: alloc::string::String
 pub alea_runtime::optimize::ObjectiveDescription::kind: alea_runtime::optimize::ObjectiveKind
@@ -369,6 +390,7 @@ impl<E: core::fmt::Debug + core::error::Error + 'static> core::fmt::Debug for al
 pub fn alea_runtime::optimize::OptimizationError<E>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_runtime::optimize::OptimizationResult
 pub alea_runtime::optimize::OptimizationResult::candidate: core::option::Option<alea_runtime::optimize::OptimizationCandidate>
+pub alea_runtime::optimize::OptimizationResult::dimension: usize
 pub alea_runtime::optimize::OptimizationResult::domain_trials: usize
 pub alea_runtime::optimize::OptimizationResult::evaluations: usize
 pub alea_runtime::optimize::OptimizationResult::iterations: usize

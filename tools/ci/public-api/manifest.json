@@ -23,13 +23,13 @@
     },
     "alea-core": {
       "file": "alea-core.txt",
-      "items": 1270,
-      "sha256": "4e89127d03e9d9bfa66a7d81df171cdbb2aa87b72d1c35274371fc86341bb6a8"
+      "items": 1272,
+      "sha256": "4a5e87268f13b06dcfe5efaabb93315d3895cf3d5780a47cc045b524656b447a"
     },
     "alea-distributions": {
       "file": "alea-distributions.txt",
-      "items": 4413,
-      "sha256": "943bd333f094445745d525c18d1e03fba4dd151467435eda897d7691660dc092"
+      "items": 4450,
+      "sha256": "11c3f5e20a4dcba906b660aae41722e26ce4bf8cd6b2a5197f7bf46774293c91"
     },
     "alea-ffi": {
       "file": "alea-ffi.txt",
@@ -38,8 +38,8 @@
     },
     "alea-math": {
       "file": "alea-math.txt",
-      "items": 716,
-      "sha256": "9e92aa2a7ac7b41bc9db1bd3aed9622761f1077d7092ed20dbc92a75fb2342e4"
+      "items": 727,
+      "sha256": "0b41cb895c20f5fe8590f76bb0ab5e94d5eb2c7f23e62e7f3107e4a274be9a6f"
     },
     "alea-mcmc": {
       "file": "alea-mcmc.txt",
@@ -48,8 +48,8 @@
     },
     "alea-runtime": {
       "file": "alea-runtime.txt",
-      "items": 966,
-      "sha256": "b7db6a3a89dc3993cde97b133d30279e7b889af6b71236f99184644b03b07baf"
+      "items": 988,
+      "sha256": "2fe5fe0e5644be7e20add5df3ca824ed1be6170d728101f5111054958be31f53"
     },
     "alea-smc": {
       "file": "alea-smc.txt",
@@ -109,8 +109,8 @@
     },
     "alea-runtime+analysis": {
       "file": "alea-runtime+analysis.txt",
-      "items": 1093,
-      "sha256": "900ddb9d6e6d7cd6918f5cc4fc81ab19deef8c808806ac9c7745e3aeb5268033"
+      "items": 1115,
+      "sha256": "05ceb1cfccda3da47833bb3a1a9f72bb4df0db1319a10ea1e6dcc1e4eb0bbdfa"
     },
     "alea+distributions": {
       "file": "alea+distributions.txt",
@@ -134,8 +134,8 @@
     },
     "alea-math+faer": {
       "file": "alea-math+faer.txt",
-      "items": 734,
-      "sha256": "46c9f0512ff264420bf601bb1b00ac9b906e5dd796b7f08c7ba9f870c50366f8"
+      "items": 745,
+      "sha256": "071beee5b4b25d67d65f9b1e199cf0924018eed0089904886c04cf99749add79"
     },
     "alea-mcmc+faer": {
       "file": "alea-mcmc+faer.txt",

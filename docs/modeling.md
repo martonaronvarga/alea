@@ -265,21 +265,23 @@ objective. Select the statistical factors first. Use `into_objective()` for MLE
 or MAP in the original parameter measure; retain `into_target()` for sampling.
 
 ```rust
-use alea::distributions::modeling::normal_observation;
-use alea::model::assembly::ModelBuilder;
+use alea::distributions::modeling::regression::{normal_regression, RegressionData};
+use alea::model::{assembly::ModelBuilder, prediction::NamedOutput};
 use alea::optimize::{
-    maximize, LbfgsOptions, ObjectiveDescription, ObjectiveKind, OptimizationTermination,
+    maximize, LbfgsOptions, NamedFit, ObjectiveDescription, ObjectiveKind, OptimizationTermination,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut b = ModelBuilder::new();
     let mean = b.real("mean")?;
     let sigma = b.positive("sigma")?;
-    for (i, y) in [0.0, 1.0, 2.0].into_iter().enumerate() {
-        let term = normal_observation(&mut b, y, mean.expr(), &sigma)?;
-        b.likelihood(&format!("measurement {i}"), term)?;
-    }
-    let objective = b.compile()?.select_likelihood()?.into_objective()?;
+    // One explicit intercept column; no intercept is inserted automatically.
+    let data = RegressionData::new(1, vec![1.0; 3], vec![0.0, 1.0, 2.0])?;
+    let term = normal_regression(&mut b, &[mean.expr()], &sigma, data)?;
+    b.likelihood("measurements", term)?;
+    let model = b.compile()?;
+    let parameters = NamedOutput::new(model.coordinates(), model.layout().clone(), ())?;
+    let objective = model.select_likelihood()?.into_objective()?;
     let description = ObjectiveDescription {
         kind: ObjectiveKind::Likelihood,
         measure: "Lebesgue in mean and sigma".into(),
@@ -293,13 +295,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if result.termination != OptimizationTermination::ScoreTolerance {
         return Err(format!("search stopped: {:?}", result.termination).into());
     }
-    let candidate = result.candidate.ok_or("no evaluated candidate")?;
-    let mut estimates = vec![0.0; objective.layout().constrained_dimension()];
-    let mut scratch = vec![0.0; objective.layout().scratch_dimension()];
-    objective.layout().constrain_values(&candidate.position, &mut estimates, &mut scratch)?;
-    println!("mean = {}, sigma = {}", estimates[0], estimates[1]);
-    assert!((estimates[0] - 1.0).abs() < 1e-5);
-    assert!((estimates[1] - (2.0_f64 / 3.0).sqrt()).abs() < 1e-5);
+    let fit = NamedFit::new(parameters, result)?;
+    let mean = fit.estimate("mean").ok_or("no mean estimate")?;
+    let sigma = fit.estimate("sigma").ok_or("no scale estimate")?;
+    println!("mean = {mean}, sigma = {sigma}");
+    assert!((mean - 1.0).abs() < 1e-5);
+    assert!((sigma - (2.0_f64 / 3.0).sqrt()).abs() < 1e-5);
     Ok(())
 }
 ```
@@ -331,6 +332,47 @@ standard errors. The inverse-BFGS preconditioner is not a validated covariance
 estimate. Pathfinder shares the numerical inverse-BFGS action but retains its
 separate approximation selection and resampling workflow; see the
 [Pathfinder reference](https://mc-stan.org/docs/reference-manual/pathfinder.html).
+
+## Batch regression likelihoods
+
+`alea::distributions::modeling::regression` supplies three analytic batch factors:
+
+| Function | Response | Linear predictor |
+| --- | --- | --- |
+| `normal_regression` | Finite real values | Mean, with a shared positive residual standard deviation |
+| `bernoulli_logit_regression` | Boolean outcomes | Log odds |
+| `poisson_log_regression` | Unsigned integer counts, at most 2^53 | Log rate |
+
+`RegressionData::new(columns, design, observations)` takes a row-major design.
+Its columns correspond exactly to the coefficient expressions you supply. Include
+a column of ones for an intercept. `with_offsets` adds an explicit offset to each
+linear predictor; Poisson exposure `e > 0` is supplied as `ln(e)`, not `e`. Empty
+data, shape mismatches and nonfinite inputs are rejected rather than dropped.
+Zero columns permit an offset-only likelihood.
+
+The factors retain one graph node per batch regardless of row count; dataset
+storage still grows with the observations. Values, predictors and score reductions
+use compensated summation, and each fused call allocates temporary score storage
+proportional to the number of coefficients. Captured data cannot currently be
+exported as an Enzyme primal; the analytic scores work on stable Rust.
+
+Each returned factor is joint over its batch. Choose separate batches when you
+need separately declared pointwise predictive units; attaching observation IDs
+does not split an aggregated factor. Chunked batches produce the same mathematical
+likelihood, with ordinary floating-point reduction differences.
+
+`NamedFit` attaches validated parameter metadata and constrains the final candidate
+without a Jacobian. `estimates()` follows the constrained names in `parameters()`;
+`result()` retains the free-coordinate gradient, stopping condition and counters.
+A simplex can therefore have more named values than free coordinates. No candidate
+means no estimates. A failed projection returns the original numerical result.
+Metadata must describe the objective you actually fitted; dimensions alone cannot
+establish that identity.
+
+These likelihood factors do not establish design rank or finite estimator
+existence. Perfect Gaussian fits, separated binary outcomes and all-zero Poisson
+counts need problem-specific assessment. A small score in such a problem is not
+proof of a finite MLE. No standard errors are inferred from L-BFGS history.
 
 ## Pointwise likelihoods and predictive units
 
