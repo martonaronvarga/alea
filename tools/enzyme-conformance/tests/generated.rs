@@ -231,3 +231,89 @@ fn rounded_singular_covariances_and_collapsed_intervals_fail_all_derivative_path
     reject(generated::interval::target(), &[1000.0]);
     reject(generated::correlation::target(), &[1000.0]);
 }
+
+fn objective_check<T: PotentialHessianDerivative>(
+    model: alea::model::assembly::CompiledModel,
+    generated: T,
+) {
+    let d = model.layout().unconstrained_dimension();
+    let objective = model.into_objective().unwrap();
+    for scale in [-0.4, 0., 0.5] {
+        let q: Vec<_> = (0..d).map(|i| scale + 0.03 * i as f64).collect();
+        let mut g = vec![0.; d];
+        let mut reference = g.clone();
+        close(
+            generated.logp_grad(&q, &mut g).unwrap(),
+            objective.logp_grad(&q, &mut reference).unwrap(),
+            1e-11,
+        );
+        for (a, b) in g.iter().zip(&reference) {
+            close(*a, *b, 1e-10);
+        }
+        let mut h = vec![0.; d * d];
+        let mut third = vec![0.; d * d * d];
+        generated
+            .potential_hessian_and_derivatives(&q, &mut h, &mut third)
+            .unwrap();
+        for k in 0..d {
+            let step = 1e-5;
+            let mut plus = q.clone();
+            let mut minus = q.clone();
+            plus[k] += step;
+            minus[k] -= step;
+            let mut gp = vec![0.; d];
+            let mut gm = gp.clone();
+            objective.logp_grad(&plus, &mut gp).unwrap();
+            objective.logp_grad(&minus, &mut gm).unwrap();
+            for i in 0..d {
+                close(h[i * d + k], -(gp[i] - gm[i]) / (2. * step), 2e-6);
+            }
+        }
+        assert!(third.iter().all(|x| x.is_finite()));
+    }
+}
+
+#[test]
+fn objective_generated_scores_and_curvature_match_every_chart() {
+    macro_rules! check { ($($name:ident),* $(,)?) => {$(
+        let model=models::all().unwrap().into_iter().find(|(name,_)|*name==stringify!($name)).unwrap().1;
+        objective_check(model,generated::$name::composition::objective());
+    )*}; }
+    check!(
+        polynomial,
+        regression,
+        logistic,
+        interval,
+        lower,
+        upper,
+        ordered,
+        positive_ordered,
+        simplex,
+        unit_vector,
+        cholesky_covariance,
+        cholesky_correlation,
+        covariance,
+        correlation,
+        covariance3,
+        correlation3,
+        gaussian16
+    );
+}
+
+#[test]
+fn objective_higher_derivatives_include_chart_curvature_but_no_density_terms() {
+    let t = generated::lower::composition::objective();
+    for q in [-0.7_f64, 0., 0.4] {
+        let e = q.exp();
+        let x = -2. + e;
+        let mut g = [0.];
+        let mut h = [0.];
+        let mut third = [0.];
+        close(t.logp_grad(&[q], &mut g).unwrap(), -0.5 * x * x, 1e-13);
+        close(g[0], -x * e, 1e-13);
+        t.potential_hessian_and_derivatives(&[q], &mut h, &mut third)
+            .unwrap();
+        close(h[0], e * e + x * e, 1e-13);
+        close(third[0], 3. * e * e + x * e, 1e-13);
+    }
+}

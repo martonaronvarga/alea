@@ -122,3 +122,18 @@ Dense Hessians and third derivative tensors become expensive as dimension grows.
 Use a Hessian-vector product when an algorithm needs only directional curvature.
 Generated derivatives do not change a sampler's numerical assumptions or make an
 implicit transition exact by themselves.
+
+## Compiled scalar objectives
+
+Use `alea::autodiff::codegen::enzyme_objective_source(&model)` to generate a
+composed scalar objective rather than a transformed sampling density. The emitted
+module exports `value(q)` and `objective()`. The latter supplies fused scores,
+potential Hessian-vector products, Hessians and third derivatives using the same
+calling conventions as generated targets.
+
+The objective includes all model factors and parameter charts, with no
+log-Jacobian in its value or derivatives. Parameter-domain admission remains
+checked, including rounded positive definiteness for matrix charts. Higher
+derivatives include the curvature of nonlinear charts; they are not obtained by
+only multiplying the physical Hessian by two Jacobians. The potential convention
+is `U = -objective_value` for these derivatives.

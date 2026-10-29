@@ -175,3 +175,51 @@ impl ParameterLayout {
         Ok(())
     }
 }
+
+impl ParameterLayout {
+    /// Constrains parameter values without a density-change determinant.
+    /// Errors carry block-local indices, as with `constrain`.
+    /// # Errors
+    /// Rejects shape, input, domain, precision and output failures.
+    pub fn constrain_values(
+        &self,
+        q: &[f64],
+        x: &mut [f64],
+        scratch: &mut [f64],
+    ) -> Result<(), TransformError> {
+        self.check(q, x, scratch)?;
+        finite(q)?;
+        for block in &self.blocks {
+            block.transform.constrain_values(
+                &q[block.unconstrained.clone()],
+                &mut x[block.constrained.clone()],
+                scratch,
+            )?;
+        }
+        Ok(())
+    }
+    /// Pulls back a scalar objective gradient with no log-Jacobian contribution.
+    /// # Errors
+    /// Rejects shape, nonfinite input and pullback arithmetic failures.
+    pub fn pullback_composition(
+        &self,
+        q: &[f64],
+        gx: &[f64],
+        gq: &mut [f64],
+        scratch: &mut [f64],
+    ) -> Result<(), TransformError> {
+        self.check(q, gx, scratch)?;
+        shape(self.input, gq.len())?;
+        finite(q)?;
+        finite(gx)?;
+        for block in &self.blocks {
+            block.transform.pullback_composition(
+                &q[block.unconstrained.clone()],
+                &gx[block.constrained.clone()],
+                &mut gq[block.unconstrained.clone()],
+                scratch,
+            )?;
+        }
+        Ok(())
+    }
+}

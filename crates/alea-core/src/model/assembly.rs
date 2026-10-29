@@ -505,6 +505,17 @@ impl CompiledModel {
     pub fn layout(&self) -> &ParameterLayout {
         &self.layout
     }
+    /// Composes all declared factors with their parameter charts without density
+    /// Jacobians. This selects no factors: priors/penalties already in the graph
+    /// remain present, so a likelihood objective must be assembled explicitly.
+    /// # Errors
+    /// Rejects a model/layout dimension mismatch.
+    pub fn into_objective(
+        self,
+    ) -> Result<super::ComposedObjective<Self>, super::ModelError<AssemblyError>> {
+        let layout = self.layout.clone();
+        super::ComposedObjective::new(self, layout)
+    }
     /// Applies the single Jacobian boundary for all declared coordinates.
     /// # Errors
     /// Returns a model/layout dimension error.

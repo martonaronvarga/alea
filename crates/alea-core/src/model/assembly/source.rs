@@ -19,12 +19,27 @@ impl CompiledModel {
     /// Returns [`AssemblyError::MissingPrimal`] for any opaque node without an
     /// explicit Rust primal. There is no analytic or finite-difference fallback.
     pub fn rust_primal(&self) -> Result<String, AssemblyError> {
+        self.rust_mapped_primal(true)
+    }
+
+    /// Emits the scalar composed objective f(T(q)), with no log-Jacobian code.
+    /// All factors are retained; this does not classify them as likelihoods.
+    /// # Errors
+    /// Rejects opaque nodes without an explicit primal, as `rust_primal` does.
+    pub fn rust_objective_primal(&self) -> Result<String, AssemblyError> {
+        self.rust_mapped_primal(false)
+    }
+
+    fn rust_mapped_primal(&self, density: bool) -> Result<String, AssemblyError> {
         let mut source = String::new();
-        source.push_str("let mut jacobian = 0.0_f64;\n");
+        if density {
+            source.push_str("let mut jacobian = 0.0_f64;\n");
+        }
         for block in self.layout.blocks() {
             source.push_str(&block.transform().rust_primal(
                 block.unconstrained_range().start,
                 block.constrained_range().start,
+                density,
             ));
         }
         for (i, op) in self.nodes.iter().enumerate() {
@@ -65,7 +80,11 @@ impl CompiledModel {
         for i in &self.factors {
             writeln!(source, "total += n{i};").unwrap();
         }
-        source.push_str("total + jacobian\n");
+        source.push_str(if density {
+            "total + jacobian\n"
+        } else {
+            "total\n"
+        });
         Ok(source)
     }
 
@@ -76,9 +95,19 @@ impl CompiledModel {
     /// positive-definiteness checks outside AD. Other transforms validate their
     /// support in the primal itself. This body performs no model/score evaluation.
     pub fn rust_validation(&self) -> String {
+        self.rust_mapped_validation(true)
+    }
+
+    /// Emits rounded-domain admission for `rust_objective_primal` without
+    /// requesting a density-change determinant.
+    pub fn rust_objective_validation(&self) -> String {
+        self.rust_mapped_validation(false)
+    }
+
+    fn rust_mapped_validation(&self, density: bool) -> String {
         let mut source = String::new();
         for block in self.layout.blocks() {
-            if let Some(validation) = block.transform().rust_validation() {
+            if let Some(validation) = block.transform().rust_validation(density) {
                 let input = block.unconstrained_range();
                 writeln!(
                     source,

@@ -6,6 +6,9 @@ macro_rules! generated {
     ($($name:ident),* $(,)?) => {$(
         pub mod $name {
             include!(concat!(env!("OUT_DIR"), "/", stringify!($name), ".rs"));
+            pub mod composition {
+                include!(concat!(env!("OUT_DIR"), "/", stringify!($name), "_objective.rs"));
+            }
         }
     )*};
 }

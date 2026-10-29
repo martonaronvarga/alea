@@ -127,6 +127,15 @@ impl<M: ConstrainedModel> crate::target::TargetSpace for TransformedTarget<M> {
 }
 impl<M: ConstrainedModel> LogDensityGradient for TransformedTarget<M> {
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
+        self.evaluate_mapped::<true>(q, g)
+    }
+}
+impl<M: ConstrainedModel> TransformedTarget<M> {
+    fn evaluate_mapped<const DENSITY: bool>(
+        &self,
+        q: &[f64],
+        g: &mut [f64],
+    ) -> Result<f64, ModelError<M::Error>> {
         if q.len() != self.dimension()
             || g.len() != self.dimension()
             || self.model.dimension() != self.layout.constrained_dimension()
@@ -143,17 +152,63 @@ impl<M: ConstrainedModel> LogDensityGradient for TransformedTarget<M> {
             gradient,
             scratch,
         } = &mut *workspace;
-        let jac = self.layout.constrain(q, parameters, scratch)?;
+        let jac = if DENSITY {
+            self.layout.constrain(q, parameters, scratch)?
+        } else {
+            self.layout.constrain_values(q, parameters, scratch)?;
+            0.0
+        };
         let logp = target::evaluate(&ModelView(&self.model), parameters, constrained_gradient)
             .map_err(ModelError::Evaluation)?;
-        let total = logp + jac;
+        let total = if DENSITY { logp + jac } else { logp };
         if !total.is_finite() {
             return Err(ModelError::Evaluation(EvaluationError::NonFiniteLogDensity));
         }
-        self.layout
-            .pullback(q, constrained_gradient, gradient, scratch)?;
+        if DENSITY {
+            self.layout
+                .pullback(q, constrained_gradient, gradient, scratch)?;
+        } else {
+            self.layout
+                .pullback_composition(q, constrained_gradient, gradient, scratch)?;
+        }
         g.copy_from_slice(gradient);
         Ok(total)
+    }
+}
+
+/// A scalar model composed with its parameter chart: f(T(q)).
+/// Unlike `TransformedTarget`, neither value nor gradient includes a change-of-
+/// variables determinant. Suitable for likelihood or declared-measure MAP
+/// objectives, provided the model contains exactly the intended factors.
+/// This adapter does not identify factors as likelihoods or certify an estimator.
+/// Scratch is chain/optimizer-local; failed evaluations preserve caller gradients.
+pub struct ComposedObjective<M> {
+    coordinates: TransformedTarget<M>,
+}
+impl<M: ConstrainedModel> ComposedObjective<M> {
+    /// # Errors
+    /// Rejects mismatched model and constrained layout dimensions.
+    pub fn new(model: M, layout: ParameterLayout) -> Result<Self, ModelError<M::Error>> {
+        Ok(Self {
+            coordinates: TransformedTarget::new(model, layout)?,
+        })
+    }
+    pub fn layout(&self) -> &ParameterLayout {
+        self.coordinates.layout()
+    }
+    pub fn model(&self) -> &M {
+        self.coordinates.model()
+    }
+}
+impl<M: ConstrainedModel> TargetSpace for ComposedObjective<M> {
+    type Error = ModelError<M::Error>;
+    fn dimension(&self) -> usize {
+        self.coordinates.dimension()
+    }
+}
+impl<M: ConstrainedModel> LogDensityGradient for ComposedObjective<M> {
+    fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
+        self.coordinates.evaluate_mapped::<false>(q, gradient)
     }
 }
 

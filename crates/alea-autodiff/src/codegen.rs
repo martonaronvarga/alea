@@ -17,15 +17,48 @@ use alea_core::model::assembly::{AssemblyError, CompiledModel};
 /// # Errors
 /// Rejects zero unconstrained dimension and opaque nodes without a Rust primal.
 pub fn enzyme_source(model: &CompiledModel) -> Result<String, AssemblyError> {
-    let body = model.rust_primal()?;
+    mapped_source(model, true)
+}
+
+/// Emits `value` and `objective` functions for f(T(q)), without transform
+/// Jacobians in the value or any derivative. All model factors are retained;
+/// the caller specifies whether these define a likelihood or a MAP objective.
+/// The returned higher derivatives are of negative objective, as required by
+/// `PotentialHessianDerivative`. Uses the same bounded, allocation-free generated
+/// derivative path as `enzyme_source`.
+/// # Errors
+/// Rejects zero free dimension or an opaque factor without a scalar primal.
+pub fn enzyme_objective_source(model: &CompiledModel) -> Result<String, AssemblyError> {
+    mapped_source(model, false)
+}
+
+fn mapped_source(model: &CompiledModel, density: bool) -> Result<String, AssemblyError> {
+    let body = if density {
+        model.rust_primal()?
+    } else {
+        model.rust_objective_primal()?
+    };
     let dimension = model.layout().unconstrained_dimension();
     if dimension == 0 {
         return Err(AssemblyError::Empty);
     }
+    let validation = if density {
+        model.rust_validation()
+    } else {
+        model.rust_objective_validation()
+    };
     Ok(TEMPLATE
         .replace("__DIMENSION__", &dimension.to_string())
         .replace("__PRIMAL__", &body)
-        .replace("__VALIDATION__", &model.rust_validation()))
+        .replace("__VALIDATION__", &validation)
+        .replace(
+            "__PUBLIC_VALUE__",
+            if density { "log_density" } else { "value" },
+        )
+        .replace(
+            "__PUBLIC_TARGET__",
+            if density { "target" } else { "objective" },
+        ))
 }
 
 const TEMPLATE: &str = r#"
@@ -44,7 +77,7 @@ fn __valid(q: &[f64; DIMENSION]) -> bool {
     __VALIDATION__
 }
 
-pub fn log_density(q: &[f64; DIMENSION]) -> f64 {
+pub fn __PUBLIC_VALUE__(q: &[f64; DIMENSION]) -> f64 {
     if q.iter().any(|x| !x.is_finite()) || !__valid(q) { f64::NAN } else { __log_density(q) }
 }
 
@@ -59,7 +92,7 @@ fn __hvp(q: &[f64; DIMENSION], v: &[f64; DIMENSION], h: &mut [f64; DIMENSION]) -
     __gradient_jvp(q, v, &mut g, h)
 }
 
-pub fn target() -> impl ::alea::capability::PotentialHessianDerivative<Error = ::alea::autodiff::autodiff::AutodiffError> {
+pub fn __PUBLIC_TARGET__() -> impl ::alea::capability::PotentialHessianDerivative<Error = ::alea::autodiff::autodiff::AutodiffError> {
     ::alea::autodiff::autodiff::EnzymeHigherOrderTarget::new(
         DIMENSION,
         |q: &[f64], g: &mut [f64], seed: f64| {

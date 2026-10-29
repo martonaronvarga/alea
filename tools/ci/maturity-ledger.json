@@ -1889,6 +1889,12 @@
     },
     {
       "crate": "alea-autodiff",
+      "item": "pub fn alea_autodiff::codegen::enzyme_objective_source(model: &alea_core::model::assembly::CompiledModel) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-autodiff",
       "item": "pub fn alea_autodiff::codegen::enzyme_source(model: &alea_core::model::assembly::CompiledModel) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
       "profile": "research_utility",
       "promotion_gate": "Broaden generated-source, compiler-version and external-primal portability evidence."
@@ -3234,13 +3240,31 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl<M: alea_core::model::ConstrainedModel> alea_core::model::ComposedObjective<M>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl<M: alea_core::model::ConstrainedModel> alea_core::model::TransformedTarget<M>",
       "profile": "validated_component_reference"
     },
     {
       "crate": "alea-core",
+      "item": "impl<M: alea_core::model::ConstrainedModel> alea_core::target::LogDensityGradient for alea_core::model::ComposedObjective<M>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl<M: alea_core::model::ConstrainedModel> alea_core::target::LogDensityGradient for alea_core::model::TransformedTarget<M>",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl<M: alea_core::model::ConstrainedModel> alea_core::target::TargetSpace for alea_core::model::ComposedObjective<M>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -5094,6 +5118,36 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::ComposedObjective<M>::dimension(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::ComposedObjective<M>::layout(&self) -> &alea_core::transform::ParameterLayout",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::ComposedObjective<M>::logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::ComposedObjective<M>::model(&self) -> &M",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::ComposedObjective<M>::new(model: M, layout: alea_core::transform::ParameterLayout) -> core::result::Result<Self, alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::ConstrainedModel::dimension(&self) -> usize",
       "profile": "validated_component_reference"
     },
@@ -5275,6 +5329,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::into_objective(self) -> core::result::Result<alea_core::model::ComposedObjective<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::CompiledModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>",
       "profile": "validated_component_opt_in"
     },
@@ -5287,6 +5347,18 @@
       "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::CompiledModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_objective_validation(&self) -> alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -5963,6 +6035,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::transform::ParameterLayout::constrain_values(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::transform::ParameterLayout::constrained_dimension(&self) -> usize",
       "profile": "validated_component_reference"
     },
@@ -5985,6 +6063,12 @@
       "crate": "alea-core",
       "item": "pub fn alea_core::transform::ParameterLayout::pullback(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::transform::ParameterLayout::pullback_composition(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -6020,6 +6104,12 @@
       "crate": "alea-core",
       "item": "pub fn alea_core::transform::Transform::constrain(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_core::transform::TransformError>",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::transform::Transform::constrain_values(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -6086,6 +6176,12 @@
       "crate": "alea-core",
       "item": "pub fn alea_core::transform::Transform::pullback(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::transform::Transform::pullback_composition(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -6298,6 +6394,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub struct alea_core::model::ComposedObjective<M>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub struct alea_core::model::PrimitiveModel<P, const N: usize>(pub P)",
       "profile": "validated_component_reference"
     },
@@ -6356,6 +6458,12 @@
       "crate": "alea-core",
       "item": "pub struct alea_core::prelude::CompiledModel",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::prelude::ComposedObjective<M>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -6584,6 +6692,12 @@
       "crate": "alea-core",
       "item": "pub type alea_core::model::AnalyticModel<F>::Error = E",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub type alea_core::model::ComposedObjective<M>::Error = alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",

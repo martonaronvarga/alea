@@ -255,10 +255,32 @@ impl Transform {
         x: &mut [f64],
         scratch: &mut [f64],
     ) -> Result<f64, TransformError> {
+        self.constrain_impl::<true>(q, x, scratch)
+    }
+
+    /// Maps coordinates without calculating a density-change determinant.
+    /// Use for scalar objective composition and generated parameter values.
+    /// # Errors
+    /// Preserves shape, input, domain and representability checks of `constrain`.
+    pub fn constrain_values(
+        &self,
+        q: &[f64],
+        x: &mut [f64],
+        scratch: &mut [f64],
+    ) -> Result<(), TransformError> {
+        self.constrain_impl::<false>(q, x, scratch).map(|_| ())
+    }
+
+    fn constrain_impl<const DENSITY: bool>(
+        &self,
+        q: &[f64],
+        x: &mut [f64],
+        scratch: &mut [f64],
+    ) -> Result<f64, TransformError> {
         self.check(q, x, scratch, false)?;
         let mut jac = 0.0;
         match self.kind {
-            Kind::Matrix { .. } => jac = self.matrix_constrain(q, x, scratch)?,
+            Kind::Matrix { .. } => jac = self.matrix_constrain::<DENSITY>(q, x, scratch)?,
             Kind::Identity => x.copy_from_slice(q),
             Kind::Lower(bound) | Kind::Upper(bound) => {
                 let lower = matches!(self.kind, Kind::Lower(_));
@@ -271,7 +293,9 @@ impl Transform {
                     if *value == bound {
                         return Err(TransformError::PrecisionLoss { index: i });
                     }
-                    jac += u;
+                    if DENSITY {
+                        jac += u;
+                    }
                 }
             }
             Kind::Interval {
@@ -289,7 +313,9 @@ impl Transform {
                     if *value <= lower || *value >= upper {
                         return Err(TransformError::PrecisionLoss { index: i });
                     }
-                    jac += width.ln() + log_product;
+                    if DENSITY {
+                        jac += width.ln() + log_product;
+                    }
                 }
             }
             Kind::Ordered { positive } => {
@@ -298,7 +324,9 @@ impl Transform {
                     *value = if i == 0 && !positive {
                         u
                     } else {
-                        jac += u;
+                        if DENSITY {
+                            jac += u;
+                        }
                         previous + u.exp()
                     };
                     if (i > 0 || positive) && *value <= previous {
@@ -311,7 +339,9 @@ impl Transform {
                 let mut remaining: f64 = 1.0;
                 for (i, &u) in q.iter().enumerate() {
                     let (v, c, lp) = sigmoid(u - ((self.input - i) as f64).ln());
-                    jac += remaining.ln() + lp;
+                    if DENSITY {
+                        jac += remaining.ln() + lp;
+                    }
                     x[i] = remaining * v;
                     remaining *= c;
                     if x[i] <= 0.0 || remaining <= 0.0 || v == 1.0 {
@@ -330,7 +360,9 @@ impl Transform {
                 if !d.is_finite() || x[self.input] == 1.0 {
                     return Err(TransformError::PrecisionLoss { index: self.input });
                 }
-                jac = self.input as f64 * (std::f64::consts::LN_2 - d.ln());
+                if DENSITY {
+                    jac = self.input as f64 * (std::f64::consts::LN_2 - d.ln());
+                }
             }
         }
         output_finite(x)?;
@@ -429,6 +461,31 @@ impl Transform {
         gq: &mut [f64],
         scratch: &mut [f64],
     ) -> Result<(), TransformError> {
+        self.pullback_impl::<true>(q, gx, gq, scratch)
+    }
+
+    /// Writes J(T)ᵀ times an ambient constrained gradient, without a log-Jacobian
+    /// derivative. This is the chain rule for a scalar objective, not a density.
+    /// Call `constrain_values` first to admit the represented parameter values.
+    /// # Errors
+    /// Returns shape, nonfinite input or pullback arithmetic failures.
+    pub fn pullback_composition(
+        &self,
+        q: &[f64],
+        gx: &[f64],
+        gq: &mut [f64],
+        scratch: &mut [f64],
+    ) -> Result<(), TransformError> {
+        self.pullback_impl::<false>(q, gx, gq, scratch)
+    }
+
+    fn pullback_impl<const DENSITY: bool>(
+        &self,
+        q: &[f64],
+        gx: &[f64],
+        gq: &mut [f64],
+        scratch: &mut [f64],
+    ) -> Result<(), TransformError> {
         shape(self.input, q.len())?;
         shape(self.output, gx.len())?;
         shape(self.input, gq.len())?;
@@ -441,7 +498,7 @@ impl Transform {
         finite(q)?;
         finite(gx)?;
         match self.kind {
-            Kind::Matrix { .. } => self.matrix_pullback(q, gx, gq, scratch)?,
+            Kind::Matrix { .. } => self.matrix_pullback::<DENSITY>(q, gx, gq, scratch)?,
             Kind::Identity => gq.copy_from_slice(gx),
             Kind::Lower(_) | Kind::Upper(_) => {
                 let sign = if matches!(self.kind, Kind::Lower(_)) {
@@ -450,13 +507,13 @@ impl Transform {
                     -1.0
                 };
                 for ((g, &u), &v) in gq.iter_mut().zip(q).zip(gx) {
-                    *g = sign * u.exp() * v + 1.0;
+                    *g = sign * u.exp() * v + if DENSITY { 1.0 } else { 0.0 };
                 }
             }
             Kind::Interval { width, .. } => {
                 for ((g, &u), &v) in gq.iter_mut().zip(q).zip(gx) {
                     let (s, c, _) = sigmoid(u);
-                    *g = width * s * c * v + (c - s);
+                    *g = width * s * c * v + if DENSITY { c - s } else { 0.0 };
                 }
             }
             Kind::Ordered { positive } => {
@@ -466,7 +523,7 @@ impl Transform {
                     gq[i] = if i == 0 && !positive {
                         tail
                     } else {
-                        q[i].exp() * tail + 1.0
+                        q[i].exp() * tail + if DENSITY { 1.0 } else { 0.0 }
                     };
                 }
             }
@@ -479,8 +536,12 @@ impl Transform {
                 let mut adjoint = gx[self.input];
                 for i in (0..self.input).rev() {
                     let (v, c, _) = sigmoid(q[i] - ((self.input - i) as f64).ln());
-                    gq[i] =
-                        scratch[i] * v * c * (gx[i] - adjoint) + 1.0 - (self.output - i) as f64 * v;
+                    let chain = scratch[i] * v * c * (gx[i] - adjoint);
+                    gq[i] = if DENSITY {
+                        chain + 1.0 - (self.output - i) as f64 * v
+                    } else {
+                        chain
+                    };
                     adjoint = gx[i] * v + adjoint * c;
                 }
             }
@@ -488,8 +549,12 @@ impl Transform {
                 let d = 1.0 + q.iter().map(|v| v * v).sum::<f64>();
                 let dot: f64 = q.iter().zip(gx).map(|(u, g)| u * g).sum();
                 for i in 0..self.input {
-                    gq[i] = 2.0 / d * gx[i] + 4.0 * (q[i] / d) / d * (gx[self.input] - dot)
-                        - 2.0 * self.input as f64 * (q[i] / d);
+                    let chain = 2.0 / d * gx[i] + 4.0 * (q[i] / d) / d * (gx[self.input] - dot);
+                    gq[i] = if DENSITY {
+                        chain - 2.0 * self.input as f64 * (q[i] / d)
+                    } else {
+                        chain
+                    };
                 }
             }
         }

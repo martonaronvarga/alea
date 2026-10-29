@@ -186,3 +186,51 @@ density evaluation. Observation likelihoods also receive time, and all three
 operations return typed errors. A particle proposal and an incremental importance
 weight have separate contracts; a general importance weight includes proposal
 corrections and cannot be replaced by the observation likelihood alone.
+
+## Likelihood objectives and parameter coordinates
+
+A likelihood can use the same parameter declarations and distribution factors as
+a Bayesian model. Include only the observation factors when you want a likelihood
+objective. `into_objective()` evaluates their sum after converting free
+coordinates into the declared parameter domains. It applies the chain rule to
+the gradient, without a density-change Jacobian.
+
+```rust
+use alea::distributions::modeling::normal_observation;
+use alea::model::assembly::{AssemblyError, CompiledModel, ModelBuilder};
+use alea::target::LogDensityGradient;
+
+fn likelihood() -> Result<CompiledModel, AssemblyError> {
+    let mut b = ModelBuilder::new();
+    let mean = b.real("mean")?;
+    let sigma = b.positive("sigma")?;
+    for y in [-1.0, 0.0, 2.0] {
+        let observation = normal_observation(&mut b, y, mean.expr(), &sigma)?;
+        b.factor(observation)?;
+    }
+    b.compile()
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let objective = likelihood()?.into_objective()?;
+    let q = [0.3, 0.5_f64.ln()]; // mean, log(sigma)
+    let mut score = [0.0; 2];
+    let log_likelihood = objective.logp_grad(&q, &mut score)?;
+    println!("log likelihood = {log_likelihood}, score = {score:?}");
+    Ok(())
+}
+```
+
+The returned value is the likelihood at `sigma = exp(q[1])`. This evaluates the
+objective; a numerical optimization procedure is needed to find its maximum.
+The named parameter metadata remains available through `objective.model()`.
+
+`into_objective()` retains every factor already in the model. If you add prior
+densities, it evaluates that posterior objective relative to the prior's declared
+parameter measure. It does not automatically select likelihood factors or remove
+priors. A MAP estimate depends on that reference measure.
+
+For sampling, use `into_target()`. It adds the log-Jacobian and its gradient once,
+so the density is expressed in the sampler's coordinates. For example, a positive
+scale contributes `log(sigma)` to that sampling density. That term changes an
+optimization objective and must not be added for MLE in the original parameters.

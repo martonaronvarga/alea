@@ -55,11 +55,11 @@ impl Transform {
         }
     }
 
-    fn factor(&self, q: &[f64], l: &mut [f64]) -> Result<f64, TransformError> {
+    fn factor<const DENSITY: bool>(&self, q: &[f64], l: &mut [f64]) -> Result<f64, TransformError> {
         let (n, correlation, covariance) = self.matrix_shape();
         l.fill(0.0);
         let mut k = 0;
-        let mut jac = if covariance && !correlation {
+        let mut jac = if DENSITY && covariance && !correlation {
             n as f64 * std::f64::consts::LN_2
         } else {
             0.0
@@ -76,7 +76,9 @@ impl Transform {
                     l[i * n + j] = remaining * z;
                     remaining *= s2.sqrt();
                     let coefficient = if covariance { n - j } else { i - j + 1 };
-                    jac += 0.5 * coefficient as f64 * s2.ln();
+                    if DENSITY {
+                        jac += 0.5 * coefficient as f64 * s2.ln();
+                    }
                 } else {
                     l[i * n + j] = q[k];
                 }
@@ -86,11 +88,13 @@ impl Transform {
                 l[i * n + i] = remaining;
             } else {
                 l[i * n + i] = q[k].exp();
-                jac += if covariance {
-                    (n + 1 - i) as f64 * q[k]
-                } else {
-                    q[k]
-                };
+                if DENSITY {
+                    jac += if covariance {
+                        (n + 1 - i) as f64 * q[k]
+                    } else {
+                        q[k]
+                    };
+                }
                 k += 1;
             }
             if l[i * n + i] <= 0.0 {
@@ -101,7 +105,7 @@ impl Transform {
         super::log_jacobian(jac)
     }
 
-    pub(super) fn matrix_constrain(
+    pub(super) fn matrix_constrain<const DENSITY: bool>(
         &self,
         q: &[f64],
         x: &mut [f64],
@@ -109,10 +113,10 @@ impl Transform {
     ) -> Result<f64, TransformError> {
         let (n, correlation, covariance) = self.matrix_shape();
         if !covariance {
-            return self.factor(q, x);
+            return self.factor::<DENSITY>(q, x);
         }
         let (l, rest) = scratch.split_at_mut(n * n);
-        let jac = self.factor(q, l)?;
+        let jac = self.factor::<DENSITY>(q, l)?;
         for i in 0..n {
             for j in 0..=i {
                 let v = if correlation && i == j {
@@ -193,7 +197,7 @@ impl Transform {
         Ok(())
     }
 
-    pub(super) fn matrix_pullback(
+    pub(super) fn matrix_pullback<const DENSITY: bool>(
         &self,
         q: &[f64],
         gx: &[f64],
@@ -202,7 +206,7 @@ impl Transform {
     ) -> Result<(), TransformError> {
         let (n, correlation, covariance) = self.matrix_shape();
         let (l, rest) = scratch.split_at_mut(n * n);
-        self.factor(q, l)?;
+        self.factor::<DENSITY>(q, l)?;
         let gl = &mut rest[..n * n];
         if covariance {
             for i in 0..n {
@@ -240,8 +244,12 @@ impl Transform {
                     let s2 = (1.0 - z) * (1.0 + z);
                     let s = s2.sqrt();
                     let coefficient = if covariance { n - j } else { i - j + 1 };
-                    gq[index] =
-                        gq[index] * (gl[i * n + j] * s2 - adjoint * z * s) - coefficient as f64 * z;
+                    let chain = gq[index] * (gl[i * n + j] * s2 - adjoint * z * s);
+                    gq[index] = if DENSITY {
+                        chain - coefficient as f64 * z
+                    } else {
+                        chain
+                    };
                     adjoint = gl[i * n + j] * z + adjoint * s;
                 }
             } else {
@@ -250,7 +258,13 @@ impl Transform {
                     k += 1;
                 }
                 gq[k] = gl[i * n + i] * l[i * n + i]
-                    + if covariance { (n + 1 - i) as f64 } else { 1.0 };
+                    + if !DENSITY {
+                        0.0
+                    } else if covariance {
+                        (n + 1 - i) as f64
+                    } else {
+                        1.0
+                    };
                 k += 1;
             }
         }

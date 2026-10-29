@@ -8,6 +8,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for (name, model) in models::all()? {
         let source = alea::autodiff::codegen::enzyme_source(&model)?;
         std::fs::write(output.join(format!("{name}.rs")), source)?;
+        let objective = alea::autodiff::codegen::enzyme_objective_source(&model)?;
+        std::fs::write(output.join(format!("{name}_objective.rs")), objective)?;
     }
     Ok(())
 }

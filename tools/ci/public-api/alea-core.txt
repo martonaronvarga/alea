@@ -401,9 +401,12 @@ impl core::marker::Copy for alea_core::model::assembly::UnitSphere
 pub struct alea_core::model::assembly::CompiledModel
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::coordinates(&self) -> alloc::sync::Arc<[alea_core::model::assembly::Coordinate]>
+pub fn alea_core::model::assembly::CompiledModel::into_objective(self) -> core::result::Result<alea_core::model::ComposedObjective<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
 pub fn alea_core::model::assembly::CompiledModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
 pub fn alea_core::model::assembly::CompiledModel::layout(&self) -> &alea_core::transform::ParameterLayout
 impl alea_core::model::assembly::CompiledModel
+pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::CompiledModel::rust_objective_validation(&self) -> alloc::string::String
 pub fn alea_core::model::assembly::CompiledModel::rust_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::rust_validation(&self) -> alloc::string::String
 impl alea_core::model::ConstrainedModel for alea_core::model::assembly::CompiledModel
@@ -582,6 +585,16 @@ impl<F, E> alea_core::model::ConstrainedModel for alea_core::model::AnalyticMode
 pub type alea_core::model::AnalyticModel<F>::Error = E
 pub fn alea_core::model::AnalyticModel<F>::dimension(&self) -> usize
 pub fn alea_core::model::AnalyticModel<F>::logp_grad(&self, parameters: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, E>
+pub struct alea_core::model::ComposedObjective<M>
+impl<M: alea_core::model::ConstrainedModel> alea_core::model::ComposedObjective<M>
+pub fn alea_core::model::ComposedObjective<M>::layout(&self) -> &alea_core::transform::ParameterLayout
+pub fn alea_core::model::ComposedObjective<M>::model(&self) -> &M
+pub fn alea_core::model::ComposedObjective<M>::new(model: M, layout: alea_core::transform::ParameterLayout) -> core::result::Result<Self, alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>>
+impl<M: alea_core::model::ConstrainedModel> alea_core::target::LogDensityGradient for alea_core::model::ComposedObjective<M>
+pub fn alea_core::model::ComposedObjective<M>::logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl<M: alea_core::model::ConstrainedModel> alea_core::target::TargetSpace for alea_core::model::ComposedObjective<M>
+pub type alea_core::model::ComposedObjective<M>::Error = alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>
+pub fn alea_core::model::ComposedObjective<M>::dimension(&self) -> usize
 pub struct alea_core::model::PrimitiveModel<P, const N: usize>(pub P)
 impl<P: alea_core::model::OpaquePrimitive<N>, const N: usize> alea_core::model::ConstrainedModel for alea_core::model::PrimitiveModel<P, N>
 pub type alea_core::model::PrimitiveModel<P, N>::Error = alea_core::model::PrimitiveError<<P as alea_core::model::OpaquePrimitive<N>>::Error>
@@ -706,15 +719,28 @@ pub fn alea_core::model::prediction::PredictionError<E>::from(source: alea_core:
 pub struct alea_core::prelude::CompiledModel
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::coordinates(&self) -> alloc::sync::Arc<[alea_core::model::assembly::Coordinate]>
+pub fn alea_core::model::assembly::CompiledModel::into_objective(self) -> core::result::Result<alea_core::model::ComposedObjective<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
 pub fn alea_core::model::assembly::CompiledModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
 pub fn alea_core::model::assembly::CompiledModel::layout(&self) -> &alea_core::transform::ParameterLayout
 impl alea_core::model::assembly::CompiledModel
+pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::CompiledModel::rust_objective_validation(&self) -> alloc::string::String
 pub fn alea_core::model::assembly::CompiledModel::rust_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::rust_validation(&self) -> alloc::string::String
 impl alea_core::model::ConstrainedModel for alea_core::model::assembly::CompiledModel
 pub type alea_core::model::assembly::CompiledModel::Error = alea_core::model::assembly::AssemblyError
 pub fn alea_core::model::assembly::CompiledModel::dimension(&self) -> usize
 pub fn alea_core::model::assembly::CompiledModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+pub struct alea_core::prelude::ComposedObjective<M>
+impl<M: alea_core::model::ConstrainedModel> alea_core::model::ComposedObjective<M>
+pub fn alea_core::model::ComposedObjective<M>::layout(&self) -> &alea_core::transform::ParameterLayout
+pub fn alea_core::model::ComposedObjective<M>::model(&self) -> &M
+pub fn alea_core::model::ComposedObjective<M>::new(model: M, layout: alea_core::transform::ParameterLayout) -> core::result::Result<Self, alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>>
+impl<M: alea_core::model::ConstrainedModel> alea_core::target::LogDensityGradient for alea_core::model::ComposedObjective<M>
+pub fn alea_core::model::ComposedObjective<M>::logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl<M: alea_core::model::ConstrainedModel> alea_core::target::TargetSpace for alea_core::model::ComposedObjective<M>
+pub type alea_core::model::ComposedObjective<M>::Error = alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>
+pub fn alea_core::model::ComposedObjective<M>::dimension(&self) -> usize
 pub struct alea_core::prelude::DensityPoint<'a, T: alea_core::density::LogDensity + ?core::marker::Sized>
 impl<'a, T: alea_core::density::LogDensity + ?core::marker::Sized> alea_core::density::DensityPoint<'a, T>
 pub fn alea_core::density::DensityPoint<'a, T>::dimension(&self) -> usize
@@ -795,6 +821,9 @@ pub fn alea_core::transform::ParameterLayout::pullback(&self, q: &[f64], gx: &[f
 pub fn alea_core::transform::ParameterLayout::scratch_dimension(&self) -> usize
 pub fn alea_core::transform::ParameterLayout::unconstrain(&self, x: &[f64], q: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::ParameterLayout::unconstrained_dimension(&self) -> usize
+impl alea_core::transform::ParameterLayout
+pub fn alea_core::transform::ParameterLayout::constrain_values(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
+pub fn alea_core::transform::ParameterLayout::pullback_composition(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 impl core::clone::Clone for alea_core::transform::ParameterLayout
 pub fn alea_core::transform::ParameterLayout::clone(&self) -> alea_core::transform::ParameterLayout
 impl core::cmp::PartialEq for alea_core::transform::ParameterLayout
@@ -825,6 +854,7 @@ pub fn alea_core::transform::Transform::correlation(n: usize) -> core::result::R
 pub fn alea_core::transform::Transform::covariance(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
 impl alea_core::transform::Transform
 pub fn alea_core::transform::Transform::constrain(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::constrain_values(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::constrained_dimension(&self) -> usize
 pub fn alea_core::transform::Transform::identity(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::interval(n: usize, lower: f64, upper: f64) -> core::result::Result<Self, alea_core::transform::TransformError>
@@ -833,6 +863,7 @@ pub fn alea_core::transform::Transform::ordered(n: usize) -> core::result::Resul
 pub fn alea_core::transform::Transform::positive(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::positive_ordered(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::pullback(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::pullback_composition(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::scratch_dimension(&self) -> usize
 pub fn alea_core::transform::Transform::simplex(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::unconstrain(&self, x: &[f64], q: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
@@ -873,6 +904,8 @@ pub trait alea_core::prelude::LogDensity: alea_core::target::TargetSpace
 pub fn alea_core::prelude::LogDensity::logp(&self, position: &[f64]) -> core::result::Result<f64, Self::Error>
 pub trait alea_core::prelude::LogDensityGradient: alea_core::target::TargetSpace
 pub fn alea_core::prelude::LogDensityGradient::logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl<M: alea_core::model::ConstrainedModel> alea_core::target::LogDensityGradient for alea_core::model::ComposedObjective<M>
+pub fn alea_core::model::ComposedObjective<M>::logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
 impl<M: alea_core::model::ConstrainedModel> alea_core::target::LogDensityGradient for alea_core::model::TransformedTarget<M>
 pub fn alea_core::model::TransformedTarget<M>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
 impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized> alea_core::target::LogDensityGradient for alea_core::transport::FrozenTransportTarget<'_, T>
@@ -880,6 +913,9 @@ pub fn alea_core::transport::FrozenTransportTarget<'_, T>::logp_grad(&self, posi
 pub trait alea_core::prelude::TargetSpace
 pub type alea_core::prelude::TargetSpace::Error: core::error::Error + 'static
 pub fn alea_core::prelude::TargetSpace::dimension(&self) -> usize
+impl<M: alea_core::model::ConstrainedModel> alea_core::target::TargetSpace for alea_core::model::ComposedObjective<M>
+pub type alea_core::model::ComposedObjective<M>::Error = alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>
+pub fn alea_core::model::ComposedObjective<M>::dimension(&self) -> usize
 impl<M: alea_core::model::ConstrainedModel> alea_core::target::TargetSpace for alea_core::model::TransformedTarget<M>
 pub type alea_core::model::TransformedTarget<M>::Error = alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>
 pub fn alea_core::model::TransformedTarget<M>::dimension(&self) -> usize
@@ -966,6 +1002,8 @@ pub fn alea_core::target::PointState<'_, T>::clone(&self) -> Self
 pub fn alea_core::target::PointState<'_, T>::clone_from(&mut self, source: &Self)
 pub trait alea_core::target::LogDensityGradient: alea_core::target::TargetSpace
 pub fn alea_core::target::LogDensityGradient::logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl<M: alea_core::model::ConstrainedModel> alea_core::target::LogDensityGradient for alea_core::model::ComposedObjective<M>
+pub fn alea_core::model::ComposedObjective<M>::logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
 impl<M: alea_core::model::ConstrainedModel> alea_core::target::LogDensityGradient for alea_core::model::TransformedTarget<M>
 pub fn alea_core::model::TransformedTarget<M>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
 impl<T: alea_core::target::LogDensityGradient + ?core::marker::Sized> alea_core::target::LogDensityGradient for alea_core::transport::FrozenTransportTarget<'_, T>
@@ -973,6 +1011,9 @@ pub fn alea_core::transport::FrozenTransportTarget<'_, T>::logp_grad(&self, posi
 pub trait alea_core::target::TargetSpace
 pub type alea_core::target::TargetSpace::Error: core::error::Error + 'static
 pub fn alea_core::target::TargetSpace::dimension(&self) -> usize
+impl<M: alea_core::model::ConstrainedModel> alea_core::target::TargetSpace for alea_core::model::ComposedObjective<M>
+pub type alea_core::model::ComposedObjective<M>::Error = alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>
+pub fn alea_core::model::ComposedObjective<M>::dimension(&self) -> usize
 impl<M: alea_core::model::ConstrainedModel> alea_core::target::TargetSpace for alea_core::model::TransformedTarget<M>
 pub type alea_core::model::TransformedTarget<M>::Error = alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>
 pub fn alea_core::model::TransformedTarget<M>::dimension(&self) -> usize
@@ -1059,6 +1100,9 @@ pub fn alea_core::transform::ParameterLayout::pullback(&self, q: &[f64], gx: &[f
 pub fn alea_core::transform::ParameterLayout::scratch_dimension(&self) -> usize
 pub fn alea_core::transform::ParameterLayout::unconstrain(&self, x: &[f64], q: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::ParameterLayout::unconstrained_dimension(&self) -> usize
+impl alea_core::transform::ParameterLayout
+pub fn alea_core::transform::ParameterLayout::constrain_values(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
+pub fn alea_core::transform::ParameterLayout::pullback_composition(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 impl core::clone::Clone for alea_core::transform::ParameterLayout
 pub fn alea_core::transform::ParameterLayout::clone(&self) -> alea_core::transform::ParameterLayout
 impl core::cmp::PartialEq for alea_core::transform::ParameterLayout
@@ -1074,6 +1118,7 @@ pub fn alea_core::transform::Transform::correlation(n: usize) -> core::result::R
 pub fn alea_core::transform::Transform::covariance(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
 impl alea_core::transform::Transform
 pub fn alea_core::transform::Transform::constrain(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<f64, alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::constrain_values(&self, q: &[f64], x: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::constrained_dimension(&self) -> usize
 pub fn alea_core::transform::Transform::identity(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::interval(n: usize, lower: f64, upper: f64) -> core::result::Result<Self, alea_core::transform::TransformError>
@@ -1082,6 +1127,7 @@ pub fn alea_core::transform::Transform::ordered(n: usize) -> core::result::Resul
 pub fn alea_core::transform::Transform::positive(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::positive_ordered(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::pullback(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
+pub fn alea_core::transform::Transform::pullback_composition(&self, q: &[f64], gx: &[f64], gq: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::scratch_dimension(&self) -> usize
 pub fn alea_core::transform::Transform::simplex(n: usize) -> core::result::Result<Self, alea_core::transform::TransformError>
 pub fn alea_core::transform::Transform::unconstrain(&self, x: &[f64], q: &mut [f64], scratch: &mut [f64]) -> core::result::Result<(), alea_core::transform::TransformError>
