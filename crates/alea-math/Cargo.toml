@@ -48,3 +48,7 @@ openblas = ["dep:cblas", "dep:cc", "dep:pkg-config"]
 [[bench]]
 name = "storage"
 harness = false
+
+[[bench]]
+name = "quasi_newton"
+harness = false

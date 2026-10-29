@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "base_revision": "a73237bfa60644eae386bad79d9d855a446ffa74",
+  "base_revision": "d917609520a61d8876111907c265e133853f2601",
   "decision": "pre_release_break",
-  "rationale": "Add compensated product accumulation, a checked native analytic linear-combination node and explicit reversible regression coefficient standardization. These address predictor cancellation and design conditioning without changing statistical likelihoods, priors, rank policy or optimizer tolerances/Armijo rules. Native generated-source availability is explicit; raw-coordinate failures remain controls. No compatibility aliases or automatic coordinate changes.",
+  "rationale": "Add a caller-scratch inverse-BFGS action in the owning math module, with unchanged two-loop arithmetic; runtime reuses fit-local work buffers. Existing allocating convenience remains useful to cold callers. No statistical objective or optimizer acceptance policy changes.",
   "packages": {
     "alea+analysis": {
       "before": "7b792d8351d7f93d9678035dc8dcbfa55c10f6bf353cbe567442e4ad7847b55b",
@@ -65,83 +65,33 @@
       "removed_lines": []
     },
     "alea-core": {
-      "before": "d770dac7fcc1a63a64bcbe9c63054138def3485b52994327fa31e8102699c92d",
+      "before": "59a3cc8fe9763d46e617847dc93bc5e8e5de4d7c7bd4ea48cc52e1687abf7aa2",
       "after": "59a3cc8fe9763d46e617847dc93bc5e8e5de4d7c7bd4ea48cc52e1687abf7aa2",
-      "added": 1,
+      "added": 0,
       "removed": 0,
-      "delta": "8aa9584f5b976edb73885a71539132d8af125191140a4700f06f53f61c75d588",
-      "classification": "potentially_breaking",
-      "added_lines": [
-        "pub fn alea_core::model::assembly::ModelBuilder::linear_combination(&mut self, inputs: &[alea_core::model::assembly::Expr], coefficients: &[f64], offset: f64) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>"
-      ],
+      "delta": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "classification": "unchanged",
+      "added_lines": [],
       "removed_lines": []
     },
     "alea-distributions+faer": {
-      "before": "72431d9f295d86ac74bcd1e4c4c1e79e9fa7321bc866a7b868d5006a34d21bee",
+      "before": "ac91fcbdfcbee9c669e5e10efa181d3903adbadfbd0c5314bd50a51682ae1666",
       "after": "ac91fcbdfcbee9c669e5e10efa181d3903adbadfbd0c5314bd50a51682ae1666",
-      "added": 23,
+      "added": 0,
       "removed": 0,
-      "delta": "2267070381a88deec61134f5d4e7f1eab252c19854f2f586afe8443b30fcd17f",
-      "classification": "potentially_breaking",
-      "added_lines": [
-        "impl alea_distributions::modeling::regression::CoefficientStandardization",
-        "impl core::clone::Clone for alea_distributions::modeling::regression::CoefficientStandardization",
-        "impl core::fmt::Debug for alea_distributions::modeling::regression::CoefficientStandardization",
-        "impl<Y: core::clone::Clone> core::clone::Clone for alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
-        "impl<Y: core::fmt::Debug> core::fmt::Debug for alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
-        "impl<Y> alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
-        "pub alea_distributions::modeling::regression::RegressionDataError::Intercept",
-        "pub alea_distributions::modeling::regression::RegressionDataError::Intercept::column: usize",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::centers(&self) -> &[f64]",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::clone(&self) -> alea_distributions::modeling::regression::CoefficientStandardization",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::intercept_column(&self) -> usize",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::scales(&self) -> &[f64]",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::to_original(&self, coefficients: &[f64]) -> core::result::Result<alloc::vec::Vec<f64>, alea_distributions::modeling::regression::RegressionDataError>",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::to_standardized(&self, coefficients: &[f64]) -> core::result::Result<alloc::vec::Vec<f64>, alea_distributions::modeling::regression::RegressionDataError>",
-        "pub fn alea_distributions::modeling::regression::RegressionData<Y>::standardize(&self, intercept_column: usize) -> core::result::Result<alea_distributions::modeling::regression::StandardizedRegressionData<Y>, alea_distributions::modeling::regression::RegressionDataError>",
-        "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::clone(&self) -> alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
-        "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::coefficient_map(&self) -> &alea_distributions::modeling::regression::CoefficientStandardization",
-        "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::data(&self) -> &alea_distributions::modeling::regression::RegressionData<Y>",
-        "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-        "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::into_parts(self) -> (alea_distributions::modeling::regression::RegressionData<Y>, alea_distributions::modeling::regression::CoefficientStandardization)",
-        "pub struct alea_distributions::modeling::regression::CoefficientStandardization",
-        "pub struct alea_distributions::modeling::regression::StandardizedRegressionData<Y>"
-      ],
+      "delta": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "classification": "unchanged",
+      "added_lines": [],
       "removed_lines": []
     },
     "alea-distributions": {
-      "before": "dabde94313dd5acaa3c792eb4d1900dafe6f485d7b61fcbc416899bba30e83e1",
+      "before": "81247bd02a50009c7bf97ff137d50d985e66522a8ee71254e9ef86e7a99a5978",
       "after": "81247bd02a50009c7bf97ff137d50d985e66522a8ee71254e9ef86e7a99a5978",
-      "added": 23,
+      "added": 0,
       "removed": 0,
-      "delta": "2267070381a88deec61134f5d4e7f1eab252c19854f2f586afe8443b30fcd17f",
-      "classification": "potentially_breaking",
-      "added_lines": [
-        "impl alea_distributions::modeling::regression::CoefficientStandardization",
-        "impl core::clone::Clone for alea_distributions::modeling::regression::CoefficientStandardization",
-        "impl core::fmt::Debug for alea_distributions::modeling::regression::CoefficientStandardization",
-        "impl<Y: core::clone::Clone> core::clone::Clone for alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
-        "impl<Y: core::fmt::Debug> core::fmt::Debug for alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
-        "impl<Y> alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
-        "pub alea_distributions::modeling::regression::RegressionDataError::Intercept",
-        "pub alea_distributions::modeling::regression::RegressionDataError::Intercept::column: usize",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::centers(&self) -> &[f64]",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::clone(&self) -> alea_distributions::modeling::regression::CoefficientStandardization",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::intercept_column(&self) -> usize",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::scales(&self) -> &[f64]",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::to_original(&self, coefficients: &[f64]) -> core::result::Result<alloc::vec::Vec<f64>, alea_distributions::modeling::regression::RegressionDataError>",
-        "pub fn alea_distributions::modeling::regression::CoefficientStandardization::to_standardized(&self, coefficients: &[f64]) -> core::result::Result<alloc::vec::Vec<f64>, alea_distributions::modeling::regression::RegressionDataError>",
-        "pub fn alea_distributions::modeling::regression::RegressionData<Y>::standardize(&self, intercept_column: usize) -> core::result::Result<alea_distributions::modeling::regression::StandardizedRegressionData<Y>, alea_distributions::modeling::regression::RegressionDataError>",
-        "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::clone(&self) -> alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
-        "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::coefficient_map(&self) -> &alea_distributions::modeling::regression::CoefficientStandardization",
-        "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::data(&self) -> &alea_distributions::modeling::regression::RegressionData<Y>",
-        "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-        "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::into_parts(self) -> (alea_distributions::modeling::regression::RegressionData<Y>, alea_distributions::modeling::regression::CoefficientStandardization)",
-        "pub struct alea_distributions::modeling::regression::CoefficientStandardization",
-        "pub struct alea_distributions::modeling::regression::StandardizedRegressionData<Y>"
-      ],
+      "delta": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "classification": "unchanged",
+      "added_lines": [],
       "removed_lines": []
     },
     "alea-ffi": {
@@ -155,26 +105,26 @@
       "removed_lines": []
     },
     "alea-math+faer": {
-      "before": "3655556a6fdbf7ecebb8fd6cbd4466f64c249b272c73efa5970360f889a44a0e",
-      "after": "ee56aa9dc4ede86e0cd3d4d17e9cd1d1957e81a9238727b5e770109ea28ea6de",
+      "before": "ee56aa9dc4ede86e0cd3d4d17e9cd1d1957e81a9238727b5e770109ea28ea6de",
+      "after": "40cfb303f46cb504146e423dd377aa4f5beb39de4766887fe228077eda458487",
       "added": 1,
       "removed": 0,
-      "delta": "c634ba36fff761c11e9d28b6ff6f0433f29b901ee8e73f85bc85bc95e70f742b",
+      "delta": "7b4db1f7783212d070cdf65068025c1b4a3998d56e26d16adc81219ec097a84b",
       "classification": "potentially_breaking",
       "added_lines": [
-        "pub fn alea_math::numeric::CompensatedSum::add_product(&mut self, left: f64, right: f64)"
+        "pub fn alea_math::quasi_newton::lbfgs_inverse_product_with_scratch(vector: &[f64], s_history: &[alloc::vec::Vec<f64>], y_history: &[alloc::vec::Vec<f64>], output: &mut [f64], alphas: &mut [f64]) -> core::result::Result<(), alea_math::quasi_newton::LbfgsError>"
       ],
       "removed_lines": []
     },
     "alea-math": {
-      "before": "e58b7bd37f7a14b315e8cf6fbb1026bcf26e88915c5ac4477accd6ca810dbdfb",
-      "after": "da60d7675f18ff92613df5d403e499af5d6c18fa6d57d78270f9036784f2de6e",
+      "before": "da60d7675f18ff92613df5d403e499af5d6c18fa6d57d78270f9036784f2de6e",
+      "after": "e50cbca2cfd5fd3c9645cc75ee42474bc1595566fb7f0e0701087594b70de8a0",
       "added": 1,
       "removed": 0,
-      "delta": "c634ba36fff761c11e9d28b6ff6f0433f29b901ee8e73f85bc85bc95e70f742b",
+      "delta": "7b4db1f7783212d070cdf65068025c1b4a3998d56e26d16adc81219ec097a84b",
       "classification": "potentially_breaking",
       "added_lines": [
-        "pub fn alea_math::numeric::CompensatedSum::add_product(&mut self, left: f64, right: f64)"
+        "pub fn alea_math::quasi_newton::lbfgs_inverse_product_with_scratch(vector: &[f64], s_history: &[alloc::vec::Vec<f64>], y_history: &[alloc::vec::Vec<f64>], output: &mut [f64], alphas: &mut [f64]) -> core::result::Result<(), alea_math::quasi_newton::LbfgsError>"
       ],
       "removed_lines": []
     },

@@ -759,6 +759,7 @@ pub fn alea_math::quasi_newton::LbfgsError::fmt(&self, __formatter: &mut core::f
 impl core::marker::Copy for alea_math::quasi_newton::LbfgsError
 impl core::marker::StructuralPartialEq for alea_math::quasi_newton::LbfgsError
 pub fn alea_math::quasi_newton::lbfgs_inverse_product(vector: &[f64], s_history: &[alloc::vec::Vec<f64>], y_history: &[alloc::vec::Vec<f64>], output: &mut [f64]) -> core::result::Result<(), alea_math::quasi_newton::LbfgsError>
+pub fn alea_math::quasi_newton::lbfgs_inverse_product_with_scratch(vector: &[f64], s_history: &[alloc::vec::Vec<f64>], y_history: &[alloc::vec::Vec<f64>], output: &mut [f64], alphas: &mut [f64]) -> core::result::Result<(), alea_math::quasi_newton::LbfgsError>
 pub mod alea_math::random
 pub struct alea_math::random::NormalGenerator
 impl alea_math::random::NormalGenerator

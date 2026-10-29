@@ -10,7 +10,7 @@ use alea_core::{
     model::{assembly::Coordinate, prediction::NamedOutput},
     transform::TransformError,
 };
-use alea_math::quasi_newton::lbfgs_inverse_product;
+use alea_math::quasi_newton::lbfgs_inverse_product_with_scratch;
 use std::error::Error;
 use thiserror::Error;
 
@@ -321,6 +321,8 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
     });
     let mut s_history = Vec::new();
     let mut y_history = Vec::new();
+    let mut alphas = Vec::new();
+    let mut direction = vec![0.; n];
     loop {
         let current = result
             .candidate
@@ -349,8 +351,15 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
             result.termination = OptimizationTermination::EvaluationLimit;
             break;
         }
-        let mut direction = vec![0.; n];
-        if lbfgs_inverse_product(&score, &s_history, &y_history, &mut direction).is_err()
+        alphas.resize(s_history.len(), 0.);
+        if lbfgs_inverse_product_with_scratch(
+            &score,
+            &s_history,
+            &y_history,
+            &mut direction,
+            &mut alphas,
+        )
+        .is_err()
             || dot(&score, &direction) <= 0.
             || !dot(&score, &direction).is_finite()
         {

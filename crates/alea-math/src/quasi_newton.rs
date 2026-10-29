@@ -30,7 +30,29 @@ pub fn lbfgs_inverse_product(
     y_history: &[Vec<f64>],
     output: &mut [f64],
 ) -> Result<(), LbfgsError> {
-    if output.len() != vector.len()
+    let mut alphas = vec![0.0; s_history.len()];
+    lbfgs_inverse_product_with_scratch(vector, s_history, y_history, output, &mut alphas)
+}
+
+/// Applies the inverse-BFGS action using caller-owned scratch, without allocation.
+///
+/// Uses the ordering, scaling and arithmetic of [`lbfgs_inverse_product`].
+/// `alphas` needs at least one slot per secant pair; initial contents are ignored
+/// and spare slots are untouched. Each concurrent caller owns its scratch.
+/// Output may be partial after arithmetic failure; shape errors do not write.
+///
+/// # Errors
+/// Rejects insufficient scratch, inconsistent shapes, invalid curvature and
+/// nonrepresentable arithmetic.
+pub fn lbfgs_inverse_product_with_scratch(
+    vector: &[f64],
+    s_history: &[Vec<f64>],
+    y_history: &[Vec<f64>],
+    output: &mut [f64],
+    alphas: &mut [f64],
+) -> Result<(), LbfgsError> {
+    if alphas.len() < s_history.len()
+        || output.len() != vector.len()
         || s_history.len() != y_history.len()
         || s_history
             .iter()
@@ -48,7 +70,6 @@ pub fn lbfgs_inverse_product(
         return Err(LbfgsError::Numerical);
     }
     output.copy_from_slice(vector);
-    let mut alphas = vec![0.0; s_history.len()];
     for index in (0..s_history.len()).rev() {
         let sy = dot(&s_history[index], &y_history[index]);
         if !sy.is_finite() || sy <= 0.0 {
