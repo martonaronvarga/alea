@@ -258,6 +258,80 @@ A parameter used only by a prior can become unidentified in the likelihood view.
 A factor name can describe a joint data block and does not by itself define a
 pointwise leave-out unit for cross-validation.
 
+## Maximum likelihood and posterior modes
+
+`alea::optimize::maximize` runs a bounded local L-BFGS search over a supplied
+objective. Select the statistical factors first. Use `into_objective()` for MLE
+or MAP in the original parameter measure; retain `into_target()` for sampling.
+
+```rust
+use alea::distributions::modeling::normal_observation;
+use alea::model::assembly::ModelBuilder;
+use alea::optimize::{
+    maximize, LbfgsOptions, ObjectiveDescription, ObjectiveKind, OptimizationTermination,
+};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut b = ModelBuilder::new();
+    let mean = b.real("mean")?;
+    let sigma = b.positive("sigma")?;
+    for (i, y) in [0.0, 1.0, 2.0].into_iter().enumerate() {
+        let term = normal_observation(&mut b, y, mean.expr(), &sigma)?;
+        b.likelihood(&format!("measurement {i}"), term)?;
+    }
+    let objective = b.compile()?.select_likelihood()?.into_objective()?;
+    let description = ObjectiveDescription {
+        kind: ObjectiveKind::Likelihood,
+        measure: "Lebesgue in mean and sigma".into(),
+        model: "independent normal observations".into(),
+        data: "example observations: 0, 1, 2".into(),
+        source: "modeling guide".into(),
+    };
+    let options = LbfgsOptions::new(300, 3000)?.with_score_tolerance(1e-6)?;
+    // Initial free coordinates: mean = 0, log(sigma) = 0.
+    let result = maximize(&objective, &[0.0, 0.0], description, options)?;
+    if result.termination != OptimizationTermination::ScoreTolerance {
+        return Err(format!("search stopped: {:?}", result.termination).into());
+    }
+    let candidate = result.candidate.ok_or("no evaluated candidate")?;
+    let mut estimates = vec![0.0; objective.layout().constrained_dimension()];
+    let mut scratch = vec![0.0; objective.layout().scratch_dimension()];
+    objective.layout().constrain_values(&candidate.position, &mut estimates, &mut scratch)?;
+    println!("mean = {}, sigma = {}", estimates[0], estimates[1]);
+    assert!((estimates[0] - 1.0).abs() < 1e-5);
+    assert!((estimates[1] - (2.0_f64 / 3.0).sqrt()).abs() < 1e-5);
+    Ok(())
+}
+```
+
+The scale estimate uses the maximum-likelihood divisor `n`, not the residual
+variance divisor `n - p`. For MAP, declare priors, select `select_posterior()` and
+identify the prior's parameter measure in the description. Objective descriptions
+are caller declarations; they do not inspect or verify the model's factors.
+Record actual source and data digests when saving research results.
+
+Results retain the final objective value, free-coordinate gradient, complete
+numerical policy, iterations and evaluation counts. `with_scales` declares
+coordinate scales: with `z_i = q_i / scale_i`, the stopping condition is
+`max_i |scale_i * gradient_i| <= tolerance`. The tolerance is absolute and does
+not loosen when a constant is added to the objective. A score tolerance alone
+cannot establish a maximum, identifiability, existence of a finite MLE or global
+optimality. Check the statistical problem as well as the termination reason.
+
+Iteration/evaluation limits, cancellation, numerical directions and failed line
+searches have separate outcomes. `maximize_with_cancel` checks a callback between
+calls; it cannot interrupt a model evaluation. Negative-infinity trial objectives
+are backtracked over as explicit support rejections. Typed backend errors, NaN,
+positive infinity and incomplete gradients stop with the original error and the
+last valid candidate. An invalid initial evaluation has no candidate. A tiny
+unrepresentable step is a search failure, not successful convergence.
+
+This result is a point-estimation record. It has no chain/draw axes or invented
+standard errors. The inverse-BFGS preconditioner is not a validated covariance
+estimate. Pathfinder shares the numerical inverse-BFGS action but retains its
+separate approximation selection and resampling workflow; see the
+[Pathfinder reference](https://mc-stan.org/docs/reference-manual/pathfinder.html).
+
 ## Pointwise likelihoods and predictive units
 
 For predictive comparison, choose what an omitted unit means before evaluating

@@ -14,6 +14,7 @@ pub mod interpolation;
 pub mod matrix;
 pub mod metric;
 pub mod numeric;
+pub mod quasi_newton;
 pub mod random;
 
 /// Common imports for ordinary Alea workflows.

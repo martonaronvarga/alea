@@ -585,40 +585,8 @@ fn lbfgs_apply<E: Error + 'static>(
     y_history: &[Vec<f64>],
     output: &mut [f64],
 ) -> Result<(), PathfinderError<E>> {
-    output.copy_from_slice(vector);
-    let mut alphas = vec![0.0; s_history.len()];
-    for index in (0..s_history.len()).rev() {
-        let sy = dot(&s_history[index], &y_history[index]);
-        if !sy.is_finite() || sy <= 0.0 {
-            return Err(PathfinderError::Numerical);
-        }
-        alphas[index] = dot(&s_history[index], output) / sy;
-        for (value, &y) in output.iter_mut().zip(&y_history[index]) {
-            *value -= alphas[index] * y;
-        }
-    }
-    let gamma = if let (Some(s), Some(y)) = (s_history.last(), y_history.last()) {
-        dot(s, y) / dot(y, y)
-    } else {
-        1.0
-    };
-    if !gamma.is_finite() || gamma <= 0.0 {
-        return Err(PathfinderError::Numerical);
-    }
-    for value in output.iter_mut() {
-        *value *= gamma;
-    }
-    for index in 0..s_history.len() {
-        let sy = dot(&s_history[index], &y_history[index]);
-        let beta = dot(&y_history[index], output) / sy;
-        for (value, &s) in output.iter_mut().zip(&s_history[index]) {
-            *value += s * (alphas[index] - beta);
-        }
-    }
-    if output.iter().any(|value| !value.is_finite()) {
-        return Err(PathfinderError::Numerical);
-    }
-    Ok(())
+    alea_math::quasi_newton::lbfgs_inverse_product(vector, s_history, y_history, output)
+        .map_err(|_| PathfinderError::Numerical)
 }
 
 fn local_approximation<T, R>(

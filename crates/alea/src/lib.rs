@@ -8,7 +8,9 @@ pub use alea_core::{
 #[doc(inline)]
 pub use alea_math as math;
 #[doc(inline)]
-pub use alea_runtime::{diagnostics, draws, ensemble, monitor, output, run_chain, session};
+pub use alea_runtime::{
+    diagnostics, draws, ensemble, monitor, optimize, output, run_chain, session,
+};
 
 #[cfg(feature = "analysis")]
 #[doc(inline)]

@@ -73,3 +73,11 @@ and jsonlite. Native applications need none of these. See the
 [analysis guide](../../docs/sessions.md#export-to-python-and-netcdf) for commands,
 array bindings and partial-chain behavior. The short fitting fixtures verify the
 export workflow; they are not convergence or comparative performance evidence.
+
+
+`tests/optimization.rs` consumes `alea::optimize` through the public facade.
+It checks Gaussian regression MLE coefficients, objective value and unknown scale
+against analytic results, the distinct transformed-density mode, and a conjugate
+posterior mode. Optimizer fault/budget/cancellation and nonlinear tests live in
+runtime `tests/optimize.rs`; the shared inverse-BFGS action has an independent
+dense-update oracle in math `tests/quasi_newton.rs`.

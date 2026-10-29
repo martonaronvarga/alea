@@ -7,6 +7,7 @@ pub mod diagnostics;
 pub mod draws;
 pub mod ensemble;
 pub mod monitor;
+pub mod optimize;
 pub mod output;
 pub mod session;
 use alea_mcmc::MarkovChain;

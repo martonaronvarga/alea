@@ -9,6 +9,7 @@ pub use alea::ensemble
 pub use alea::math
 pub use alea::model
 pub use alea::monitor
+pub use alea::optimize
 pub use alea::output
 pub use alea::run_chain
 pub use alea::session

@@ -684,6 +684,23 @@ pub fn alea_math::metric::SparseCholeskyMetric::kinetic_energy_with_velocity(&se
 pub fn alea_math::metric::SparseCholeskyMetric::log_det(&self) -> f64
 pub fn alea_math::metric::SparseCholeskyMetric::sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
 pub fn alea_math::metric::SparseCholeskyMetric::velocity(&self, src: &[f64], dst: &mut [f64]) -> core::result::Result<(), alea_math::metric::MetricError>
+pub mod alea_math::quasi_newton
+pub enum alea_math::quasi_newton::LbfgsError
+pub alea_math::quasi_newton::LbfgsError::Dimension
+pub alea_math::quasi_newton::LbfgsError::Numerical
+impl core::clone::Clone for alea_math::quasi_newton::LbfgsError
+pub fn alea_math::quasi_newton::LbfgsError::clone(&self) -> alea_math::quasi_newton::LbfgsError
+impl core::cmp::Eq for alea_math::quasi_newton::LbfgsError
+impl core::cmp::PartialEq for alea_math::quasi_newton::LbfgsError
+pub fn alea_math::quasi_newton::LbfgsError::eq(&self, other: &alea_math::quasi_newton::LbfgsError) -> bool
+impl core::error::Error for alea_math::quasi_newton::LbfgsError
+impl core::fmt::Debug for alea_math::quasi_newton::LbfgsError
+pub fn alea_math::quasi_newton::LbfgsError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_math::quasi_newton::LbfgsError
+pub fn alea_math::quasi_newton::LbfgsError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::quasi_newton::LbfgsError
+impl core::marker::StructuralPartialEq for alea_math::quasi_newton::LbfgsError
+pub fn alea_math::quasi_newton::lbfgs_inverse_product(vector: &[f64], s_history: &[alloc::vec::Vec<f64>], y_history: &[alloc::vec::Vec<f64>], output: &mut [f64]) -> core::result::Result<(), alea_math::quasi_newton::LbfgsError>
 pub mod alea_math::random
 pub struct alea_math::random::NormalGenerator
 impl alea_math::random::NormalGenerator

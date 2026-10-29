@@ -384,6 +384,131 @@ pub async fn alea_runtime::monitor::Subscription::changed(&mut self) -> core::op
 pub fn alea_runtime::monitor::Subscription::latest(&self) -> core::option::Option<alloc::sync::Arc<alea_runtime::monitor::Report>>
 impl core::clone::Clone for alea_runtime::monitor::Subscription
 pub fn alea_runtime::monitor::Subscription::clone(&self) -> alea_runtime::monitor::Subscription
+pub mod alea_runtime::optimize
+pub enum alea_runtime::optimize::MaximizeError<E: core::error::Error + 'static>
+pub alea_runtime::optimize::MaximizeError::Evaluation(alloc::boxed::Box<alea_runtime::optimize::OptimizationError<E>>)
+pub alea_runtime::optimize::MaximizeError::Invalid(alea_runtime::optimize::InvalidOptimization)
+impl<E: core::error::Error + 'static> core::convert::From<alea_runtime::optimize::InvalidOptimization> for alea_runtime::optimize::MaximizeError<E>
+pub fn alea_runtime::optimize::MaximizeError<E>::from(source: alea_runtime::optimize::InvalidOptimization) -> Self
+impl<E: core::error::Error + 'static> core::convert::From<alloc::boxed::Box<alea_runtime::optimize::OptimizationError<E>>> for alea_runtime::optimize::MaximizeError<E>
+pub fn alea_runtime::optimize::MaximizeError<E>::from(source: alloc::boxed::Box<alea_runtime::optimize::OptimizationError<E>>) -> Self
+impl<E: core::error::Error + 'static> core::error::Error for alea_runtime::optimize::MaximizeError<E> where alloc::boxed::Box<alea_runtime::optimize::OptimizationError<E>>: core::error::Error, Self: core::fmt::Debug + core::fmt::Display
+pub fn alea_runtime::optimize::MaximizeError<E>::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl<E: core::error::Error + 'static> core::fmt::Display for alea_runtime::optimize::MaximizeError<E> where alloc::boxed::Box<alea_runtime::optimize::OptimizationError<E>>: core::fmt::Display
+pub fn alea_runtime::optimize::MaximizeError<E>::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<E: core::fmt::Debug + core::error::Error + 'static> core::fmt::Debug for alea_runtime::optimize::MaximizeError<E>
+pub fn alea_runtime::optimize::MaximizeError<E>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub enum alea_runtime::optimize::ObjectiveKind
+pub alea_runtime::optimize::ObjectiveKind::Likelihood
+pub alea_runtime::optimize::ObjectiveKind::Other
+pub alea_runtime::optimize::ObjectiveKind::Posterior
+impl core::clone::Clone for alea_runtime::optimize::ObjectiveKind
+pub fn alea_runtime::optimize::ObjectiveKind::clone(&self) -> alea_runtime::optimize::ObjectiveKind
+impl core::cmp::Eq for alea_runtime::optimize::ObjectiveKind
+impl core::cmp::PartialEq for alea_runtime::optimize::ObjectiveKind
+pub fn alea_runtime::optimize::ObjectiveKind::eq(&self, other: &alea_runtime::optimize::ObjectiveKind) -> bool
+impl core::fmt::Debug for alea_runtime::optimize::ObjectiveKind
+pub fn alea_runtime::optimize::ObjectiveKind::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_runtime::optimize::ObjectiveKind
+impl core::marker::StructuralPartialEq for alea_runtime::optimize::ObjectiveKind
+pub enum alea_runtime::optimize::OptimizationTermination
+pub alea_runtime::optimize::OptimizationTermination::Cancelled
+pub alea_runtime::optimize::OptimizationTermination::EvaluationFailed
+pub alea_runtime::optimize::OptimizationTermination::EvaluationLimit
+pub alea_runtime::optimize::OptimizationTermination::IterationLimit
+pub alea_runtime::optimize::OptimizationTermination::LineSearchFailed
+pub alea_runtime::optimize::OptimizationTermination::NumericalDirection
+pub alea_runtime::optimize::OptimizationTermination::ScoreTolerance
+impl core::clone::Clone for alea_runtime::optimize::OptimizationTermination
+pub fn alea_runtime::optimize::OptimizationTermination::clone(&self) -> alea_runtime::optimize::OptimizationTermination
+impl core::cmp::Eq for alea_runtime::optimize::OptimizationTermination
+impl core::cmp::PartialEq for alea_runtime::optimize::OptimizationTermination
+pub fn alea_runtime::optimize::OptimizationTermination::eq(&self, other: &alea_runtime::optimize::OptimizationTermination) -> bool
+impl core::fmt::Debug for alea_runtime::optimize::OptimizationTermination
+pub fn alea_runtime::optimize::OptimizationTermination::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_runtime::optimize::OptimizationTermination
+impl core::marker::StructuralPartialEq for alea_runtime::optimize::OptimizationTermination
+pub struct alea_runtime::optimize::InvalidOptimization
+impl core::clone::Clone for alea_runtime::optimize::InvalidOptimization
+pub fn alea_runtime::optimize::InvalidOptimization::clone(&self) -> alea_runtime::optimize::InvalidOptimization
+impl core::cmp::Eq for alea_runtime::optimize::InvalidOptimization
+impl core::cmp::PartialEq for alea_runtime::optimize::InvalidOptimization
+pub fn alea_runtime::optimize::InvalidOptimization::eq(&self, other: &alea_runtime::optimize::InvalidOptimization) -> bool
+impl core::error::Error for alea_runtime::optimize::InvalidOptimization
+impl core::fmt::Debug for alea_runtime::optimize::InvalidOptimization
+pub fn alea_runtime::optimize::InvalidOptimization::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_runtime::optimize::InvalidOptimization
+pub fn alea_runtime::optimize::InvalidOptimization::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_runtime::optimize::InvalidOptimization
+impl core::marker::StructuralPartialEq for alea_runtime::optimize::InvalidOptimization
+impl<E: core::error::Error + 'static> core::convert::From<alea_runtime::optimize::InvalidOptimization> for alea_runtime::optimize::MaximizeError<E>
+pub fn alea_runtime::optimize::MaximizeError<E>::from(source: alea_runtime::optimize::InvalidOptimization) -> Self
+pub struct alea_runtime::optimize::LbfgsOptions
+impl alea_runtime::optimize::LbfgsOptions
+pub fn alea_runtime::optimize::LbfgsOptions::evaluation_limit(&self) -> usize
+pub fn alea_runtime::optimize::LbfgsOptions::history_limit(&self) -> usize
+pub fn alea_runtime::optimize::LbfgsOptions::iteration_limit(&self) -> usize
+pub fn alea_runtime::optimize::LbfgsOptions::line_search_limit(&self) -> usize
+pub fn alea_runtime::optimize::LbfgsOptions::new(iterations: usize, evaluations: usize) -> core::result::Result<Self, alea_runtime::optimize::InvalidOptimization>
+pub fn alea_runtime::optimize::LbfgsOptions::scales(&self) -> core::option::Option<&[f64]>
+pub fn alea_runtime::optimize::LbfgsOptions::score_tolerance(&self) -> f64
+pub fn alea_runtime::optimize::LbfgsOptions::with_history(self, history: usize) -> core::result::Result<Self, alea_runtime::optimize::InvalidOptimization>
+pub fn alea_runtime::optimize::LbfgsOptions::with_line_search(self, trials: usize) -> core::result::Result<Self, alea_runtime::optimize::InvalidOptimization>
+pub fn alea_runtime::optimize::LbfgsOptions::with_scales(self, scales: alloc::vec::Vec<f64>) -> core::result::Result<Self, alea_runtime::optimize::InvalidOptimization>
+pub fn alea_runtime::optimize::LbfgsOptions::with_score_tolerance(self, tolerance: f64) -> core::result::Result<Self, alea_runtime::optimize::InvalidOptimization>
+impl core::clone::Clone for alea_runtime::optimize::LbfgsOptions
+pub fn alea_runtime::optimize::LbfgsOptions::clone(&self) -> alea_runtime::optimize::LbfgsOptions
+impl core::fmt::Debug for alea_runtime::optimize::LbfgsOptions
+pub fn alea_runtime::optimize::LbfgsOptions::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_runtime::optimize::ObjectiveDescription
+pub alea_runtime::optimize::ObjectiveDescription::data: alloc::string::String
+pub alea_runtime::optimize::ObjectiveDescription::kind: alea_runtime::optimize::ObjectiveKind
+pub alea_runtime::optimize::ObjectiveDescription::measure: alloc::string::String
+pub alea_runtime::optimize::ObjectiveDescription::model: alloc::string::String
+pub alea_runtime::optimize::ObjectiveDescription::source: alloc::string::String
+impl core::clone::Clone for alea_runtime::optimize::ObjectiveDescription
+pub fn alea_runtime::optimize::ObjectiveDescription::clone(&self) -> alea_runtime::optimize::ObjectiveDescription
+impl core::cmp::Eq for alea_runtime::optimize::ObjectiveDescription
+impl core::cmp::PartialEq for alea_runtime::optimize::ObjectiveDescription
+pub fn alea_runtime::optimize::ObjectiveDescription::eq(&self, other: &alea_runtime::optimize::ObjectiveDescription) -> bool
+impl core::fmt::Debug for alea_runtime::optimize::ObjectiveDescription
+pub fn alea_runtime::optimize::ObjectiveDescription::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_runtime::optimize::ObjectiveDescription
+pub struct alea_runtime::optimize::OptimizationCandidate
+pub alea_runtime::optimize::OptimizationCandidate::gradient: alloc::vec::Vec<f64>
+pub alea_runtime::optimize::OptimizationCandidate::position: alloc::vec::Vec<f64>
+pub alea_runtime::optimize::OptimizationCandidate::value: f64
+impl core::clone::Clone for alea_runtime::optimize::OptimizationCandidate
+pub fn alea_runtime::optimize::OptimizationCandidate::clone(&self) -> alea_runtime::optimize::OptimizationCandidate
+impl core::cmp::PartialEq for alea_runtime::optimize::OptimizationCandidate
+pub fn alea_runtime::optimize::OptimizationCandidate::eq(&self, other: &alea_runtime::optimize::OptimizationCandidate) -> bool
+impl core::fmt::Debug for alea_runtime::optimize::OptimizationCandidate
+pub fn alea_runtime::optimize::OptimizationCandidate::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_runtime::optimize::OptimizationCandidate
+pub struct alea_runtime::optimize::OptimizationError<E: core::error::Error + 'static>
+pub alea_runtime::optimize::OptimizationError::result: alloc::boxed::Box<alea_runtime::optimize::OptimizationResult>
+pub alea_runtime::optimize::OptimizationError::source: alea_core::target::EvaluationError<E>
+impl<E: core::error::Error + 'static> core::error::Error for alea_runtime::optimize::OptimizationError<E> where alea_core::target::EvaluationError<E>: core::error::Error + 'static, Self: core::fmt::Debug + core::fmt::Display
+pub fn alea_runtime::optimize::OptimizationError<E>::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl<E: core::error::Error + 'static> core::fmt::Display for alea_runtime::optimize::OptimizationError<E> where alea_core::target::EvaluationError<E>: core::fmt::Display
+pub fn alea_runtime::optimize::OptimizationError<E>::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<E: core::fmt::Debug + core::error::Error + 'static> core::fmt::Debug for alea_runtime::optimize::OptimizationError<E>
+pub fn alea_runtime::optimize::OptimizationError<E>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_runtime::optimize::OptimizationResult
+pub alea_runtime::optimize::OptimizationResult::candidate: core::option::Option<alea_runtime::optimize::OptimizationCandidate>
+pub alea_runtime::optimize::OptimizationResult::domain_trials: usize
+pub alea_runtime::optimize::OptimizationResult::evaluations: usize
+pub alea_runtime::optimize::OptimizationResult::iterations: usize
+pub alea_runtime::optimize::OptimizationResult::objective: alea_runtime::optimize::ObjectiveDescription
+pub alea_runtime::optimize::OptimizationResult::options: alea_runtime::optimize::LbfgsOptions
+pub alea_runtime::optimize::OptimizationResult::skipped_updates: usize
+pub alea_runtime::optimize::OptimizationResult::termination: alea_runtime::optimize::OptimizationTermination
+impl core::clone::Clone for alea_runtime::optimize::OptimizationResult
+pub fn alea_runtime::optimize::OptimizationResult::clone(&self) -> alea_runtime::optimize::OptimizationResult
+impl core::fmt::Debug for alea_runtime::optimize::OptimizationResult
+pub fn alea_runtime::optimize::OptimizationResult::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub fn alea_runtime::optimize::maximize<T: alea_core::target::LogDensityGradient + ?core::marker::Sized>(target: &T, initial: &[f64], objective: alea_runtime::optimize::ObjectiveDescription, options: alea_runtime::optimize::LbfgsOptions) -> core::result::Result<alea_runtime::optimize::OptimizationResult, alea_runtime::optimize::MaximizeError<<T as alea_core::target::TargetSpace>::Error>>
+pub fn alea_runtime::optimize::maximize_with_cancel<T: alea_core::target::LogDensityGradient + ?core::marker::Sized>(target: &T, initial: &[f64], objective: alea_runtime::optimize::ObjectiveDescription, options: alea_runtime::optimize::LbfgsOptions, cancelled: impl core::ops::function::FnMut() -> bool) -> core::result::Result<alea_runtime::optimize::OptimizationResult, alea_runtime::optimize::MaximizeError<<T as alea_core::target::TargetSpace>::Error>>
 pub mod alea_runtime::output
 pub enum alea_runtime::output::Phase
 pub alea_runtime::output::Phase::Sampling
