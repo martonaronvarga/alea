@@ -8,21 +8,24 @@ use alea::{
     optimize::{LbfgsOptions, ObjectiveDescription, ObjectiveKind, maximize},
     target::LogDensityGradient,
 };
+use alea_downstream_conformance::profiling::EvaluationObserver;
 use std::{hint::black_box, time::Instant};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
-    if args.len() != 5 {
+    if !(5..=6).contains(&args.len()) {
         return Err(
-            "usage: regression_benchmark normal|bernoulli|poisson batch|scalar rows repetitions"
+            "usage: regression_benchmark normal|bernoulli|poisson batch|scalar rows repetitions [plain|counted|timed]"
                 .into(),
         );
     }
+    let profile = args.get(5).map_or("plain", String::as_str);
     let family = args[1].as_str();
     let mode = args[2].as_str();
     let n = args[3].parse::<usize>()?;
     let repetitions = args[4].parse::<usize>()?;
     if !["normal", "bernoulli", "poisson"].contains(&family)
         || !["batch", "scalar"].contains(&mode)
+        || !["plain", "counted", "timed"].contains(&profile)
         || n == 0
         || repetitions == 0
     {
@@ -97,9 +100,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         black_box(objective.logp_grad(black_box(&q), black_box(&mut g))?);
     }
     let evaluation_seconds = started.elapsed().as_secs_f64() / repetitions as f64;
+    let counted = EvaluationObserver::<_, false>::new(&objective);
+    let timed = EvaluationObserver::<_, true>::new(&objective);
+    let target: &dyn LogDensityGradient<Error = _> = match profile {
+        "counted" => &counted,
+        "timed" => &timed,
+        _ => &objective,
+    };
     let started = Instant::now();
     let result = maximize(
-        &objective,
+        target,
         &q,
         ObjectiveDescription {
             kind: ObjectiveKind::Likelihood,
@@ -111,6 +121,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         LbfgsOptions::new(100, 1000)?.with_score_tolerance(n as f64 * 1e-7)?,
     )?;
     let fit_seconds = started.elapsed().as_secs_f64();
+    let target_calls = match profile {
+        "counted" => Some(counted.calls()),
+        "timed" => Some(timed.calls()),
+        _ => None,
+    };
+    if let Some(calls) = target_calls {
+        assert_eq!(calls, result.evaluations);
+    }
+    let target_calls = target_calls.map_or("null".into(), |x| x.to_string());
+    let target_seconds = timed
+        .elapsed()
+        .filter(|_| profile == "timed")
+        .map_or("null".into(), |x| x.as_secs_f64().to_string());
     let rss = std::fs::read_to_string("/proc/self/status")
         .ok()
         .and_then(|s| {
@@ -134,7 +157,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let score_tolerance = result.options.score_tolerance();
     let line_search_failure = result.line_search_failure;
     println!(
-        "{{\"family\":\"{family}\",\"mode\":\"{mode}\",\"rows\":{n},\"repetitions\":{repetitions},\"expressions\":{expressions},\"construction_seconds\":{construction_seconds},\"evaluation_seconds\":{evaluation_seconds},\"fit_seconds\":{fit_seconds},\"peak_rss_kib\":{rss},\"value\":{value},\"gradient\":{gradient:?},\"final_gradient\":{final_gradient:?},\"final_value\":{final_value},\"score_tolerance\":{score_tolerance},\"line_search_failure\":\"{line_search_failure:?}\",\"termination\":\"{:?}\",\"evaluations\":{},\"iterations\":{},\"estimate_free\":{:?}}}",
+        "{{\"profile\":\"{profile}\",\"target_calls\":{target_calls},\"target_seconds\":{target_seconds},\"family\":\"{family}\",\"mode\":\"{mode}\",\"rows\":{n},\"repetitions\":{repetitions},\"expressions\":{expressions},\"construction_seconds\":{construction_seconds},\"evaluation_seconds\":{evaluation_seconds},\"fit_seconds\":{fit_seconds},\"peak_rss_kib\":{rss},\"value\":{value},\"gradient\":{gradient:?},\"final_gradient\":{final_gradient:?},\"final_value\":{final_value},\"score_tolerance\":{score_tolerance},\"line_search_failure\":\"{line_search_failure:?}\",\"termination\":\"{:?}\",\"evaluations\":{},\"iterations\":{},\"estimate_free\":{:?}}}",
         result.termination,
         result.evaluations,
         result.iterations,

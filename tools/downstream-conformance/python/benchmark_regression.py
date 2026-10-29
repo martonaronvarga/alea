@@ -21,6 +21,11 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def source_fingerprints():
+    paths = subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard"], text=True).splitlines()
+    return {f: digest(f) for f in paths if (f.startswith("crates/") or f.startswith("tools/downstream-conformance/")) and f.endswith((".rs", ".py", ".toml", ".lock"))}
+
+
 def eligible_pair(b, s):
     """Scientific gates are independent of timing; failed searches remain ineligible."""
     return (
@@ -57,6 +62,19 @@ def revision_comparison(before, after):
     return result
 
 
+def attribution_summary(rows):
+    """Unadjusted timed-call fraction; the residual includes observer overhead."""
+    if not rows or any(r.get("target_calls") != r["evaluations"] or
+                       not isinstance(r.get("target_seconds"), (int, float)) or
+                       not math.isfinite(r["target_seconds"]) or
+                       not 0 <= r["target_seconds"] <= r["fit_seconds"] or
+                       r["fit_seconds"] <= 0 for r in rows):
+        return {"attribution_valid": False}
+    return {"attribution_valid": True,
+            "target_fraction_median": statistics.median(r["target_seconds"] / r["fit_seconds"] for r in rows),
+            "residual_seconds_median": statistics.median(r["fit_seconds"] - r["target_seconds"] for r in rows)}
+
+
 def decode_benchmark_output(stdout, job):
     """Malformed output is an infrastructure failure, never a qualified fit."""
     def reject_constant(value):
@@ -70,27 +88,31 @@ def decode_benchmark_output(stdout, job):
         raise ValueError("incomplete benchmark output")
     if any(payload.get(key) != job[key] for key in ["family", "mode", "rows"]):
         raise ValueError("benchmark output does not match planned job")
+    if job.get("revision") in ("plain", "counted", "timed") and payload.get("profile") != job["revision"]:
+        raise ValueError("benchmark observer does not match planned job")
     return payload
 
 
 def benchmark_revisions(args):
     rng = random.Random(args.seed)
+    variants = ["plain", "counted", "timed"] if args.attribution else ["before", "after"]
     planned = []
     for family in ["normal", "bernoulli", "poisson"]:
         for n in args.rows:
             for repeat in range(args.runs):
-                order = [(revision, mode) for revision in ["before", "after"] for mode in ["batch", "scalar"]]
+                order = [(revision, mode) for revision in variants for mode in ["batch", "scalar"]]
                 rng.shuffle(order)
                 for revision, mode in order:
                     planned.append(dict(family=family, rows=n, repeat=repeat, revision=revision, mode=mode))
-    report = {"protocol": "alea-regression-revisions-v1", "platform": platform.platform(),
+    report = {"protocol": "alea-regression-attribution-v1" if args.attribution else "alea-regression-revisions-v1", "platform": platform.platform(),
               "affinity": sorted(os.sched_getaffinity(0)),
               "seed": args.seed, "score_tolerance_per_observation": 1e-7,
               "toolchain": subprocess.check_output(["rustc", "-Vv"], text=True),
               "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "working_diff_sha256": hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD"])).hexdigest(),
               "baseline_revision": args.baseline_revision,
-              "binaries": {"before": digest(args.baseline_binary), "after": digest(args.binary)},
+              "source_files": source_fingerprints(),
+              "binaries": {v: digest(args.binary if v != "before" else args.baseline_binary) for v in variants},
               "planned_runs": planned, "runs": [], "comparisons": []}
     # Seal the declared jobs before executing, and retain every raw process record.
     path = Path(args.output)
@@ -101,6 +123,8 @@ def benchmark_revisions(args):
             for job in planned:
                 binary = args.baseline_binary if job["revision"] == "before" else args.binary
                 command = [binary, job["family"], job["mode"], str(job["rows"]), str(max(3, min(5000, 2000000 // job["rows"])))]
+                if args.attribution:
+                    command.append(job["revision"])
                 row = dict(job)
                 started = time.monotonic()
                 try:
@@ -118,11 +142,14 @@ def benchmark_revisions(args):
             for family in ["normal", "bernoulli", "poisson"]:
                 for n in args.rows:
                     for mode in ["batch", "scalar"]:
-                        cohorts = [[r for r in report["runs"] if r["family"] == family and r["rows"] == n and r["mode"] == mode and r["revision"] == revision] for revision in ["before", "after"]]
-                        result = {"eligible": False} if any("error" in r for rows in cohorts for r in rows) else revision_comparison(*cohorts)
-                        result.update(family=family, rows=n, mode=mode)
-                        report["comparisons"].append(result)
-                        print(json.dumps(result), flush=True)
+                        for variant in variants[1:]:
+                            cohorts = [[r for r in report["runs"] if r["family"] == family and r["rows"] == n and r["mode"] == mode and r["revision"] == revision] for revision in [variants[0], variant]]
+                            result = revision_comparison(*cohorts)
+                            if variant == "timed" and result["eligible"]:
+                                result.update(attribution_summary(cohorts[1]))
+                            result.update(family=family, rows=n, mode=mode, comparison=variant)
+                            report["comparisons"].append(result)
+                            print(json.dumps(result), flush=True)
         finally:
             json.dump(report, output, indent=2, allow_nan=False); output.write("\n")
 
@@ -133,6 +160,7 @@ if __name__ == "__main__":
     p.add_argument("output")
     p.add_argument("--rows", type=int, nargs="+", default=[10, 1000, 1000000])
     p.add_argument("--runs", type=int, default=3)
+    p.add_argument("--attribution", action="store_true")
     p.add_argument("--baseline-binary")
     p.add_argument("--baseline-revision")
     p.add_argument("--seed", type=int, default=271828)
@@ -141,13 +169,15 @@ if __name__ == "__main__":
         p.error("positive rows and runs required")
     if bool(args.baseline_binary) != bool(args.baseline_revision):
         p.error("baseline binary and revision must be supplied together")
-    if args.baseline_binary:
+    if args.attribution and args.baseline_binary:
+        p.error("attribution and baseline comparison are separate protocols")
+    if args.baseline_binary or args.attribution:
         benchmark_revisions(args)
         raise SystemExit(0)
     report = {"protocol": "alea-regression-v1", "platform": platform.platform(),
               "binary_sha256": digest(args.binary), "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "toolchain": subprocess.check_output(["rustc", "-Vv"], text=True),
-              "source_files": {f: digest(f) for f in subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard"], text=True).splitlines() if (f.startswith("crates/") or f.startswith("tools/downstream-conformance/")) and f.endswith((".rs", ".py", ".toml", ".lock"))},
+              "source_files": source_fingerprints(),
               "working_diff_sha256": hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD"])).hexdigest(),
               "score_tolerance_per_observation": 1e-7,
               "planned_runs": [{"family": f, "mode": m, "rows": n, "repeat": r}

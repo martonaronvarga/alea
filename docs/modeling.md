@@ -864,3 +864,32 @@ any repeated fit fails its numerical or agreement gates. Build both binaries wit
 the same toolchain and dependency lockfile; report setup, evaluation and fitting
 separately. Baseline labels are supplied by the caller, so retain the build records
 that establish which source produced each binary.
+
+### Attributing fitting time
+
+Pass `--attribution` to the regression benchmark runner to compare plain,
+call-counted and timed target evaluation using one binary. The observer lives in
+the downstream benchmark package, outside Alea's production crates. It forwards
+the target's concrete error type, values and gradients without changing them.
+Count-only observation reads no clock. Timed observation sums returned target-call
+wall durations, including parameter transforms and graph evaluation. It includes
+scheduling delays; it is not CPU time. Output serialization is outside fit time.
+
+A pinned five-repetition run completed all 270 planned processes. All 36
+observer/control comparisons passed the existing numerical gates and retained
+identical numerical outputs and optimizer work counts. Independent 60-digit
+reference checks passed. The table shows median target-call fractions for batch
+fits, without subtracting a clock-overhead estimate.
+
+| Likelihood | 10 rows | 1,000 rows | 1,000,000 rows |
+| --- | ---: | ---: | ---: |
+| Gaussian | 45.9% | 96.5% | 99.984% |
+| Bernoulli-logit | 37.3% | 97.6% | 99.994% |
+| Poisson-log | 32.7% | 95.6% | 99.984% |
+
+The residual includes optimizer work, checks and observer bookkeeping. Small-fit
+controls were too variable to establish a precise observer cost: some timed
+medians were lower than plain medians. Their ratios remain in the report, rather
+than being subtracted as a correction. These one-host measurements identify the
+large-data target-evaluation bottleneck; they do not establish exact uninstrumented
+fractions, a general speedup, or results for hierarchical models and samplers.

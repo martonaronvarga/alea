@@ -44,7 +44,22 @@ class RevisionGates(unittest.TestCase):
         job = dict(family="normal", rows=10, mode="batch")
         payload = dict(self.row, **job)
         self.assertEqual(decode_benchmark_output(json.dumps(payload), job), payload)
+        with self.assertRaises(ValueError):
+            decode_benchmark_output(json.dumps(payload), dict(job, revision="timed"))
         for raw in ["[]", "null", "{}", '{"value":NaN}', "invalid",
                     json.dumps(dict(payload, rows=100))]:
             with self.assertRaises(ValueError):
                 decode_benchmark_output(raw, job)
+
+class AttributionGates(unittest.TestCase):
+    def test_fraction_retains_observer_residual_and_rejects_missing_work(self):
+        from benchmark_regression import attribution_summary
+        row = dict(target_calls=10, evaluations=10, target_seconds=0.75, fit_seconds=1.)
+        result = attribution_summary([row])
+        self.assertTrue(result['attribution_valid'])
+        self.assertEqual(result['target_fraction_median'], 0.75)
+        self.assertEqual(result['residual_seconds_median'], 0.25)
+        for bad in [dict(row, target_calls=9), dict(row, target_seconds=None),
+                    dict(row, target_seconds=2.), dict(row, target_seconds=float('nan')),
+                    dict(row, fit_seconds=0.)]:
+            self.assertEqual(attribution_summary([bad]), {'attribution_valid': False})

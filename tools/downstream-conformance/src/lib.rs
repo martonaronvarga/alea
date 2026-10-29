@@ -244,3 +244,5 @@ where
         assert_eq!(distribution.support(), support);
     }
 }
+
+pub mod profiling;
