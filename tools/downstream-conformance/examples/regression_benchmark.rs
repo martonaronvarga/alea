@@ -4,7 +4,10 @@ use alea::{
         modeling::{bernoulli_logit, normal_observation, observation, regression::*},
         scalar::Poisson,
     },
-    model::assembly::ModelBuilder,
+    model::{
+        ComposedObjective,
+        assembly::{CompiledModel, ModelBuilder},
+    },
     optimize::{LbfgsOptions, ObjectiveDescription, ObjectiveKind, maximize},
     target::LogDensityGradient,
 };
@@ -13,14 +16,19 @@ use rand::{RngExt, SeedableRng, rngs::SmallRng};
 use std::{hint::black_box, io::Write, time::Instant};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args: Vec<_> = std::env::args().collect();
+    let reuse = args
+        .iter()
+        .position(|x| x == "--reuse-model")
+        .map(|i| args.remove(i))
+        .is_some();
     let fits = take_count(&mut args, "--fits")?;
     let threads = take_count(&mut args, "--threads")?;
     if let Some(fits) = fits {
         let threads = threads.ok_or("--fits requires --threads")?;
-        println!("{}", repeated_fits(&args, fits, threads)?);
+        println!("{}", repeated_fits(&args, fits, threads, reuse)?);
     } else {
-        if threads.is_some() {
-            return Err("--threads requires --fits".into());
+        if threads.is_some() || reuse {
+            return Err("--threads and --reuse-model require --fits".into());
         }
         println!("{}", benchmark(args)?);
     }
@@ -49,6 +57,7 @@ fn repeated_fits(
     args: &[String],
     fits: usize,
     threads: usize,
+    reuse: bool,
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     use rayon::prelude::*;
     let started = Instant::now();
@@ -69,29 +78,75 @@ fn repeated_fits(
         0.
     };
     let started = Instant::now();
-    let run = |id: usize| match benchmark(args.to_vec()) {
-        Ok(output) => match serde_json::from_str::<serde_json::Value>(&output) {
-            Ok(mut row) if row.is_object() => {
-                row["fit_id"] = id.into();
-                row
-            }
-            Ok(_) => serde_json::json!({"fit_id":id,"error":"expected fit record"}),
-            Err(error) => serde_json::json!({"fit_id":id,"error":error.to_string()}),
-        },
-        Err(error) => serde_json::json!({"fit_id":id,"error":error.to_string()}),
+    let lanes = fits.min(threads);
+    // Identical fixed partitions in cold and reuse modes. The objective is
+    // constructed inside the lane, never shared or sent between workers.
+    let run_lane = |lane: usize| {
+        let base = fits / lanes;
+        let extra = fits % lanes;
+        let start = lane * base + lane.min(extra);
+        let end = start + base + usize::from(lane < extra);
+        let prepared = reuse.then(|| prepare(args.to_vec()));
+        (start..end)
+            .map(|id| {
+                let result = match &prepared {
+                    Some(Ok(Some(model))) => model.run(if id == start {
+                        model.construction_seconds
+                    } else {
+                        0.
+                    }),
+                    Some(Ok(None)) => Err("expected model, got dataset export".into()),
+                    Some(Err(error)) => Err(error.to_string().into()),
+                    None => benchmark(args.to_vec()),
+                };
+                match result {
+                    Ok(output) => match serde_json::from_str::<serde_json::Value>(&output) {
+                        Ok(mut row) if row.is_object() => {
+                            row["fit_id"] = id.into();
+                            row
+                        }
+                        Ok(_) => serde_json::json!({"fit_id":id,"error":"expected fit record"}),
+                        Err(error) => serde_json::json!({"fit_id":id,"error":error.to_string()}),
+                    },
+                    Err(error) => serde_json::json!({"fit_id":id,"error":error.to_string()}),
+                }
+            })
+            .collect::<Vec<_>>()
     };
-    let runs: Vec<_> = match pool {
-        Some(pool) => pool.install(|| (0..fits).into_par_iter().map(run).collect()),
-        None => (0..fits).map(run).collect(),
+    let chunks: Vec<_> = match pool {
+        Some(pool) => pool.install(|| (0..lanes).into_par_iter().map(run_lane).collect()),
+        None => (0..lanes).map(run_lane).collect(),
     };
+    let runs: Vec<_> = chunks.into_iter().flatten().collect();
     let workload_seconds = started.elapsed().as_secs_f64();
     Ok(
         serde_json::json!({"execution":if threads == 1 {"sequential"} else {"parallel"},"fits":fits,"threads":threads,"max_live_models":fits.min(threads),
+        "reuse_model":reuse,"model_build_attempts":if reuse {lanes} else {fits},
         "pool_seconds":pool_seconds,"workload_seconds":workload_seconds,"runs":runs}),
     )
 }
 
-fn benchmark(mut args: Vec<String>) -> Result<String, Box<dyn std::error::Error>> {
+struct Prepared {
+    objective: ComposedObjective<CompiledModel>,
+    family: String,
+    mode: String,
+    profile: String,
+    n: usize,
+    columns: usize,
+    repetitions: usize,
+    expressions: usize,
+    construction_seconds: f64,
+    score_tolerance_per_observation: f64,
+}
+
+fn benchmark(args: Vec<String>) -> Result<String, Box<dyn std::error::Error>> {
+    match prepare(args)? {
+        Some(model) => model.run(model.construction_seconds),
+        None => Ok("null".into()),
+    }
+}
+
+fn prepare(mut args: Vec<String>) -> Result<Option<Prepared>, Box<dyn std::error::Error>> {
     let mut score_tolerance_per_observation = 1e-7_f64;
     if args.len() >= 3 && args[args.len() - 2] == "--score-tolerance-per-observation" {
         score_tolerance_per_observation = args.pop().ok_or("missing tolerance")?.parse()?;
@@ -184,7 +239,7 @@ fn benchmark(mut args: Vec<String>) -> Result<String, Box<dyn std::error::Error>
             output,
             "{{\"columns\":{columns},\"rows\":{n},\"design\":{design:?},\"normal\":{real:?},\"bernoulli\":{binary:?},\"poisson\":{counts:?}}}"
         )?;
-        return Ok("null".into());
+        return Ok(None);
     }
     if mode == "batch" {
         let f = match family {
@@ -233,84 +288,113 @@ fn benchmark(mut args: Vec<String>) -> Result<String, Box<dyn std::error::Error>
     let expressions = model.expression_count();
     let objective = model.into_objective()?;
     let construction_seconds = started.elapsed().as_secs_f64();
-    let mut q: Vec<_> = (0..columns)
-        .map(|j| if j == 0 { 0.1 } else { -0.2 / j as f64 })
-        .collect();
-    if family == "normal" {
-        q.push(0.);
+    Ok(Some(Prepared {
+        objective,
+        family: family.into(),
+        mode: mode.into(),
+        profile: profile.into(),
+        n,
+        columns,
+        repetitions,
+        expressions,
+        construction_seconds,
+        score_tolerance_per_observation,
+    }))
+}
+
+impl Prepared {
+    fn run(&self, construction_seconds: f64) -> Result<String, Box<dyn std::error::Error>> {
+        let Self {
+            n,
+            columns,
+            repetitions,
+            expressions,
+            score_tolerance_per_observation,
+            ..
+        } = *self;
+        let family = self.family.as_str();
+        let mode = self.mode.as_str();
+        let profile = self.profile.as_str();
+        let objective = &self.objective;
+        let mut q: Vec<_> = (0..columns)
+            .map(|j| if j == 0 { 0.1 } else { -0.2 / j as f64 })
+            .collect();
+        if family == "normal" {
+            q.push(0.);
+        }
+        let mut g = vec![0.; q.len()];
+        let value = objective.logp_grad(&q, &mut g)?;
+        let gradient = g.clone();
+        let started = Instant::now();
+        for _ in 0..repetitions {
+            black_box(objective.logp_grad(black_box(&q), black_box(&mut g))?);
+        }
+        let evaluation_seconds = started.elapsed().as_secs_f64() / repetitions as f64;
+        let counted = EvaluationObserver::<_, false>::new(objective);
+        let timed = EvaluationObserver::<_, true>::new(objective);
+        let target: &dyn LogDensityGradient<Error = _> = match profile {
+            "counted" => &counted,
+            "timed" => &timed,
+            _ => objective,
+        };
+        let started = Instant::now();
+        let result = maximize(
+            target,
+            &q,
+            ObjectiveDescription {
+                kind: ObjectiveKind::Likelihood,
+                measure: "original parameters".into(),
+                model: family.into(),
+                data: format!("synthetic-v2-{n}-{columns}"),
+                source: "regression_benchmark-v1".into(),
+            },
+            LbfgsOptions::new(100, 1000)?
+                .with_score_tolerance(n as f64 * score_tolerance_per_observation)?,
+        )?;
+        let fit_seconds = started.elapsed().as_secs_f64();
+        let target_calls = match profile {
+            "counted" => Some(counted.calls()),
+            "timed" => Some(timed.calls()),
+            _ => None,
+        };
+        if let Some(calls) = target_calls {
+            assert_eq!(calls, result.evaluations);
+        }
+        let target_calls = target_calls.map_or("null".into(), |x| x.to_string());
+        let target_seconds = timed
+            .elapsed()
+            .filter(|_| profile == "timed")
+            .map_or("null".into(), |x| x.as_secs_f64().to_string());
+        let rss = std::fs::read_to_string("/proc/self/status")
+            .ok()
+            .and_then(|s| {
+                s.lines()
+                    .find(|l| l.starts_with("VmHWM:"))
+                    .and_then(|l| l.split_whitespace().nth(1))
+                    .and_then(|x| x.parse::<u64>().ok())
+            });
+        let rss = rss.map_or("null".into(), |x| x.to_string());
+        let estimates = result.candidate.as_ref().map(|c| c.position.as_slice());
+        let final_gradient = &result
+            .candidate
+            .as_ref()
+            .ok_or("no benchmark candidate")?
+            .gradient;
+        let final_value = result
+            .candidate
+            .as_ref()
+            .ok_or("no benchmark candidate")?
+            .value;
+        let score_tolerance = result.options.score_tolerance();
+        let line_search_failure = result.line_search_failure;
+        Ok(format!(
+            "{{\"columns\":{columns},\"profile\":\"{profile}\",\"target_calls\":{target_calls},\"target_seconds\":{target_seconds},\"family\":\"{family}\",\"mode\":\"{mode}\",\"rows\":{n},\"repetitions\":{repetitions},\"expressions\":{expressions},\"construction_seconds\":{construction_seconds},\"evaluation_seconds\":{evaluation_seconds},\"fit_seconds\":{fit_seconds},\"peak_rss_kib\":{rss},\"value\":{value},\"gradient\":{gradient:?},\"final_gradient\":{final_gradient:?},\"final_value\":{final_value},\"score_tolerance\":{score_tolerance},\"line_search_failure\":\"{line_search_failure:?}\",\"termination\":\"{:?}\",\"evaluations\":{},\"iterations\":{},\"estimate_free\":{:?}}}",
+            result.termination,
+            result.evaluations,
+            result.iterations,
+            estimates.ok_or("no benchmark estimate")?
+        ))
     }
-    let mut g = vec![0.; q.len()];
-    let value = objective.logp_grad(&q, &mut g)?;
-    let gradient = g.clone();
-    let started = Instant::now();
-    for _ in 0..repetitions {
-        black_box(objective.logp_grad(black_box(&q), black_box(&mut g))?);
-    }
-    let evaluation_seconds = started.elapsed().as_secs_f64() / repetitions as f64;
-    let counted = EvaluationObserver::<_, false>::new(&objective);
-    let timed = EvaluationObserver::<_, true>::new(&objective);
-    let target: &dyn LogDensityGradient<Error = _> = match profile {
-        "counted" => &counted,
-        "timed" => &timed,
-        _ => &objective,
-    };
-    let started = Instant::now();
-    let result = maximize(
-        target,
-        &q,
-        ObjectiveDescription {
-            kind: ObjectiveKind::Likelihood,
-            measure: "original parameters".into(),
-            model: family.into(),
-            data: format!("synthetic-v2-{n}-{columns}"),
-            source: "regression_benchmark-v1".into(),
-        },
-        LbfgsOptions::new(100, 1000)?
-            .with_score_tolerance(n as f64 * score_tolerance_per_observation)?,
-    )?;
-    let fit_seconds = started.elapsed().as_secs_f64();
-    let target_calls = match profile {
-        "counted" => Some(counted.calls()),
-        "timed" => Some(timed.calls()),
-        _ => None,
-    };
-    if let Some(calls) = target_calls {
-        assert_eq!(calls, result.evaluations);
-    }
-    let target_calls = target_calls.map_or("null".into(), |x| x.to_string());
-    let target_seconds = timed
-        .elapsed()
-        .filter(|_| profile == "timed")
-        .map_or("null".into(), |x| x.as_secs_f64().to_string());
-    let rss = std::fs::read_to_string("/proc/self/status")
-        .ok()
-        .and_then(|s| {
-            s.lines()
-                .find(|l| l.starts_with("VmHWM:"))
-                .and_then(|l| l.split_whitespace().nth(1))
-                .and_then(|x| x.parse::<u64>().ok())
-        });
-    let rss = rss.map_or("null".into(), |x| x.to_string());
-    let estimates = result.candidate.as_ref().map(|c| c.position.as_slice());
-    let final_gradient = &result
-        .candidate
-        .as_ref()
-        .ok_or("no benchmark candidate")?
-        .gradient;
-    let final_value = result
-        .candidate
-        .as_ref()
-        .ok_or("no benchmark candidate")?
-        .value;
-    let score_tolerance = result.options.score_tolerance();
-    let line_search_failure = result.line_search_failure;
-    Ok(format!(
-        "{{\"columns\":{columns},\"profile\":\"{profile}\",\"target_calls\":{target_calls},\"target_seconds\":{target_seconds},\"family\":\"{family}\",\"mode\":\"{mode}\",\"rows\":{n},\"repetitions\":{repetitions},\"expressions\":{expressions},\"construction_seconds\":{construction_seconds},\"evaluation_seconds\":{evaluation_seconds},\"fit_seconds\":{fit_seconds},\"peak_rss_kib\":{rss},\"value\":{value},\"gradient\":{gradient:?},\"final_gradient\":{final_gradient:?},\"final_value\":{final_value},\"score_tolerance\":{score_tolerance},\"line_search_failure\":\"{line_search_failure:?}\",\"termination\":\"{:?}\",\"evaluations\":{},\"iterations\":{},\"estimate_free\":{:?}}}",
-        result.termination,
-        result.evaluations,
-        result.iterations,
-        estimates.ok_or("no benchmark estimate")?
-    ))
 }
 
 #[cfg(test)]
@@ -325,8 +409,8 @@ mod tests {
 
     #[test]
     fn pool_size_preserves_fit_identity_and_numerical_work() {
-        let sequential = repeated_fits(&arguments("normal"), 4, 1).unwrap();
-        let parallel = repeated_fits(&arguments("normal"), 4, 2).unwrap();
+        let sequential = repeated_fits(&arguments("normal"), 4, 1, false).unwrap();
+        let parallel = repeated_fits(&arguments("normal"), 4, 2, false).unwrap();
         assert_eq!(parallel["max_live_models"], 2);
         for id in 0..4 {
             assert_eq!(parallel["runs"][id]["fit_id"], id);
@@ -349,11 +433,53 @@ mod tests {
 
     #[test]
     fn failures_retain_every_input_id() {
-        let result = repeated_fits(&arguments("invalid"), 5, 2).unwrap();
+        let result = repeated_fits(&arguments("invalid"), 5, 2, false).unwrap();
         assert_eq!(result["runs"].as_array().unwrap().len(), 5);
         for id in 0..5 {
             assert_eq!(result["runs"][id]["fit_id"], id);
             assert!(result["runs"][id]["error"].is_string());
+        }
+    }
+    #[test]
+    fn worker_local_models_preserve_fits_and_avoid_reconstruction() {
+        for family in ["normal", "bernoulli", "poisson"] {
+            for threads in [1, 2, 4] {
+                let cold = repeated_fits(&arguments(family), 6, threads, false).unwrap();
+                let reused = repeated_fits(&arguments(family), 6, threads, true).unwrap();
+                assert_eq!(cold["model_build_attempts"], 6);
+                assert_eq!(reused["model_build_attempts"], threads);
+                for id in 0..6 {
+                    let mut a = cold["runs"][id].as_object().unwrap().clone();
+                    let mut b = reused["runs"][id].as_object().unwrap().clone();
+                    assert!(!a.contains_key("error") && !b.contains_key("error"));
+                    for key in [
+                        "construction_seconds",
+                        "fit_seconds",
+                        "evaluation_seconds",
+                        "peak_rss_kib",
+                    ] {
+                        a.remove(key);
+                        b.remove(key);
+                    }
+                    assert_eq!(a, b, "{family}, threads {threads}, id {id}");
+                }
+            }
+        }
+        let failed = repeated_fits(&arguments("invalid"), 5, 2, true).unwrap();
+        assert_eq!(failed["model_build_attempts"], 2);
+        for id in 0..5 {
+            assert_eq!(failed["runs"][id]["fit_id"], id);
+            assert!(failed["runs"][id]["error"].is_string());
+        }
+    }
+    #[test]
+    fn reused_evaluator_observation_starts_fresh_for_each_optimization() {
+        let mut args = arguments("bernoulli");
+        args[5] = "counted".into();
+        let report = repeated_fits(&args, 4, 1, true).unwrap();
+        for row in report["runs"].as_array().unwrap() {
+            assert_eq!(row["target_calls"], row["evaluations"]);
+            assert!(row["target_calls"].as_u64().unwrap() > 0);
         }
     }
 }

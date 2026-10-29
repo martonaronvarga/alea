@@ -1123,3 +1123,53 @@ requested `2e-7` tolerance. That failure is retained in both execution policies;
 accurate estimates do not turn an unsuccessful stopping condition into
 `ScoreTolerance`. These are execution and numerical conformance checks, not a
 claim of statistical convergence or a general-purpose batch scheduler.
+
+### Reusing a compiled model for repeated fits
+
+When the data and likelihood stay fixed, the same compiled objective can be
+borrowed for several calls to `maximize`. Its evaluation scratch is reusable;
+each optimization still starts from its supplied initial parameters with fresh
+L-BFGS history. Concurrent fits need separate objectives. A retained objective
+is not an interface for replacing observations or changing model parameters.
+
+The throughput runner can compare cold construction with this reuse pattern:
+
+```sh
+python tools/downstream-conformance/python/benchmark_regression_throughput.py \
+  tools/downstream-conformance/target/release/examples/regression_benchmark \
+  regression-reuse.json --columns 32 --rows 1000 10000 \
+  --fits 12 --threads 1 4 --construction cold reuse --runs 3
+```
+
+Both modes use identical fixed partitions of fit IDs. Cold mode constructs a
+model for every fit; reuse mode constructs one inside each partition and evaluates
+its fits sequentially. No objective crosses worker boundaries, and no locks or
+thread-local model cache are introduced. For 12 fits, construction attempts fall
+from 12 to one in direct execution, or to four with four partitions. All model
+construction and pool startup remain in the process-throughput denominator.
+Per-fit construction time is charged to the first fit using each model, then
+reported as zero for its later uses; aggregate timings retain the complete cost.
+
+A fresh cold/reuse comparison at 8 and 32 coefficients, 1,000 and 10,000
+observations, all three families, one and four workers, and three repetitions
+completed all 144 processes and 1,728 fits. Every fit passed independent SciPy
+checks. Initial and final values, gradients, estimates, termination and optimizer
+work counts were identical across construction policies and worker counts.
+At 10,000 observations, process-throughput ratios (cold divided by reuse) were:
+
+| Coefficients | Family | Direct sequential | Four workers |
+| --- | --- | ---: | ---: |
+| 8 | Gaussian | 1.02 | 1.07 |
+| 8 | Bernoulli | 1.11 | 0.93 |
+| 8 | Poisson | 1.14 | 1.18 |
+| 32 | Gaussian | 1.09 | 1.10 |
+| 32 | Bernoulli | 1.13 | 1.06 |
+| 32 | Poisson | 1.15 | 1.16 |
+
+Across both observation counts, ratios ranged from 0.92 to 1.21. The slower
+Bernoulli result and the 1,000-observation Gaussian four-worker result remain
+recorded. Avoiding construction is useful,
+but these three-repetition, one-host timings do not establish a universal speedup.
+The comparison concerns repeated optimization of the same likelihood, not
+bootstrap samples, changing datasets, reuse of optimizer history, or faster
+individual density evaluations. Earlier cold-construction cohorts remain separate.
