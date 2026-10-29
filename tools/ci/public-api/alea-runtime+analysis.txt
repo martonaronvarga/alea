@@ -21,6 +21,19 @@ impl core::fmt::Debug for alea_runtime::analysis::AnalysisError
 pub fn alea_runtime::analysis::AnalysisError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::fmt::Display for alea_runtime::analysis::AnalysisError
 pub fn alea_runtime::analysis::AnalysisError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub enum alea_runtime::analysis::ArrayValues
+pub alea_runtime::analysis::ArrayValues::Boolean(alloc::vec::Vec<bool>)
+pub alea_runtime::analysis::ArrayValues::Integer(alloc::vec::Vec<i64>)
+pub alea_runtime::analysis::ArrayValues::Real(alloc::vec::Vec<f64>)
+pub alea_runtime::analysis::ArrayValues::Text(alloc::vec::Vec<alloc::string::String>)
+pub alea_runtime::analysis::ArrayValues::Unsigned(alloc::vec::Vec<u64>)
+impl core::clone::Clone for alea_runtime::analysis::ArrayValues
+pub fn alea_runtime::analysis::ArrayValues::clone(&self) -> alea_runtime::analysis::ArrayValues
+impl core::cmp::PartialEq for alea_runtime::analysis::ArrayValues
+pub fn alea_runtime::analysis::ArrayValues::eq(&self, other: &alea_runtime::analysis::ArrayValues) -> bool
+impl core::fmt::Debug for alea_runtime::analysis::ArrayValues
+pub fn alea_runtime::analysis::ArrayValues::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_runtime::analysis::ArrayValues
 pub enum alea_runtime::analysis::ChainStatus
 pub alea_runtime::analysis::ChainStatus::Completed
 pub alea_runtime::analysis::ChainStatus::Failed(alloc::string::String)
@@ -35,8 +48,11 @@ pub fn alea_runtime::analysis::ChainStatus::fmt(&self, f: &mut core::fmt::Format
 impl core::marker::StructuralPartialEq for alea_runtime::analysis::ChainStatus
 pub struct alea_runtime::analysis::AnalysisSpec
 pub alea_runtime::analysis::AnalysisSpec::chains: alloc::vec::Vec<alea_runtime::output::ChainId>
+pub alea_runtime::analysis::AnalysisSpec::constant_data: alloc::vec::Vec<alea_runtime::analysis::DataArray>
 pub alea_runtime::analysis::AnalysisSpec::likelihood: core::option::Option<alea_core::model::assembly::pointwise::PointwiseLikelihood>
+pub alea_runtime::analysis::AnalysisSpec::observed_data: alloc::vec::Vec<alea_runtime::analysis::ObservedData>
 pub alea_runtime::analysis::AnalysisSpec::parameters: alea_core::model::prediction::NamedOutput<()>
+pub alea_runtime::analysis::AnalysisSpec::posterior_predictive: alloc::vec::Vec<alea_runtime::analysis::PosteriorPredictive>
 pub alea_runtime::analysis::AnalysisSpec::predictions: alloc::vec::Vec<alloc::string::String>
 pub alea_runtime::analysis::AnalysisSpec::provenance: alea_runtime::analysis::Provenance
 pub alea_runtime::analysis::AnalysisSpec::save_unconstrained: bool
@@ -51,6 +67,50 @@ pub fn alea_runtime::analysis::AnalysisWriter<W>::new(csv: W, spec: alea_runtime
 pub fn alea_runtime::analysis::AnalysisWriter<W>::spec(&self) -> &alea_runtime::analysis::AnalysisSpec
 pub fn alea_runtime::analysis::AnalysisWriter<W>::write_draw<T>(&mut self, draw: &alea_runtime::output::Draw<'_, T>, predictions: &[f64]) -> core::result::Result<(), alea_runtime::analysis::AnalysisError>
 pub fn alea_runtime::analysis::AnalysisWriter<W>::write_failure(&mut self, chain: alea_runtime::output::ChainId, phase: alea_runtime::output::Phase, index: u64, error: &str) -> core::result::Result<(), alea_runtime::analysis::AnalysisError>
+pub struct alea_runtime::analysis::DataArray
+pub alea_runtime::analysis::DataArray::axes: alloc::vec::Vec<alea_runtime::analysis::DataAxis>
+pub alea_runtime::analysis::DataArray::name: alloc::string::String
+pub alea_runtime::analysis::DataArray::unit: core::option::Option<alloc::string::String>
+pub alea_runtime::analysis::DataArray::values: alea_runtime::analysis::ArrayValues
+impl core::clone::Clone for alea_runtime::analysis::DataArray
+pub fn alea_runtime::analysis::DataArray::clone(&self) -> alea_runtime::analysis::DataArray
+impl core::cmp::PartialEq for alea_runtime::analysis::DataArray
+pub fn alea_runtime::analysis::DataArray::eq(&self, other: &alea_runtime::analysis::DataArray) -> bool
+impl core::fmt::Debug for alea_runtime::analysis::DataArray
+pub fn alea_runtime::analysis::DataArray::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_runtime::analysis::DataArray
+pub struct alea_runtime::analysis::DataAxis
+pub alea_runtime::analysis::DataAxis::coordinates: alloc::vec::Vec<alloc::string::String>
+pub alea_runtime::analysis::DataAxis::name: alloc::string::String
+impl core::clone::Clone for alea_runtime::analysis::DataAxis
+pub fn alea_runtime::analysis::DataAxis::clone(&self) -> alea_runtime::analysis::DataAxis
+impl core::cmp::Eq for alea_runtime::analysis::DataAxis
+impl core::cmp::PartialEq for alea_runtime::analysis::DataAxis
+pub fn alea_runtime::analysis::DataAxis::eq(&self, other: &alea_runtime::analysis::DataAxis) -> bool
+impl core::fmt::Debug for alea_runtime::analysis::DataAxis
+pub fn alea_runtime::analysis::DataAxis::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_runtime::analysis::DataAxis
+pub struct alea_runtime::analysis::ObservedData
+pub alea_runtime::analysis::ObservedData::array: alea_runtime::analysis::DataArray
+pub alea_runtime::analysis::ObservedData::observation_dimension: alloc::string::String
+impl core::clone::Clone for alea_runtime::analysis::ObservedData
+pub fn alea_runtime::analysis::ObservedData::clone(&self) -> alea_runtime::analysis::ObservedData
+impl core::cmp::PartialEq for alea_runtime::analysis::ObservedData
+pub fn alea_runtime::analysis::ObservedData::eq(&self, other: &alea_runtime::analysis::ObservedData) -> bool
+impl core::fmt::Debug for alea_runtime::analysis::ObservedData
+pub fn alea_runtime::analysis::ObservedData::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_runtime::analysis::ObservedData
+pub struct alea_runtime::analysis::PosteriorPredictive
+pub alea_runtime::analysis::PosteriorPredictive::columns: alloc::vec::Vec<alloc::string::String>
+pub alea_runtime::analysis::PosteriorPredictive::variable: alloc::string::String
+impl core::clone::Clone for alea_runtime::analysis::PosteriorPredictive
+pub fn alea_runtime::analysis::PosteriorPredictive::clone(&self) -> alea_runtime::analysis::PosteriorPredictive
+impl core::cmp::Eq for alea_runtime::analysis::PosteriorPredictive
+impl core::cmp::PartialEq for alea_runtime::analysis::PosteriorPredictive
+pub fn alea_runtime::analysis::PosteriorPredictive::eq(&self, other: &alea_runtime::analysis::PosteriorPredictive) -> bool
+impl core::fmt::Debug for alea_runtime::analysis::PosteriorPredictive
+pub fn alea_runtime::analysis::PosteriorPredictive::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_runtime::analysis::PosteriorPredictive
 pub struct alea_runtime::analysis::Provenance
 pub alea_runtime::analysis::Provenance::data: alloc::string::String
 pub alea_runtime::analysis::Provenance::method: alloc::string::String

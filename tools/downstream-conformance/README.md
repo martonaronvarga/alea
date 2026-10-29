@@ -57,3 +57,19 @@ applications do not need Python. Reader mutation tests run with:
 ```console
 python3 -m unittest discover -s tools/downstream-conformance/python
 ```
+
+
+The optional external analysis gate exercises actual Gaussian and logistic fits,
+DataTree/NetCDF and R round trips, a conjugate-normal PSIS-LOO oracle, and retained
+Pareto-k warnings. Run it with the locked analysis environment:
+
+```sh
+nix develop .#analysis --command bash tools/ci/analysis.sh
+```
+
+The Python reader needs only the standard library. DataTree conversion needs the
+packages pinned in `python/requirements-analysis.txt`; the R reader needs Python
+and jsonlite. Native applications need none of these. See the
+[analysis guide](../../docs/sessions.md#export-to-python-and-netcdf) for commands,
+array bindings and partial-chain behavior. The short fitting fixtures verify the
+export workflow; they are not convergence or comparative performance evidence.

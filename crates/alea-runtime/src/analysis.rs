@@ -1,5 +1,6 @@
 //! Streamed, named sampling tables with a sealed JSON analysis manifest.
 #![deny(missing_docs)]
+mod data;
 mod schema;
 use crate::output::{ChainId, Draw, Phase, TransitionStats};
 use alea_core::{
@@ -9,6 +10,7 @@ use alea_core::{
     },
     transform::TransformError,
 };
+pub use data::{ArrayValues, DataArray, DataAxis, ObservedData, PosteriorPredictive};
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
@@ -16,7 +18,7 @@ use std::{
 };
 
 /// Version of the CSV/JSON analysis contract; independent of checkpoint storage.
-pub const SCHEMA_VERSION: u32 = 1;
+pub const SCHEMA_VERSION: u32 = 2;
 
 /// Caller-supplied identities and method settings; not inferred from type names.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -50,6 +52,12 @@ pub struct AnalysisSpec {
     pub units: BTreeMap<String, String>,
     /// A validated predictive partition. Its coordinate schema must match parameters.
     pub likelihood: Option<PointwiseLikelihood>,
+    /// Typed observations with explicit predictive observation IDs.
+    pub observed_data: Vec<ObservedData>,
+    /// Typed model inputs which are not modeled as random observations.
+    pub constant_data: Vec<DataArray>,
+    /// Explicit replicated-outcome bindings; other predictions remain generic quantities.
+    pub posterior_predictive: Vec<PosteriorPredictive>,
 }
 impl AnalysisSpec {
     /// Starts an analysis without pointwise likelihoods or generated quantities.
@@ -62,6 +70,9 @@ impl AnalysisSpec {
             predictions: Vec::new(),
             units: BTreeMap::new(),
             likelihood: None,
+            observed_data: Vec::new(),
+            constant_data: Vec::new(),
+            posterior_predictive: Vec::new(),
         }
     }
     /// Uses a pointwise model's exact named layout without copying graph/data.
@@ -148,6 +159,7 @@ pub struct AnalysisWriter<W: Write> {
     parameters: Vec<f64>,
     scratch: Vec<f64>,
     likelihood: Vec<f64>,
+    prediction_domains: Vec<data::PredictionDomain>,
 }
 impl<W: Write> AnalysisWriter<W> {
     /// Validates metadata and writes a quoted UTF-8 CSV header with CRLF records.
@@ -166,6 +178,7 @@ impl<W: Write> AnalysisWriter<W> {
             parameters: vec![0.; spec.parameters.layout().constrained_dimension()],
             scratch: vec![0.; spec.parameters.layout().scratch_dimension()],
             likelihood: vec![0.; spec.likelihood.as_ref().map_or(0, |p| p.units().len())],
+            prediction_domains: data::prediction_domains(&spec),
             spec,
             columns,
             counts,
@@ -291,6 +304,16 @@ impl<W: Write> AnalysisWriter<W> {
             .any(|x| !x.is_finite())
         {
             return Err(AnalysisError::Invalid("nonfinite coordinate or prediction"));
+        }
+        if !self
+            .prediction_domains
+            .iter()
+            .zip(predictions)
+            .all(|(domain, value)| domain.contains(*value))
+        {
+            return Err(AnalysisError::Invalid(
+                "predictive value outside observed datatype domain",
+            ));
         }
         validate_stats(draw.stats)?;
         self.spec.parameters.layout().constrain_values(

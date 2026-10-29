@@ -387,3 +387,132 @@ fn pointwise_errors_are_recorded_but_callback_panics_poison_the_stream() {
         }
     }
 }
+
+fn data_spec() -> AnalysisSpec {
+    use alea_runtime::analysis::{
+        ArrayValues, DataArray, DataAxis, ObservedData, PosteriorPredictive,
+    };
+    let mut s = spec();
+    let axes = vec![DataAxis {
+        name: "trial".into(),
+        coordinates: vec!["row1".into(), "row2".into()],
+    }];
+    s.observed_data = vec![
+        ObservedData {
+            array: DataArray {
+                name: "rt".into(),
+                axes: axes.clone(),
+                values: ArrayValues::Real(vec![0.4, 0.5]),
+                unit: Some("seconds".into()),
+            },
+            observation_dimension: "trial".into(),
+        },
+        ObservedData {
+            array: DataArray {
+                name: "choice".into(),
+                axes: axes.clone(),
+                values: ArrayValues::Boolean(vec![true, false]),
+                unit: None,
+            },
+            observation_dimension: "trial".into(),
+        },
+    ];
+    s.constant_data = vec![
+        DataArray {
+            name: "signed".into(),
+            axes: axes.clone(),
+            values: ArrayValues::Integer(vec![i64::MIN, i64::MAX]),
+            unit: None,
+        },
+        DataArray {
+            name: "unsigned".into(),
+            axes,
+            values: ArrayValues::Unsigned(vec![0, u64::MAX]),
+            unit: None,
+        },
+        DataArray {
+            name: "label".into(),
+            axes: vec![],
+            values: ArrayValues::Text(vec!["λ\r\nlabel".into()]),
+            unit: None,
+        },
+    ];
+    s.predictions = vec!["rt1".into(), "rt2".into(), "unbound expectation".into()];
+    s.posterior_predictive = vec![PosteriorPredictive {
+        variable: "rt".into(),
+        columns: vec!["rt1".into(), "rt2".into()],
+    }];
+    s
+}
+#[test]
+fn typed_data_and_predictive_bindings_preserve_axes_integer_limits_and_semantics() {
+    let mut w = AnalysisWriter::new(Vec::new(), data_spec()).unwrap();
+    let stats = TransitionStats::default();
+    w.write_draw(&draw(9, Phase::Sampling, 0, &[0.], &stats), &[0.4, 0.5, 2.])
+        .unwrap();
+    let (_, m) = finish(w);
+    assert_eq!(m["schema_version"], 2);
+    assert_eq!(
+        m["observed_data"][0]["array"]["axes"][0]["coordinates"][1],
+        "row2"
+    );
+    assert_eq!(m["observed_data"][1]["array"]["values"][0], true);
+    assert_eq!(m["constant_data"][0]["values"][0], i64::MIN);
+    assert_eq!(m["constant_data"][1]["values"][1], u64::MAX);
+    assert_eq!(m["constant_data"][2]["values"][0], "λ\r\nlabel");
+    assert_eq!(m["posterior_predictive"][0]["columns"][1], "rt2");
+    assert_eq!(m["predictions"][2], "unbound expectation");
+}
+#[test]
+fn invalid_bound_shapes_coordinates_data_ids_and_predictive_mappings_write_nothing() {
+    use alea_runtime::analysis::ArrayValues;
+    for case in 0..12 {
+        let mut s = data_spec();
+        match case {
+            0 => s.observed_data[0].array.values = ArrayValues::Real(vec![0.4]),
+            1 => s.observed_data[0].array.values = ArrayValues::Real(vec![f64::NAN, 0.4]),
+            2 => s.observed_data[0].array.axes[0].name = "chain".into(),
+            3 => s.observed_data[0].array.axes[0].coordinates[1] = "row1".into(),
+            4 => s.observed_data[0].array.axes[0].coordinates[1] = "unknown".into(),
+            5 => s.observed_data[0].observation_dimension = "missing".into(),
+            6 => s.posterior_predictive[0].columns.pop().map(|_| ()).unwrap(),
+            7 => s.posterior_predictive[0].columns[1] = "rt1".into(),
+            8 => s.posterior_predictive[0].variable = "unknown".into(),
+            9 => {
+                s.units.insert("prediction:rt1".into(), "metres".into());
+            }
+            10 => s.constant_data[0].name = "trial".into(),
+            _ => s.observed_data[0].array.values = ArrayValues::Text(vec!["a".into(), "b".into()]),
+        }
+        let mut bytes = Vec::new();
+        assert!(AnalysisWriter::new(&mut bytes, s).is_err(), "case {case}");
+        assert!(bytes.is_empty());
+    }
+}
+
+#[test]
+fn replicated_values_obey_the_observed_datatype_without_losing_failed_indices() {
+    use alea_runtime::analysis::ArrayValues;
+    for (values, invalid) in [
+        (ArrayValues::Boolean(vec![false, true]), 0.5),
+        (ArrayValues::Integer(vec![0, 1]), 9_223_372_036_854_775_808.),
+        (ArrayValues::Unsigned(vec![0, 1]), -1.),
+    ] {
+        let mut s = data_spec();
+        s.observed_data[0].array.values = values;
+        let mut w = AnalysisWriter::new(Vec::new(), s).unwrap();
+        let stats = TransitionStats::default();
+        assert!(
+            w.write_draw(
+                &draw(9, Phase::Sampling, 0, &[0.], &stats),
+                &[invalid, 1., 0.]
+            )
+            .is_err()
+        );
+        w.write_draw(&draw(9, Phase::Sampling, 1, &[0.], &stats), &[0., 1., 0.])
+            .unwrap();
+        let (_, m) = finish(w);
+        assert_eq!(m["chains"][0]["sampling"]["failures"], 1);
+        assert_eq!(m["chains"][0]["sampling"]["rows"], 2);
+    }
+}

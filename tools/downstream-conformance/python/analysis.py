@@ -57,9 +57,9 @@ def reject_constant(value):
 def validate_manifest(m):
     keys(m, ["format", "schema_version", "kind", "csv", "provenance", "parameters",
              "unconstrained_dimension", "save_unconstrained", "predictions", "units",
-             "predictive_units", "chains"])
+             "predictive_units", "chains", "observed_data", "constant_data", "posterior_predictive"])
     require(m["format"] == "alea-analysis" and type(m["schema_version"]) is int
-            and m["schema_version"] == 1 and m["kind"] == "sampling", "unsupported analysis format")
+            and m["schema_version"] == 2 and m["kind"] == "sampling", "unsupported analysis format")
     keys(m["csv"], ["columns", "sha256"])
     require(type(m["csv"]["sha256"]) is str and re.fullmatch("[0-9a-f]{64}", m["csv"]["sha256"]), "invalid CSV digest")
     p = m["provenance"]
@@ -115,7 +115,86 @@ def validate_manifest(m):
             else:
                 first, last = uint(count["first"]), uint(count["last"])
                 require(last >= first and last - first + 1 == n, "inconsistent declared draw range")
+    validate_data_bindings(m)
     return columns
+
+
+def validate_data_bindings(m):
+    """Reject ambiguous axes, lost integer types, and incomplete replicated arrays."""
+    require(type(m["observed_data"]) is list and type(m["constant_data"]) is list
+            and type(m["posterior_predictive"]) is list, "invalid data bindings")
+    axes = {}
+    observed = {}
+    observation_ids = set()
+
+    def array(a):
+        keys(a, ["name", "axes", "dtype", "values", "unit"])
+        require(type(a["name"]) is str and a["name"], "invalid array name")
+        require(a["unit"] is None or (type(a["unit"]) is str and a["unit"]), "invalid array unit")
+        require(type(a["axes"]) is list and type(a["values"]) is list, "invalid array layout")
+        names([d.get("name") for d in a["axes"] if type(d) is dict])
+        size = 1
+        local = set()
+        for d in a["axes"]:
+            keys(d, ["name", "coordinates"])
+            name = d["name"]
+            require(type(name) is str and name and name not in ("chain", "draw", "sample", "pred_id")
+                    and name != a["name"] and name not in local, "invalid or reserved data axis")
+            local.add(name)
+            names(d["coordinates"])
+            require(name not in axes or axes[name] == d["coordinates"], "inconsistent shared data axis")
+            axes[name] = d["coordinates"]
+            size *= len(d["coordinates"])
+        require(size == len(a["values"]), "bound array shape mismatch")
+        dtype = a["dtype"]
+        require(dtype in ("float64", "int64", "uint64", "bool", "string"), "unsupported data dtype")
+        for value in a["values"]:
+            if dtype == "float64":
+                require(type(value) in (int, float) and math.isfinite(float(value)), "nonfinite real data")
+            elif dtype == "int64":
+                require(type(value) is int and -(2**63) <= value < 2**63, "invalid int64 data")
+            elif dtype == "uint64":
+                uint(value)
+            elif dtype == "bool":
+                require(type(value) is bool, "invalid Boolean data")
+            else:
+                require(type(value) is str, "invalid text data")
+
+    for bound in m["observed_data"]:
+        keys(bound, ["array", "observation_dimension"])
+        a = bound["array"]
+        array(a)
+        require(a["name"] not in observed, "duplicate observed variable")
+        observed[a["name"]] = a
+        dim = bound["observation_dimension"]
+        matches = [d for d in a["axes"] if d["name"] == dim]
+        require(type(dim) is str and len(matches) == 1, "missing observation axis")
+        observation_ids.update(matches[0]["coordinates"])
+    constant_names = set()
+    for a in m["constant_data"]:
+        array(a)
+        require(a["name"] not in constant_names, "duplicate constant variable")
+        constant_names.add(a["name"])
+    for arrays in (list(observed.values()), m["constant_data"]):
+        dimensions = {d["name"] for a in arrays for d in a["axes"]}
+        require(not {a["name"] for a in arrays} & dimensions, "variable conflicts with data dimension")
+    if m["observed_data"] and m["predictive_units"]:
+        expected = {o for unit in m["predictive_units"] for o in unit["observations"]}
+        require(observation_ids == expected, "observed IDs differ from predictive units")
+    variables, columns = set(), set()
+    for bound in m["posterior_predictive"]:
+        keys(bound, ["variable", "columns"])
+        name = bound["variable"]
+        require(type(name) is str and name in observed and name not in variables, "invalid predictive counterpart")
+        variables.add(name)
+        names(bound["columns"])
+        require(len(bound["columns"]) == len(observed[name]["values"])
+                and observed[name]["dtype"] != "string", "incomplete or nonnumeric predictive binding")
+        require(not columns.intersection(bound["columns"]) and set(bound["columns"]) <= set(m["predictions"]), "unknown or repeated prediction column")
+        columns.update(bound["columns"])
+        for column in bound["columns"]:
+            unit = m["units"].get("prediction:" + column)
+            require(unit is None or observed[name]["unit"] is None or unit == observed[name]["unit"], "predictive physical units differ")
 
 
 @dataclass(frozen=True)
@@ -195,6 +274,9 @@ def load(manifest_path, csv_path):
         plan = {c["id"]: c for c in manifest["chains"]}
         seen = {(c, phase): [] for c in plan for phase in ("warmup", "sampling")}
         records = []
+        observed = {b["array"]["name"]: b["array"] for b in manifest["observed_data"]}
+        predictive_types = {"prediction:" + c: observed[b["variable"]]["dtype"]
+                            for b in manifest["posterior_predictive"] for c in b["columns"]}
         for row in reader:
             require(len(row) == len(columns), "CSV row width mismatch")
             chain, phase, draw, kind, error = row[:5]
@@ -210,6 +292,14 @@ def load(manifest_path, csv_path):
             else:
                 require(error == "", "successful row has an error")
                 values = {name: numeric_field(name, value) for name, value in zip(columns[5:], row[5:])}
+                for column, dtype in predictive_types.items():
+                    value = values[column]
+                    if dtype == "bool":
+                        require(value in (0, 1), "predictive value outside Boolean domain")
+                    elif dtype == "int64":
+                        require(value.is_integer() and -(2**63) <= value < 2**63, "predictive value outside int64 domain")
+                    elif dtype == "uint64":
+                        require(value.is_integer() and 0 <= value < 2**64, "predictive value outside uint64 domain")
             seen[chain, phase].append((draw, kind == "failure"))
             records.append(Record(chain, phase, draw, error or None, values))
         for (chain, phase), rows in seen.items():
@@ -219,14 +309,42 @@ def load(manifest_path, csv_path):
     return Artifact(manifest, tuple(records))
 
 
+def r_payload(artifact):
+    """JSON bridge for R: integer identities/count values are exact strings.
+
+    R consumes the shared strict reader instead of duplicating a second CSV and
+    schema validator. This bridge is not another native artifact schema.
+    """
+    manifest = json.loads(json.dumps(artifact.manifest, allow_nan=False))
+    for chain in manifest["chains"]:
+        chain["id"] = str(chain["id"])
+        for phase in ("warmup", "sampling"):
+            for key in ("first", "last"):
+                if chain[phase][key] is not None:
+                    chain[phase][key] = str(chain[phase][key])
+    arrays = [b["array"] for b in manifest["observed_data"]] + manifest["constant_data"]
+    for array in arrays:
+        if array["dtype"] in ("int64", "uint64"):
+            array["values"] = [str(v) for v in array["values"]]
+    records = [{"chain": str(r.chain), "phase": r.phase, "draw": str(r.draw), "error": r.error,
+                "values": {k: str(v) if type(v) is int else v for k, v in r.values.items()}}
+               for r in artifact.records]
+    return {"bridge_format": "alea-analysis-r", "bridge_version": 1,
+            "manifest": manifest, "records": records}
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("manifest")
     parser.add_argument("csv")
     parser.add_argument("--rectangular", action="store_true")
+    parser.add_argument("--r-json", help="validated record bridge for the R consumer")
     args = parser.parse_args()
     result = load(args.manifest, args.csv)
     if args.rectangular:
         result.rectangular()
+    if args.r_json:
+        with Path(args.r_json).open("x", encoding="utf-8") as handle:
+            json.dump(r_payload(result), handle, ensure_ascii=False, allow_nan=False)
     print(json.dumps({"records": len(result.records), "chains": [c["id"] for c in result.manifest["chains"]]}))

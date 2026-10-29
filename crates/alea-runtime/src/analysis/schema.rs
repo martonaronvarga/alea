@@ -1,4 +1,4 @@
-//! Cold metadata validation and explicit version-one wire representation.
+//! Cold metadata validation and explicit version-two wire representation.
 use super::{
     AnalysisError, AnalysisSpec, ChainCount, ChainId, ChainStatus, PhaseCount, SCHEMA_VERSION,
 };
@@ -15,6 +15,7 @@ pub(super) const STATS: [&str; 7] = [
     "stat:tree_depth",
 ];
 pub(super) fn validate(spec: &AnalysisSpec) -> Result<Vec<String>, AnalysisError> {
+    super::data::validate(spec)?;
     let p = &spec.provenance;
     if [&p.source, &p.model, &p.data, &p.method]
         .iter()
@@ -129,5 +130,8 @@ pub(super) fn manifest(
         "parameters": parameters,
         "unconstrained_dimension": spec.parameters.layout().unconstrained_dimension(),
         "save_unconstrained": spec.save_unconstrained,
+        "observed_data": spec.observed_data.iter().map(|d| json!({"array": super::data::array_json(&d.array), "observation_dimension": d.observation_dimension})).collect::<Vec<_>>(),
+        "constant_data": spec.constant_data.iter().map(super::data::array_json).collect::<Vec<_>>(),
+        "posterior_predictive": spec.posterior_predictive.iter().map(|p| json!({"variable": p.variable, "columns": p.columns})).collect::<Vec<_>>(),
         "predictions": spec.predictions, "units": spec.units, "predictive_units": predictive_units, "chains": chains})
 }

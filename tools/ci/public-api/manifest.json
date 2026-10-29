@@ -109,8 +109,8 @@
     },
     "alea-runtime+analysis": {
       "file": "alea-runtime+analysis.txt",
-      "items": 908,
-      "sha256": "4dd044effc9e17f8f2e5be397a340c6fddaf4c42f772e906853b5069f3e41e58"
+      "items": 968,
+      "sha256": "762b5b8a6603717d81901d9ad7a045dc41a45954db3ec6d4c45544bbdeaf9bba"
     },
     "alea+distributions": {
       "file": "alea+distributions.txt",

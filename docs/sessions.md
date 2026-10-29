@@ -279,7 +279,7 @@ writing. An I/O error or a callback panic poisons the stream; discard it.
 
 ### CSV and manifest contract
 
-The manifest identifies `alea-analysis`, schema version `1`, kind `sampling`.
+The manifest identifies `alea-analysis`, schema version `2`, kind `sampling`.
 Its `csv.columns` list is the exact header order:
 
 - `chain`, `phase`, `draw`, `kind`, `error` identify a successful draw or failure.
@@ -303,8 +303,8 @@ counts, and every planned chain's status. `spec.units` associates a physical uni
 with an exact value-column name. For reproducible applications, use content digests
 for model/data identities and record the actual source revision, build features,
 toolchain, seeds and inference settings. Labels alone do not verify provenance.
-Observed data remain identified by their source identity and predictive-unit
-observation identifiers; this format does not embed a copy of the dataset.
+Observed and constant arrays can be embedded with explicit types, dimensions and
+coordinate identifiers. Their source identity remains part of provenance.
 
 The writer flushes CSV before emitting its SHA-256 digest and counts in the
 manifest. Validate both files together. It performs no file creation, atomic
@@ -327,3 +327,122 @@ partial chains and failure records. It never pads, truncates or silently drops
 chains. In Python, `artifact.rectangular(chains=[...])` permits an explicitly
 chosen completed subset; `artifact.records` preserves the full validated result.
 The reader materializes records in memory; the native writer streams them.
+
+
+### Attach observations and replicated outcomes
+
+Use `observed_data` for responses and `constant_data` for predictors, group indices
+or other fixed inputs. Arrays preserve real, signed/unsigned integer, Boolean and
+text values. Contents use row-major order, with the last axis varying fastest;
+a scalar has no axes and exactly one value.
+
+```rust
+use alea::analysis::{ArrayValues, DataArray, DataAxis, ObservedData, PosteriorPredictive};
+# use alea::analysis::AnalysisSpec;
+fn attach_data(spec: &mut AnalysisSpec) {
+    let trials = DataAxis {
+        name: "trial".into(),
+        coordinates: vec!["trial-1".into(), "trial-2".into()],
+    };
+    spec.observed_data.push(ObservedData {
+        array: DataArray {
+            name: "reaction_time".into(), axes: vec![trials],
+            values: ArrayValues::Real(vec![0.42, 0.57]),
+            unit: Some("seconds".into()),
+        },
+        observation_dimension: "trial".into(),
+    });
+    spec.predictions = vec!["rt-1".into(), "rt-2".into()];
+    spec.posterior_predictive.push(PosteriorPredictive {
+        variable: "reaction_time".into(),
+        columns: vec!["rt-1".into(), "rt-2".into()],
+    });
+}
+```
+
+The prediction callback must supply two replicated reaction times in that order.
+A posterior-predictive binding covers the entire observed array. Predictions
+without such a binding remain generated quantities, such as an expected response.
+Replicates must obey the observed datatype: Boolean outcomes are zero or one,
+and integer outcomes must be integral and in range. Prediction columns use
+binary64, so they cannot represent every integer above 2^53; embedded integer
+observations and constants retain their full 64-bit values.
+
+If pointwise likelihoods and observations are both present, observation identifiers
+must agree. A multivariate response can have additional axes, and multiple
+responses may share trial identifiers. A joint predictive unit stays joint;
+its observation identifiers do not instruct the exporter to split or marginalize it.
+Repeated axis names must have identical coordinates. Validation runs before the
+CSV header is written.
+
+### Export to Python and NetCDF
+
+The optional analysis environment supplies pinned NumPy, Xarray, h5netcdf,
+ArviZ Base and ArviZ Stats packages. It also supplies R and jsonlite for the R
+reader. These dependencies are separate from native inference.
+
+```sh
+nix develop .#analysis
+python3 tools/downstream-conformance/python/conversion.py fit.json draws.csv fit.nc
+# Also calculate and retain pointwise PSIS-LOO diagnostics:
+python3 tools/downstream-conformance/python/conversion.py fit.json draws.csv fit-loo.nc \
+  --loo-output loo.nc
+```
+
+Output paths must be new. The converter validates the original artifact before
+creating an Xarray DataTree. It exports `posterior`, `sample_stats`,
+`log_likelihood`, `observed_data`, `constant_data` and `posterior_predictive`
+when available. Unbound predictions use `generated_quantities`; raw free
+coordinates use `alea_unconstrained`. Parameter names and absolute chain/draw
+identities are preserved. Keep the CSV and manifest as the original record.
+
+```python
+import xarray as xr
+fit = xr.open_datatree("fit.nc", engine="h5netcdf")
+print(fit["posterior"].to_dataset())
+loo = xr.open_dataset("loo.nc", engine="h5netcdf")
+print(loo["pareto_k"])
+print(loo.attrs["warning_messages_json"])
+```
+
+Alea's stored Hamiltonian is reported as `initial_energy`, since ArviZ's `energy`
+means the accepted proposal's energy. `integration_steps` counts integrator
+macrosteps and is not renamed to leapfrog steps. Absent optional statistics remain
+absent, with availability in `sample_stats_available`; mixed availability within
+a selected grid is rejected. Physical units use `alea_units` attributes so that
+NetCDF readers do not reinterpret numeric seconds as time intervals.
+
+Conversion requires completed, failure-free chains with matching draw indices.
+Use `--chains 0 2` to choose a valid subset explicitly, or `--omit-warmup` when
+stored warmup does not form a rectangular grid. The result retains the original
+manifest, the selection and all failure messages, including those from excluded
+chains. It never pads or shortens chains to make a grid.
+
+PSIS-LOO runs through ArviZ Stats, retaining pointwise ELPD, Pareto-k values,
+thresholds and warning messages. High or infinite Pareto-k values remain visible.
+A successful export does not establish convergence, adequate importance sampling,
+or that the declared predictive units answer the scientific question of interest.
+See the [ArviZ schema](https://python.arviz.org/en/latest/schema/schema.html)
+and [LOO documentation](https://python.arviz.org/projects/stats/en/latest/api/generated/arviz_stats.loo.html).
+The exact tested Python versions are in
+[`requirements-analysis.txt`](../tools/downstream-conformance/python/requirements-analysis.txt).
+
+### Read in R
+
+The R reader calls the same strict Python standard-library validator, then reads
+a typed JSON bridge with jsonlite. Set `ALEA_PYTHON` if Python is not on PATH.
+
+```r
+source("tools/downstream-conformance/r/analysis.R")
+fit <- read_alea("fit.json", "draws.csv",
+                 reader = "tools/downstream-conformance/python/analysis.py")
+grid <- alea_rectangular(fit)
+print(fit$posterior)
+print(fit$manifest$observed_data)
+```
+
+Chain and draw identifiers and integer statistic counts are decimal strings to
+preserve all 64 bits. Unavailable values are `NA`; supported false and zero retain
+their values. To select chains explicitly, pass character identifiers, for example
+`alea_rectangular(fit, chains = c("0", "2"))`. Failed rows remain in the complete
+record even when a valid subset is selected for analysis.

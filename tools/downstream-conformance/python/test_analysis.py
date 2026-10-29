@@ -24,12 +24,13 @@ class AnalysisTests(unittest.TestCase):
         rows = [["9", "sampling", "7", "draw", "", "-0", "-0", "0", "0.75", "", "0", "", "", "", "-1.25", "5e-324"],
                 ["9", "sampling", "8", "draw", "", "1.7976931348623157e308", "1.7976931348623157e308", "1", "1", "0", "1", "0", "0", "3", "-0.25", "-0"]]
         empty = {"first": None, "last": None, "rows": 0, "failures": 0}
-        m = {"format": "alea-analysis", "schema_version": 1, "kind": "sampling", "csv": {"columns": columns, "sha256": ""},
+        m = {"format": "alea-analysis", "schema_version": 2, "kind": "sampling", "csv": {"columns": columns, "sha256": ""},
              "parameters": [{"name": 'μ,"x"\r\nnext', "dimension": None, "coordinate": None, "block": "group"}],
              "unconstrained_dimension": 1, "save_unconstrained": True, "predictions": ["future"],
              "provenance": {"model": "digest:model", "data": "digest:data", "source": "revision", "method": "NUTS", "settings": {"seed": "7"}},
              "units": {'parameter:μ,"x"\r\nnext': "seconds"},
              "predictive_units": [{"name": "joint", "factors": ["first", "second"], "observations": ["row1", "row2"], "conditioned_on": ["mu"], "integrated_out": ["effect"]}],
+             "observed_data": [], "constant_data": [], "posterior_predictive": [],
              "chains": [{"id": 9, "status": "completed", "reason": None, "warmup": dict(empty), "sampling": {"first": 7, "last": 8, "rows": 2, "failures": 0}}]}
         return m, rows
 
@@ -135,13 +136,66 @@ class AnalysisTests(unittest.TestCase):
 
     def test_duplicate_json_keys_and_nonfinite_constants_fail(self):
         m, rows = self.fixture(); mp, cp = self.files(m, rows)
-        text = mp.read_text(); mp.write_text(text.replace('"schema_version": 1', '"schema_version": 1, "schema_version": 1'))
+        text = mp.read_text(); mp.write_text(text.replace('"schema_version": 2', '"schema_version": 2, "schema_version": 2'))
         with self.assertRaisesRegex(ValueError, "duplicate JSON"):
             analysis.load(mp, cp)
-        mp.write_text(text.replace('"schema_version": 1', '"schema_version": NaN'))
+        mp.write_text(text.replace('"schema_version": 2', '"schema_version": NaN'))
         with self.assertRaisesRegex(ValueError, "nonfinite JSON"):
             analysis.load(mp, cp)
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def bound_fixture(base):
+    m, rows = base.fixture()
+    for row in rows:
+        for name in ("stat:energy", "stat:depth_saturated", "stat:integration_steps", "stat:tree_depth"):
+            row[m["csv"]["columns"].index(name)] = "0"
+    axes = [{"name": "observation", "coordinates": ["row1", "row2"]}]
+    m["observed_data"] = [{"array": {"name": "y", "axes": axes, "dtype": "float64", "values": [0.4, 0.8], "unit": "seconds"}, "observation_dimension": "observation"}]
+    m["constant_data"] = [{"name": "signed", "axes": [], "dtype": "int64", "values": [-(2**63)], "unit": None},
+                           {"name": "unsigned", "axes": [], "dtype": "uint64", "values": [2**64-1], "unit": None},
+                           {"name": "label", "axes": [], "dtype": "string", "values": ['λ,"\r\nlabel'], "unit": None}]
+    m["predictions"] += ["replica0", "replica1"]
+    m["csv"]["columns"] += ["prediction:replica0", "prediction:replica1"]
+    for row in rows:
+        row += ["0.5", "0.7"]
+    m["posterior_predictive"] = [{"variable": "y", "columns": ["replica0", "replica1"]}]
+    return m, rows
+
+
+class DataBindingTests(unittest.TestCase):
+    def setUp(self):
+        self.base = AnalysisTests()
+        self.base.setUp()
+        self.addCleanup(self.base.temp.cleanup)
+
+    def test_typed_limits_and_r_bridge_preserve_identity(self):
+        m, rows = bound_fixture(self.base)
+        a = analysis.load(*self.base.files(m, rows))
+        bridge = analysis.r_payload(a)
+        self.assertEqual(bridge["manifest"]["constant_data"][0]["values"], [str(-(2**63))])
+        self.assertEqual(bridge["manifest"]["constant_data"][1]["values"], [str(2**64-1)])
+        self.assertEqual(bridge["records"][0]["chain"], "9")
+        self.assertEqual(bridge["records"][1]["values"]["stat:tree_depth"], "0")
+
+    def test_bound_data_shape_types_ids_and_predictive_columns_are_checked(self):
+        for case in range(12):
+            m, rows = bound_fixture(self.base)
+            a = m["observed_data"][0]["array"]
+            if case == 0: a["values"].pop()
+            elif case == 1: a["dtype"] = "unknown"
+            elif case == 2: a.update(dtype="bool", values=[True, 0.5])
+            elif case == 3: a.update(dtype="int64", values=[0, 2**63])
+            elif case == 4: a.update(dtype="uint64", values=[-1, 1])
+            elif case == 5: a["axes"][0]["name"] = "draw"
+            elif case == 6: a["axes"][0]["coordinates"][1] = "missing"
+            elif case == 7: m["posterior_predictive"][0]["columns"][0] = "missing"
+            elif case == 8: m["posterior_predictive"][0]["columns"].pop()
+            elif case == 9: m["posterior_predictive"][0]["variable"] = "missing"
+            elif case == 10: a.update(dtype="bool", values=[True, False])
+            else: m["schema_version"] = 1
+            with self.subTest(case=case), self.assertRaises(ValueError):
+                analysis.load(*self.base.files(m, rows))

@@ -1,0 +1,8 @@
+# Qualified versions from the repository's locked Nix analysis shell.
+numpy==2.4.2
+scipy==1.17.1
+xarray==2026.2.0
+h5netcdf==1.8.0
+xarray-einstats==0.9.1
+arviz-base==0.8.2
+arviz-stats==0.8.0

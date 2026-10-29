@@ -1,7 +1,14 @@
 //! Actual fits -> named artifacts -> an independent standard-library Python reader.
 use alea::{
-    analysis::{AnalysisSpec, AnalysisWriter, ChainStatus, Provenance},
-    distributions::modeling::{bernoulli_logit, normal},
+    analysis::{
+        AnalysisSpec, AnalysisWriter, ArrayValues, ChainStatus, DataArray, DataAxis, ObservedData,
+        PosteriorPredictive, Provenance,
+    },
+    distribution::Sample,
+    distributions::{
+        modeling::{bernoulli_logit, normal},
+        scalar::{Bernoulli, Normal},
+    },
     math::buffer::OwnedBuffer,
     model::assembly::{ModelBuilder, PointwiseLikelihood, PredictiveUnit},
     output::{ChainId, DiagnosticTransition, Draw, Phase, SCHEMA_VERSION},
@@ -94,6 +101,8 @@ fn gaussian_and_logistic_fits_round_trip_physical_draws_and_joint_units() {
                     settings: BTreeMap::from([
                         ("warmup".into(), "128".into()),
                         ("seed".into(), "777+chain".into()),
+                        ("prediction_seed".into(), "13+chain".into()),
+                        ("retained_draws".into(), "32".into()),
                     ]),
                 };
                 let mut spec = AnalysisSpec::from_likelihood(
@@ -104,8 +113,53 @@ fn gaussian_and_logistic_fits_round_trip_physical_draws_and_joint_units() {
                 .unwrap();
                 spec.save_unconstrained = true;
                 spec.predictions = vec!["mean,\"λ\"".into()];
+                spec.predictions
+                    .extend((0..6).map(|i| format!("replicate{i}")));
+                let axes = vec![DataAxis {
+                    name: "observation".into(),
+                    coordinates: (0..2)
+                        .flat_map(|group| {
+                            (0..3).map(move |row| format!("group {group}, row {row}"))
+                        })
+                        .collect(),
+                }];
+                let values = if logistic {
+                    ArrayValues::Boolean(
+                        (0..2)
+                            .flat_map(|group| (0..3).map(move |row| row > group))
+                            .collect(),
+                    )
+                } else {
+                    ArrayValues::Real(
+                        (0..2)
+                            .flat_map(|group| {
+                                (0..3).map(move |row| (row as f64 - group as f64) * 0.3)
+                            })
+                            .collect(),
+                    )
+                };
+                spec.observed_data = vec![ObservedData {
+                    array: DataArray {
+                        name: "y".into(),
+                        axes: axes.clone(),
+                        values,
+                        unit: None,
+                    },
+                    observation_dimension: "observation".into(),
+                }];
+                spec.constant_data = vec![DataArray {
+                    name: "subject".into(),
+                    axes,
+                    values: ArrayValues::Unsigned(vec![0, 0, 0, 1, 1, 1]),
+                    unit: None,
+                }];
+                spec.posterior_predictive = vec![PosteriorPredictive {
+                    variable: "y".into(),
+                    columns: (0..6).map(|i| format!("replicate{i}")).collect(),
+                }];
                 writer = Some(AnalysisWriter::new(Vec::new(), spec).unwrap());
             }
+            let mut prediction_rng = SmallRng::seed_from_u64(13 + chain);
             for (i, (q, stats)) in rows.into_iter().enumerate() {
                 let draw = Draw {
                     schema_version: SCHEMA_VERSION,
@@ -116,7 +170,31 @@ fn gaussian_and_logistic_fits_round_trip_physical_draws_and_joint_units() {
                     transition: &(),
                     stats,
                 };
-                writer.as_mut().unwrap().write_draw(&draw, &[q[0]]).unwrap();
+                let mut predictions = vec![q[0]];
+                for group in 0..2 {
+                    let eta = q[0] + q[1].exp() * q[2 + group];
+                    for _ in 0..3 {
+                        let value = if logistic {
+                            f64::from(
+                                Bernoulli::new(1. / (1. + (-eta).exp()))
+                                    .unwrap()
+                                    .sample(&mut prediction_rng)
+                                    .unwrap(),
+                            )
+                        } else {
+                            Normal::new(eta, 1.)
+                                .unwrap()
+                                .sample(&mut prediction_rng)
+                                .unwrap()
+                        };
+                        predictions.push(value);
+                    }
+                }
+                writer
+                    .as_mut()
+                    .unwrap()
+                    .write_draw(&draw, &predictions)
+                    .unwrap();
             }
         }
         let dir =
@@ -150,6 +228,37 @@ for r in a.records:
     assert v['stat:divergent'] in (True, False)
     assert len([k for k in v if k.startswith('log_likelihood:')]) == 2
 assert a.manifest['predictive_units'][1]['observations'][2] == 'group 1, row 2'
+assert a.manifest['observed_data'][0]['array']['axes'][0]['coordinates'][5] == 'group 1, row 2'
+import os
+if os.environ.get('ALEA_ANALYSIS_EXTERNAL') == '1':
+    import conversion, xarray as xr, numpy as np
+    from pathlib import Path
+    tree = conversion.to_datatree(a)
+    assert 'energy' not in tree['sample_stats'].data_vars
+    assert 'initial_energy' in tree['sample_stats'].data_vars
+    assert tree['posterior_predictive']['y'].shape == (2,32,6)
+    assert tree['log_likelihood']['likelihood'].shape == (2,32,2)
+    assert tree['constant_data']['subject'].dtype == np.dtype('uint64')
+    path = Path(sys.argv[2]).with_suffix('.nc')
+    conversion.write_netcdf(tree, path)
+    with xr.open_datatree(path, engine='h5netcdf') as restored:
+        np.testing.assert_array_equal(restored['posterior']['mu'].values, tree['posterior']['mu'].values)
+        np.testing.assert_array_equal(restored['log_likelihood']['likelihood'].values, tree['log_likelihood']['likelihood'].values)
+    report = conversion.loo_report(tree)
+    assert report['pareto_k'].shape == (2,)
+    assert report.attrs['n_samples'] == 64
+    report.to_netcdf(path.with_name('loo.nc'), engine='h5netcdf')
+    import subprocess
+    r_code = r'''args <- commandArgs(TRUE)
+source(args[1]); x <- read_alea(args[2], args[3], args[4])
+grid <- alea_rectangular(x)
+stopifnot(nrow(x$posterior) == 64L, identical(grid$draw, as.character(500:531)))
+stopifnot(identical(names(x$posterior), c("mu","tau","z0","z1")))
+stopifnot(length(x$manifest$observed_data[[1]]$array$values) == 6L)
+stopifnot(all(!is.na(x$log_likelihood[[1]])))
+'''
+    r = subprocess.run(['Rscript', '-e', r_code, str(Path(sys.argv[1]).parent/'r/analysis.R'), sys.argv[2], sys.argv[3], str(Path(sys.argv[1])/'analysis.py')], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
 "#;
         let python = std::env::var_os("ALEA_PYTHON").unwrap_or_else(|| "python3".into());
         let result = Command::new(python)

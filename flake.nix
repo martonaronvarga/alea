@@ -186,6 +186,18 @@
           };
           nightly = self.devShells.${system}.default;
           stable = mkRustShell stableToolchain {};
+          # Optional external analysis checks; native Alea does not require these.
+          analysis = mkRustShell stableToolchain {
+            packages = [
+              stableToolchain
+              (pkgs.python3.withPackages (ps: with ps; [numpy scipy xarray h5netcdf xarray-einstats arviz-base arviz-stats]))
+              (pkgs.rWrapper.override {packages = with pkgs.rPackages; [jsonlite];})
+              pkgs.pkg-config
+              pkgs.cmake
+              pkgs.eigen
+              pkgs.openssl
+            ];
+          };
           release = mkRustShell stableToolchain {
             nativeBuildInputs = [pkgs.cargo-semver-checks pkgs.openssh pkgs.actionlint];
           };
