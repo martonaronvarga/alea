@@ -90,9 +90,23 @@ def decode_benchmark_output(stdout, job):
         raise ValueError("benchmark output does not match planned job")
     if payload.get("columns", 2) != job.get("columns", 2):
         raise ValueError("benchmark width does not match planned job")
+    if "score_tolerance_per_observation" in job and payload["score_tolerance"] != job["rows"] * job["score_tolerance_per_observation"]:
+        raise ValueError("benchmark stopping policy does not match planned job")
     if job.get("revision") in ("plain", "counted", "timed") and payload.get("profile") != job["revision"]:
         raise ValueError("benchmark observer does not match planned job")
     return payload
+
+
+def benchmark_command(binary, family, mode, rows, columns=2, profile="plain", score_tolerance=1e-7):
+    """Explicit stopping-policy intervention; defaults reproduce the original command."""
+    command = [str(binary), family, mode, str(rows), str(max(3, min(5000, 2000000 // rows)))]
+    if profile != "plain" or columns != 2:
+        command.append(profile)
+    if columns != 2:
+        command.append(str(columns))
+    if score_tolerance != 1e-7:
+        command.extend(["--score-tolerance-per-observation", str(score_tolerance)])
+    return command
 
 
 def planned_revision_jobs(families, rows, runs, variants, seed, columns=2):
@@ -114,7 +128,7 @@ def benchmark_revisions(args):
     planned = planned_revision_jobs(args.families, args.rows, args.runs, variants, args.seed, args.columns)
     report = {"protocol": "alea-regression-attribution-v1" if args.attribution else "alea-regression-revisions-v1", "platform": platform.platform(),
               "affinity": sorted(os.sched_getaffinity(0)),
-              "seed": args.seed, "score_tolerance_per_observation": 1e-7,
+              "seed": args.seed, "score_tolerance_per_observation": args.score_tolerance_per_observation,
               "toolchain": subprocess.check_output(["rustc", "-Vv"], text=True),
               "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "working_diff_sha256": hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD"])).hexdigest(),
@@ -130,18 +144,15 @@ def benchmark_revisions(args):
         try:
             for job in planned:
                 binary = args.baseline_binary if job["revision"] == "before" else args.binary
-                command = [binary, job["family"], job["mode"], str(job["rows"]), str(max(3, min(5000, 2000000 // job["rows"])))]
-                if args.attribution or args.columns != 2:
-                    command.append(job["revision"] if args.attribution else "plain")
-                if args.columns != 2:
-                    command.append(str(args.columns))
-                row = dict(job)
+                command = benchmark_command(binary, job["family"], job["mode"], job["rows"], args.columns,
+                                            job["revision"] if args.attribution else "plain", args.score_tolerance_per_observation)
+                row = dict(job, score_tolerance_per_observation=args.score_tolerance_per_observation)
                 started = time.monotonic()
                 try:
                     process = subprocess.run(command, capture_output=True, text=True, timeout=300)
                     row.update(returncode=process.returncode, stdout=process.stdout, stderr=process.stderr)
                     if process.returncode == 0:
-                        row.update(decode_benchmark_output(process.stdout, job))
+                        row.update(decode_benchmark_output(process.stdout, row))
                     else:
                         row["error"] = "process failure"
                 except (subprocess.TimeoutExpired, ValueError, OSError) as error:
@@ -170,6 +181,7 @@ if __name__ == "__main__":
     p.add_argument("output")
     p.add_argument("--rows", type=int, nargs="+", default=[10, 1000, 1000000])
     p.add_argument("--columns", type=int, default=2, help="coefficient count, including intercept")
+    p.add_argument("--score-tolerance-per-observation", type=float, default=1e-7)
     p.add_argument("--runs", type=int, default=3)
     p.add_argument("--families", nargs="+", choices=["normal", "bernoulli", "poisson"], default=["normal", "bernoulli", "poisson"])
     p.add_argument("--attribution", action="store_true")
@@ -177,6 +189,8 @@ if __name__ == "__main__":
     p.add_argument("--baseline-revision")
     p.add_argument("--seed", type=int, default=271828)
     args = p.parse_args()
+    if not math.isfinite(args.score_tolerance_per_observation) or args.score_tolerance_per_observation <= 0:
+        p.error("finite positive score tolerance required")
     if args.columns < 1 or args.runs < 1 or any(n < 1 for n in args.rows):
         p.error("positive columns, rows and runs required")
     if len(set(args.rows)) != len(args.rows) or len(set(args.families)) != len(args.families):
@@ -193,7 +207,7 @@ if __name__ == "__main__":
               "toolchain": subprocess.check_output(["rustc", "-Vv"], text=True),
               "source_files": source_fingerprints(),
               "working_diff_sha256": hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD"])).hexdigest(),
-              "score_tolerance_per_observation": 1e-7,
+              "score_tolerance_per_observation": args.score_tolerance_per_observation,
               "planned_runs": [{"family": f, "mode": m, "rows": n, "columns": args.columns, "repeat": r}
                                for f in args.families for n in args.rows
                                for r in range(args.runs) for m in ["batch", "scalar"]],
@@ -206,10 +220,9 @@ if __name__ == "__main__":
                     for repeat in range(args.runs):
                         # Alternate order; use separate processes for all measurements.
                         for mode in (["batch", "scalar"] if repeat % 2 == 0 else ["scalar", "batch"]):
-                            command = [args.binary, family, mode, str(n), str(max(3, min(5000, 2000000 // n)))]
-                            if args.columns != 2:
-                                command.extend(["plain", str(args.columns)])
-                            row = dict(family=family, mode=mode, rows=n, columns=args.columns, repeat=repeat)
+                            command = benchmark_command(args.binary, family, mode, n, args.columns,
+                                                        score_tolerance=args.score_tolerance_per_observation)
+                            row = dict(family=family, mode=mode, rows=n, columns=args.columns, repeat=repeat, score_tolerance_per_observation=args.score_tolerance_per_observation)
                             try:
                                 completed = subprocess.run(command, text=True, capture_output=True, timeout=300)
                                 row.update(returncode=completed.returncode, stdout=completed.stdout, stderr=completed.stderr)

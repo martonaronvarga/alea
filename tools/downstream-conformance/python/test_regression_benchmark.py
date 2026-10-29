@@ -86,3 +86,22 @@ class PlannedJobs(unittest.TestCase):
         payload = dict(row.row, family='normal', mode='batch', rows=1000, columns=8)
         with self.assertRaises(ValueError):
             decode_benchmark_output(json.dumps(payload), jobs[0])
+
+class StoppingPolicy(unittest.TestCase):
+    def test_commands_keep_default_and_explicit_interventions_separate(self):
+        from benchmark_regression import benchmark_command
+        self.assertEqual(benchmark_command('binary','normal','batch',1000),
+                         ['binary','normal','batch','1000','2000'])
+        command = benchmark_command('binary','bernoulli','scalar',1000,32,'timed',1e-8)
+        self.assertEqual(command[-4:], ['timed','32','--score-tolerance-per-observation','1e-08'])
+
+    def test_reported_policy_must_match_request(self):
+        import json
+        from benchmark_regression import decode_benchmark_output
+        row = RevisionGates(); row.setUp()
+        payload = dict(row.row, family='normal',mode='batch',rows=1000)
+        job = dict(family='normal',mode='batch',rows=1000,score_tolerance_per_observation=1e-8)
+        with self.assertRaises(ValueError):
+            decode_benchmark_output(json.dumps(payload),job)
+        payload['score_tolerance'] = 1000*1e-8
+        self.assertEqual(decode_benchmark_output(json.dumps(payload),job),payload)

@@ -12,10 +12,15 @@ use alea_downstream_conformance::profiling::EvaluationObserver;
 use rand::{RngExt, SeedableRng, rngs::SmallRng};
 use std::{hint::black_box, io::Write, time::Instant};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<_> = std::env::args().collect();
+    let mut args: Vec<_> = std::env::args().collect();
+    let mut score_tolerance_per_observation = 1e-7_f64;
+    if args.len() >= 3 && args[args.len() - 2] == "--score-tolerance-per-observation" {
+        score_tolerance_per_observation = args.pop().ok_or("missing tolerance")?.parse()?;
+        args.pop();
+    }
     if !(5..=8).contains(&args.len()) {
         return Err(
-            "usage: regression_benchmark normal|bernoulli|poisson batch|scalar rows repetitions [plain|counted|timed] [columns] [dataset.json]"
+            "usage: regression_benchmark normal|bernoulli|poisson batch|scalar rows repetitions [plain|counted|timed] [columns] [dataset.json] [--score-tolerance-per-observation value]"
                 .into(),
         );
     }
@@ -28,6 +33,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !["normal", "bernoulli", "poisson"].contains(&family)
         || !["batch", "scalar"].contains(&mode)
         || !["plain", "counted", "timed"].contains(&profile)
+        || !score_tolerance_per_observation.is_finite()
+        || score_tolerance_per_observation <= 0.
         || columns == 0
         || n.checked_mul(columns).is_none()
         || n == 0
@@ -179,7 +186,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             data: format!("synthetic-v2-{n}-{columns}"),
             source: "regression_benchmark-v1".into(),
         },
-        LbfgsOptions::new(100, 1000)?.with_score_tolerance(n as f64 * 1e-7)?,
+        LbfgsOptions::new(100, 1000)?
+            .with_score_tolerance(n as f64 * score_tolerance_per_observation)?,
     )?;
     let fit_seconds = started.elapsed().as_secs_f64();
     let target_calls = match profile {

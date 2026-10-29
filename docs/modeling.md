@@ -972,3 +972,31 @@ batch factors with scalar expression graphs, not different inference engines or
 versions of the compiler hint. Three repetitions on one host do not establish a
 general speed guarantee. No quality-qualified speed claim is made for the failed
 1,000-observation Bernoulli case.
+
+The stopping-policy replay can be requested explicitly:
+
+```sh
+python tools/downstream-conformance/python/benchmark_regression.py \
+  tools/downstream-conformance/target/release/examples/regression_benchmark \
+  regression-32-tighter.json --columns 32 --rows 1000 --runs 3 \
+  --score-tolerance-per-observation 1e-8
+```
+
+This sets the infinity-norm score threshold to `n * 1e-8`; it changes neither the
+objective nor the independent accuracy gates. The runner records the requested
+policy and rejects outputs reporting a different threshold. The default remains
+`n * 1e-7` so that the original experiment remains reproducible.
+
+A separate replay at 32 coefficients and 1,000 observations retained both policies
+across all three families and both execution paths. The original policy reproduced
+the six Bernoulli reference failures; the tighter policy passed all 18 checks.
+Worst predictor errors were `7.4e-9` for Gaussian, `1.4e-7` for Bernoulli and
+`1.2e-8` for Poisson. Each family took two more iterations and two more objective
+evaluations, with scalar and batch paths retaining the same work counts.
+This replay establishes an accuracy/work tradeoff, not a timing improvement.
+
+A score threshold bounds a derivative, not the distance to the optimum. Locally,
+parameter error also depends on inverse curvature; predictor error further depends
+on the design matrix. Dividing the threshold by observation count does not remove
+these dependencies. Use independent prediction checks and an explicitly chosen
+stopping policy rather than interpreting `ScoreTolerance` as an accuracy guarantee.
