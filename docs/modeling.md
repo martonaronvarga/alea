@@ -594,64 +594,157 @@ constant in the objective can make strict objective improvements unresolvable
 before a stringent score tolerance is met. Alea does not accept equal-valued
 steps or silently loosen the tolerance in that situation.
 
+### Stable predictors and coefficient coordinates
+
+Linear predictors can lose accuracy when large products cancel. Compensating
+only their sum cannot recover bits already lost in multiplication. Batch regression
+factors retain the product residual with a fused multiply-add, following the
+[TwoProductFMA construction of Ogita, Rump and Oishi](https://www.tuhh.de/ti3/paper/rump/OgRuOi05.pdf).
+For scalar assembly, `ModelBuilder::linear_combination(inputs, coefficients, offset)`
+uses the same accumulator; its analytic input derivatives are the supplied weights.
+This node supports native analytic gradients; generated Rust primal lowering
+returns `MissingPrimal`. Neither path supplies a certified roundoff enclosure.
+
+A design can also make optimization difficult even when its scores are accurate.
+For example, a predictor almost constant at one is strongly confounded with an
+intercept. `RegressionData::standardize(intercept_column)` explicitly centers and
+scales the other columns. It requires an existing column of exact ones and shares
+the original observations and offsets. Constant columns become zero with scale
+one; they remain in the design and coefficient map. No rank truncation, penalty,
+observation deletion or automatic optimizer retry occurs.
+
+For a non-intercept column, the map is
+
+\[
+z_j=(x_j-c_j)/s_j,\qquad
+\theta_j=s_j\beta_j,\qquad
+\theta_0=\beta_0+\sum_jc_j\beta_j.
+\]
+
+Here `c_j` is the population mean and `s_j` the population standard deviation.
+Both coordinate systems express the same linear predictor in real arithmetic.
+The returned map converts coefficients explicitly. Floating-point reconstruction
+still has limits, especially for large cancelling original coefficients.
+
+```rust
+use alea::{
+    distributions::modeling::regression::{RegressionData, poisson_log_regression},
+    model::assembly::ModelBuilder,
+    optimize::{maximize, LbfgsOptions, ObjectiveDescription, ObjectiveKind},
+};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let original = RegressionData::new(
+        2,
+        vec![1.0, 1.0 - 2e-8, 1.0, 1.0 - 1e-8,
+             1.0, 1.0 + 1e-8, 1.0, 1.0 + 2e-8],
+        vec![1_u64, 2, 3, 4],
+    )?;
+    let (data, map) = original.standardize(0)?.into_parts();
+    let mut builder = ModelBuilder::new();
+    let intercept = builder.real("centered_intercept")?;
+    let slope = builder.real("standardized_slope")?;
+    let likelihood = poisson_log_regression(
+        &mut builder, &[intercept.expr(), slope.expr()], data,
+    )?;
+    builder.likelihood("counts", likelihood)?;
+    let objective = builder.compile()?.select_likelihood()?.into_objective()?;
+    let result = maximize(&objective, &[0.0, 0.0], ObjectiveDescription {
+        kind: ObjectiveKind::Likelihood,
+        measure: "centered and scaled coefficients".into(),
+        model: "Poisson regression".into(),
+        data: "four counts".into(),
+        source: "example".into(),
+    }, LbfgsOptions::new(100, 1000)?)?;
+    println!("termination: {:?}", result.termination);
+    if let Some(candidate) = &result.candidate {
+        let beta = map.to_original(&candidate.position)?;
+        println!("original intercept and slope: {beta:?}");
+    }
+    Ok(())
+}
+```
+
+The stopping condition above concerns the declared standardized coordinates.
+Converting the final coefficients does not relabel the original optimizer gradient
+or prove convergence in another norm. Keep its result and coordinate map together.
+For MLE, composing the likelihood with this invertible map requires no density
+Jacobian. Bayesian priors and coefficient constraints need their own explicit
+transformation. Applying independent priors to the new coefficients generally
+specifies a different model.
+
+Centering and scaling address intercept correlation and unequal units; they do
+not remove arbitrary correlations among several predictors or establish rank.
+[Stan's regression guide](https://mc-stan.org/docs/stan-users-guide/regression.html)
+also describes centering and a more general QR reparameterization.
+[R's GLM fitter](https://raw.githubusercontent.com/wch/r-source/trunk/src/library/stats/R/glm.R)
+uses iteratively reweighted least squares with QR, while
+[statsmodels documents SVD and QR alternatives](https://www.statsmodels.org/stable/generated/statsmodels.genmod.generalized_linear_model.GLM.fit.html).
+Their rank cutoffs and convergence criteria differ; align those policies before
+comparing coefficients or success flags.
+
 ### Validation and performance
 
-The source checkout includes `regression_fit` and the independent
-`tools/downstream-conformance/python/check_regression_fits.py` reference check.
-It evaluates Gaussian, logistic and Poisson likelihoods and scores with 60-digit
-Decimal arithmetic and independently solves the reference equations. Its
-cohort includes offsets, scaled and nearly collinear designs, duplicate columns,
-separation, Poisson boundaries, perfect Gaussian fits, and the original strict
-100k-row optimization controls. Repeated runs are execution checks, not independent
-simulated datasets or statistical calibration.
+The source checkout includes `regression_fit`, the independent 60-digit Decimal
+check `tools/downstream-conformance/python/check_regression_fits.py`, and an
+optional actual SciPy comparison in `check_regression_references.py`. Run the
+latter in the analysis Nix shell. It records package versions and executes SciPy
+SVD least squares and analytic-Jacobian root solvers. R, statsmodels and Stan
+informed the design review; those engines were not executed in this comparison.
 
-On October 29, 2026, all 108 planned executions completed, including three
-perfect-fit Gaussian evaluation failures retained as outcomes. All 78 required
-candidate-accuracy checks passed: maximum predictor error and Gaussian log-scale
-error were below `5e-6`. This comparison tolerance does not replace the optimizer's
-stopping rule. Only 39 executions met that rule, including nine boundary/separated
-fits whose small scores do not establish a finite MLE.
+The paired cohort uses the same inputs, budgets and error thresholds in raw and
+standardized coordinates. Its 216 planned executions completed. All 192
+finite-reference evaluations passed both original-score and optimization-score
+accuracy checks. All required candidate checks passed, including every
+standardized ill-conditioned case. Maximum
+Gaussian score error in the difficult design was below `1e-13`, compared with
+about `5.6e-7` before product compensation. Standardized Poisson predictions
+agreed with the independent reference within `4e-9`, below the unchanged `5e-6`
+threshold. The six raw-coordinate Poisson prediction failures remain recorded
+controls: generic L-BFGS does not automatically discover a design transformation.
 
-The stress cohort remains partly unqualified. Six ill-conditioned Gaussian runs
-failed the score-comparison threshold (`5e-11` times the row count), with errors
-around `5.6e-7`. Large cancelling coefficients amplify predictor-product rounding;
-an independent calculation using the rounded predictors reproduces the scores to
-about `1e-14`. Six ill-conditioned Poisson candidates failed the predictor-accuracy
-check. The reference runner retains these failures and exits unsuccessfully for
-the full stress cohort. Centering and scaling deserve attention before interpreting
-coefficients or tightening numerical tolerances.
+SciPy's standardized fits passed the same prediction threshold for all three
+families. Its raw-coordinate logistic and Poisson root solves did not. These
+results demonstrate the importance of arithmetic and coordinate choice; they
+do not rank inference libraries. The cohort contains repeated deterministic
+executions, not independent simulated datasets or statistical calibration.
+
+The optimizer's strict stopping rule was met in 78 of the 216 executions.
+Candidate accuracy, numerical termination and finite-MLE existence remain separate.
+Separated, boundary and perfect-fit cases retain their original typed outcomes.
+The tools check original coefficients against the original design and independently
+check optimization gradients on the recorded standardized design.
 
 The separate scalar/batch benchmark completed all 54 planned runs at 10, 1,000
-and 1,000,000 rows. All nine family/size comparisons met the declared numerical
-and agreement gates. The optimizer used the original absolute score tolerance
-`n * 1e-7` in both paths, not the default `1e-8`. The table shows median ratios of
-scalar time or memory to batch time or memory at one million rows, from three
-fresh processes per path on one Linux host.
+and 1,000,000 rows. All nine family/size comparisons passed their numerical and
+agreement gates. Both paths used the original absolute score tolerance `n * 1e-7`,
+not the default `1e-8`. The scalar graph expands each observation into elementary
+model nodes; the batch graph uses one likelihood node. The table shows median
+ratios of scalar time or memory to batch time or memory at one million rows,
+from three fresh processes per path on one Linux host.
 
 | Likelihood | Construction | Evaluation | Fitting | Peak process memory |
 | --- | ---: | ---: | ---: | ---: |
-| Gaussian | 6.41 | 3.67 | 3.69 | 8.26 |
-| Bernoulli-logit | 7.07 | 1.54 | 1.63 | 7.45 |
-| Poisson-log | 3.74 | 4.29 | 4.18 | 8.12 |
+| Gaussian | 5.59 | 2.91 | 3.22 | 8.27 |
+| Bernoulli-logit | 7.08 | 1.54 | 1.51 | 7.45 |
+| Poisson-log | 3.55 | 3.45 | 3.43 | 8.12 |
 
-Poisson graph construction was slower in the batch path at ten rows (a scalar/
-batch ratio of 0.64), and faster at 1,000 rows (5.23). Those measurements bracket
-a construction crossover on these inputs; they do not locate a universal threshold.
+Poisson graph construction was slower in the batch path at ten rows and faster
+at 1,000 rows on these inputs. This brackets a workload-specific crossover;
+it does not identify a universal threshold. These are exploratory measurements,
+not guaranteed speedups or comparisons with another library. More accurate
+product accumulation adds work, and its cost depends on the processor's FMA
+implementation.
 
-These are exploratory workload measurements, not universal speedups or comparisons
-with another library. At one million rows, batch graphs contained three or four
-expressions; scalar graphs contained four to five million. Peak batch memory was
-about 57 MiB, compared with 423–469 MiB for scalar graphs. Graph construction is
-bounded in the batch path; the stored observations and design still require memory
-proportional to the data size.
+At one million rows, batch graphs contained three or four expressions; scalar
+graphs contained four to five million. Peak batch memory was about 57 MiB,
+compared with 423–469 MiB for scalar graphs. Batch graph construction is bounded;
+stored observations and design storage still grow with the data size.
 
-The original million-row scalar Gaussian control failed its score condition.
-Independent reference evaluation identified inaccurate accumulation of its many
-factor values. Native graph evaluation now uses Alea's compensated accumulator;
-the corrected control reaches the unchanged tolerance and matches the batch
-coefficients and objective. This correction covers the native factor sum, not
-arbitrary intermediate expressions, every reverse accumulation, or generated
-Enzyme code. It does not provide a floating-point error certificate.
+Native graph factor-value sums also use the compensated accumulator. This fixed
+the million-row scalar Gaussian search failure without changing its declared
+stopping tolerance. These arithmetic improvements do not certify arbitrary
+intermediate expressions, reverse accumulations or generated Enzyme code.
 
 ## Pointwise likelihoods and predictive units
 

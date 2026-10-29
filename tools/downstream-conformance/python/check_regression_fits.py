@@ -114,11 +114,24 @@ def assess(record):
         q = [D.from_float(x) for x in record['position']]
         value, score = evaluate(family, rows, q)
         scales = [D(1), D('1e-4')] + ([D(1)] if family == 'gaussian' else []) if scenario == 'scaled' else [D(1)]*len(q)
-        scaled_score = max(abs(D.from_float(x)*s) for x,s in zip(record['gradient'],scales))
+        optimizer_gradient = record.get('optimization_gradient', record['gradient'])
+        if 'optimization_scales' in record:
+            scales = [D.from_float(x) for x in record['optimization_scales']]
+        scaled_score = max(abs(D.from_float(x)*s) for x,s in zip(optimizer_gradient,scales))
         criterion = scaled_score <= D.from_float(record['score_tolerance'])
         assert criterion == (record['termination'] == 'ScoreTolerance'), record
+        opt_rows = rows
+        if record.get('coordinates') == 'standardized':
+            center = record['coefficient_centers'][1]
+            scale = record['coefficient_scales'][1]
+            opt_rows = [(D.from_float((float(x)-center)/scale),off,count,sy,sy2,fact)
+                        for x,off,count,sy,sy2,fact in rows]
+        opt_q = [D.from_float(x) for x in record.get('optimization_position',record['position'])]
+        _, reference_optimizer_score = evaluate(family,opt_rows,opt_q)
+        optimizer_score_error = float(max(abs(x-D.from_float(y)) for x,y in zip(reference_optimizer_score,optimizer_gradient)))
         result = {'numerical_criterion_met':criterion,
                   'score_evaluation_error':float(max(abs(a-D.from_float(b)) for a,b in zip(score,record['gradient']))),
+                  'optimization_score_evaluation_error':optimizer_score_error,
                   'reference_value_at_candidate':str(value), 'reference_score_at_candidate':[str(x) for x in score]}
         if scenario in ('boundary','quasi','perfect'):
             result['reference_status'] = 'no_finite_joint_maximum'
@@ -132,6 +145,7 @@ def assess(record):
                       gap_below_float_ulp=abs(best-value)<D.from_float(math.ulp(record['value'])),
                       candidate_accuracy_passed=predictor_error<D('5e-6') and scale_error<D('5e-6'))
         # Agreement tolerances are reference-comparison checks, not optimizer stopping rules.
+        result['optimization_score_evaluation_passed'] = optimizer_score_error <= 5e-11*n
         result['score_evaluation_passed'] = result['score_evaluation_error'] <= 5e-11*n
         return result
 
@@ -140,28 +154,30 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary',type=Path,required=True); parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--rounds',type=int,default=3)
+    parser.add_argument('--coordinates',nargs='+',choices=['raw','standardized'],default=['raw','standardized'])
     args=parser.parse_args()
     if args.rounds<1: parser.error('rounds must be positive')
     args.output.mkdir(parents=True,exist_ok=False)
     root=Path(__file__).resolve().parents[3]
-    source_names = ['crates/alea-core/src/model/assembly.rs','crates/alea-distributions/src/modeling/regression/diagnostics/assessment.rs','crates/alea-runtime/src/optimize.rs','crates/alea-math/src/quasi_newton.rs','crates/alea-distributions/src/modeling/regression.rs','tools/downstream-conformance/examples/regression_fit.rs',str(Path(__file__).relative_to(root))]
+    source_names = ['crates/alea-math/src/numeric.rs','crates/alea-distributions/src/modeling/regression/standardization.rs','crates/alea-core/src/model/assembly.rs','crates/alea-distributions/src/modeling/regression/diagnostics/assessment.rs','crates/alea-runtime/src/optimize.rs','crates/alea-math/src/quasi_newton.rs','crates/alea-distributions/src/modeling/regression.rs','tools/downstream-conformance/examples/regression_fit.rs',str(Path(__file__).relative_to(root))]
     manifest={'schema_version':1,'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),
               'binary_sha256':hashlib.sha256(args.binary.read_bytes()).hexdigest(), 'host':platform.platform(),
               'source_sha256':{p:hashlib.sha256((root/p).read_bytes()).hexdigest() for p in source_names},
+              'coordinates':args.coordinates, 'stopping_rule':'unchanged scaled score in explicitly recorded optimization coordinates; original-coordinate scores checked independently',
               'reference':'Python Decimal 60 digits; independent grouped likelihoods, scores and Newton equations',
-              'acceptance':'predictor/log-scale error <5e-6; score evaluation error <=5e-11*n; optimizer criterion unchanged',
+              'acceptance':'finite-reference cohort: predictor/log-scale error <5e-6 and original/optimization score error <=5e-11*n; no-finite-maximum cases retain typed outcomes; optimizer criterion unchanged',
               'timing':'Rust Instant construction and fitting separately; peak process RSS; no reference-computation time included'}
     (args.output/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     (args.output/'source.patch').write_bytes(subprocess.check_output(['git','diff','HEAD','--binary'],cwd=root))
     cases=[(f,s,330,m) for f in ('gaussian','logistic','poisson') for s in ('ordinary','scaled','ill_conditioned','rank_deficient','offset') for m in ('batch','scalar')]
     cases += [(f,s,330,'batch') for f,s in [('gaussian','perfect'),('logistic','boundary'),('logistic','quasi'),('poisson','boundary')]]
     cases += [(f,'tracing',100000,'batch') for f in ('logistic','poisson')]
-    jobs=[(r,*c) for r in range(args.rounds) for c in cases]; random.Random(20261029).shuffle(jobs)
+    jobs=[(r,*c,coordinates) for r in range(args.rounds) for c in cases for coordinates in args.coordinates]; random.Random(20261029).shuffle(jobs)
     records=[]
     with (args.output/'runs.jsonl').open('x') as out:
-        for round_index,f,s,n,m in jobs:
-            p=subprocess.run([str(args.binary.resolve()),f,s,str(n),m],capture_output=True,text=True)
-            item={'round':round_index,'family':f,'scenario':s,'rows':n,'mode':m,'exit_status':p.returncode,'stdout':p.stdout,'stderr':p.stderr}
+        for round_index,f,s,n,m,coordinates in jobs:
+            p=subprocess.run([str(args.binary.resolve()),f,s,str(n),m,coordinates],capture_output=True,text=True)
+            item={'round':round_index,'family':f,'scenario':s,'rows':n,'mode':m,'coordinates':coordinates,'exit_status':p.returncode,'stdout':p.stdout,'stderr':p.stderr}
             if p.returncode==0:
                 try:
                     item['fit']=json.loads(p.stdout); item['assessment']=assess(item['fit'])
@@ -170,13 +186,16 @@ def main():
             records.append(item);out.write(json.dumps(item)+'\n');out.flush()
     summary={'planned':len(jobs),'completed':sum(r['exit_status']==0 for r in records),
              'reference_failures':sum('reference_failure' in r for r in records),
-             'required_accuracy_failures':sum(r['scenario'] not in ('boundary','quasi','perfect','ill_conditioned') and not r.get('assessment',{}).get('candidate_accuracy_passed',False) for r in records),
+             'required_accuracy_failures':sum(r['scenario'] not in ('boundary','quasi','perfect') and (r['scenario']!='ill_conditioned' or r['coordinates']=='standardized') and not r.get('assessment',{}).get('candidate_accuracy_passed',False) for r in records),
+             'raw_stress_candidate_failures':sum(r['scenario']=='ill_conditioned' and r['coordinates']=='raw' and not r.get('assessment',{}).get('candidate_accuracy_passed',False) for r in records),
+             'standardized_stress_candidate_failures':sum(r['scenario']=='ill_conditioned' and r['coordinates']=='standardized' and not r.get('assessment',{}).get('candidate_accuracy_passed',False) for r in records),
+             'optimization_score_evaluation_failures':sum(r.get('assessment',{}).get('optimization_score_evaluation_passed') is False for r in records),
              'score_evaluation_failures':sum(r.get('assessment',{}).get('score_evaluation_passed') is False for r in records),
              'score_tolerance_met':sum(r.get('assessment',{}).get('numerical_criterion_met',False) for r in records),
              'accurate_candidates':sum(r.get('assessment',{}).get('candidate_accuracy_passed',False) for r in records),
              'all_outcomes_retained':True}
     (args.output/'summary.json').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps(summary,indent=2))
-    if summary['completed']!=summary['planned'] or summary['reference_failures'] or summary['required_accuracy_failures'] or summary['score_evaluation_failures']:
-        raise SystemExit('incomplete/reference-failed cohort; see retained records')
+    if summary['completed']!=summary['planned'] or summary['reference_failures'] or summary['required_accuracy_failures'] or summary['score_evaluation_failures'] or summary['optimization_score_evaluation_failures']:
+        raise SystemExit('cohort has incomplete executions or failed reference/accuracy checks; see retained records')
 
 if __name__=='__main__': main()

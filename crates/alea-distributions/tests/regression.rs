@@ -280,7 +280,7 @@ fn cancelling_predictor_scores_match_independent_decimal_reference() {
     // Decimal60 on the stored binary64 design/response/parameters, not a finite difference.
     let q = [-50151514.17263073, 50151515.175358005, -0.6022896768086836];
     let expected = [
-        -4.7807209030239335e-6,
+        -4.780_720_903_023_934e-6,
         -4.780720928196566e-6,
         -4.2292765882427065e-7,
     ];
