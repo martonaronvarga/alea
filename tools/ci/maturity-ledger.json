@@ -163,6 +163,12 @@
       "promotion_gate": "Broaden independent downstream and numerical validation before promotion."
     },
     {
+      "path": "crates/alea-core/src/model/assembly/pointwise.rs",
+      "profile": "research_component",
+      "summary": "Explicit mathematical contract or representation with scoped regression coverage.",
+      "promotion_gate": "Broaden independent downstream and numerical validation before promotion."
+    },
+    {
       "path": "crates/alea-core/src/model/assembly/source.rs",
       "profile": "research_utility",
       "summary": "Scalar Rust primal and numerical-admission source export from typed native models.",
@@ -2109,6 +2115,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl alea_core::model::assembly::PointwiseLikelihood",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::CholeskyCorrelation",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -2315,6 +2327,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::PredictiveUnit",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::clone::Clone for alea_core::model::assembly::Real",
       "profile": "validated_component_opt_in"
     },
@@ -2440,6 +2458,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::PredictiveUnit",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::cmp::Eq for alea_core::model::prediction::PredictiveOrigin",
       "profile": "validated_component_opt_in"
     },
@@ -2528,6 +2552,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::PredictiveUnit",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::cmp::PartialEq for alea_core::model::prediction::PredictiveOrigin",
       "profile": "validated_component_opt_in"
     },
@@ -2570,6 +2600,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::convert::From<alea_core::model::assembly::AssemblyError> for alea_core::model::assembly::PointwiseError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::convert::From<alea_core::transform::TransformError> for alea_core::model::assembly::AssemblyError",
       "profile": "validated_component_opt_in"
     },
@@ -2599,6 +2635,12 @@
       "crate": "alea-core",
       "item": "impl core::error::Error for alea_core::model::assembly::AssemblyError",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::error::Error for alea_core::model::assembly::PointwiseError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -2720,6 +2762,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::PointwiseError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::fmt::Debug for alea_core::model::assembly::Positive",
       "profile": "validated_component_opt_in"
     },
@@ -2732,6 +2780,12 @@
     {
       "crate": "alea-core",
       "item": "impl core::fmt::Debug for alea_core::model::assembly::PositiveOrdered",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::PredictiveUnit",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -2819,6 +2873,12 @@
       "crate": "alea-core",
       "item": "impl core::fmt::Display for alea_core::model::assembly::AssemblyError",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Display for alea_core::model::assembly::PointwiseError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",
@@ -3045,6 +3105,12 @@
     {
       "crate": "alea-core",
       "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::FactorRole",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::PredictiveUnit",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -4114,6 +4180,102 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PointwiseError::Factor",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PointwiseError::Factor::factor: alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PointwiseError::Factor::unit: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PointwiseError::Model(alea_core::model::assembly::AssemblyError)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PointwiseError::Observation",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PointwiseError::Observation::observation: alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PointwiseError::Partition",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PointwiseError::Partition::factor: alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PointwiseError::Unit",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PointwiseError::Unit::reason: &'static str",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PointwiseError::Unit::unit: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PredictiveUnit::conditioned_on: alloc::vec::Vec<alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PredictiveUnit::factors: alloc::vec::Vec<alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PredictiveUnit::integrated_out: alloc::vec::Vec<alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PredictiveUnit::name: alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::PredictiveUnit::observations: alloc::vec::Vec<alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub alea_core::model::prediction::NamedOutput::values: T",
       "profile": "validated_component_opt_in"
     },
@@ -4664,6 +4826,12 @@
     {
       "crate": "alea-core",
       "item": "pub enum alea_core::model::assembly::Ordered",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub enum alea_core::model::assembly::PointwiseError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -5809,6 +5977,60 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PointwiseError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PointwiseError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PointwiseError::from(source: alea_core::model::assembly::AssemblyError) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PointwiseError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PointwiseLikelihood::evaluate(&self, q: &[f64], output: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::PointwiseError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PointwiseLikelihood::into_model(self) -> alea_core::model::assembly::CompiledModel",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PointwiseLikelihood::model(&self) -> &alea_core::model::assembly::CompiledModel",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PointwiseLikelihood::new(model: alea_core::model::assembly::CompiledModel, units: alloc::vec::Vec<alea_core::model::assembly::PredictiveUnit>) -> core::result::Result<Self, alea_core::model::assembly::PointwiseError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PointwiseLikelihood::units(&self) -> &[alea_core::model::assembly::PredictiveUnit]",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::Positive::accepts(transform: alea_core::transform::Transform) -> bool",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -5856,6 +6078,24 @@
     {
       "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::PositiveOrdered::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PredictiveUnit::clone(&self) -> alea_core::model::assembly::PredictiveUnit",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PredictiveUnit::eq(&self, other: &alea_core::model::assembly::PredictiveUnit) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PredictiveUnit::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -6683,6 +6923,18 @@
       "crate": "alea-core",
       "item": "pub struct alea_core::model::assembly::Parameter<S>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::PointwiseLikelihood",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::PredictiveUnit",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-core",

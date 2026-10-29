@@ -257,3 +257,68 @@ The original factors, parameter names and parameter coordinates remain available
 A parameter used only by a prior can become unidentified in the likelihood view.
 A factor name can describe a joint data block and does not by itself define a
 pointwise leave-out unit for cross-validation.
+
+## Pointwise likelihoods and predictive units
+
+For predictive comparison, choose what an omitted unit means before evaluating
+its likelihood. It could be one reaction time, all measurements from a subject,
+or a joint multivariate observation. A joint density cannot be divided into
+observation-level terms just by renaming it.
+
+`PointwiseLikelihood` groups explicitly named likelihood factors. Each factor
+must belong to exactly one unit, and observation identifiers must not overlap.
+The output order follows the unit list, preserving alignment with your data.
+Priors, arbitrary potentials and parameter-transform Jacobians are excluded.
+
+```rust
+use alea::distributions::modeling::normal_observation;
+use alea::model::assembly::{ModelBuilder, PointwiseLikelihood, PredictiveUnit};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut b = ModelBuilder::new();
+    let mean = b.real("mean")?;
+    let sigma = b.positive("sigma")?;
+    let mut units = Vec::new();
+    for (i, y) in [1.2, 0.8].into_iter().enumerate() {
+        let factor = normal_observation(&mut b, y, mean.expr(), &sigma)?;
+        let name = format!("measurement {i}");
+        b.likelihood(&name, factor)?;
+        units.push(PredictiveUnit {
+            name: name.clone(),
+            factors: vec![name],
+            observations: vec![format!("data row {i}")],
+            conditioned_on: vec!["mean".into(), "sigma".into()],
+            integrated_out: vec![],
+        });
+    }
+    let pointwise = PointwiseLikelihood::new(b.compile()?, units)?;
+    let mut terms = vec![0.0; pointwise.units().len()];
+    let total = pointwise.evaluate(&[1.0, 0.5_f64.ln()], &mut terms)?;
+    assert!((total - terms.iter().sum::<f64>()).abs() < 1e-12);
+    for (unit, value) in pointwise.units().iter().zip(&terms) {
+        println!("{}: {value}", unit.name);
+    }
+    Ok(())
+}
+```
+
+To evaluate a joint subject-level likelihood, list that subject's factors and
+observation identifiers together in one unit. Terms within each unit are summed
+in their original declaration order. Regrouping can introduce small differences
+between the sum of unit values and the total likelihood.
+
+The conditioning fields describe the likelihood you supplied. For example,
+`conditioned_on: vec!["subject effect".into()]` describes prediction conditional
+on an existing effect; `integrated_out: vec!["subject effect".into()]` describes a
+likelihood whose calculation already integrates that effect out. These are
+different prediction questions. Setting a label performs no integration and does
+not establish that units are statistically independent or suitable for LOO.
+
+For targets built with `CompiledModel::into_target`, recover the model after
+fitting with `target.into_model()` and pass it to `PointwiseLikelihood::new`. You can recover it again with `pointwise.into_model()`.
+The evaluator reuses its storage and runs the forward graph once per coordinate
+vector, without reverse propagation. Custom value/VJP callbacks still supply
+both outputs under their existing contract. Invalid charts, nonfinite values
+(including negative-infinite log likelihoods), or callback failures return errors
+and leave the output untouched. Preserve those failures rather than replacing
+them with a probability of zero.

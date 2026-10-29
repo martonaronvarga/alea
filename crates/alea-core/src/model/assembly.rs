@@ -14,8 +14,10 @@ use std::{
 };
 
 mod factors;
+mod pointwise;
 mod source;
 pub use factors::{FactorMetadata, FactorRole};
+pub use pointwise::{PointwiseError, PointwiseLikelihood, PredictiveUnit};
 
 static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 /// Unconstrained real scalar parameter marker.
@@ -572,46 +574,14 @@ impl CompiledModel {
             .workspace
             .try_borrow_mut()
             .map_err(|_| AssemblyError::WorkspaceBusy)?;
+        self.forward::<FILTERED>(q, &mut work)?;
         let PlanWorkspace {
             values,
             adjoints,
             locals,
-            inputs,
             gradient,
+            ..
         } = &mut *work;
-        for (i, op) in self.nodes.iter().enumerate() {
-            if FILTERED && !self.active_nodes.as_ref().expect("selected graph")[i] {
-                continue;
-            }
-            values[i] = match op {
-                Op::Parameter(s) => q[*s],
-                Op::Constant(x) => *x,
-                Op::Add(a, b) => values[*a] + values[*b],
-                Op::Multiply(a, b) => values[*a] * values[*b],
-                Op::Exp(a) => values[*a].exp(),
-                Op::Log(a) => values[*a].ln(),
-                Op::Factor {
-                    inputs: indices,
-                    callback,
-                    start,
-                    ..
-                } => {
-                    for (slot, index) in inputs.iter_mut().zip(indices.iter()) {
-                        *slot = values[*index];
-                    }
-                    let derivatives = &mut locals[*start..*start + indices.len()];
-                    derivatives.fill(f64::NAN);
-                    let value = callback(&inputs[..indices.len()], derivatives)?;
-                    if derivatives.iter().any(|x| !x.is_finite()) {
-                        return Err(AssemblyError::Numerical);
-                    }
-                    value
-                }
-            };
-            if !values[i].is_finite() {
-                return Err(AssemblyError::Numerical);
-            }
-        }
         adjoints.fill(0.0);
         gradient.fill(0.0);
         let mut total = 0.0;
@@ -649,5 +619,53 @@ impl CompiledModel {
         }
         g.copy_from_slice(gradient);
         Ok(total)
+    }
+    // Shared forward tape. Pointwise reporting skips reverse propagation but
+    // retains the existing callback value/VJP admission contract.
+    fn forward<const FILTERED: bool>(
+        &self,
+        q: &[f64],
+        work: &mut PlanWorkspace,
+    ) -> Result<(), AssemblyError> {
+        let PlanWorkspace {
+            values,
+            locals,
+            inputs,
+            ..
+        } = work;
+        for (i, op) in self.nodes.iter().enumerate() {
+            if FILTERED && !self.active_nodes.as_ref().expect("selected graph")[i] {
+                continue;
+            }
+            values[i] = match op {
+                Op::Parameter(s) => q[*s],
+                Op::Constant(x) => *x,
+                Op::Add(a, b) => values[*a] + values[*b],
+                Op::Multiply(a, b) => values[*a] * values[*b],
+                Op::Exp(a) => values[*a].exp(),
+                Op::Log(a) => values[*a].ln(),
+                Op::Factor {
+                    inputs: indices,
+                    callback,
+                    start,
+                    ..
+                } => {
+                    for (slot, index) in inputs.iter_mut().zip(indices.iter()) {
+                        *slot = values[*index];
+                    }
+                    let derivatives = &mut locals[*start..*start + indices.len()];
+                    derivatives.fill(f64::NAN);
+                    let value = callback(&inputs[..indices.len()], derivatives)?;
+                    if derivatives.iter().any(|x| !x.is_finite()) {
+                        return Err(AssemblyError::Numerical);
+                    }
+                    value
+                }
+            };
+            if !values[i].is_finite() {
+                return Err(AssemblyError::Numerical);
+            }
+        }
+        Ok(())
     }
 }

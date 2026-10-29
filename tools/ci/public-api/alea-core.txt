@@ -298,6 +298,8 @@ pub alea_core::model::assembly::AssemblyError::Transform(alea_core::transform::T
 pub alea_core::model::assembly::AssemblyError::UnclassifiedFactor
 pub alea_core::model::assembly::AssemblyError::UnclassifiedFactor::index: usize
 pub alea_core::model::assembly::AssemblyError::WorkspaceBusy
+impl core::convert::From<alea_core::model::assembly::AssemblyError> for alea_core::model::assembly::PointwiseError
+pub fn alea_core::model::assembly::PointwiseError::from(source: alea_core::model::assembly::AssemblyError) -> Self
 impl core::convert::From<alea_core::transform::TransformError> for alea_core::model::assembly::AssemblyError
 pub fn alea_core::model::assembly::AssemblyError::from(source: alea_core::transform::TransformError) -> Self
 impl core::error::Error for alea_core::model::assembly::AssemblyError
@@ -360,6 +362,26 @@ pub fn alea_core::model::assembly::Ordered::clone(&self) -> alea_core::model::as
 impl core::fmt::Debug for alea_core::model::assembly::Ordered
 pub fn alea_core::model::assembly::Ordered::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_core::model::assembly::Ordered
+pub enum alea_core::model::assembly::PointwiseError
+pub alea_core::model::assembly::PointwiseError::Factor
+pub alea_core::model::assembly::PointwiseError::Factor::factor: alloc::string::String
+pub alea_core::model::assembly::PointwiseError::Factor::unit: usize
+pub alea_core::model::assembly::PointwiseError::Model(alea_core::model::assembly::AssemblyError)
+pub alea_core::model::assembly::PointwiseError::Observation
+pub alea_core::model::assembly::PointwiseError::Observation::observation: alloc::string::String
+pub alea_core::model::assembly::PointwiseError::Partition
+pub alea_core::model::assembly::PointwiseError::Partition::factor: alloc::string::String
+pub alea_core::model::assembly::PointwiseError::Unit
+pub alea_core::model::assembly::PointwiseError::Unit::reason: &'static str
+pub alea_core::model::assembly::PointwiseError::Unit::unit: usize
+impl core::convert::From<alea_core::model::assembly::AssemblyError> for alea_core::model::assembly::PointwiseError
+pub fn alea_core::model::assembly::PointwiseError::from(source: alea_core::model::assembly::AssemblyError) -> Self
+impl core::error::Error for alea_core::model::assembly::PointwiseError
+pub fn alea_core::model::assembly::PointwiseError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl core::fmt::Debug for alea_core::model::assembly::PointwiseError
+pub fn alea_core::model::assembly::PointwiseError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_core::model::assembly::PointwiseError
+pub fn alea_core::model::assembly::PointwiseError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub enum alea_core::model::assembly::Positive
 impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::Positive
 pub fn alea_core::model::assembly::Positive::accepts(transform: alea_core::transform::Transform) -> bool
@@ -506,6 +528,27 @@ pub fn alea_core::model::assembly::Parameter<S>::clone(&self) -> alea_core::mode
 impl<S: core::fmt::Debug> core::fmt::Debug for alea_core::model::assembly::Parameter<S>
 pub fn alea_core::model::assembly::Parameter<S>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl<S: core::marker::Copy> core::marker::Copy for alea_core::model::assembly::Parameter<S>
+pub struct alea_core::model::assembly::PointwiseLikelihood
+impl alea_core::model::assembly::PointwiseLikelihood
+pub fn alea_core::model::assembly::PointwiseLikelihood::evaluate(&self, q: &[f64], output: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::PointwiseError>
+pub fn alea_core::model::assembly::PointwiseLikelihood::into_model(self) -> alea_core::model::assembly::CompiledModel
+pub fn alea_core::model::assembly::PointwiseLikelihood::model(&self) -> &alea_core::model::assembly::CompiledModel
+pub fn alea_core::model::assembly::PointwiseLikelihood::new(model: alea_core::model::assembly::CompiledModel, units: alloc::vec::Vec<alea_core::model::assembly::PredictiveUnit>) -> core::result::Result<Self, alea_core::model::assembly::PointwiseError>
+pub fn alea_core::model::assembly::PointwiseLikelihood::units(&self) -> &[alea_core::model::assembly::PredictiveUnit]
+pub struct alea_core::model::assembly::PredictiveUnit
+pub alea_core::model::assembly::PredictiveUnit::conditioned_on: alloc::vec::Vec<alloc::string::String>
+pub alea_core::model::assembly::PredictiveUnit::factors: alloc::vec::Vec<alloc::string::String>
+pub alea_core::model::assembly::PredictiveUnit::integrated_out: alloc::vec::Vec<alloc::string::String>
+pub alea_core::model::assembly::PredictiveUnit::name: alloc::string::String
+pub alea_core::model::assembly::PredictiveUnit::observations: alloc::vec::Vec<alloc::string::String>
+impl core::clone::Clone for alea_core::model::assembly::PredictiveUnit
+pub fn alea_core::model::assembly::PredictiveUnit::clone(&self) -> alea_core::model::assembly::PredictiveUnit
+impl core::cmp::Eq for alea_core::model::assembly::PredictiveUnit
+impl core::cmp::PartialEq for alea_core::model::assembly::PredictiveUnit
+pub fn alea_core::model::assembly::PredictiveUnit::eq(&self, other: &alea_core::model::assembly::PredictiveUnit) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::PredictiveUnit
+pub fn alea_core::model::assembly::PredictiveUnit::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::PredictiveUnit
 pub struct alea_core::model::assembly::VectorParameter<S: alea_core::model::assembly::VectorDomain>
 impl<S: alea_core::model::assembly::VectorDomain> alea_core::model::assembly::VectorParameter<S>
 pub fn alea_core::model::assembly::VectorParameter<S>::expressions(&self) -> &[alea_core::model::assembly::Expr]
