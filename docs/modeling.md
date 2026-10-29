@@ -937,3 +937,38 @@ with the unchanged scalar fitting control at 0.99. The initial result remains
 recorded. These mixed one-host timings support a modest, workload-dependent
 compiler optimization, not a general speed guarantee. The runner's `--families`
 option supports such targeted replays while retaining the complete declared jobs.
+
+Wider fixed-design comparisons can be requested with `--columns`, including the
+intercept. For example, after building the release benchmark:
+
+```sh
+python tools/downstream-conformance/python/benchmark_regression.py \
+  tools/downstream-conformance/target/release/examples/regression_benchmark \
+  regression-32.json --columns 32 --rows 1000 10000 --runs 3
+```
+
+Widths other than two use bounded, independently generated predictor columns
+with a fixed Rust seed. The original two-column observations are preserved.
+The runner checks the reported width and retains process failures. The independent
+`check_regression_benchmark.py` consumes this report and exports the actual dataset
+from the same executable, verified by its hash. Run it in the analysis Nix shell;
+it checks initial and final values and scores against NumPy/SciPy, and estimates
+against SVD least squares or analytic-score root finding. Solver status, objective
+accuracy, predictor agreement and Alea's stopping condition remain separate checks.
+
+A one-host comparison at 2, 8 and 32 coefficients, 1,000 and 10,000 observations,
+and three repetitions completed all 108 planned fits. All 18 scalar/batch cohorts
+met their shared score and agreement gates. Independent checks passed 102 of 108:
+the six Bernoulli fits at 32 coefficients and 1,000 observations had predictor error
+`5.76e-6`, exceeding the `5e-6` reference gate despite satisfying the requested
+`n * 1e-7` score tolerance. Initial and final score errors were below `5e-14` in
+that case. A small score alone does not establish a requested prediction accuracy;
+these six outcomes are retained as failed reference checks.
+
+At 10,000 observations and 32 coefficients, all independent checks passed. Median
+scalar time divided by batch time was 4.54 for Gaussian fitting, 4.32 for Bernoulli
+and 4.98 for Poisson; peak resident memory ratios were about 7.2. These compare
+batch factors with scalar expression graphs, not different inference engines or
+versions of the compiler hint. Three repetitions on one host do not establish a
+general speed guarantee. No quality-qualified speed claim is made for the failed
+1,000-observation Bernoulli case.

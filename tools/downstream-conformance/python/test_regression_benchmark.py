@@ -75,3 +75,14 @@ class PlannedJobs(unittest.TestCase):
         expected = {('normal',1000000,i,v,m) for i in range(15)
                     for v in ['before','after'] for m in ['batch','scalar']}
         self.assertEqual(keys, expected)
+
+    def test_width_is_part_of_the_declared_cohort(self):
+        import json
+        from benchmark_regression import planned_revision_jobs, decode_benchmark_output
+        jobs = planned_revision_jobs(['normal'], [1000], 3, ['before','after'], 7, columns=32)
+        self.assertEqual(len(jobs), 12)
+        self.assertTrue(all(j['columns'] == 32 for j in jobs))
+        row = RevisionGates(); row.setUp()
+        payload = dict(row.row, family='normal', mode='batch', rows=1000, columns=8)
+        with self.assertRaises(ValueError):
+            decode_benchmark_output(json.dumps(payload), jobs[0])

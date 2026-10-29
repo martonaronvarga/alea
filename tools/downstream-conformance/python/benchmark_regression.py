@@ -88,12 +88,14 @@ def decode_benchmark_output(stdout, job):
         raise ValueError("incomplete benchmark output")
     if any(payload.get(key) != job[key] for key in ["family", "mode", "rows"]):
         raise ValueError("benchmark output does not match planned job")
+    if payload.get("columns", 2) != job.get("columns", 2):
+        raise ValueError("benchmark width does not match planned job")
     if job.get("revision") in ("plain", "counted", "timed") and payload.get("profile") != job["revision"]:
         raise ValueError("benchmark observer does not match planned job")
     return payload
 
 
-def planned_revision_jobs(families, rows, runs, variants, seed):
+def planned_revision_jobs(families, rows, runs, variants, seed, columns=2):
     """Declare every requested logical job before any execution or filtering."""
     rng = random.Random(seed)
     planned = []
@@ -102,14 +104,14 @@ def planned_revision_jobs(families, rows, runs, variants, seed):
             for repeat in range(runs):
                 order = [(revision, mode) for revision in variants for mode in ["batch", "scalar"]]
                 rng.shuffle(order)
-                planned.extend(dict(family=family, rows=n, repeat=repeat, revision=revision, mode=mode)
+                planned.extend(dict(family=family, rows=n, columns=columns, repeat=repeat, revision=revision, mode=mode)
                                for revision, mode in order)
     return planned
 
 
 def benchmark_revisions(args):
     variants = ["plain", "counted", "timed"] if args.attribution else ["before", "after"]
-    planned = planned_revision_jobs(args.families, args.rows, args.runs, variants, args.seed)
+    planned = planned_revision_jobs(args.families, args.rows, args.runs, variants, args.seed, args.columns)
     report = {"protocol": "alea-regression-attribution-v1" if args.attribution else "alea-regression-revisions-v1", "platform": platform.platform(),
               "affinity": sorted(os.sched_getaffinity(0)),
               "seed": args.seed, "score_tolerance_per_observation": 1e-7,
@@ -129,8 +131,10 @@ def benchmark_revisions(args):
             for job in planned:
                 binary = args.baseline_binary if job["revision"] == "before" else args.binary
                 command = [binary, job["family"], job["mode"], str(job["rows"]), str(max(3, min(5000, 2000000 // job["rows"])))]
-                if args.attribution:
-                    command.append(job["revision"])
+                if args.attribution or args.columns != 2:
+                    command.append(job["revision"] if args.attribution else "plain")
+                if args.columns != 2:
+                    command.append(str(args.columns))
                 row = dict(job)
                 started = time.monotonic()
                 try:
@@ -153,7 +157,7 @@ def benchmark_revisions(args):
                             result = revision_comparison(*cohorts)
                             if variant == "timed" and result["eligible"]:
                                 result.update(attribution_summary(cohorts[1]))
-                            result.update(family=family, rows=n, mode=mode, comparison=variant)
+                            result.update(family=family, rows=n, columns=args.columns, mode=mode, comparison=variant)
                             report["comparisons"].append(result)
                             print(json.dumps(result), flush=True)
         finally:
@@ -165,6 +169,7 @@ if __name__ == "__main__":
     p.add_argument("binary")
     p.add_argument("output")
     p.add_argument("--rows", type=int, nargs="+", default=[10, 1000, 1000000])
+    p.add_argument("--columns", type=int, default=2, help="coefficient count, including intercept")
     p.add_argument("--runs", type=int, default=3)
     p.add_argument("--families", nargs="+", choices=["normal", "bernoulli", "poisson"], default=["normal", "bernoulli", "poisson"])
     p.add_argument("--attribution", action="store_true")
@@ -172,8 +177,8 @@ if __name__ == "__main__":
     p.add_argument("--baseline-revision")
     p.add_argument("--seed", type=int, default=271828)
     args = p.parse_args()
-    if args.runs < 1 or any(n < 1 for n in args.rows):
-        p.error("positive rows and runs required")
+    if args.columns < 1 or args.runs < 1 or any(n < 1 for n in args.rows):
+        p.error("positive columns, rows and runs required")
     if len(set(args.rows)) != len(args.rows) or len(set(args.families)) != len(args.families):
         p.error("rows and families must be unique")
     if bool(args.baseline_binary) != bool(args.baseline_revision):
@@ -189,7 +194,7 @@ if __name__ == "__main__":
               "source_files": source_fingerprints(),
               "working_diff_sha256": hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD"])).hexdigest(),
               "score_tolerance_per_observation": 1e-7,
-              "planned_runs": [{"family": f, "mode": m, "rows": n, "repeat": r}
+              "planned_runs": [{"family": f, "mode": m, "rows": n, "columns": args.columns, "repeat": r}
                                for f in args.families for n in args.rows
                                for r in range(args.runs) for m in ["batch", "scalar"]],
               "runs": [], "comparisons": []}
@@ -202,20 +207,25 @@ if __name__ == "__main__":
                         # Alternate order; use separate processes for all measurements.
                         for mode in (["batch", "scalar"] if repeat % 2 == 0 else ["scalar", "batch"]):
                             command = [args.binary, family, mode, str(n), str(max(3, min(5000, 2000000 // n)))]
-                            completed = subprocess.run(command, text=True, capture_output=True)
-                            if completed.returncode:
-                                row = {"family": family, "mode": mode, "rows": n, "repeat": repeat,
-                                       "error": completed.stderr, "returncode": completed.returncode}
-                            else:
-                                row = json.loads(completed.stdout)
-                                row["repeat"] = repeat
-                                groups[mode].append(row)
+                            if args.columns != 2:
+                                command.extend(["plain", str(args.columns)])
+                            row = dict(family=family, mode=mode, rows=n, columns=args.columns, repeat=repeat)
+                            try:
+                                completed = subprocess.run(command, text=True, capture_output=True, timeout=300)
+                                row.update(returncode=completed.returncode, stdout=completed.stdout, stderr=completed.stderr)
+                                if completed.returncode:
+                                    row["error"] = "process failure"
+                                else:
+                                    row.update(decode_benchmark_output(completed.stdout, row))
+                                    groups[mode].append(row)
+                            except (subprocess.TimeoutExpired, ValueError, OSError) as error:
+                                row["error"] = str(error)
                             report["runs"].append(row)
                     eligible = len(groups["batch"]) == len(groups["scalar"]) == args.runs
                     if eligible:
                         for b, s in zip(groups["batch"], groups["scalar"]):
                             eligible &= eligible_pair(b, s)
-                    comparison = {"family": family, "rows": n, "eligible": bool(eligible)}
+                    comparison = {"family": family, "rows": n, "columns": args.columns, "eligible": bool(eligible)}
                     if eligible:
                         for field in ["construction_seconds", "evaluation_seconds", "fit_seconds", "peak_rss_kib"]:
                             if any(r[field] is None for rows in groups.values() for r in rows):
