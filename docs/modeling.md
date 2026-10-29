@@ -1029,3 +1029,59 @@ The checker verifies its binary hash and the complete declared set of logical
 jobs before evaluating references. Missing, duplicate and unexpected jobs are
 rejected even when total counts happen to match. Reference outcomes are recorded
 separately for each revision; failures are not removed from the denominator.
+
+### Running many independent fits
+
+Independent fits can use separate model instances in a caller-owned Rayon pool.
+Construct the model and its evaluation scratch inside each task, so concurrent
+fits never share mutable evaluator state. Bound the pool size explicitly and
+retain a stable input ID with every outcome. A faster batch does not make an
+unsuccessful fit statistically usable.
+
+The downstream benchmark exercises this composition without introducing a new
+public scheduling API:
+
+```sh
+python tools/downstream-conformance/python/benchmark_regression_throughput.py \
+  tools/downstream-conformance/target/release/examples/regression_benchmark \
+  regression-throughput.json --columns 32 --rows 1000 10000 \
+  --fits 12 --threads 1 2 4 --runs 3
+```
+
+Here one thread means direct sequential execution, with no pool. Two and four
+threads use a locally constructed pool; global Rayon configuration is untouched.
+Only task IDs are queued. At most `min(fits, threads)` model workspaces are live;
+result storage grows with the number of fits. This is a workspace-count bound,
+not a byte-level memory limit. Reported resident memory is process-wide, not
+per-fit memory.
+
+Each task builds the same deterministic regression likelihood independently,
+evaluates its initial value and score twice, then runs L-BFGS with `n * 1e-8`
+score tolerance. This workload measures repeated model construction and fitting,
+not shared-data reuse, bootstrap resampling or a simulation study. Process-level
+throughput includes executable startup, pool creation, computation and output.
+Native pool/workload times are also retained. Typed task errors retain their IDs;
+malformed output and process failures retain the full planned denominator.
+
+A four-core, one-host comparison covered 8 and 32 coefficients, 1,000 and 10,000
+observations, all three families, 12 fits per process and three repetitions.
+All 108 processes and 1,296 fits completed. Numerical outputs and optimizer work
+counts were identical across execution policies, and independent SciPy checks
+passed for every fit. At 10,000 observations, process-throughput ratios relative
+to direct sequential execution were:
+
+| Coefficients | Family | Two workers | Four workers |
+| --- | --- | ---: | ---: |
+| 8 | Gaussian | 1.49 | 2.65 |
+| 8 | Bernoulli | 1.93 | 2.97 |
+| 8 | Poisson | 1.73 | 2.50 |
+| 32 | Gaussian | 1.93 | 3.32 |
+| 32 | Bernoulli | 1.94 | 3.55 |
+| 32 | Poisson | 2.02 | 3.39 |
+
+These are aggregate fit-throughput gains, not faster individual likelihoods or
+single-fit latency guarantees. Small-job gains varied more, and three repetitions
+on one host do not establish a universal crossover. An earlier cohort with a
+one-worker-pool baseline is retained separately and was not pooled into this
+comparison. Thread budgets must also account for any parallel work inside a
+user-supplied target; these native regression targets use no nested BLAS pool.

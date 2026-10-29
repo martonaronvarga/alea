@@ -13,6 +13,85 @@ use rand::{RngExt, SeedableRng, rngs::SmallRng};
 use std::{hint::black_box, io::Write, time::Instant};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args: Vec<_> = std::env::args().collect();
+    let fits = take_count(&mut args, "--fits")?;
+    let threads = take_count(&mut args, "--threads")?;
+    if let Some(fits) = fits {
+        let threads = threads.ok_or("--fits requires --threads")?;
+        println!("{}", repeated_fits(&args, fits, threads)?);
+    } else {
+        if threads.is_some() {
+            return Err("--threads requires --fits".into());
+        }
+        println!("{}", benchmark(args)?);
+    }
+    Ok(())
+}
+
+fn take_count(
+    args: &mut Vec<String>,
+    flag: &str,
+) -> Result<Option<usize>, Box<dyn std::error::Error>> {
+    let Some(index) = args.iter().position(|x| x == flag) else {
+        return Ok(None);
+    };
+    let count = args
+        .get(index + 1)
+        .ok_or("missing count")?
+        .parse::<usize>()?;
+    if count == 0 {
+        return Err("counts must be positive".into());
+    }
+    args.drain(index..index + 2);
+    Ok(Some(count))
+}
+
+fn repeated_fits(
+    args: &[String],
+    fits: usize,
+    threads: usize,
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    use rayon::prelude::*;
+    let started = Instant::now();
+    // Only IDs are queued. Models and evaluator scratch are constructed inside
+    // workers, so at most min(fits, threads) model workspaces are live.
+    let pool = if threads == 1 {
+        None
+    } else {
+        Some(
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(threads)
+                .build()?,
+        )
+    };
+    let pool_seconds = if pool.is_some() {
+        started.elapsed().as_secs_f64()
+    } else {
+        0.
+    };
+    let started = Instant::now();
+    let run = |id: usize| match benchmark(args.to_vec()) {
+        Ok(output) => match serde_json::from_str::<serde_json::Value>(&output) {
+            Ok(mut row) if row.is_object() => {
+                row["fit_id"] = id.into();
+                row
+            }
+            Ok(_) => serde_json::json!({"fit_id":id,"error":"expected fit record"}),
+            Err(error) => serde_json::json!({"fit_id":id,"error":error.to_string()}),
+        },
+        Err(error) => serde_json::json!({"fit_id":id,"error":error.to_string()}),
+    };
+    let runs: Vec<_> = match pool {
+        Some(pool) => pool.install(|| (0..fits).into_par_iter().map(run).collect()),
+        None => (0..fits).map(run).collect(),
+    };
+    let workload_seconds = started.elapsed().as_secs_f64();
+    Ok(
+        serde_json::json!({"execution":if threads == 1 {"sequential"} else {"parallel"},"fits":fits,"threads":threads,"max_live_models":fits.min(threads),
+        "pool_seconds":pool_seconds,"workload_seconds":workload_seconds,"runs":runs}),
+    )
+}
+
+fn benchmark(mut args: Vec<String>) -> Result<String, Box<dyn std::error::Error>> {
     let mut score_tolerance_per_observation = 1e-7_f64;
     if args.len() >= 3 && args[args.len() - 2] == "--score-tolerance-per-observation" {
         score_tolerance_per_observation = args.pop().ok_or("missing tolerance")?.parse()?;
@@ -105,7 +184,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             output,
             "{{\"columns\":{columns},\"rows\":{n},\"design\":{design:?},\"normal\":{real:?},\"bernoulli\":{binary:?},\"poisson\":{counts:?}}}"
         )?;
-        return Ok(());
+        return Ok("null".into());
     }
     if mode == "batch" {
         let f = match family {
@@ -225,12 +304,56 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .value;
     let score_tolerance = result.options.score_tolerance();
     let line_search_failure = result.line_search_failure;
-    println!(
+    Ok(format!(
         "{{\"columns\":{columns},\"profile\":\"{profile}\",\"target_calls\":{target_calls},\"target_seconds\":{target_seconds},\"family\":\"{family}\",\"mode\":\"{mode}\",\"rows\":{n},\"repetitions\":{repetitions},\"expressions\":{expressions},\"construction_seconds\":{construction_seconds},\"evaluation_seconds\":{evaluation_seconds},\"fit_seconds\":{fit_seconds},\"peak_rss_kib\":{rss},\"value\":{value},\"gradient\":{gradient:?},\"final_gradient\":{final_gradient:?},\"final_value\":{final_value},\"score_tolerance\":{score_tolerance},\"line_search_failure\":\"{line_search_failure:?}\",\"termination\":\"{:?}\",\"evaluations\":{},\"iterations\":{},\"estimate_free\":{:?}}}",
         result.termination,
         result.evaluations,
         result.iterations,
         estimates.ok_or("no benchmark estimate")?
-    );
-    Ok(())
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn arguments(family: &str) -> Vec<String> {
+        ["benchmark", family, "batch", "100", "1", "plain", "8"]
+            .map(str::to_owned)
+            .to_vec()
+    }
+
+    #[test]
+    fn pool_size_preserves_fit_identity_and_numerical_work() {
+        let sequential = repeated_fits(&arguments("normal"), 4, 1).unwrap();
+        let parallel = repeated_fits(&arguments("normal"), 4, 2).unwrap();
+        assert_eq!(parallel["max_live_models"], 2);
+        for id in 0..4 {
+            assert_eq!(parallel["runs"][id]["fit_id"], id);
+            for key in [
+                "value",
+                "gradient",
+                "final_value",
+                "final_gradient",
+                "estimate_free",
+                "termination",
+                "iterations",
+                "evaluations",
+                "score_tolerance",
+            ] {
+                assert_eq!(sequential["runs"][id][key], parallel["runs"][id][key]);
+                assert!(!parallel["runs"][id][key].is_null());
+            }
+        }
+    }
+
+    #[test]
+    fn failures_retain_every_input_id() {
+        let result = repeated_fits(&arguments("invalid"), 5, 2).unwrap();
+        assert_eq!(result["runs"].as_array().unwrap().len(), 5);
+        for id in 0..5 {
+            assert_eq!(result["runs"][id]["fit_id"], id);
+            assert!(result["runs"][id]["error"].is_string());
+        }
+    }
 }
