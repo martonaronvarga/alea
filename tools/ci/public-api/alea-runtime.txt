@@ -258,6 +258,18 @@ pub fn alea_runtime::monitor::Subscription::latest(&self) -> core::option::Optio
 impl core::clone::Clone for alea_runtime::monitor::Subscription
 pub fn alea_runtime::monitor::Subscription::clone(&self) -> alea_runtime::monitor::Subscription
 pub mod alea_runtime::optimize
+pub enum alea_runtime::optimize::LineSearchFailure
+pub alea_runtime::optimize::LineSearchFailure::BacktrackLimit
+pub alea_runtime::optimize::LineSearchFailure::NoRepresentableStep
+impl core::clone::Clone for alea_runtime::optimize::LineSearchFailure
+pub fn alea_runtime::optimize::LineSearchFailure::clone(&self) -> alea_runtime::optimize::LineSearchFailure
+impl core::cmp::Eq for alea_runtime::optimize::LineSearchFailure
+impl core::cmp::PartialEq for alea_runtime::optimize::LineSearchFailure
+pub fn alea_runtime::optimize::LineSearchFailure::eq(&self, other: &alea_runtime::optimize::LineSearchFailure) -> bool
+impl core::fmt::Debug for alea_runtime::optimize::LineSearchFailure
+pub fn alea_runtime::optimize::LineSearchFailure::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_runtime::optimize::LineSearchFailure
+impl core::marker::StructuralPartialEq for alea_runtime::optimize::LineSearchFailure
 pub enum alea_runtime::optimize::MaximizeError<E: core::error::Error + 'static>
 pub alea_runtime::optimize::MaximizeError::Evaluation(alloc::boxed::Box<alea_runtime::optimize::OptimizationError<E>>)
 pub alea_runtime::optimize::MaximizeError::Invalid(alea_runtime::optimize::InvalidOptimization)
@@ -342,18 +354,22 @@ impl core::clone::Clone for alea_runtime::optimize::LbfgsOptions
 pub fn alea_runtime::optimize::LbfgsOptions::clone(&self) -> alea_runtime::optimize::LbfgsOptions
 impl core::fmt::Debug for alea_runtime::optimize::LbfgsOptions
 pub fn alea_runtime::optimize::LbfgsOptions::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-pub struct alea_runtime::optimize::NamedFit
+pub struct alea_runtime::optimize::NamedFit<A>
 impl alea_runtime::optimize::NamedFit
-pub fn alea_runtime::optimize::NamedFit::estimate(&self, name: &str) -> core::option::Option<f64>
-pub fn alea_runtime::optimize::NamedFit::estimates(&self) -> core::option::Option<&[f64]>
-pub fn alea_runtime::optimize::NamedFit::into_result(self) -> alea_runtime::optimize::OptimizationResult
 pub fn alea_runtime::optimize::NamedFit::new(parameters: alea_core::model::prediction::NamedOutput<()>, result: alea_runtime::optimize::OptimizationResult) -> core::result::Result<Self, alea_runtime::optimize::FitProjectionError>
-pub fn alea_runtime::optimize::NamedFit::parameters(&self) -> &alea_core::model::prediction::NamedOutput<()>
-pub fn alea_runtime::optimize::NamedFit::result(&self) -> &alea_runtime::optimize::OptimizationResult
-impl core::clone::Clone for alea_runtime::optimize::NamedFit
-pub fn alea_runtime::optimize::NamedFit::clone(&self) -> alea_runtime::optimize::NamedFit
-impl core::fmt::Debug for alea_runtime::optimize::NamedFit
-pub fn alea_runtime::optimize::NamedFit::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub fn alea_runtime::optimize::NamedFit::with_assessment<A>(self, assessment: A) -> alea_runtime::optimize::NamedFit<A>
+impl<A> alea_runtime::optimize::NamedFit<A>
+pub fn alea_runtime::optimize::NamedFit<A>::assessment(&self) -> &A
+pub fn alea_runtime::optimize::NamedFit<A>::estimate(&self, name: &str) -> core::option::Option<f64>
+pub fn alea_runtime::optimize::NamedFit<A>::estimates(&self) -> core::option::Option<&[f64]>
+pub fn alea_runtime::optimize::NamedFit<A>::into_parts(self) -> (alea_runtime::optimize::OptimizationResult, A)
+pub fn alea_runtime::optimize::NamedFit<A>::into_result(self) -> alea_runtime::optimize::OptimizationResult
+pub fn alea_runtime::optimize::NamedFit<A>::parameters(&self) -> &alea_core::model::prediction::NamedOutput<()>
+pub fn alea_runtime::optimize::NamedFit<A>::result(&self) -> &alea_runtime::optimize::OptimizationResult
+impl<A: core::clone::Clone> core::clone::Clone for alea_runtime::optimize::NamedFit<A>
+pub fn alea_runtime::optimize::NamedFit<A>::clone(&self) -> alea_runtime::optimize::NamedFit<A>
+impl<A: core::fmt::Debug> core::fmt::Debug for alea_runtime::optimize::NamedFit<A>
+pub fn alea_runtime::optimize::NamedFit<A>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_runtime::optimize::ObjectiveDescription
 pub alea_runtime::optimize::ObjectiveDescription::data: alloc::string::String
 pub alea_runtime::optimize::ObjectiveDescription::kind: alea_runtime::optimize::ObjectiveKind
@@ -394,6 +410,7 @@ pub alea_runtime::optimize::OptimizationResult::dimension: usize
 pub alea_runtime::optimize::OptimizationResult::domain_trials: usize
 pub alea_runtime::optimize::OptimizationResult::evaluations: usize
 pub alea_runtime::optimize::OptimizationResult::iterations: usize
+pub alea_runtime::optimize::OptimizationResult::line_search_failure: core::option::Option<alea_runtime::optimize::LineSearchFailure>
 pub alea_runtime::optimize::OptimizationResult::objective: alea_runtime::optimize::ObjectiveDescription
 pub alea_runtime::optimize::OptimizationResult::options: alea_runtime::optimize::LbfgsOptions
 pub alea_runtime::optimize::OptimizationResult::skipped_updates: usize

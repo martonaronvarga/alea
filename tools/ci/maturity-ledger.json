@@ -269,6 +269,12 @@
       "promotion_gate": "Broaden independent high-dimensional and cross-platform qualification; resource exhaustion stays unresolved and constraints/priors require separate analysis."
     },
     {
+      "path": "crates/alea-distributions/src/modeling/regression/diagnostics/assessment.rs",
+      "profile": "research_component",
+      "summary": "Named fixed-design assessment evidence with explicit coefficient ordering, exact-search budgets and optional numerical rank.",
+      "promotion_gate": "Broaden independent high-dimensional and cross-platform qualification; resource exhaustion stays unresolved and constraints/priors require separate analysis."
+    },
+    {
       "path": "crates/alea-distributions/src/modeling/regression/diagnostics/gaussian.rs",
       "profile": "research_component",
       "summary": "Optional Gaussian numerical rank/residual/scale assessment distinct from optimization convergence.",
@@ -799,7 +805,7 @@
       "path": "crates/alea/src/lib.rs",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     }
   ],
   "api_namespaces": [
@@ -860,77 +866,77 @@
       "item": "autodiff",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "capability",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "density",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "diagnostics",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "distribution",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "distributions",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "draws",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "ensemble",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "math",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "model",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "monitor",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
@@ -944,28 +950,28 @@
       "item": "output",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "prelude",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "run_chain",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "session",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
@@ -979,28 +985,28 @@
       "item": "target",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "transform",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "transport",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "wiener",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea-distributions",
@@ -1163,56 +1169,56 @@
       "feature": "autodiff",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "feature": "branch-hints",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "feature": "default",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "feature": "distributions",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "feature": "faer",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "feature": "openblas",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "feature": "simd",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "feature": "std-autodiff",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
@@ -1428,19 +1434,19 @@
       "crate": "alea",
       "item": "pub mod alea",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub mod alea::prelude",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub mod alea::sampling",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
@@ -1452,67 +1458,67 @@
       "crate": "alea",
       "item": "pub use alea::autodiff",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::capability",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::density",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::diagnostics",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::distribution",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::distributions",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::draws",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::ensemble",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::math",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::model",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::monitor",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
@@ -1524,217 +1530,217 @@
       "crate": "alea",
       "item": "pub use alea::output",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::prelude::<<alea_core::prelude::*>>",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::prelude::<<alea_distributions::prelude::*>>",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::prelude::<<alea_math::prelude::*>>",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::prelude::<<alea_mcmc::prelude::*>>",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::prelude::<<alea_runtime::prelude::*>>",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::run_chain",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::Hmc",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::HmcOptions",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::HmcTransition",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::LogDensityGradient",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::MarkovChain",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::Nuts",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::NutsOptions",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::NutsTransition",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::Rwmh",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::RwmhOptions",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::RwmhTransition",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::adapt",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::advanced",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::approximate",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::atlas_sampler",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::batch",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::chees",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::config",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::ghmc",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::hamiltonian",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::hmc",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::integrator",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::mams",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::nuts",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::prelude",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::riemannian",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::rwmh",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::sampling::walnuts",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::session",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
@@ -1746,25 +1752,25 @@
       "crate": "alea",
       "item": "pub use alea::target",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::transform",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::transport",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea",
       "item": "pub use alea::wiener",
       "profile": "research_mixed",
-      "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+      "promotion_gate": "Retain each exported method\u2019s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
       "crate": "alea-autodiff",
@@ -8770,6 +8776,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl alea_distributions::modeling::regression::diagnostics::RegressionAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl alea_distributions::multivariate::Categorical",
       "profile": "validated_component_opt_in"
     },
@@ -9261,6 +9273,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::DesignRank",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::DirectionAssessment",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -9300,6 +9318,18 @@
       "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::RecessionWitness",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::RegressionAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::RegressionEvidence",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-distributions",
@@ -10194,6 +10224,18 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::convert::From<alea_distributions::modeling::regression::RegressionDataError> for alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::convert::From<alea_math::least_squares::LeastSquaresError> for alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::convert::From<alloc::vec::Vec<alea_distributions::prelude::WienerObservation>> for alea_distributions::prelude::WienerObservations",
       "profile": "validated_component_reference"
     },
@@ -10252,6 +10294,12 @@
       "item": "impl core::error::Error for alea_distributions::modeling::regression::RegressionDataError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::error::Error for alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-distributions",
@@ -10318,6 +10366,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::DesignRank",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::DirectionAssessment",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -10357,6 +10411,24 @@
       "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::RecessionWitness",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::RegressionAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::RegressionEvidence",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-distributions",
@@ -10811,6 +10883,12 @@
       "item": "impl core::fmt::Display for alea_distributions::modeling::regression::RegressionDataError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::fmt::Display for alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-distributions",
@@ -11984,6 +12062,30 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::DesignRank::columns: usize",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::DesignRank::numerical_rank: usize",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::DesignRank::relative_tolerance: f64",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::DesignRank::rows: usize",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::NotWitness",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -12095,6 +12197,42 @@
       "item": "pub alea_distributions::modeling::regression::diagnostics::RecessionKind::QuasiCompleteSeparation",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError::CoefficientNames",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError::Data(alea_distributions::modeling::regression::RegressionDataError)",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError::Numerical(alea_math::least_squares::LeastSquaresError)",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::RegressionEvidence::BernoulliLogit(alea_distributions::modeling::regression::diagnostics::MleExistence)",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::RegressionEvidence::Gaussian(alea_distributions::modeling::regression::diagnostics::GaussianAssessment)",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::RegressionEvidence::PoissonLog(alea_distributions::modeling::regression::diagnostics::MleExistence)",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-distributions",
@@ -12591,6 +12729,18 @@
       "item": "pub enum alea_distributions::modeling::regression::diagnostics::RecessionKind",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub enum alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub enum alea_distributions::modeling::regression::diagnostics::RegressionEvidence",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-distributions",
@@ -13193,6 +13343,18 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<bool>::assess_bernoulli(&self, coefficients: &[&str], options: alea_math::exact::cone::ConeSearchOptions) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::RegressionAssessment, alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<bool>::assess_bernoulli_with_rank(&self, coefficients: &[&str], options: alea_math::exact::cone::ConeSearchOptions, relative_rank_tolerance: f64) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::RegressionAssessment, alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::regression::RegressionData<bool>::bernoulli_coordinate_recession(&self) -> core::result::Result<core::option::Option<alea_distributions::modeling::regression::diagnostics::RecessionWitness>, alea_distributions::modeling::regression::RegressionDataError>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -13211,9 +13373,27 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<f64>::assess_gaussian(&self, coefficients: &[&str], relative_rank_tolerance: f64, relative_residual_tolerance: f64) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::RegressionAssessment, alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::regression::RegressionData<f64>::gaussian_assessment(&self, relative_rank_tolerance: f64, relative_residual_tolerance: f64) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::GaussianAssessment, alea_math::least_squares::LeastSquaresError>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<u64>::assess_poisson(&self, coefficients: &[&str], options: alea_math::exact::cone::ConeSearchOptions) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::RegressionAssessment, alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<u64>::assess_poisson_with_rank(&self, coefficients: &[&str], options: alea_math::exact::cone::ConeSearchOptions, relative_rank_tolerance: f64) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::RegressionAssessment, alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-distributions",
@@ -13262,6 +13442,18 @@
       "item": "pub fn alea_distributions::modeling::regression::bernoulli_logit_regression(builder: &mut alea_core::model::assembly::ModelBuilder, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::DesignRank::clone(&self) -> alea_distributions::modeling::regression::diagnostics::DesignRank",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::DesignRank::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-distributions",
@@ -13406,6 +13598,84 @@
       "item": "pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::kind(&self) -> alea_distributions::modeling::regression::diagnostics::RecessionKind",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionAssessment::clone(&self) -> alea_distributions::modeling::regression::diagnostics::RegressionAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionAssessment::coefficient_names(&self) -> &[alloc::string::String]",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionAssessment::design_rank(&self) -> core::option::Option<&alea_distributions::modeling::regression::diagnostics::DesignRank>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionAssessment::evidence(&self) -> &alea_distributions::modeling::regression::diagnostics::RegressionEvidence",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionAssessment::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionAssessment::search_options(&self) -> core::option::Option<alea_math::exact::cone::ConeSearchOptions>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError::from(source: alea_distributions::modeling::regression::RegressionDataError) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError::from(source: alea_math::least_squares::LeastSquaresError) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionEvidence::clone(&self) -> alea_distributions::modeling::regression::diagnostics::RegressionEvidence",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::RegressionEvidence::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-distributions",
@@ -18522,6 +18792,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub struct alea_distributions::modeling::regression::diagnostics::DesignRank",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub struct alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness",
       "profile": "research_component",
       "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
@@ -18537,6 +18813,12 @@
       "item": "pub struct alea_distributions::modeling::regression::diagnostics::RecessionWitness",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub struct alea_distributions::modeling::regression::diagnostics::RegressionAssessment",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-distributions",
@@ -40167,9 +40449,9 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "impl core::clone::Clone for alea_runtime::optimize::NamedFit",
+      "item": "impl core::clone::Clone for alea_runtime::optimize::LineSearchFailure",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-runtime",
@@ -40339,6 +40621,12 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "impl core::cmp::Eq for alea_runtime::optimize::LineSearchFailure",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "impl core::cmp::Eq for alea_runtime::optimize::ObjectiveDescription",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -40472,6 +40760,12 @@
       "item": "impl core::cmp::PartialEq for alea_runtime::optimize::InvalidOptimization",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::cmp::PartialEq for alea_runtime::optimize::LineSearchFailure",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-runtime",
@@ -40808,9 +41102,9 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "impl core::fmt::Debug for alea_runtime::optimize::NamedFit",
+      "item": "impl core::fmt::Debug for alea_runtime::optimize::LineSearchFailure",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-runtime",
@@ -41029,6 +41323,12 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "impl core::marker::Copy for alea_runtime::optimize::LineSearchFailure",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "impl core::marker::Copy for alea_runtime::optimize::ObjectiveKind",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -41175,6 +41475,12 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "impl core::marker::StructuralPartialEq for alea_runtime::optimize::LineSearchFailure",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "impl core::marker::StructuralPartialEq for alea_runtime::optimize::ObjectiveDescription",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -41272,6 +41578,24 @@
       "crate": "alea-runtime",
       "item": "impl<'a> core::marker::Copy for alea_runtime::ensemble::Execution<'a>",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl<A: core::clone::Clone> core::clone::Clone for alea_runtime::optimize::NamedFit<A>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl<A: core::fmt::Debug> core::fmt::Debug for alea_runtime::optimize::NamedFit<A>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl<A> alea_runtime::optimize::NamedFit<A>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-runtime",
@@ -42065,6 +42389,18 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "pub alea_runtime::optimize::LineSearchFailure::BacktrackLimit",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::optimize::LineSearchFailure::NoRepresentableStep",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "pub alea_runtime::optimize::MaximizeError::Evaluation(alloc::boxed::Box<alea_runtime::optimize::OptimizationError<E>>)",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -42182,6 +42518,12 @@
       "item": "pub alea_runtime::optimize::OptimizationResult::iterations: usize",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::optimize::OptimizationResult::line_search_failure: core::option::Option<alea_runtime::optimize::LineSearchFailure>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-runtime",
@@ -43132,6 +43474,12 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "pub enum alea_runtime::optimize::LineSearchFailure",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "pub enum alea_runtime::optimize::MaximizeError<E: core::error::Error + 'static>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -43906,6 +44254,24 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::optimize::LineSearchFailure::clone(&self) -> alea_runtime::optimize::LineSearchFailure",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::optimize::LineSearchFailure::eq(&self, other: &alea_runtime::optimize::LineSearchFailure) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::optimize::LineSearchFailure::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "pub fn alea_runtime::optimize::MaximizeError<E>::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -43936,51 +44302,69 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::optimize::NamedFit::clone(&self) -> alea_runtime::optimize::NamedFit",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::optimize::NamedFit::estimate(&self, name: &str) -> core::option::Option<f64>",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::optimize::NamedFit::estimates(&self) -> core::option::Option<&[f64]>",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::optimize::NamedFit::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::optimize::NamedFit::into_result(self) -> alea_runtime::optimize::OptimizationResult",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-runtime",
       "item": "pub fn alea_runtime::optimize::NamedFit::new(parameters: alea_core::model::prediction::NamedOutput<()>, result: alea_runtime::optimize::OptimizationResult) -> core::result::Result<Self, alea_runtime::optimize::FitProjectionError>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::optimize::NamedFit::parameters(&self) -> &alea_core::model::prediction::NamedOutput<()>",
+      "item": "pub fn alea_runtime::optimize::NamedFit::with_assessment<A>(self, assessment: A) -> alea_runtime::optimize::NamedFit<A>",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-runtime",
-      "item": "pub fn alea_runtime::optimize::NamedFit::result(&self) -> &alea_runtime::optimize::OptimizationResult",
+      "item": "pub fn alea_runtime::optimize::NamedFit<A>::assessment(&self) -> &A",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::optimize::NamedFit<A>::clone(&self) -> alea_runtime::optimize::NamedFit<A>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::optimize::NamedFit<A>::estimate(&self, name: &str) -> core::option::Option<f64>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::optimize::NamedFit<A>::estimates(&self) -> core::option::Option<&[f64]>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::optimize::NamedFit<A>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::optimize::NamedFit<A>::into_parts(self) -> (alea_runtime::optimize::OptimizationResult, A)",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::optimize::NamedFit<A>::into_result(self) -> alea_runtime::optimize::OptimizationResult",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::optimize::NamedFit<A>::parameters(&self) -> &alea_core::model::prediction::NamedOutput<()>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::optimize::NamedFit<A>::result(&self) -> &alea_runtime::optimize::OptimizationResult",
+      "profile": "research_component",
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-runtime",
@@ -44935,9 +45319,9 @@
     },
     {
       "crate": "alea-runtime",
-      "item": "pub struct alea_runtime::optimize::NamedFit",
+      "item": "pub struct alea_runtime::optimize::NamedFit<A>",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify estimator assumptions, numerical conditioning and representative independent fits; attached evidence never upgrades optimizer termination or uncertainty."
     },
     {
       "crate": "alea-runtime",

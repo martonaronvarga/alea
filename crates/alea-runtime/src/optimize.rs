@@ -512,10 +512,11 @@ fn trial<T: LogDensityGradient + ?Sized>(
 /// Metadata is supplied explicitly: matching dimensions do not prove model identity.
 /// Construction never turns a score condition into an existence/global-optimum claim.
 #[derive(Debug, Clone)]
-pub struct NamedFit {
+pub struct NamedFit<A = ()> {
     parameters: NamedOutput<()>,
     result: OptimizationResult,
     estimates: Option<Vec<f64>>,
+    assessment: A,
 }
 /// Projection failure retaining the unmodified optimization result.
 #[derive(Debug, Error)]
@@ -567,12 +568,34 @@ impl NamedFit {
                 parameters,
                 result,
                 estimates,
+                assessment: (),
             }),
             Err(source) => Err(FitProjectionError {
                 source,
                 result: Box::new(result),
             }),
         }
+    }
+    /// Attaches explicitly supplied evidence without interpreting or validating it.
+    /// The caller must establish that its data, coefficient order, constraints and
+    /// objective match this fit. Metadata agreement alone does not prove identity.
+    pub fn with_assessment<A>(self, assessment: A) -> NamedFit<A> {
+        NamedFit {
+            parameters: self.parameters,
+            result: self.result,
+            estimates: self.estimates,
+            assessment,
+        }
+    }
+}
+impl<A> NamedFit<A> {
+    /// Caller-supplied statistical evidence, separate from numerical termination.
+    pub fn assessment(&self) -> &A {
+        &self.assessment
+    }
+    /// Recovers both the original numerical outcome and its attached evidence.
+    pub fn into_parts(self) -> (OptimizationResult, A) {
+        (self.result, self.assessment)
     }
     /// Names, transform blocks and constrained-coordinate labels.
     pub fn parameters(&self) -> &NamedOutput<()> {
