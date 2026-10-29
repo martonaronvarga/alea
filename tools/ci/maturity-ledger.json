@@ -6041,6 +6041,11 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::custom_with_scratch<W, F>(&mut self, inputs: &[alea_core::model::assembly::Expr], scratch: W, callback: F) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError> where W: core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64], &mut [f64], &mut W) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static",
+      "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ModelBuilder::default() -> Self",
       "profile": "validated_component_opt_in"
     },

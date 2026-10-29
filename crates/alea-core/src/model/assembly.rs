@@ -161,7 +161,7 @@ pub enum AssemblyError {
     #[error(transparent)]
     Transform(#[from] TransformError),
 }
-type Callback = dyn Fn(&[f64], &mut [f64]) -> Result<f64, AssemblyError> + Send + Sync;
+type Callback = dyn FnMut(&[f64], &mut [f64]) -> Result<f64, AssemblyError> + Send + Sync;
 enum Op {
     Parameter(usize),
     Constant(f64),
@@ -171,7 +171,7 @@ enum Op {
     Log(usize),
     Factor {
         inputs: Box<[usize]>,
-        callback: Box<Callback>,
+        callback: usize,
         start: usize,
     },
 }
@@ -187,6 +187,7 @@ pub struct ModelBuilder {
     factor_metadata: Vec<FactorMetadata>,
     local_count: usize,
     max_inputs: usize,
+    callbacks: Vec<Box<Callback>>,
     // Cold metadata stays out of the retained operation-tape stride.
     primals: Vec<(usize, &'static str)>,
 }
@@ -223,6 +224,7 @@ impl ModelBuilder {
             factor_metadata: Vec::new(),
             local_count: 0,
             max_inputs: 0,
+            callbacks: Vec::new(),
             primals: Vec::new(),
         }
     }
@@ -423,6 +425,29 @@ impl ModelBuilder {
     {
         self.custom_node(inputs, callback, None)
     }
+    /// Adds a scalar node with an explicit VJP and owned reusable scratch.
+    ///
+    /// Scratch moves into the compiled evaluator and is borrowed exclusively for
+    /// each call. It is not shared between models. The callback must initialize
+    /// all scratch it reads and overwrite every local derivative, including after
+    /// failures or unwinding; scratch is not rolled back. Results must depend only
+    /// on the inputs and immutable model data, never previous scratch contents.
+    /// Like [`Self::custom`], this node has no generated Rust primal.
+    ///
+    /// # Errors
+    /// Rejects foreign handles or overflowing derivative storage dimensions.
+    pub fn custom_with_scratch<W, F>(
+        &mut self,
+        inputs: &[Expr],
+        mut scratch: W,
+        callback: F,
+    ) -> Result<Expr, AssemblyError>
+    where
+        W: Send + Sync + 'static,
+        F: Fn(&[f64], &mut [f64], &mut W) -> Result<f64, AssemblyError> + Send + Sync + 'static,
+    {
+        self.custom_node(inputs, move |x, g| callback(x, g, &mut scratch), None)
+    }
     /// Adds an opaque VJP together with its differentiable Rust scalar primal.
     ///
     /// `primal` is a Rust function body whose `x: &[f64; inputs.len()]` argument
@@ -452,7 +477,7 @@ impl ModelBuilder {
         primal: Option<&'static str>,
     ) -> Result<Expr, AssemblyError>
     where
-        F: Fn(&[f64], &mut [f64]) -> Result<f64, AssemblyError> + Send + Sync + 'static,
+        F: FnMut(&[f64], &mut [f64]) -> Result<f64, AssemblyError> + Send + Sync + 'static,
     {
         let inputs = inputs
             .iter()
@@ -463,9 +488,11 @@ impl ModelBuilder {
             .checked_add(inputs.len())
             .ok_or(AssemblyError::Shape)?;
         self.max_inputs = self.max_inputs.max(inputs.len());
+        let callback_index = self.callbacks.len();
+        self.callbacks.push(Box::new(callback));
         let expression = self.push(Op::Factor {
             inputs: inputs.into_boxed_slice(),
-            callback: Box::new(callback),
+            callback: callback_index,
             start,
         });
         if let Some(primal) = primal {
@@ -531,6 +558,7 @@ impl ModelBuilder {
         }
         let layout = ParameterLayout::new(self.transforms)?;
         let workspace = RefCell::new(PlanWorkspace {
+            callbacks: self.callbacks,
             values: vec![0.0; self.nodes.len()],
             adjoints: vec![0.0; self.nodes.len()],
             locals: vec![0.0; self.local_count],
@@ -552,6 +580,7 @@ impl ModelBuilder {
     }
 }
 struct PlanWorkspace {
+    callbacks: Vec<Box<Callback>>,
     values: Vec<f64>,
     adjoints: Vec<f64>,
     locals: Vec<f64>,
@@ -690,6 +719,7 @@ impl CompiledModel {
             values,
             locals,
             inputs,
+            callbacks,
             ..
         } = work;
         for (i, op) in self.nodes.iter().enumerate() {
@@ -714,7 +744,7 @@ impl CompiledModel {
                     }
                     let derivatives = &mut locals[*start..*start + indices.len()];
                     derivatives.fill(f64::NAN);
-                    let value = callback(&inputs[..indices.len()], derivatives)?;
+                    let value = callbacks[*callback](&inputs[..indices.len()], derivatives)?;
                     if derivatives.iter().any(|x| !x.is_finite()) {
                         return Err(AssemblyError::Numerical);
                     }

@@ -177,6 +177,14 @@ same order. Incorrect custom derivatives can invalidate a fit, so check them
 against finite differences before sampling. [Enzyme code generation](enzyme-native-models.md)
 is also available for compatible models that need compiled automatic derivatives.
 
+Use `ModelBuilder::custom_with_scratch` for a callback that needs reusable working
+storage. Supply its initial scratch and a callback taking `(inputs, scores, scratch)`.
+The compiled model owns that storage and borrows it exclusively during evaluation.
+Reset every scratch entry you read and write every local score on each successful
+call. Scratch survives errors and unwinding; it must never change the mathematical
+result according to previous calls. Scratch-backed nodes currently have no generated primal and return
+`MissingPrimal` when source generation reaches them.
+
 For a complete model with shared population parameters and named group effects,
 see [Partial pooling with a hierarchical model](hierarchical-models.md).
 
@@ -352,8 +360,8 @@ Zero columns permit an offset-only likelihood.
 
 The factors retain one graph node per batch regardless of row count; dataset
 storage still grows with the observations. Values, predictors and score reductions
-use compensated summation, and each fused call allocates temporary score storage
-proportional to the number of coefficients. Captured data cannot currently be
+use compensated summation. Score storage, proportional to the number of
+coefficients, is allocated at construction and reused without evaluation allocations. Captured data cannot currently be
 exported as an Enzyme primal; the analytic scores work on stable Rust.
 
 Each returned factor is joint over its batch. Choose separate batches when you

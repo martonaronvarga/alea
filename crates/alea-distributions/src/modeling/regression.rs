@@ -150,28 +150,32 @@ pub fn normal_regression(
     finite(data.observations(), "observation").map_err(error)?;
     let mut inputs = beta.to_vec();
     inputs.push(sigma.expr());
-    builder.custom(&inputs, move |x, g| {
-        let p = data.columns;
-        let sigma = x[p];
-        if !sigma.is_finite() || sigma <= 0. {
-            return Err(E::Numerical);
-        }
-        let normalizer = -sigma.ln() - 0.5 * std::f64::consts::TAU.ln();
-        let mut total = CompensatedSum::default();
-        let mut scores = vec![CompensatedSum::default(); p + 1];
-        for i in 0..data.rows() {
-            let eta = data.linear_predictor(i, &x[..p]);
-            let z = (data.observations[i] - eta) / sigma;
-            let value = -0.5 * z * z + normalizer;
-            let mean_score = z / sigma;
-            total.add(value);
-            for (s, a) in scores[..p].iter_mut().zip(&data.design[i * p..(i + 1) * p]) {
-                s.add(a * mean_score);
+    builder.custom_with_scratch(
+        &inputs,
+        vec![CompensatedSum::default(); data.columns + 1],
+        move |x, g, scores| {
+            let p = data.columns;
+            let sigma = x[p];
+            if !sigma.is_finite() || sigma <= 0. {
+                return Err(E::Numerical);
             }
-            scores[p].add((z * z - 1.) / sigma);
-        }
-        finish(total, &scores, g)
-    })
+            let normalizer = -sigma.ln() - 0.5 * std::f64::consts::TAU.ln();
+            let mut total = CompensatedSum::default();
+            scores.fill(CompensatedSum::default());
+            for i in 0..data.rows() {
+                let eta = data.linear_predictor(i, &x[..p]);
+                let z = (data.observations[i] - eta) / sigma;
+                let value = -0.5 * z * z + normalizer;
+                let mean_score = z / sigma;
+                total.add(value);
+                for (s, a) in scores[..p].iter_mut().zip(&data.design[i * p..(i + 1) * p]) {
+                    s.add(a * mean_score);
+                }
+                scores[p].add((z * z - 1.) / sigma);
+            }
+            finish(total, scores, g)
+        },
+    )
 }
 /// Bernoulli observations with a logit link, preserving representable tail scores.
 /// # Errors
@@ -182,26 +186,30 @@ pub fn bernoulli_logit_regression(
     data: RegressionData<bool>,
 ) -> Result<Expr, E> {
     check_columns(&data, beta)?;
-    builder.custom(beta, move |x, g| {
-        let mut total = CompensatedSum::default();
-        let mut scores = vec![CompensatedSum::default(); data.columns];
-        for i in 0..data.rows() {
-            let eta = data.linear_predictor(i, x);
-            if !eta.is_finite() {
-                return Err(E::Numerical);
+    builder.custom_with_scratch(
+        beta,
+        vec![CompensatedSum::default(); data.columns],
+        move |x, g, scores| {
+            let mut total = CompensatedSum::default();
+            scores.fill(CompensatedSum::default());
+            for i in 0..data.rows() {
+                let eta = data.linear_predictor(i, x);
+                if !eta.is_finite() {
+                    return Err(E::Numerical);
+                }
+                let y = data.observations[i];
+                total.add(Bernoulli::logit_log_prob(eta, y).map_err(error)?);
+                let residual = if y { sigmoid(-eta) } else { -sigmoid(eta) };
+                for (s, a) in scores
+                    .iter_mut()
+                    .zip(&data.design[i * data.columns..(i + 1) * data.columns])
+                {
+                    s.add(a * residual);
+                }
             }
-            let y = data.observations[i];
-            total.add(Bernoulli::logit_log_prob(eta, y).map_err(error)?);
-            let residual = if y { sigmoid(-eta) } else { -sigmoid(eta) };
-            for (s, a) in scores
-                .iter_mut()
-                .zip(&data.design[i * data.columns..(i + 1) * data.columns])
-            {
-                s.add(a * residual);
-            }
-        }
-        finish(total, &scores, g)
-    })
+            finish(total, scores, g)
+        },
+    )
 }
 /// Poisson observations with a log-rate link. Offsets are log exposures when used.
 /// Evaluates `y*eta-exp(eta)-ln(y!)` directly, retaining finite log probabilities
@@ -222,26 +230,30 @@ pub fn poisson_log_regression(
         }
         normalizers.push(statrs::function::gamma::ln_gamma(y as f64 + 1.));
     }
-    builder.custom(beta, move |x, g| {
-        let mut total = CompensatedSum::default();
-        let mut scores = vec![CompensatedSum::default(); data.columns];
-        for (i, normalizer) in normalizers.iter().enumerate() {
-            let eta = data.linear_predictor(i, x);
-            let rate = eta.exp();
-            if !eta.is_finite() || !rate.is_finite() {
-                return Err(E::Numerical);
+    builder.custom_with_scratch(
+        beta,
+        vec![CompensatedSum::default(); data.columns],
+        move |x, g, scores| {
+            let mut total = CompensatedSum::default();
+            scores.fill(CompensatedSum::default());
+            for (i, normalizer) in normalizers.iter().enumerate() {
+                let eta = data.linear_predictor(i, x);
+                let rate = eta.exp();
+                if !eta.is_finite() || !rate.is_finite() {
+                    return Err(E::Numerical);
+                }
+                let y = data.observations[i] as f64;
+                total.add(y * eta - rate - normalizer);
+                for (s, a) in scores
+                    .iter_mut()
+                    .zip(&data.design[i * data.columns..(i + 1) * data.columns])
+                {
+                    s.add(a * (y - rate));
+                }
             }
-            let y = data.observations[i] as f64;
-            total.add(y * eta - rate - normalizer);
-            for (s, a) in scores
-                .iter_mut()
-                .zip(&data.design[i * data.columns..(i + 1) * data.columns])
-            {
-                s.add(a * (y - rate));
-            }
-        }
-        finish(total, &scores, g)
-    })
+            finish(total, scores, g)
+        },
+    )
 }
 fn finish(total: CompensatedSum, scores: &[CompensatedSum], g: &mut [f64]) -> Result<f64, E> {
     let value = total.total();

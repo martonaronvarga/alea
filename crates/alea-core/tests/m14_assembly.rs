@@ -347,3 +347,50 @@ fn fused_linear_predictor_retains_products_and_exposes_analytic_score() {
         Err(AssemblyError::ForeignHandle)
     ));
 }
+
+#[test]
+fn owned_callback_scratch_recovers_from_unwind_and_is_model_local() {
+    fn make() -> alea_core::model::assembly::CompiledModel {
+        let mut builder = ModelBuilder::new();
+        let x = builder.real("x").unwrap();
+        let factor = builder
+            .custom_with_scratch(&[x.expr()], vec![f64::NAN; 2], |x, g, work| {
+                work.fill(0.);
+                work[0] = x[0] * x[0];
+                if x[0] == 9. {
+                    panic!("test callback unwind");
+                }
+                if x[0] == 8. {
+                    return Err(AssemblyError::Numerical);
+                }
+                g[0] = 2. * x[0];
+                Ok(work[0])
+            })
+            .unwrap();
+        builder.factor(factor).unwrap();
+        builder.compile().unwrap()
+    }
+    let first = make();
+    assert!(matches!(
+        first.rust_primal(),
+        Err(AssemblyError::MissingPrimal { .. })
+    ));
+    let second = make();
+    let mut g = [17.];
+    assert_eq!(first.logp_grad(&[2.], &mut g).unwrap(), 4.);
+    assert_eq!(g, [4.]);
+    g.fill(17.);
+    assert!(first.logp_grad(&[8.], &mut g).is_err());
+    assert_eq!(g, [17.]);
+    assert!(
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(
+            || first.logp_grad(&[9.], &mut g)
+        ))
+        .is_err()
+    );
+    assert_eq!(g, [17.]);
+    assert_eq!(second.logp_grad(&[3.], &mut g).unwrap(), 9.);
+    assert_eq!(g, [6.]);
+    assert_eq!(first.logp_grad(&[2.], &mut g).unwrap(), 4.);
+    assert_eq!(g, [4.]);
+}

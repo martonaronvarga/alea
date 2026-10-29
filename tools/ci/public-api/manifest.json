@@ -23,8 +23,8 @@
     },
     "alea-core": {
       "file": "alea-core.txt",
-      "items": 1274,
-      "sha256": "81ea2f2b35def5d717f71e741be083ad22061b5cb5b6f29a263af95888728c1b"
+      "items": 1276,
+      "sha256": "714a74d518a881b451ae6cae5879b24bc728f597a9d4ce0cf1a9f8de54df5b04"
     },
     "alea-distributions": {
       "file": "alea-distributions.txt",

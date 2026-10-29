@@ -378,3 +378,46 @@ fn constant_nonbinary_columns_are_exactly_removed_from_centered_design() {
             .is_err()
     );
 }
+
+#[test]
+fn batch_evaluations_allocate_nothing_and_recover_after_failure() {
+    for family in 0..3 {
+        for chunk in [1, 3] {
+            let target = model(family, chunk, false).into_objective().unwrap();
+            let q = [0.2, -0.3, 0.1];
+            let mut gradient = [0.; 3];
+            let expected = target.logp_grad(&q, &mut gradient).unwrap();
+            let expected_gradient = gradient;
+            let allocations = allocation_counter::measure(|| {
+                for _ in 0..128 {
+                    assert_eq!(
+                        target.logp_grad(&q, &mut gradient).unwrap().to_bits(),
+                        expected.to_bits()
+                    );
+                    assert_eq!(
+                        gradient.map(f64::to_bits),
+                        expected_gradient.map(f64::to_bits)
+                    );
+                }
+            });
+            assert_eq!(allocations.count_total, 0);
+            // Invalid arithmetic must not publish a partial gradient; the next
+            // evaluation must reset all reused score accumulators.
+            gradient.fill(17.);
+            assert!(
+                target
+                    .logp_grad(&[f64::MAX, f64::MAX, 0.1], &mut gradient)
+                    .is_err()
+            );
+            assert_eq!(gradient, [17.; 3]);
+            assert_eq!(
+                target.logp_grad(&q, &mut gradient).unwrap().to_bits(),
+                expected.to_bits()
+            );
+            assert_eq!(
+                gradient.map(f64::to_bits),
+                expected_gradient.map(f64::to_bits)
+            );
+        }
+    }
+}

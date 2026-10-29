@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "base_revision": "d917609520a61d8876111907c265e133853f2601",
+  "base_revision": "04b98834b12ac11cc340e1c50cd8bf1ca1c4282e",
   "decision": "pre_release_break",
-  "rationale": "Add a caller-scratch inverse-BFGS action in the owning math module, with unchanged two-loop arithmetic; runtime reuses fit-local work buffers. Existing allocating convenience remains useful to cold callers. No statistical objective or optimizer acceptance policy changes.",
+  "rationale": "Add typed evaluator-owned scratch for custom model callbacks; move callbacks into the exclusively borrowed evaluation workspace and reuse compensated batch regression accumulators. Mathematical results, derivative ordering, transformation semantics and failure publication remain unchanged; scratch is explicitly not statistical state.",
   "packages": {
     "alea+analysis": {
       "before": "7b792d8351d7f93d9678035dc8dcbfa55c10f6bf353cbe567442e4ad7847b55b",
@@ -66,12 +66,14 @@
     },
     "alea-core": {
       "before": "59a3cc8fe9763d46e617847dc93bc5e8e5de4d7c7bd4ea48cc52e1687abf7aa2",
-      "after": "59a3cc8fe9763d46e617847dc93bc5e8e5de4d7c7bd4ea48cc52e1687abf7aa2",
-      "added": 0,
+      "after": "50fd600faf3cc1ece60c291673baa103cd353220af1eaef94e0ae1de4ee901e8",
+      "added": 1,
       "removed": 0,
-      "delta": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
-      "classification": "unchanged",
-      "added_lines": [],
+      "delta": "e49ee57b358e9895abde20b17d02a35f42547524d22b3729454c0b0a0d6271c2",
+      "classification": "potentially_breaking",
+      "added_lines": [
+        "pub fn alea_core::model::assembly::ModelBuilder::custom_with_scratch<W, F>(&mut self, inputs: &[alea_core::model::assembly::Expr], scratch: W, callback: F) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError> where W: core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64], &mut [f64], &mut W) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static"
+      ],
       "removed_lines": []
     },
     "alea-distributions+faer": {
@@ -105,27 +107,23 @@
       "removed_lines": []
     },
     "alea-math+faer": {
-      "before": "ee56aa9dc4ede86e0cd3d4d17e9cd1d1957e81a9238727b5e770109ea28ea6de",
+      "before": "40cfb303f46cb504146e423dd377aa4f5beb39de4766887fe228077eda458487",
       "after": "40cfb303f46cb504146e423dd377aa4f5beb39de4766887fe228077eda458487",
-      "added": 1,
+      "added": 0,
       "removed": 0,
-      "delta": "7b4db1f7783212d070cdf65068025c1b4a3998d56e26d16adc81219ec097a84b",
-      "classification": "potentially_breaking",
-      "added_lines": [
-        "pub fn alea_math::quasi_newton::lbfgs_inverse_product_with_scratch(vector: &[f64], s_history: &[alloc::vec::Vec<f64>], y_history: &[alloc::vec::Vec<f64>], output: &mut [f64], alphas: &mut [f64]) -> core::result::Result<(), alea_math::quasi_newton::LbfgsError>"
-      ],
+      "delta": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "classification": "unchanged",
+      "added_lines": [],
       "removed_lines": []
     },
     "alea-math": {
-      "before": "da60d7675f18ff92613df5d403e499af5d6c18fa6d57d78270f9036784f2de6e",
+      "before": "e50cbca2cfd5fd3c9645cc75ee42474bc1595566fb7f0e0701087594b70de8a0",
       "after": "e50cbca2cfd5fd3c9645cc75ee42474bc1595566fb7f0e0701087594b70de8a0",
-      "added": 1,
+      "added": 0,
       "removed": 0,
-      "delta": "7b4db1f7783212d070cdf65068025c1b4a3998d56e26d16adc81219ec097a84b",
-      "classification": "potentially_breaking",
-      "added_lines": [
-        "pub fn alea_math::quasi_newton::lbfgs_inverse_product_with_scratch(vector: &[f64], s_history: &[alloc::vec::Vec<f64>], y_history: &[alloc::vec::Vec<f64>], output: &mut [f64], alphas: &mut [f64]) -> core::result::Result<(), alea_math::quasi_newton::LbfgsError>"
-      ],
+      "delta": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "classification": "unchanged",
+      "added_lines": [],
       "removed_lines": []
     },
     "alea-mcmc+faer": {
