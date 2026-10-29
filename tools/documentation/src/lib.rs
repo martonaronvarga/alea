@@ -9,6 +9,8 @@ pub mod sampling {}
 pub mod diagnostics {}
 #[doc = include_str!("../../../docs/sessions.md")]
 pub mod sessions {}
+#[doc = include_str!("../../../docs/tracing.md")]
+pub mod tracing {}
 #[doc = include_str!("../../../docs/distributions.md")]
 pub mod distributions {}
 #[doc = include_str!("../../../docs/wiener.md")]

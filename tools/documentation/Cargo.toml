@@ -8,7 +8,9 @@ publish = false
 [workspace]
 
 [dependencies]
-alea = { path = "../../crates/alea", features = ["distributions", "analysis", "faer"] }
+alea = { path = "../../crates/alea", features = ["distributions", "analysis", "faer", "tracing"] }
 rand = "0.10.1"
 rayon = "1.12"
 tokio-util = { version = "0.7", features = ["rt"] }
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "env-filter"] }

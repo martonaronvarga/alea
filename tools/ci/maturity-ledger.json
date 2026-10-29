@@ -1215,6 +1215,13 @@
       "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
     },
     {
+      "crate": "alea",
+      "feature": "tracing",
+      "profile": "research_utility",
+      "summary": "Opt-in structured execution events with application-owned subscribers and scoped worker context propagation.",
+      "promotion_gate": "Qualify disabled/enabled overhead, context isolation and detailed coverage without changing numerical behavior."
+    },
+    {
       "crate": "alea-autodiff",
       "feature": "default",
       "profile": "validated_component_reference",
@@ -1339,6 +1346,13 @@
       "profile": "research_component",
       "summary": "Runtime forwarding for Faer-backed fitting paths.",
       "promotion_gate": "Graduate with the underlying backend and consuming warmup policies."
+    },
+    {
+      "crate": "alea-runtime",
+      "feature": "tracing",
+      "profile": "research_utility",
+      "summary": "Opt-in structured execution events with application-owned subscribers and scoped worker context propagation.",
+      "promotion_gate": "Qualify disabled/enabled overhead, context isolation and detailed coverage without changing numerical behavior."
     }
   ],
   "cli_commands": [

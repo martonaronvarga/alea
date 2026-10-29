@@ -45,6 +45,7 @@ tools/stan-reference/stantest
 !/docs/releases.md
 !/docs/sampling.md
 !/docs/sessions.md
+!/docs/tracing.md
 !/docs/troubleshooting.md
 !/docs/wiener.md
 !/docs/wiener-numerics.md

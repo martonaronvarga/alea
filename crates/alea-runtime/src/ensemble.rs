@@ -135,6 +135,36 @@ where
     C::Transition: DiagnosticTransition,
     S: for<'a> FnMut(Draw<'a, C::Transition>) -> ControlFlow<()> + Send,
 {
+    #[cfg(feature = "tracing")]
+    let _span =
+        tracing::info_span!(target: "alea::ensemble", "ensemble", chains = chains.len()).entered();
+    #[cfg(feature = "tracing")]
+    tracing::info!(target: "alea::ensemble", schema_version = 1_u64, event = "started", requested = options.draws, warmup = options.warmup);
+    let outcome = run_inner(chains, options, execution, cancel, publisher);
+    #[cfg(feature = "tracing")]
+    match &outcome {
+        Ok(report) => {
+            tracing::info!(target: "alea::ensemble", schema_version = 1_u64, event = "finished", termination = ?report.termination)
+        }
+        Err(error) => {
+            tracing::error!(target: "alea::ensemble", schema_version = 1_u64, event = "failed", failure = match error { RunError::Configuration => "configuration", RunError::Position { .. } => "position", RunError::Chain { .. } => "chain" })
+        }
+    }
+    outcome
+}
+fn run_inner<C, S>(
+    chains: &mut [Chain<C, S>],
+    options: &RunOptions,
+    execution: Execution<'_>,
+    cancel: &CancellationToken,
+    publisher: Option<&Publisher>,
+) -> Result<RunReport, RunError<C::Error>>
+where
+    C: MarkovChain + Send,
+    C::Error: Send,
+    C::Transition: DiagnosticTransition,
+    S: for<'a> FnMut(Draw<'a, C::Transition>) -> ControlFlow<()> + Send,
+{
     let dimension = chains.first().map_or(0, |c| c.sampler.position().len());
     let row_bytes = options
         .coordinates
@@ -189,58 +219,65 @@ where
                 break 'phases;
             }
             let count = options.chunk.get().min(budget - offset);
-            let work =
-                |((chain, window), progress): (
-                    (&mut Chain<C, S>, &mut Window),
-                    &mut ChainProgress,
-                )| {
-                    for _ in 0..count {
-                        if cancel.is_cancelled() {
-                            return Ok(false);
-                        }
-                        if chain.sampler.position().len() != dimension {
-                            return Err(RunError::Position { chain: chain.id });
-                        }
-                        let transition = chain.sampler.step(&mut chain.rng).map_err(|source| {
-                            RunError::Chain {
+            #[cfg(feature = "tracing")]
+            let trace_context = crate::telemetry::Context::capture();
+            let work = |((chain, window), progress): (
+                (&mut Chain<C, S>, &mut Window),
+                &mut ChainProgress,
+            )| {
+                #[cfg(feature = "tracing")]
+                let _context = trace_context.enter();
+                #[cfg(feature = "tracing")]
+                    let _span = tracing::debug_span!(target: "alea::ensemble", "chunk", chain_id = chain.id.0, phase = ?phase, requested = count).entered();
+                for _ in 0..count {
+                    if cancel.is_cancelled() {
+                        return Ok(false);
+                    }
+                    if chain.sampler.position().len() != dimension {
+                        return Err(RunError::Position { chain: chain.id });
+                    }
+                    let transition =
+                        chain
+                            .sampler
+                            .step(&mut chain.rng)
+                            .map_err(|source| RunError::Chain {
                                 chain: chain.id,
                                 source,
-                            }
-                        })?;
-                        let position = chain.sampler.position();
-                        if position.len() != dimension || position.iter().any(|x| !x.is_finite()) {
-                            return Err(RunError::Position { chain: chain.id });
-                        }
-                        let stats = transition.diagnostic_stats();
-                        let index = match phase {
-                            Phase::Warmup => {
-                                let i = progress.warmup;
-                                progress.warmup += 1;
-                                i
-                            }
-                            Phase::Sampling => {
-                                let i = progress.draws;
-                                progress.draws += 1;
-                                window.push(position, &options.coordinates, stats);
-                                i
-                            }
-                        };
-                        if (chain.sink)(Draw {
-                            schema_version: SCHEMA_VERSION,
-                            chain: chain.id,
-                            phase,
-                            index,
-                            position,
-                            transition: &transition,
-                            stats,
-                        })
-                        .is_break()
-                        {
-                            return Ok(true);
-                        }
+                            })?;
+                    let position = chain.sampler.position();
+                    if position.len() != dimension || position.iter().any(|x| !x.is_finite()) {
+                        return Err(RunError::Position { chain: chain.id });
                     }
-                    Ok(false)
-                };
+                    let stats = transition.diagnostic_stats();
+                    let index = match phase {
+                        Phase::Warmup => {
+                            let i = progress.warmup;
+                            progress.warmup += 1;
+                            i
+                        }
+                        Phase::Sampling => {
+                            let i = progress.draws;
+                            progress.draws += 1;
+                            window.push(position, &options.coordinates, stats);
+                            i
+                        }
+                    };
+                    if (chain.sink)(Draw {
+                        schema_version: SCHEMA_VERSION,
+                        chain: chain.id,
+                        phase,
+                        index,
+                        position,
+                        transition: &transition,
+                        stats,
+                    })
+                    .is_break()
+                    {
+                        return Ok(true);
+                    }
+                }
+                Ok(false)
+            };
             let results: Vec<_> = match execution {
                 Execution::Sequential => chains
                     .iter_mut()

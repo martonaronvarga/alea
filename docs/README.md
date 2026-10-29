@@ -19,6 +19,7 @@ fits a normal mean to four observations and explains each part of the program.
 | Choose a sampler and configure warmup | [Sampling](sampling.md) |
 | Interpret R-hat, ESS, and warnings | [Diagnostics](diagnostics.md) |
 | Run chains in parallel or save a checkpoint | [Sessions and recovery](sessions.md) |
+| Subscribe to execution events | [Tracing](tracing.md) |
 | Export draws, predictions, and pointwise likelihoods | [Analysis artifacts and interoperability](sessions.md#export-a-named-sampling-table) |
 | Evaluate or sample from a distribution | [Distributions](distributions.md) |
 | Model axes and unit-vector observations | [Directional distributions](directional-distributions.md) |

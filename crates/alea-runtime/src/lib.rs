@@ -10,6 +10,8 @@ pub mod monitor;
 pub mod optimize;
 pub mod output;
 pub mod session;
+#[cfg(feature = "tracing")]
+mod telemetry;
 use alea_mcmc::MarkovChain;
 use std::ops::ControlFlow;
 
@@ -23,6 +25,33 @@ use std::ops::ControlFlow;
 /// # Panics
 /// Panics from the observer propagate; already completed transitions remain committed.
 pub fn run_chain<C, R>(
+    chain: &mut C,
+    steps: usize,
+    rng: &mut R,
+    observe: impl FnMut(&[f64], &C::Transition) -> ControlFlow<()>,
+) -> Result<usize, C::Error>
+where
+    C: MarkovChain,
+    R: rand::Rng + ?Sized,
+{
+    #[cfg(feature = "tracing")]
+    let _span =
+        tracing::info_span!(target: "alea::run_chain", "run_chain", requested = steps).entered();
+    #[cfg(feature = "tracing")]
+    tracing::info!(target: "alea::run_chain", schema_version = 1_u64, event = "started");
+    let outcome = run_chain_inner(chain, steps, rng, observe);
+    #[cfg(feature = "tracing")]
+    match &outcome {
+        Ok(completed) => {
+            tracing::info!(target: "alea::run_chain", schema_version = 1_u64, event = "finished", completed, observer_stopped = *completed < steps)
+        }
+        Err(_) => {
+            tracing::error!(target: "alea::run_chain", schema_version = 1_u64, event = "failed", failure = "chain")
+        }
+    }
+    outcome
+}
+fn run_chain_inner<C, R>(
     chain: &mut C,
     steps: usize,
     rng: &mut R,

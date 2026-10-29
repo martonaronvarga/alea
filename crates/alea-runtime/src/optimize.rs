@@ -231,6 +231,32 @@ pub fn maximize_with_cancel<T: LogDensityGradient + ?Sized>(
     initial: &[f64],
     objective: ObjectiveDescription,
     options: LbfgsOptions,
+    cancelled: impl FnMut() -> bool,
+) -> Result<OptimizationResult, MaximizeError<T::Error>> {
+    #[cfg(feature = "tracing")]
+    let _span = tracing::info_span!(target: "alea::optimization", "maximize", input_dimension = initial.len()).entered();
+    #[cfg(feature = "tracing")]
+    tracing::info!(target: "alea::optimization", schema_version = 1_u64, event = "started", iteration_limit = options.iterations, evaluation_limit = options.evaluations);
+    let outcome = maximize_with_cancel_inner(target, initial, objective, options, cancelled);
+    #[cfg(feature = "tracing")]
+    match &outcome {
+        Ok(result) => {
+            tracing::info!(target: "alea::optimization", schema_version = 1_u64, event = "finished", termination = ?result.termination, iterations = result.iterations, evaluations = result.evaluations, domain_trials = result.domain_trials, skipped_updates = result.skipped_updates)
+        }
+        Err(MaximizeError::Invalid(_)) => {
+            tracing::error!(target: "alea::optimization", schema_version = 1_u64, event = "failed", failure = "configuration")
+        }
+        Err(MaximizeError::Evaluation(error)) => {
+            tracing::error!(target: "alea::optimization", schema_version = 1_u64, event = "failed", failure = "evaluation", iterations = error.result.iterations, evaluations = error.result.evaluations)
+        }
+    }
+    outcome
+}
+fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
+    target: &T,
+    initial: &[f64],
+    objective: ObjectiveDescription,
+    options: LbfgsOptions,
     mut cancelled: impl FnMut() -> bool,
 ) -> Result<OptimizationResult, MaximizeError<T::Error>> {
     let n = target.dimension();
@@ -413,6 +439,8 @@ pub fn maximize_with_cancel<T: LogDensityGradient + ?Sized>(
         }
         result.candidate = Some(candidate);
         result.iterations += 1;
+        #[cfg(feature = "tracing")]
+        tracing::debug!(target: "alea::optimization", schema_version = 1_u64, event = "iteration_completed", iterations = result.iterations, evaluations = result.evaluations, domain_trials = result.domain_trials, skipped_updates = result.skipped_updates);
     }
     Ok(result)
 }

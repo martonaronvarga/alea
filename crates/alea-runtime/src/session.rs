@@ -497,7 +497,22 @@ impl SessionBuilder {
     /// names and all checkpoint identities before any numerical work.
     /// # Errors
     /// Returns [`ConfigurationError`] without creating targets or output files.
-    pub fn build(mut self) -> Result<Session, ConfigurationError> {
+    pub fn build(self) -> Result<Session, ConfigurationError> {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::debug_span!(target: "alea::session", "admission", chains = self.initial.len(), dimension = self.dimension).entered();
+        let outcome = self.build_inner();
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(_) => {
+                tracing::debug!(target: "alea::session", schema_version = 1_u64, event = "admitted")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::session", schema_version = 1_u64, event = "admission_failed", failure = "configuration")
+            }
+        }
+        outcome
+    }
+    fn build_inner(mut self) -> Result<Session, ConfigurationError> {
         let r = self.resources;
         let n = self.initial.len();
         let d = self.dimension;
@@ -715,13 +730,20 @@ impl Session {
             return Err(ConfigurationError);
         }
         self.execute(execution, sink, |id, out, window, control| {
-            let target = factory(id).map_err(Failure::Target)?;
+            let target = {
+                #[cfg(feature = "tracing")]
+                let _span = tracing::debug_span!(target: "alea::session", "target_factory").entered();
+                factory(id).map_err(Failure::Target)?
+            };
             if target.dimension() != self.spec.dimension {
                 return Err(Failure::Contract);
             }
             let mut rng = self.rng(id);
             let cp = self.spec.restart.get(id.0 as usize);
-            let chain = if let Some(cp) = cp {
+            let chain = {
+                #[cfg(feature = "tracing")]
+                let _span = tracing::debug_span!(target: "alea::session", "initialize", restart = cp.is_some()).entered();
+                if let Some(cp) = cp {
                 let geometry = cp
                     .geometry
                     .restore()
@@ -797,7 +819,10 @@ impl Session {
                     }
                     _ => unreachable!(),
                 }
+                }
             };
+            #[cfg(feature = "tracing")]
+            tracing::debug!(target: "alea::session", schema_version = 1_u64, event = "sampling_started", warmup_completed = out.warmup_completed);
             self.sample(chain, &mut rng, out, window, control, sink)
         })
     }
@@ -821,7 +846,12 @@ impl Session {
             return Err(ConfigurationError);
         };
         self.execute(execution, sink, |id, out, window, control| {
-            let target = factory(id).map_err(Failure::Target)?;
+            let target = {
+                #[cfg(feature = "tracing")]
+                let _span =
+                    tracing::debug_span!(target: "alea::session", "target_factory").entered();
+                factory(id).map_err(Failure::Target)?
+            };
             if target.dimension() != self.spec.dimension {
                 return Err(Failure::Contract);
             }
@@ -898,6 +928,42 @@ impl Session {
         F: Fn(ChainId, &mut ChainOutcome<E>, &mut Window, &Control) -> Result<(), Failure<E>>
             + Sync,
     {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::info_span!(target: "alea::session", "session", chains = self.spec.initial.len(), dimension = self.spec.dimension, restart = !self.spec.restart.is_empty()).entered();
+        #[cfg(feature = "tracing")]
+        tracing::info!(target: "alea::session", schema_version = 1_u64, event = "started", requested = self.spec.draws, warmup = self.spec.warmup.iterations());
+        let outcome = self.execute_inner(execution, sink, work);
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(result) => match result.status {
+                Status::BackendFailure => {
+                    tracing::error!(target: "alea::session", schema_version = 1_u64, event = "finished", status = ?result.status, sink_failed = result.sink_failure.is_some())
+                }
+                Status::NumericalExhaustion | Status::DiagnosticWarning => {
+                    tracing::warn!(target: "alea::session", schema_version = 1_u64, event = "finished", status = ?result.status)
+                }
+                Status::Success | Status::Cancelled => {
+                    tracing::info!(target: "alea::session", schema_version = 1_u64, event = "finished", status = ?result.status)
+                }
+            },
+            Err(_) => {
+                tracing::error!(target: "alea::session", schema_version = 1_u64, event = "failed", failure = "configuration")
+            }
+        }
+        outcome
+    }
+    fn execute_inner<E, S, F>(
+        &self,
+        execution: Execution<'_>,
+        sink: &S,
+        work: F,
+    ) -> Result<RunOutcome<E>, ConfigurationError>
+    where
+        E: Error + Send + 'static,
+        S: Sink,
+        F: Fn(ChainId, &mut ChainOutcome<E>, &mut Window, &Control) -> Result<(), Failure<E>>
+            + Sync,
+    {
         if matches!(execution,Execution::Parallel(pool) if pool.current_num_threads()>self.spec.resources.threads)
         {
             return Err(ConfigurationError);
@@ -915,7 +981,16 @@ impl Session {
             Ok(result) => result.err(),
             Err(_) => Some(SinkError::ObserverPanic),
         };
+        #[cfg(feature = "tracing")]
+        let trace_context = crate::telemetry::Context::capture();
         let chain_work = |i: usize| {
+            #[cfg(feature = "tracing")]
+            let _context = trace_context.enter();
+            #[cfg(feature = "tracing")]
+            let _span = tracing::info_span!(target: "alea::session", "chain", chain_id = i as u64)
+                .entered();
+            #[cfg(feature = "tracing")]
+            tracing::info!(target: "alea::session", schema_version = 1_u64, event = "chain_started");
             let id = ChainId(i as u64);
             let mut out = ChainOutcome {
                 chain: id,
@@ -949,6 +1024,8 @@ impl Session {
                     Err(_) => out.failure = Some(Failure::WorkerPanic),
                 }
             }
+            #[cfg(feature = "tracing")]
+            tracing::info!(target: "alea::session", schema_version = 1_u64, event = "chain_finished", completed = out.completed, warmup_completed = out.warmup_completed, failed = out.failure.is_some(), cancelled = out.cancelled, numerical_rejections = out.numerical_rejections);
             (out, window)
         };
         let results: Vec<_> = match execution {

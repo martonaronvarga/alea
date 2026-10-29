@@ -11,7 +11,11 @@ publish = false
 alea = { path = "../../crates/alea", features = ["distributions", "analysis"] }
 rand = "0.10.1"
 tokio-util = { version = "0.7", features = ["rt"] }
+rayon = "1.12"
+tracing = { version = "0.1.44", default-features = false, features = ["std"], optional = true }
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["registry"], optional = true }
 
 [features]
 default = []
 faer = ["alea/faer"]
+tracing = ["alea/tracing", "dep:tracing", "dep:tracing-subscriber"]

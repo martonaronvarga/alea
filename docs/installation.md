@@ -90,6 +90,7 @@ Start with the default build. Add a backend when your workload needs it.
 | Feature | Requirements | Typical use |
 |---|---|---|
 | `analysis` | Stable Rust | Named CSV/JSON sampling artifacts |
+| `tracing` | Stable Rust | Execution spans and events for an application-owned tracing subscriber |
 | `faer` | Stable Rust | Optional matrix operations, fitted geometry and Gaussian rank/residual assessment |
 | `openblas` | LP64 OpenBLAS headers and libraries | BLAS-backed matrix operations |
 | `simd` | Pinned nightly Rust | Portable SIMD kernels |

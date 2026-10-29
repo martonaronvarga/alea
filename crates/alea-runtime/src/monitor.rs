@@ -351,9 +351,17 @@ impl Monitor {
         let (wake, incoming) = mpsc::sync_channel(1);
         let (reports, receiver) = watch::channel(None);
         let state = Arc::clone(&shared);
+        #[cfg(feature = "tracing")]
+        let trace_context = crate::telemetry::Context::capture();
         let worker = thread::Builder::new()
             .name("alea-diagnostics".into())
             .spawn(move || {
+                #[cfg(feature = "tracing")]
+                let _context = trace_context.enter();
+                #[cfg(feature = "tracing")]
+                let _span = tracing::info_span!(target: "alea::monitor", "monitor").entered();
+                #[cfg(feature = "tracing")]
+                tracing::info!(target: "alea::monitor", schema_version = 1_u64, event = "worker_started");
                 let mut previous: Option<Arc<Snapshot>> = None;
                 while incoming.recv().is_ok() {
                     loop {
@@ -365,6 +373,8 @@ impl Monitor {
                             if report.stop_requested {
                                 cancel.cancel();
                             }
+                            #[cfg(feature = "tracing")]
+                            tracing::debug!(target: "alea::monitor", schema_version = 1_u64, event = "report_completed", finished = report.finished, failed = report.failed, stop_requested = report.stop_requested, chains = report.chains.len());
                             reports.send_replace(Some(Arc::new(report)));
                             previous = Some(snapshot);
                         }

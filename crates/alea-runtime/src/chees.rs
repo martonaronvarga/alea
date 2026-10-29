@@ -63,6 +63,34 @@ pub enum CheesWarmupError<E: std::error::Error + 'static> {
 /// first chain error in input order, adaptation errors, and counter overflow.
 pub fn warmup<T, I, S>(
     chains: &mut [Chain<CheesHmc<'_, T, IdentityMetric, I>, S>],
+    adapter: CheesEnsembleAdapter,
+    iterations: usize,
+    execution: Execution<'_>,
+) -> Result<(FrozenCheesParameters, CheesWarmupReport), CheesWarmupError<T::Error>>
+where
+    T: LogDensityGradient + Sync + ?Sized,
+    I: SymmetricSplitting + Send,
+    T::Error: Send,
+    S: Send,
+{
+    #[cfg(feature = "tracing")]
+    let _span = tracing::info_span!(target: "alea::adaptation", "chees_warmup", chains = chains.len(), requested = iterations).entered();
+    #[cfg(feature = "tracing")]
+    tracing::info!(target: "alea::adaptation", schema_version = 1_u64, event = "started");
+    let outcome = warmup_inner(chains, adapter, iterations, execution);
+    #[cfg(feature = "tracing")]
+    match &outcome {
+        Ok((_, report)) => {
+            tracing::info!(target: "alea::adaptation", schema_version = 1_u64, event = "finished", iterations = report.iterations, integration_steps = report.integration_steps)
+        }
+        Err(_) => {
+            tracing::error!(target: "alea::adaptation", schema_version = 1_u64, event = "failed")
+        }
+    }
+    outcome
+}
+fn warmup_inner<T, I, S>(
+    chains: &mut [Chain<CheesHmc<'_, T, IdentityMetric, I>, S>],
     mut adapter: CheesEnsembleAdapter,
     iterations: usize,
     execution: Execution<'_>,
@@ -83,11 +111,15 @@ where
     {
         return Err(CheesWarmupError::Configuration);
     }
+    #[cfg(feature = "tracing")]
+    let trace_context = crate::telemetry::Context::capture();
     let mut completed_steps = 0_usize;
     let mut last_update = None;
     for _ in 0..iterations {
         let plan = adapter.next_plan()?;
         let execute = |chain: &mut Chain<CheesHmc<'_, T, IdentityMetric, I>, S>| {
+            #[cfg(feature = "tracing")]
+            let _context = trace_context.enter();
             chain
                 .sampler
                 .step_with_plan(plan, &mut chain.rng)

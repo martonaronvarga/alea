@@ -54,6 +54,7 @@ Start with [your first model](docs/getting-started.md), or browse the
 - [Sampling and warmup](docs/sampling.md)
 - [Diagnosing a fit](docs/diagnostics.md)
 - [Saving and resuming a run](docs/sessions.md)
+- [Subscribing to execution events](docs/tracing.md)
 - [Exporting results to Python, R, and NetCDF](docs/sessions.md#export-a-named-sampling-table)
 - [Probability distributions](docs/distributions.md) and [Wiener models](docs/wiener.md)
 

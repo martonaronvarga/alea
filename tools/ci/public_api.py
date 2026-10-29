@@ -20,6 +20,8 @@ POLICY = {
     "parameter_names": True,
 }
 FEATURE_VARIANTS = {
+    "alea+tracing": {"package": "alea", "features": ["alea/tracing"], "same_as": "alea"},
+    "alea-runtime+tracing": {"package": "alea-runtime", "features": ["alea-runtime/tracing"], "same_as": "alea-runtime"},
     "alea+simd": {"package": "alea", "features": ["alea/simd"], "same_as": "alea"},
     "alea-distributions+branch-hints": {
         "package": "alea-distributions",
