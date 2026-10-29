@@ -39,6 +39,32 @@ pub fn softplus(x: f64) -> f64 {
     x.max(0.0) + (-x.abs()).exp().ln_1p()
 }
 
+/// Evaluates softplus and its derivative, the logistic function, together.
+///
+/// Shares one exponential without subtracting a rounded probability from one.
+/// Infinite inputs give the corresponding limits; NaN propagates to both values.
+/// The separate [`softplus`] and [`sigmoid`] functions remain appropriate when
+/// only one result is needed.
+///
+/// # Examples
+///
+/// ```
+/// let (value, derivative) = alea::math::numeric::softplus_and_sigmoid(0.0);
+/// assert_eq!(value, std::f64::consts::LN_2);
+/// assert_eq!(derivative, 0.5);
+/// ```
+#[inline(always)]
+pub fn softplus_and_sigmoid(x: f64) -> (f64, f64) {
+    let e = (-x.abs()).exp();
+    let value = x.max(0.0) + e.ln_1p();
+    let slope = if x >= 0.0 {
+        1.0 / (1.0 + e)
+    } else {
+        e / (1.0 + e)
+    };
+    (value, slope)
+}
+
 /// Log logistic probability without first rounding the probability to an endpoint.
 ///
 /// Negative infinity gives negative infinity, positive infinity gives zero,

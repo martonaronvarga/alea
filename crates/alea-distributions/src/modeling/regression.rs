@@ -9,7 +9,7 @@
 use super::{E, error};
 use crate::scalar::Bernoulli;
 use alea_core::model::assembly::{Expr, ModelBuilder, Parameter, Positive};
-use alea_math::numeric::{CompensatedSum, first_nonfinite, sigmoid};
+use alea_math::numeric::{CompensatedSum, first_nonfinite};
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -198,8 +198,8 @@ pub fn bernoulli_logit_regression(
                     return Err(E::Numerical);
                 }
                 let y = data.observations[i];
-                total.add(Bernoulli::logit_log_prob(eta, y).map_err(error)?);
-                let residual = if y { sigmoid(-eta) } else { -sigmoid(eta) };
+                let (value, residual) = Bernoulli::logit_log_prob_score(eta, y).map_err(error)?;
+                total.add(value);
                 for (s, a) in scores
                     .iter_mut()
                     .zip(&data.design[i * data.columns..(i + 1) * data.columns])

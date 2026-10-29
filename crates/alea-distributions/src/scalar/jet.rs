@@ -70,8 +70,10 @@ impl<const N: usize> Jet<N> {
         self.map(ln_gamma(self.v), digamma(self.v))
     }
     pub fn softplus(self) -> Self {
-        let v = alea_math::numeric::softplus(self.v);
-        let slope = alea_math::numeric::sigmoid(self.v);
+        if N == 0 {
+            return self.map(alea_math::numeric::softplus(self.v), 0.0);
+        }
+        let (v, slope) = alea_math::numeric::softplus_and_sigmoid(self.v);
         self.map(v, slope)
     }
     /// log Phi(x), including its Mills-ratio derivative in the negative tail.

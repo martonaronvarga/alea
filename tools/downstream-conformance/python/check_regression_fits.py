@@ -2,7 +2,8 @@
 
 No Alea implementation or derivative is used by the reference. Gaussian reference
 normal equations are solved at 60 decimal digits, not used as a production solver.
-Run --binary path/to/regression_fit --output NEW_DIRECTORY after a release build.
+Run --binary path/to/regression_fit --output NEW_DIRECTORY after a release build
+with --features faer; Gaussian assessments require that backend.
 """
 from __future__ import annotations
 import argparse
@@ -159,7 +160,7 @@ def main():
     if args.rounds<1: parser.error('rounds must be positive')
     args.output.mkdir(parents=True,exist_ok=False)
     root=Path(__file__).resolve().parents[3]
-    source_names = ['crates/alea-math/src/numeric.rs','crates/alea-distributions/src/modeling/regression/standardization.rs','crates/alea-core/src/model/assembly.rs','crates/alea-distributions/src/modeling/regression/diagnostics/assessment.rs','crates/alea-runtime/src/optimize.rs','crates/alea-math/src/quasi_newton.rs','crates/alea-distributions/src/modeling/regression.rs','tools/downstream-conformance/examples/regression_fit.rs',str(Path(__file__).relative_to(root))]
+    source_names = ['crates/alea-math/src/numeric.rs','crates/alea-distributions/src/scalar.rs','crates/alea-distributions/src/scalar/jet.rs','crates/alea-distributions/src/modeling.rs','crates/alea-distributions/src/modeling/regression/standardization.rs','crates/alea-core/src/model/assembly.rs','crates/alea-distributions/src/modeling/regression/diagnostics/assessment.rs','crates/alea-runtime/src/optimize.rs','crates/alea-math/src/quasi_newton.rs','crates/alea-distributions/src/modeling/regression.rs','tools/downstream-conformance/examples/regression_fit.rs',str(Path(__file__).relative_to(root))]
     manifest={'schema_version':1,'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),
               'binary_sha256':hashlib.sha256(args.binary.read_bytes()).hexdigest(), 'host':platform.platform(),
               'source_sha256':{p:hashlib.sha256((root/p).read_bytes()).hexdigest() for p in source_names},

@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "base_revision": "04b98834b12ac11cc340e1c50cd8bf1ca1c4282e",
+  "base_revision": "7cc121f8cbb4e604beae91f3c005c1e995e89892",
   "decision": "pre_release_break",
-  "rationale": "Add typed evaluator-owned scratch for custom model callbacks; move callbacks into the exclusively borrowed evaluation workspace and reuse compensated batch regression accumulators. Mathematical results, derivative ordering, transformation semantics and failure publication remain unchanged; scratch is explicitly not statistical state.",
+  "rationale": "Add shared fused softplus/logistic evaluation in math; reuse its single exponential in analytic distribution jets and Bernoulli modeling scores. Keep density-only paths and tail-score arithmetic, with no optimizer or numerical tolerance changes.",
   "packages": {
     "alea+analysis": {
       "before": "7b792d8351d7f93d9678035dc8dcbfa55c10f6bf353cbe567442e4ad7847b55b",
@@ -65,15 +65,13 @@
       "removed_lines": []
     },
     "alea-core": {
-      "before": "59a3cc8fe9763d46e617847dc93bc5e8e5de4d7c7bd4ea48cc52e1687abf7aa2",
+      "before": "50fd600faf3cc1ece60c291673baa103cd353220af1eaef94e0ae1de4ee901e8",
       "after": "50fd600faf3cc1ece60c291673baa103cd353220af1eaef94e0ae1de4ee901e8",
-      "added": 1,
+      "added": 0,
       "removed": 0,
-      "delta": "e49ee57b358e9895abde20b17d02a35f42547524d22b3729454c0b0a0d6271c2",
-      "classification": "potentially_breaking",
-      "added_lines": [
-        "pub fn alea_core::model::assembly::ModelBuilder::custom_with_scratch<W, F>(&mut self, inputs: &[alea_core::model::assembly::Expr], scratch: W, callback: F) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError> where W: core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64], &mut [f64], &mut W) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static"
-      ],
+      "delta": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "classification": "unchanged",
+      "added_lines": [],
       "removed_lines": []
     },
     "alea-distributions+faer": {
@@ -108,22 +106,26 @@
     },
     "alea-math+faer": {
       "before": "40cfb303f46cb504146e423dd377aa4f5beb39de4766887fe228077eda458487",
-      "after": "40cfb303f46cb504146e423dd377aa4f5beb39de4766887fe228077eda458487",
-      "added": 0,
+      "after": "add7aa6389367a4f43888d80de36b8e05e0ad9df7d1e45155f284362c9eb5880",
+      "added": 1,
       "removed": 0,
-      "delta": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
-      "classification": "unchanged",
-      "added_lines": [],
+      "delta": "e0ed60c861de6cc905751a58e7b558dcd2e62036ed2dc65d642d01e4e5a43b1a",
+      "classification": "additive",
+      "added_lines": [
+        "pub fn alea_math::numeric::softplus_and_sigmoid(x: f64) -> (f64, f64)"
+      ],
       "removed_lines": []
     },
     "alea-math": {
       "before": "e50cbca2cfd5fd3c9645cc75ee42474bc1595566fb7f0e0701087594b70de8a0",
-      "after": "e50cbca2cfd5fd3c9645cc75ee42474bc1595566fb7f0e0701087594b70de8a0",
-      "added": 0,
+      "after": "36d6d6802ff9a03d42c906ad5ea696f398c918e627649cc4ea845693ff5dd54f",
+      "added": 1,
       "removed": 0,
-      "delta": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
-      "classification": "unchanged",
-      "added_lines": [],
+      "delta": "e0ed60c861de6cc905751a58e7b558dcd2e62036ed2dc65d642d01e4e5a43b1a",
+      "classification": "additive",
+      "added_lines": [
+        "pub fn alea_math::numeric::softplus_and_sigmoid(x: f64) -> (f64, f64)"
+      ],
       "removed_lines": []
     },
     "alea-mcmc+faer": {

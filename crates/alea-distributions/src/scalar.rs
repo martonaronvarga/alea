@@ -438,6 +438,13 @@ impl Bernoulli {
         let z = if event { -logit } else { logit };
         Ok(-z.max(0.0) - (-z.abs()).exp().ln_1p())
     }
+    /// Joint log probability and log-odds score, sharing elementary work.
+    pub(crate) fn logit_log_prob_score(logit: f64, event: bool) -> Result<(f64, f64), E> {
+        finite(logit, "log odds")?;
+        let z = if event { -logit } else { logit };
+        let (value, slope) = alea_math::numeric::softplus_and_sigmoid(z);
+        Ok((-value, if event { slope } else { -slope }))
+    }
 }
 impl Distribution for Bernoulli {
     type Error = alea_core::distribution::DistributionError;

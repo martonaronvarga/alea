@@ -509,6 +509,7 @@ pub fn alea_math::numeric::logit(p: f64) -> f64
 pub fn alea_math::numeric::scaled_norm(values: &[f64]) -> f64
 pub fn alea_math::numeric::sigmoid(theta: f64) -> f64
 pub fn alea_math::numeric::softplus(x: f64) -> f64
+pub fn alea_math::numeric::softplus_and_sigmoid(x: f64) -> (f64, f64)
 pub mod alea_math::prelude
 #[non_exhaustive] pub enum alea_math::prelude::MetricError
 pub alea_math::prelude::MetricError::DimensionOverflow

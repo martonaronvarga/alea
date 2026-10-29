@@ -893,3 +893,33 @@ medians were lower than plain medians. Their ratios remain in the report, rather
 than being subtracted as a correction. These one-host measurements identify the
 large-data target-evaluation bottleneck; they do not establish exact uninstrumented
 fractions, a general speedup, or results for hierarchical models and samplers.
+
+### Sharing likelihood and score arithmetic
+
+Bernoulli-logit modeling evaluates the log probability and its log-odds score
+through one distribution kernel. For response sign `s` (one for true, minus one
+for false) and log odds `eta`, they are `-softplus(-s*eta)` and
+`s*sigmoid(-s*eta)`. The elementary helper
+`alea::math::numeric::softplus_and_sigmoid` shares one exponential between these
+functions. It does not subtract a rounded probability from one, so representable
+tail scores remain available. Analytic distribution jets use the same helper;
+density-only evaluation keeps its separate path. Predictor products and score
+reductions retain compensated accumulation.
+
+Instruction profiling identified the duplicated exponential. On the measured
+Bernoulli batch workload, fusion reduced total Callgrind instructions by about
+13%, from 523 million to 455 million. Those are instruction counts under
+instrumentation, not native execution times. Hardware and software perf sampling
+were unavailable under the host's permissions; no system settings were changed.
+
+A separate pinned native comparison completed all 252 planned processes and all
+18 family/size/path comparisons passed their numerical gates. Numerical outputs
+and optimizer work counts were identical. At one million rows, Bernoulli batch
+evaluation was 1.20 times faster and fitting 1.21 times faster; scalar fitting was
+1.09 times faster. Small and medium cases were mixed: Bernoulli batch fitting
+ratios were 0.75 at ten rows and 1.13 at 1,000 rows (previous time divided by revised
+time). Unchanged Gaussian and Poisson controls also varied. These seven-repetition,
+one-host measurements support a workload-specific improvement, not a general
+performance guarantee. Independent 60-digit checks and the separate 72-case
+conditioning/existence cohort passed all required accuracy gates. The latter
+retains known raw-coordinate Poisson failures and distinct stopping outcomes.

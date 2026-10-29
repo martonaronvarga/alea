@@ -118,14 +118,9 @@ pub fn bernoulli_logit(builder: &mut ModelBuilder, event: bool, logit: Expr) -> 
     };
     builder.custom_with_primal(&[logit], primal, move |x, g| {
         let z = x[0];
-        // Use the complementary tail directly: 1-sigmoid(z) rounds to zero
-        // for large positive logits even when the analytic score is representable.
-        g[0] = if event {
-            alea_math::numeric::sigmoid(-z)
-        } else {
-            -alea_math::numeric::sigmoid(z)
-        };
-        Bernoulli::logit_log_prob(z, event).map_err(error)
+        let (value, score) = Bernoulli::logit_log_prob_score(z, event).map_err(error)?;
+        g[0] = score;
+        Ok(value)
     })
 }
 /// Checked Wiener4 likelihood node; parameter order is alpha, nondecision time,

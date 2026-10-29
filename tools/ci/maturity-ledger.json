@@ -24125,6 +24125,11 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub fn alea_math::numeric::softplus_and_sigmoid(x: f64) -> (f64, f64)",
+      "profile": "validated_utility_reference"
+    },
+    {
+      "crate": "alea-math",
       "item": "pub fn alea_math::prelude::EuclideanMetric::dimension(&self) -> usize",
       "profile": "validated_component_reference"
     },
