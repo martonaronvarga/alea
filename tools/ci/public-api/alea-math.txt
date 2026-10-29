@@ -83,6 +83,14 @@ impl<'a, T> alea_math::buffer::VecViewMut<'a, T>
 pub fn alea_math::buffer::VecViewMut<'a, T>::as_mut_slice(&mut self) -> &mut [T]
 pub fn alea_math::buffer::VecViewMut<'a, T>::as_slice(&self) -> &[T]
 pub mod alea_math::exact
+pub enum alea_math::exact::ConeSearch
+pub alea_math::exact::ConeSearch::BudgetExceeded
+pub alea_math::exact::ConeSearch::Direction(alea_math::exact::IntegerDirection)
+pub alea_math::exact::ConeSearch::NoImprovingDirection
+impl core::clone::Clone for alea_math::exact::ConeSearch
+pub fn alea_math::exact::ConeSearch::clone(&self) -> alea_math::exact::ConeSearch
+impl core::fmt::Debug for alea_math::exact::ConeSearch
+pub fn alea_math::exact::ConeSearch::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub enum alea_math::exact::ExactDotError
 pub alea_math::exact::ExactDotError::NonFinite
 pub alea_math::exact::ExactDotError::Shape
@@ -98,7 +106,27 @@ impl core::fmt::Display for alea_math::exact::ExactDotError
 pub fn alea_math::exact::ExactDotError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_math::exact::ExactDotError
 impl core::marker::StructuralPartialEq for alea_math::exact::ExactDotError
+pub struct alea_math::exact::ConeSearchOptions
+pub alea_math::exact::ConeSearchOptions::max_coefficient_bits: u64
+pub alea_math::exact::ConeSearchOptions::max_columns: usize
+pub alea_math::exact::ConeSearchOptions::max_rows: usize
+impl core::clone::Clone for alea_math::exact::ConeSearchOptions
+pub fn alea_math::exact::ConeSearchOptions::clone(&self) -> alea_math::exact::ConeSearchOptions
+impl core::default::Default for alea_math::exact::ConeSearchOptions
+pub fn alea_math::exact::ConeSearchOptions::default() -> Self
+impl core::fmt::Debug for alea_math::exact::ConeSearchOptions
+pub fn alea_math::exact::ConeSearchOptions::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::exact::ConeSearchOptions
+pub struct alea_math::exact::IntegerDirection(_)
+impl alea_math::exact::IntegerDirection
+pub fn alea_math::exact::IntegerDirection::coefficients(&self) -> &[num_bigint::bigint::BigInt]
+pub fn alea_math::exact::IntegerDirection::dot_sign(&self, row: &[f64]) -> core::result::Result<core::cmp::Ordering, alea_math::exact::ExactDotError>
+impl core::clone::Clone for alea_math::exact::IntegerDirection
+pub fn alea_math::exact::IntegerDirection::clone(&self) -> alea_math::exact::IntegerDirection
+impl core::fmt::Debug for alea_math::exact::IntegerDirection
+pub fn alea_math::exact::IntegerDirection::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn alea_math::exact::dot_sign(left: &[f64], right: &[f64]) -> core::result::Result<core::cmp::Ordering, alea_math::exact::ExactDotError>
+pub fn alea_math::exact::strict_cone_direction(columns: usize, inequalities: &[f64], equalities: &[f64], options: alea_math::exact::ConeSearchOptions) -> core::result::Result<alea_math::exact::ConeSearch, alea_math::exact::ExactDotError>
 pub mod alea_math::interpolation
 pub enum alea_math::interpolation::InterpolationError
 pub alea_math::interpolation::InterpolationError::Knots

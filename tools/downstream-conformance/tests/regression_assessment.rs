@@ -1,6 +1,6 @@
 use alea::distributions::modeling::regression::{
     RegressionData,
-    diagnostics::{DirectionAssessment, RecessionKind},
+    diagnostics::{ConeSearchOptions, DirectionAssessment, MleExistence, RecessionKind},
 };
 #[test]
 fn typed_likelihood_checks_find_problem_rays_without_rejecting_the_model() {
@@ -16,6 +16,44 @@ fn typed_likelihood_checks_find_problem_rays_without_rejecting_the_model() {
     ));
     let zeros = RegressionData::new(1, vec![1., 1.], vec![0_u64, 0]).unwrap();
     assert!(zeros.poisson_coordinate_recession().unwrap().is_some());
+}
+#[test]
+fn full_cone_search_is_public_and_distinguishes_existence_from_identification() {
+    let options = ConeSearchOptions::default();
+    let separated = RegressionData::new(2, vec![1., -0.5, -0.5, 1.], vec![true, true]).unwrap();
+    assert!(
+        separated
+            .bernoulli_coordinate_recession()
+            .unwrap()
+            .is_none()
+    );
+    assert!(matches!(
+        separated.bernoulli_mle_existence(options).unwrap(),
+        MleExistence::NoFiniteMaximum(_)
+    ));
+    let nonunique = RegressionData::new(2, vec![1., 1., 1., 1.], vec![false, true]).unwrap();
+    assert!(matches!(
+        nonunique.bernoulli_mle_existence(options).unwrap(),
+        MleExistence::FiniteMaximum
+    ));
+    let poisson = RegressionData::new(2, vec![3., 1., 1., 0.], vec![1, 0]).unwrap();
+    assert!(poisson.poisson_coordinate_recession().unwrap().is_none());
+    let MleExistence::NoFiniteMaximum(w) = poisson.poisson_mle_existence(options).unwrap() else {
+        panic!("expected exact boundary ray")
+    };
+    assert_eq!(
+        w.direction().dot_sign(&[3., 1.]).unwrap(),
+        std::cmp::Ordering::Equal
+    );
+    assert!(matches!(
+        poisson
+            .poisson_mle_existence(ConeSearchOptions {
+                max_rows: 0,
+                ..options
+            })
+            .unwrap(),
+        MleExistence::Unresolved
+    ));
 }
 #[cfg(feature = "faer")]
 #[test]
@@ -106,10 +144,20 @@ fn small_numerical_scores_do_not_overrule_existence_witnesses() {
         let f = if bernoulli {
             let data = RegressionData::new(1, vec![-1., 1.], vec![false, true]).unwrap();
             assert!(data.bernoulli_coordinate_recession().unwrap().is_some());
+            assert!(matches!(
+                data.bernoulli_mle_existence(ConeSearchOptions::default())
+                    .unwrap(),
+                MleExistence::NoFiniteMaximum(_)
+            ));
             bernoulli_logit_regression(&mut b, &[beta.expr()], data).unwrap()
         } else {
             let data = RegressionData::new(1, vec![1., 1.], vec![0_u64, 0]).unwrap();
             assert!(data.poisson_coordinate_recession().unwrap().is_some());
+            assert!(matches!(
+                data.poisson_mle_existence(ConeSearchOptions::default())
+                    .unwrap(),
+                MleExistence::NoFiniteMaximum(_)
+            ));
             poisson_log_regression(&mut b, &[beta.expr()], data).unwrap()
         };
         b.likelihood("data", f).unwrap();

@@ -4,7 +4,8 @@
 //! recession directions. A failed direction check never establishes overlap.
 #![deny(missing_docs)]
 use super::{RegressionData, RegressionDataError, finite};
-use alea_math::exact::dot_sign;
+pub use alea_math::exact::ConeSearchOptions;
+use alea_math::exact::{ConeSearch, IntegerDirection, dot_sign, strict_cone_direction};
 use std::cmp::Ordering;
 
 /// Likelihood improvement along an unbounded coefficient ray.
@@ -61,7 +62,74 @@ pub enum DirectionAssessment {
         flat_rows: usize,
     },
 }
+/// Verified improving ray with exact integer coordinates from general search.
+/// The kind describes this ray, not whether another completely separating ray
+/// exists. Recheck against the original data when retaining a saved direction.
+#[derive(Debug, Clone)]
+pub struct ExactRecessionWitness {
+    kind: RecessionKind,
+    direction: IntegerDirection,
+    improving_rows: usize,
+    flat_rows: usize,
+}
+impl ExactRecessionWitness {
+    /// Likelihood improvement along the returned ray.
+    pub fn kind(&self) -> RecessionKind {
+        self.kind
+    }
+    /// Exact coordinates; rounding them to f64 can destroy equality constraints.
+    pub fn direction(&self) -> &IntegerDirection {
+        &self.direction
+    }
+    /// Rows with strictly improving likelihood.
+    pub fn improving_rows(&self) -> usize {
+        self.improving_rows
+    }
+    /// Rows whose likelihood is unchanged along the ray.
+    pub fn flat_rows(&self) -> usize {
+        self.flat_rows
+    }
+}
+/// Existence of an unconstrained fixed-design Bernoulli-logit or Poisson-log MLE.
+/// Applies to the stored finite design and fixed offsets, with independent free
+/// coefficients and no priors, penalties, weights, or nonlinear coefficient maps.
+#[derive(Debug, Clone)]
+pub enum MleExistence {
+    /// Exact elimination rules out every strict improving recession direction.
+    /// A finite maximum is attained; coefficients may be nonunique through the
+    /// design nullspace. This does not compute estimates or standard errors.
+    FiniteMaximum,
+    /// An exact ray proves that no finite maximum is attained.
+    NoFiniteMaximum(ExactRecessionWitness),
+    /// The exact search reached a declared resource limit; existence is unknown.
+    Unresolved,
+}
 impl RegressionData<bool> {
+    /// Searches all coefficient directions for complete or quasi separation.
+    /// Finite existence is proved only after exact infeasibility of the entire
+    /// strict recession system; exceeding the budget remains unresolved.
+    /// # Errors
+    /// Propagates malformed matrix errors (validated data normally exclude them).
+    pub fn bernoulli_mle_existence(
+        &self,
+        options: ConeSearchOptions,
+    ) -> Result<MleExistence, RegressionDataError> {
+        if self.columns() == 0 {
+            return Ok(MleExistence::FiniteMaximum);
+        }
+        if self.columns() > options.max_columns || self.rows() >= options.max_rows {
+            return Ok(MleExistence::Unresolved);
+        }
+        let mut signed = self.design().to_vec();
+        for (row, y) in self.observations().iter().enumerate() {
+            if !y {
+                for x in &mut signed[row * self.columns()..(row + 1) * self.columns()] {
+                    *x = -*x;
+                }
+            }
+        }
+        search(self.columns(), &signed, &[], options, false)
+    }
     /// Checks signed margins (2*y-1)*X*d >=0 with at least one strict margin.
     /// # Errors
     /// Rejects wrong dimension/nonfinite direction before computing exact signs.
@@ -92,6 +160,39 @@ impl RegressionData<bool> {
     }
 }
 impl RegressionData<u64> {
+    /// Searches the full Poisson recession cone, including all positive-count
+    /// equality constraints. All-zero responses are assessed using the design.
+    /// # Errors
+    /// Rejects counts not exactly representable by the associated likelihood,
+    /// and propagates malformed matrix errors.
+    pub fn poisson_mle_existence(
+        &self,
+        options: ConeSearchOptions,
+    ) -> Result<MleExistence, RegressionDataError> {
+        let mut required = 1_usize;
+        for (index, &y) in self.observations().iter().enumerate() {
+            if y > (1_u64 << 53) {
+                return Err(RegressionDataError::CountPrecision { index });
+            }
+            required = required.saturating_add(if y == 0 { 1 } else { 2 });
+        }
+        if self.columns() == 0 {
+            return Ok(MleExistence::FiniteMaximum);
+        }
+        if self.columns() > options.max_columns || required > options.max_rows {
+            return Ok(MleExistence::Unresolved);
+        }
+        let (mut zero, mut positive) = (Vec::new(), Vec::new());
+        for (row, &y) in self.observations().iter().enumerate() {
+            let x = &self.design()[row * self.columns()..(row + 1) * self.columns()];
+            if y == 0 {
+                zero.extend(x.iter().map(|v| -v));
+            } else {
+                positive.extend_from_slice(x);
+            }
+        }
+        search(self.columns(), &zero, &positive, options, true)
+    }
     /// Checks X*d=0 on positive counts and X*d<=0 on zero counts, strictly
     /// negative for at least one zero. It does not infer existence from all-zero
     /// responses alone: a direction must actually be feasible for the design.
@@ -125,6 +226,52 @@ impl RegressionData<u64> {
         &self,
     ) -> Result<Option<RecessionWitness>, RegressionDataError> {
         coordinate_screen(self.columns(), |d| self.poisson_recession(d))
+    }
+}
+fn search(
+    columns: usize,
+    inequalities: &[f64],
+    equalities: &[f64],
+    options: ConeSearchOptions,
+    poisson: bool,
+) -> Result<MleExistence, RegressionDataError> {
+    match strict_cone_direction(columns, inequalities, equalities, options)
+        .map_err(|_| RegressionDataError::Shape)?
+    {
+        ConeSearch::NoImprovingDirection => Ok(MleExistence::FiniteMaximum),
+        ConeSearch::BudgetExceeded => Ok(MleExistence::Unresolved),
+        ConeSearch::Direction(direction) => {
+            let mut improving = 0;
+            // A strict cone direction is impossible in zero dimensions.
+            let mut flat = equalities.len() / columns;
+            for row in inequalities.chunks_exact(columns) {
+                match direction.dot_sign(row).expect("finite validated cone row") {
+                    Ordering::Greater => improving += 1,
+                    Ordering::Equal => flat += 1,
+                    Ordering::Less => {
+                        unreachable!("exact cone reconstruction violated an inequality")
+                    }
+                }
+            }
+            assert!(improving > 0, "exact cone ray must strictly improve");
+            assert!(
+                equalities
+                    .chunks_exact(columns)
+                    .all(|row| direction.dot_sign(row) == Ok(Ordering::Equal))
+            );
+            Ok(MleExistence::NoFiniteMaximum(ExactRecessionWitness {
+                kind: if poisson {
+                    RecessionKind::PoissonBoundary
+                } else if flat == 0 {
+                    RecessionKind::CompleteSeparation
+                } else {
+                    RecessionKind::QuasiCompleteSeparation
+                },
+                direction,
+                improving_rows: improving,
+                flat_rows: flat,
+            }))
+        }
     }
 }
 fn assess<Y>(

@@ -265,8 +265,8 @@
     {
       "path": "crates/alea-distributions/src/modeling/regression/diagnostics.rs",
       "profile": "research_component",
-      "summary": "Exact recession-direction witnesses and deliberately incomplete coordinate screening for unconstrained Bernoulli/Poisson likelihoods.",
-      "promotion_gate": "Implement and independently qualify general bounded direction search; absence of a witness remains unresolved."
+      "summary": "Exact supplied rays, incomplete axis screening and bounded full-cone finite-MLE/separation assessment for unconstrained Bernoulli/Poisson likelihoods.",
+      "promotion_gate": "Broaden independent high-dimensional and cross-platform qualification; resource exhaustion stays unresolved and constraints/priors require separate analysis."
     },
     {
       "path": "crates/alea-distributions/src/modeling/regression/diagnostics/gaussian.rs",
@@ -441,6 +441,12 @@
       "profile": "research_component",
       "summary": "Exact finite-binary64 dyadic dot signs using integer arithmetic; independent rational fixtures.",
       "promotion_gate": "Broaden cross-platform predicate checks; exact stored-data signs do not certify pre-conversion observations."
+    },
+    {
+      "path": "crates/alea-math/src/exact/cone.rs",
+      "profile": "research_component",
+      "summary": "Bounded exact Fourier-Motzkin strict-cone feasibility and integer-ray reconstruction, checked against independent rational vertex enumeration.",
+      "promotion_gate": "Broaden dimension/resource and platform qualification; no claim of scalable unrestricted LP solving."
     },
     {
       "path": "crates/alea-math/src/fisher.rs",
@@ -8696,6 +8702,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl alea_distributions::modeling::regression::diagnostics::RecessionWitness",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -9199,6 +9211,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::GaussianAssessment",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -9208,6 +9226,12 @@
       "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::GaussianIssue",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::MleExistence",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -10244,6 +10268,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::GaussianAssessment",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -10253,6 +10283,12 @@
       "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::GaussianIssue",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::MleExistence",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -11970,6 +12006,24 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::MleExistence::FiniteMaximum",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::MleExistence::NoFiniteMaximum(alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness)",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::diagnostics::MleExistence::Unresolved",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub alea_distributions::modeling::regression::diagnostics::RecessionKind::CompleteSeparation",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -12469,6 +12523,12 @@
       "item": "pub enum alea_distributions::modeling::regression::diagnostics::GaussianIssue",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub enum alea_distributions::modeling::regression::diagnostics::MleExistence",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -13083,6 +13143,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<bool>::bernoulli_mle_existence(&self, options: alea_math::exact::cone::ConeSearchOptions) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::MleExistence, alea_distributions::modeling::regression::RegressionDataError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::regression::RegressionData<bool>::bernoulli_recession(&self, direction: &[f64]) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::DirectionAssessment, alea_distributions::modeling::regression::RegressionDataError>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -13098,6 +13164,12 @@
       "item": "pub fn alea_distributions::modeling::regression::RegressionData<u64>::poisson_coordinate_recession(&self) -> core::result::Result<core::option::Option<alea_distributions::modeling::regression::diagnostics::RecessionWitness>, alea_distributions::modeling::regression::RegressionDataError>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<u64>::poisson_mle_existence(&self, options: alea_math::exact::cone::ConeSearchOptions) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::MleExistence, alea_distributions::modeling::regression::RegressionDataError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -13149,6 +13221,42 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness::clone(&self) -> alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness::direction(&self) -> &alea_math::exact::cone::IntegerDirection",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness::flat_rows(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness::improving_rows(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness::kind(&self) -> alea_distributions::modeling::regression::diagnostics::RecessionKind",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::regression::diagnostics::GaussianAssessment::clone(&self) -> alea_distributions::modeling::regression::diagnostics::GaussianAssessment",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -13176,6 +13284,18 @@
       "item": "pub fn alea_distributions::modeling::regression::diagnostics::GaussianIssue::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::MleExistence::clone(&self) -> alea_distributions::modeling::regression::diagnostics::MleExistence",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::diagnostics::MleExistence::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
@@ -18346,6 +18466,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub struct alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub struct alea_distributions::modeling::regression::diagnostics::GaussianAssessment",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -20456,6 +20582,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub use alea_distributions::modeling::regression::diagnostics::ConeSearchOptions",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub use alea_distributions::prelude::Distribution",
       "profile": "validated_component_reference"
     },
@@ -20884,6 +21016,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl alea_math::exact::IntegerDirection",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl alea_math::interpolation::LinearSpline",
       "profile": "validated_component_reference"
     },
@@ -21017,9 +21155,27 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::exact::ConeSearch",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::exact::ConeSearchOptions",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::clone::Clone for alea_math::exact::ExactDotError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::exact::IntegerDirection",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -21262,6 +21418,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::default::Default for alea_math::exact::ConeSearchOptions",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::default::Default for alea_math::numeric::CompensatedSum",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -21327,9 +21489,27 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::exact::ConeSearch",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::exact::ConeSearchOptions",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::fmt::Debug for alea_math::exact::ExactDotError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::exact::IntegerDirection",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -21506,6 +21686,12 @@
       "crate": "alea-math",
       "item": "impl core::marker::Copy for alea_math::affine::AffineMapError",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::exact::ConeSearchOptions",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -21793,6 +21979,42 @@
       "crate": "alea-math",
       "item": "pub alea_math::affine::AffineMapError::VectorDimension",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::exact::ConeSearch::BudgetExceeded",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::exact::ConeSearch::Direction(alea_math::exact::IntegerDirection)",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::exact::ConeSearch::NoImprovingDirection",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::exact::ConeSearchOptions::max_coefficient_bits: u64",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::exact::ConeSearchOptions::max_columns: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::exact::ConeSearchOptions::max_rows: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -22172,6 +22394,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub enum alea_math::exact::ConeSearch",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub enum alea_math::exact::ExactDotError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -22411,6 +22639,36 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub fn alea_math::exact::ConeSearch::clone(&self) -> alea_math::exact::ConeSearch",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::exact::ConeSearch::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::exact::ConeSearchOptions::clone(&self) -> alea_math::exact::ConeSearchOptions",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::exact::ConeSearchOptions::default() -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::exact::ConeSearchOptions::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub fn alea_math::exact::ExactDotError::clone(&self) -> alea_math::exact::ExactDotError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -22435,9 +22693,39 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub fn alea_math::exact::IntegerDirection::clone(&self) -> alea_math::exact::IntegerDirection",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::exact::IntegerDirection::coefficients(&self) -> &[num_bigint::bigint::BigInt]",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::exact::IntegerDirection::dot_sign(&self, row: &[f64]) -> core::result::Result<core::cmp::Ordering, alea_math::exact::ExactDotError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::exact::IntegerDirection::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub fn alea_math::exact::dot_sign(left: &[f64], right: &[f64]) -> core::result::Result<core::cmp::Ordering, alea_math::exact::ExactDotError>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::exact::strict_cone_direction(columns: usize, inequalities: &[f64], equalities: &[f64], options: alea_math::exact::ConeSearchOptions) -> core::result::Result<alea_math::exact::ConeSearch, alea_math::exact::ExactDotError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",
@@ -23520,6 +23808,18 @@
       "crate": "alea-math",
       "item": "pub struct alea_math::buffer::VecViewMut<'a, T>",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub struct alea_math::exact::ConeSearchOptions",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub struct alea_math::exact::IntegerDirection(_)",
+      "profile": "research_component",
+      "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
     },
     {
       "crate": "alea-math",

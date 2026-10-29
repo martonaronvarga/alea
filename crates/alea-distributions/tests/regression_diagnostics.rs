@@ -1,6 +1,6 @@
 use alea_distributions::modeling::regression::{
     RegressionData,
-    diagnostics::{DirectionAssessment, RecessionKind},
+    diagnostics::{ConeSearchOptions, DirectionAssessment, MleExistence, RecessionKind},
 };
 fn witness(
     a: DirectionAssessment,
@@ -9,6 +9,131 @@ fn witness(
         panic!("expected witness")
     };
     w
+}
+
+#[test]
+fn general_search_resolves_non_axis_separation_and_overlap() {
+    let options = ConeSearchOptions::default();
+    let data = RegressionData::new(
+        2,
+        vec![1., -0.5, -0.5, 1., -1., 0.5, 0.5, -1.],
+        vec![true, true, false, false],
+    )
+    .unwrap();
+    assert!(data.bernoulli_coordinate_recession().unwrap().is_none());
+    let MleExistence::NoFiniteMaximum(w) = data.bernoulli_mle_existence(options).unwrap() else {
+        panic!("expected separation")
+    };
+    assert!(w.improving_rows() > 0);
+    assert_eq!(w.improving_rows() + w.flat_rows(), 4);
+    for (row, y) in data.design().chunks_exact(2).zip(data.observations()) {
+        let sign = w.direction().dot_sign(row).unwrap();
+        assert_ne!(
+            sign,
+            if *y {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Greater
+            }
+        );
+    }
+    let quasi = RegressionData::new(2, vec![1., -1., -1., 1., 1., 1.], vec![true; 3]).unwrap();
+    assert!(quasi.bernoulli_coordinate_recession().unwrap().is_none());
+    let MleExistence::NoFiniteMaximum(w) = quasi.bernoulli_mle_existence(options).unwrap() else {
+        panic!("expected quasi separation")
+    };
+    assert_eq!(w.kind(), RecessionKind::QuasiCompleteSeparation);
+    assert_eq!(w.flat_rows(), 2);
+    // Duplicate columns give nonunique coefficients but a finite attained maximum.
+    let overlap = RegressionData::new(2, vec![1., 1., 1., 1.], vec![true, false])
+        .unwrap()
+        .with_offsets(vec![1000., -1000.])
+        .unwrap();
+    assert!(matches!(
+        overlap.bernoulli_mle_existence(options).unwrap(),
+        MleExistence::FiniteMaximum
+    ));
+    assert!(matches!(
+        data.bernoulli_mle_existence(ConeSearchOptions {
+            max_rows: 0,
+            ..options
+        })
+        .unwrap(),
+        MleExistence::Unresolved
+    ));
+}
+
+#[test]
+fn poisson_search_respects_exact_equalities_and_finite_zero_count_models() {
+    let options = ConeSearchOptions::default();
+    // Only a combination of both columns can keep the positive-count row fixed.
+    let data = RegressionData::new(2, vec![3., 1., 1., 0.], vec![2, 0]).unwrap();
+    assert!(data.poisson_coordinate_recession().unwrap().is_none());
+    let MleExistence::NoFiniteMaximum(w) = data.poisson_mle_existence(options).unwrap() else {
+        panic!("expected boundary ray")
+    };
+    assert_eq!(w.kind(), RecessionKind::PoissonBoundary);
+    assert_eq!(
+        w.direction().dot_sign(&[3., 1.]).unwrap(),
+        std::cmp::Ordering::Equal
+    );
+    assert_eq!(
+        w.direction().dot_sign(&[1., 0.]).unwrap(),
+        std::cmp::Ordering::Less
+    );
+    for (design, y) in [
+        (vec![-1., 1.], vec![0, 0]),
+        (vec![1., 1.], vec![1, 3]),
+        (vec![0., 0.], vec![0, 0]),
+    ] {
+        assert!(matches!(
+            RegressionData::new(1, design, y)
+                .unwrap()
+                .poisson_mle_existence(options)
+                .unwrap(),
+            MleExistence::FiniteMaximum
+        ));
+    }
+    assert!(matches!(
+        RegressionData::new(1, vec![1., 1.], vec![0, 0])
+            .unwrap()
+            .poisson_mle_existence(options)
+            .unwrap(),
+        MleExistence::NoFiniteMaximum(_)
+    ));
+    assert!(
+        RegressionData::new(1, vec![1.], vec![(1_u64 << 53) + 1])
+            .unwrap()
+            .poisson_mle_existence(options)
+            .is_err()
+    );
+    assert!(matches!(
+        data.poisson_mle_existence(ConeSearchOptions {
+            max_columns: 1,
+            ..options
+        })
+        .unwrap(),
+        MleExistence::Unresolved
+    ));
+}
+
+#[test]
+fn zero_column_models_have_finite_likelihoods_and_no_free_directions() {
+    let options = ConeSearchOptions::default();
+    assert!(matches!(
+        RegressionData::new(0, vec![], vec![true, false])
+            .unwrap()
+            .bernoulli_mle_existence(options)
+            .unwrap(),
+        MleExistence::FiniteMaximum
+    ));
+    assert!(matches!(
+        RegressionData::new(0, vec![], vec![0, 1])
+            .unwrap()
+            .poisson_mle_existence(options)
+            .unwrap(),
+        MleExistence::FiniteMaximum
+    ));
 }
 #[test]
 fn complete_quasi_and_null_directions_are_distinguished_exactly() {

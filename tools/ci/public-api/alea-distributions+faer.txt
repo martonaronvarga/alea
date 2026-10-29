@@ -227,6 +227,7 @@ pub fn alea_distributions::mixture::FiniteMixture<D>::fmt(&self, f: &mut core::f
 pub mod alea_distributions::modeling
 pub mod alea_distributions::modeling::regression
 pub mod alea_distributions::modeling::regression::diagnostics
+pub use alea_distributions::modeling::regression::diagnostics::ConeSearchOptions
 pub enum alea_distributions::modeling::regression::diagnostics::DirectionAssessment
 pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::NotWitness
 pub alea_distributions::modeling::regression::diagnostics::DirectionAssessment::NotWitness::flat_rows: usize
@@ -250,6 +251,14 @@ impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics:
 pub fn alea_distributions::modeling::regression::diagnostics::GaussianIssue::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_distributions::modeling::regression::diagnostics::GaussianIssue
 impl core::marker::StructuralPartialEq for alea_distributions::modeling::regression::diagnostics::GaussianIssue
+pub enum alea_distributions::modeling::regression::diagnostics::MleExistence
+pub alea_distributions::modeling::regression::diagnostics::MleExistence::FiniteMaximum
+pub alea_distributions::modeling::regression::diagnostics::MleExistence::NoFiniteMaximum(alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness)
+pub alea_distributions::modeling::regression::diagnostics::MleExistence::Unresolved
+impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::MleExistence
+pub fn alea_distributions::modeling::regression::diagnostics::MleExistence::clone(&self) -> alea_distributions::modeling::regression::diagnostics::MleExistence
+impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::MleExistence
+pub fn alea_distributions::modeling::regression::diagnostics::MleExistence::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub enum alea_distributions::modeling::regression::diagnostics::RecessionKind
 pub alea_distributions::modeling::regression::diagnostics::RecessionKind::CompleteSeparation
 pub alea_distributions::modeling::regression::diagnostics::RecessionKind::PoissonBoundary
@@ -263,6 +272,16 @@ impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics:
 pub fn alea_distributions::modeling::regression::diagnostics::RecessionKind::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_distributions::modeling::regression::diagnostics::RecessionKind
 impl core::marker::StructuralPartialEq for alea_distributions::modeling::regression::diagnostics::RecessionKind
+pub struct alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness
+impl alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness
+pub fn alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness::direction(&self) -> &alea_math::exact::cone::IntegerDirection
+pub fn alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness::flat_rows(&self) -> usize
+pub fn alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness::improving_rows(&self) -> usize
+pub fn alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness::kind(&self) -> alea_distributions::modeling::regression::diagnostics::RecessionKind
+impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness
+pub fn alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness::clone(&self) -> alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness
+impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness
+pub fn alea_distributions::modeling::regression::diagnostics::ExactRecessionWitness::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_distributions::modeling::regression::diagnostics::GaussianAssessment
 pub alea_distributions::modeling::regression::diagnostics::GaussianAssessment::issues: alloc::vec::Vec<alea_distributions::modeling::regression::diagnostics::GaussianIssue>
 pub alea_distributions::modeling::regression::diagnostics::GaussianAssessment::least_squares: alea_math::least_squares::LeastSquares
@@ -306,11 +325,13 @@ impl core::marker::StructuralPartialEq for alea_distributions::modeling::regress
 pub struct alea_distributions::modeling::regression::RegressionData<Y>
 impl alea_distributions::modeling::regression::RegressionData<bool>
 pub fn alea_distributions::modeling::regression::RegressionData<bool>::bernoulli_coordinate_recession(&self) -> core::result::Result<core::option::Option<alea_distributions::modeling::regression::diagnostics::RecessionWitness>, alea_distributions::modeling::regression::RegressionDataError>
+pub fn alea_distributions::modeling::regression::RegressionData<bool>::bernoulli_mle_existence(&self, options: alea_math::exact::cone::ConeSearchOptions) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::MleExistence, alea_distributions::modeling::regression::RegressionDataError>
 pub fn alea_distributions::modeling::regression::RegressionData<bool>::bernoulli_recession(&self, direction: &[f64]) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::DirectionAssessment, alea_distributions::modeling::regression::RegressionDataError>
 impl alea_distributions::modeling::regression::RegressionData<f64>
 pub fn alea_distributions::modeling::regression::RegressionData<f64>::gaussian_assessment(&self, relative_rank_tolerance: f64, relative_residual_tolerance: f64) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::GaussianAssessment, alea_math::least_squares::LeastSquaresError>
 impl alea_distributions::modeling::regression::RegressionData<u64>
 pub fn alea_distributions::modeling::regression::RegressionData<u64>::poisson_coordinate_recession(&self) -> core::result::Result<core::option::Option<alea_distributions::modeling::regression::diagnostics::RecessionWitness>, alea_distributions::modeling::regression::RegressionDataError>
+pub fn alea_distributions::modeling::regression::RegressionData<u64>::poisson_mle_existence(&self, options: alea_math::exact::cone::ConeSearchOptions) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::MleExistence, alea_distributions::modeling::regression::RegressionDataError>
 pub fn alea_distributions::modeling::regression::RegressionData<u64>::poisson_recession(&self, direction: &[f64]) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::DirectionAssessment, alea_distributions::modeling::regression::RegressionDataError>
 impl<Y> alea_distributions::modeling::regression::RegressionData<Y>
 pub fn alea_distributions::modeling::regression::RegressionData<Y>::columns(&self) -> usize

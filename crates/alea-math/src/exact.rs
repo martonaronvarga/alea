@@ -3,6 +3,8 @@
 use num_bigint::{BigInt, Sign};
 use std::cmp::Ordering;
 use thiserror::Error;
+mod cone;
+pub use cone::{ConeSearch, ConeSearchOptions, IntegerDirection, strict_cone_direction};
 /// Invalid operands for an exact dot sign.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum ExactDotError {

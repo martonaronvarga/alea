@@ -423,6 +423,57 @@ on the common product scale 2^-2148. This is an allocating diagnostic, not part
 of hot likelihood evaluation. Keep the checked dataset's identity with a saved
 direction and recheck it if the data change.
 
+Use `bernoulli_mle_existence(options)` or `poisson_mle_existence(options)` to
+search combinations of columns and assess the entire recession cone:
+
+```rust
+use alea::distributions::modeling::regression::{
+    RegressionData, diagnostics::{ConeSearchOptions, MleExistence},
+};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Neither coordinate axis separates these observations; a combined direction does.
+    let data = RegressionData::new(
+        2, vec![1.0, -0.5, -0.5, 1.0], vec![true, true],
+    )?;
+    match data.bernoulli_mle_existence(ConeSearchOptions::default())? {
+        MleExistence::FiniteMaximum => println!("a finite maximum is attained"),
+        MleExistence::NoFiniteMaximum(witness) => {
+            println!("improving integer ray: {:?}", witness.direction().coefficients());
+        }
+        MleExistence::Unresolved => println!("the search exceeded its resource budget"),
+    }
+    Ok(())
+}
+```
+
+The search forms `A*d >= 0` and `E*d = 0`. Bernoulli rows in `A` are the
+signed design rows; Poisson rows in `A` are the negated zero-count design rows,
+and `E` contains the positive-count rows. Strict improvement requires at least
+one positive component of `A*d`. Since the cone is homogeneous, this is
+equivalent to adding `sum(A*d) >= 1`: any improving ray can be rescaled to
+satisfy that inequality. Flat design-nullspace directions cannot satisfy it.
+
+Fourier–Motzkin elimination solves this linear feasibility problem with exact
+integers derived from the stored binary64 values. Infeasibility establishes
+`FiniteMaximum` for these two likelihood families, including designs without an
+intercept. A finite maximum can have nonunique coefficients when the design has
+a nullspace; it does not guarantee representable estimates, successful numerical
+optimization, or valid standard errors. A feasible system yields an exact integer
+ray after rational back substitution. Its `kind()` describes that ray's margins;
+a ray with flat margins does not rule out another completely separating ray.
+Do not round the returned integers to f64 before checking Poisson equalities.
+
+Elimination can grow exponentially. `ConeSearchOptions` limits the input columns,
+total input/generated rows, and integer sizes. The defaults allow 32 columns,
+16,384 rows, and 8,192-bit coefficients; this is a diagnostic for bounded problems,
+not an unrestricted large-design LP solver. Any exhausted limit returns
+`Unresolved`, never `FiniteMaximum`. Increasing a budget can settle an unresolved
+case, but a numerical score tolerance cannot override an improving-ray witness.
+The independent test oracle uses exact rational vertex enumeration rather than
+the production elimination algorithm. See also
+[Konis's separation analysis](https://ora.ox.ac.uk/objects/uuid:8f9ee0d0-d78e-4101-9ab4-f9cbceed2a2a).
+
 These checks assume independent unconstrained coefficients and a likelihood
 without priors. Parameter restrictions, shared/nonlinear coefficient expressions
 or a proper prior require a different assessment. They do not prevent using a
