@@ -166,6 +166,14 @@ pub enum OptimizationTermination {
     /// A checked evaluation or backend failed; inspect the accompanying typed error.
     EvaluationFailed,
 }
+/// Observed reason for an unsuccessful line search, not a convergence diagnosis.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LineSearchFailure {
+    /// All allowed backtracking trials were consumed without an accepted step.
+    BacktrackLimit,
+    /// The next trial rounded to the accepted position before the trial budget ended.
+    NoRepresentableStep,
+}
 /// Point-estimation outcome, distinct from draws and Pathfinder approximations.
 #[derive(Debug, Clone)]
 pub struct OptimizationResult {
@@ -179,6 +187,9 @@ pub struct OptimizationResult {
     pub candidate: Option<OptimizationCandidate>,
     /// Exact stopping condition; no global-optimum claim.
     pub termination: OptimizationTermination,
+    /// Present exactly when termination is `LineSearchFailed`. Neither reason
+    /// establishes that the score tolerance or a statistical optimum was reached.
+    pub line_search_failure: Option<LineSearchFailure>,
     /// Accepted steps, excluding the initial evaluation.
     pub iterations: usize,
     /// Actual backend fused calls, including failed and rejected evaluations.
@@ -288,6 +299,7 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
         objective,
         candidate: None,
         termination: OptimizationTermination::Cancelled,
+        line_search_failure: None,
         iterations: 0,
         evaluations: 0,
         domain_trials: 0,
@@ -358,6 +370,7 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
             1.
         };
         let mut accepted = None;
+        let mut search_failure = LineSearchFailure::BacktrackLimit;
         for _ in 0..options.backtracks {
             if cancelled() {
                 result.termination = OptimizationTermination::Cancelled;
@@ -375,6 +388,7 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
                 .map(|((q, d), s)| q + step * d * s)
                 .collect();
             if position == current.position {
+                search_failure = LineSearchFailure::NoRepresentableStep;
                 break;
             }
             if position.iter().all(|x| x.is_finite()) {
@@ -408,6 +422,7 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
         }
         let Some(candidate) = accepted else {
             result.termination = OptimizationTermination::LineSearchFailed;
+            result.line_search_failure = Some(search_failure);
             break;
         };
         let s: Vec<_> = candidate

@@ -172,6 +172,10 @@ fn negative_infinity_backtracks_but_never_corrupts_the_candidate() {
     )
     .unwrap();
     assert_eq!(r.termination, OptimizationTermination::LineSearchFailed);
+    assert_eq!(
+        r.line_search_failure,
+        Some(LineSearchFailure::BacktrackLimit)
+    );
     assert_eq!(r.domain_trials, 4);
     assert_eq!(r.evaluations, 5);
     assert_eq!(r.candidate.unwrap().position, [0.]);
@@ -539,4 +543,45 @@ fn named_projection_respects_dimension_reducing_simplex_coordinates() {
     assert_eq!(fit.estimates().unwrap().len(), 3);
     assert!((fit.estimates().unwrap().iter().sum::<f64>() - 1.).abs() < 1e-15);
     assert_eq!(fit.result().candidate.as_ref().unwrap().gradient.len(), 2);
+}
+
+struct RoundedPosition;
+impl TargetSpace for RoundedPosition {
+    type Error = Infallible;
+    fn dimension(&self) -> usize {
+        1
+    }
+}
+impl LogDensityGradient for RoundedPosition {
+    fn logp_grad(&self, _: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
+        g[0] = 1.;
+        Ok(0.)
+    }
+}
+#[test]
+fn unrepresentable_step_retains_candidate_without_an_extra_evaluation() {
+    let r = maximize(
+        &RoundedPosition,
+        &[1e30],
+        identity(),
+        LbfgsOptions::new(10, 100).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(r.termination, OptimizationTermination::LineSearchFailed);
+    assert_eq!(
+        r.line_search_failure,
+        Some(LineSearchFailure::NoRepresentableStep)
+    );
+    assert_eq!(r.evaluations, 1);
+    assert_eq!(r.iterations, 0);
+    assert_eq!(r.candidate.unwrap().gradient, [1.]);
+    let r = maximize(
+        &Gaussian,
+        &[2., -1.],
+        identity(),
+        LbfgsOptions::new(10, 100).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(r.termination, OptimizationTermination::ScoreTolerance);
+    assert_eq!(r.line_search_failure, None);
 }
