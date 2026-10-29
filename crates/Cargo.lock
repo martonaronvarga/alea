@@ -167,6 +167,8 @@ dependencies = [
  "rand 0.10.1",
  "rayon",
  "rustfft",
+ "serde_json",
+ "sha2",
  "statrs",
  "thiserror 2.0.18",
  "tokio",

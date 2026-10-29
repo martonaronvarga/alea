@@ -88,6 +88,7 @@ Start with the default build. Add a backend when your workload needs it.
 
 | Feature | Requirements | Typical use |
 |---|---|---|
+| `analysis` | Stable Rust | Named CSV/JSON sampling artifacts |
 | `faer` | Stable Rust | Optional matrix operations and fitted geometry |
 | `openblas` | LP64 OpenBLAS headers and libraries | BLAS-backed matrix operations |
 | `simd` | Pinned nightly Rust | Portable SIMD kernels |

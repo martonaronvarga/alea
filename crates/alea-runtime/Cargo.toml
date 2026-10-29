@@ -30,6 +30,8 @@ tokio-util.workspace = true
 arc-swap.workspace = true
 rustfft.workspace = true
 statrs.workspace = true
+serde_json = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
 
 [dev-dependencies]
 alea-distributions.workspace = true
@@ -37,4 +39,5 @@ allocation-counter.workspace = true
 
 [features]
 default = []
+analysis = ["dep:serde_json", "dep:sha2"]
 faer = ["alea-mcmc/faer"]

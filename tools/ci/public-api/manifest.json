@@ -102,6 +102,16 @@
     }
   },
   "feature_packages": {
+    "alea+analysis": {
+      "file": "alea+analysis.txt",
+      "items": 52,
+      "sha256": "ec20121ec7c6aaf87441c3055b0fa930cd163716680c07eb9d406701a288ec7b"
+    },
+    "alea-runtime+analysis": {
+      "file": "alea-runtime+analysis.txt",
+      "items": 908,
+      "sha256": "4dd044effc9e17f8f2e5be397a340c6fddaf4c42f772e906853b5069f3e41e58"
+    },
     "alea+distributions": {
       "file": "alea+distributions.txt",
       "items": 54,

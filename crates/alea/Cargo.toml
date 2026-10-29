@@ -26,6 +26,7 @@ alea-autodiff = { workspace = true, optional = true }
 
 [features]
 default = []
+analysis = ["alea-runtime/analysis"]
 distributions = ["dep:alea-distributions"]
 autodiff = ["dep:alea-autodiff"]
 faer = ["alea-math/faer", "alea-mcmc/faer", "alea-runtime/faer"]

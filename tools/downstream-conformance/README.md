@@ -49,3 +49,11 @@ cargo run --manifest-path tools/downstream-conformance/Cargo.toml --locked \
 
 The path must not exist. The example asserts 96 new records and 128 total retained
 draws; one chain deliberately returns a diagnostic warning.
+
+The analysis round-trip test uses Python 3 from PATH (or `ALEA_PYTHON`) to read
+artifacts with an independent standard-library implementation. Native Alea
+applications do not need Python. Reader mutation tests run with:
+
+```console
+python3 -m unittest discover -s tools/downstream-conformance/python
+```

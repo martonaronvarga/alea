@@ -46,6 +46,8 @@ pulp = { version = "=0.22.3", default-features = false, features = ["std", "x86-
 rand_distr = "=0.6.0"
 allocation-counter = "=0.8.1"
 proptest = { version = "1", default-features = false, features = ["std"] }
+serde_json = "1.0.149"
+sha2 = "0.10.9"
 criterion = "0.5"
 pprof = { version = "0.15", features = ["flamegraph", "criterion"] }
 

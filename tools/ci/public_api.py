@@ -48,6 +48,8 @@ FEATURE_VARIANTS = {
     },
 }
 FEATURE_SNAPSHOTS = {
+    "alea+analysis": {"package": "alea", "features": ["alea/analysis"]},
+    "alea-runtime+analysis": {"package": "alea-runtime", "features": ["alea-runtime/analysis"]},
     "alea+distributions": {"package": "alea", "features": ["alea/distributions"]},
     "alea+autodiff": {"package": "alea", "features": ["alea/autodiff"]},
     "alea+faer": {"package": "alea", "features": ["alea/faer"]},

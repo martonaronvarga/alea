@@ -1,0 +1,389 @@
+#![cfg(feature = "analysis")]
+use alea_core::{
+    model::{
+        assembly::{ModelBuilder, PointwiseLikelihood, PredictiveUnit},
+        prediction::NamedOutput,
+    },
+    transform::{ParameterLayout, Transform},
+};
+use alea_runtime::{
+    analysis::{AnalysisError, AnalysisSpec, AnalysisWriter, ChainStatus, Provenance},
+    output::{ChainId, Draw, Phase, SCHEMA_VERSION, TransitionStats},
+};
+use serde_json::Value;
+use std::{
+    collections::BTreeMap,
+    io::{self, Write},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+};
+fn provenance() -> Provenance {
+    Provenance {
+        model: "model:example".into(),
+        data: "data:example".into(),
+        source: "revision/toolchain/features".into(),
+        method: "NUTS".into(),
+        settings: BTreeMap::from([("seed".into(), "7".into())]),
+    }
+}
+fn spec() -> AnalysisSpec {
+    let mut b = ModelBuilder::new();
+    let x = b.positive("scale,\"λ\"\r\nnext").unwrap().expr();
+    b.likelihood("joint\nunit", x).unwrap();
+    let p = PointwiseLikelihood::new(
+        b.compile().unwrap(),
+        vec![PredictiveUnit {
+            name: "joint\nunit".into(),
+            factors: vec!["joint\nunit".into()],
+            observations: vec!["row1".into(), "row2".into()],
+            conditioned_on: vec!["scale".into()],
+            integrated_out: vec![],
+        }],
+    )
+    .unwrap();
+    let mut spec =
+        AnalysisSpec::from_likelihood(p, provenance(), vec![ChainId(9), ChainId(u64::MAX)])
+            .unwrap();
+    spec.save_unconstrained = true;
+    spec.predictions = vec!["predict,\"λ\"".into()];
+    spec
+}
+fn draw<'a>(
+    chain: u64,
+    phase: Phase,
+    index: usize,
+    q: &'a [f64],
+    stats: &'a TransitionStats,
+) -> Draw<'a, ()> {
+    Draw {
+        schema_version: SCHEMA_VERSION,
+        chain: ChainId(chain),
+        phase,
+        index,
+        position: q,
+        transition: &(),
+        stats: *stats,
+    }
+}
+fn finish(writer: AnalysisWriter<Vec<u8>>) -> (Vec<u8>, Value) {
+    let mut json = Vec::new();
+    let csv = writer
+        .finish(
+            &mut json,
+            &[
+                (ChainId(9), ChainStatus::Completed),
+                (
+                    ChainId(u64::MAX),
+                    ChainStatus::Failed("never initialized".into()),
+                ),
+            ],
+        )
+        .unwrap();
+    (csv, serde_json::from_slice(&json).unwrap())
+}
+#[test]
+fn named_rows_preserve_physical_values_absence_failures_and_planned_empty_chains() {
+    let mut spec = spec();
+    spec.units
+        .insert("parameter:scale,\"λ\"\r\nnext".into(), "seconds".into());
+    let mut w = AnalysisWriter::new(Vec::new(), spec).unwrap();
+    let stats = TransitionStats {
+        acceptance_probability: 0.75,
+        energy: Some(-0.),
+        divergent: Some(false),
+        ..TransitionStats::default()
+    };
+    w.write_draw(&draw(9, Phase::Warmup, 40, &[2_f64.ln()], &stats), &[-0.])
+        .unwrap();
+    w.write_draw(
+        &draw(9, Phase::Sampling, 80, &[2_f64.ln()], &stats),
+        &[f64::from_bits(1)],
+    )
+    .unwrap();
+    w.write_failure(
+        ChainId(9),
+        Phase::Sampling,
+        81,
+        "numerical failure, \"detail\"\r\nsecond line",
+    )
+    .unwrap();
+    let (csv, m) = finish(w);
+    assert_eq!(m["kind"], "sampling");
+    assert_eq!(m["chains"][0]["sampling"]["rows"], 2);
+    assert_eq!(m["chains"][0]["sampling"]["failures"], 1);
+    assert_eq!(m["chains"][1]["sampling"]["first"], Value::Null);
+    assert_eq!(m["chains"][1]["id"], u64::MAX);
+    assert_eq!(m["predictive_units"][0]["observations"][1], "row2");
+    let text = String::from_utf8(csv).unwrap();
+    assert!(text.contains("\"parameter:scale,\"\"λ\"\"\r\nnext\""));
+    assert!(text.contains("\"failure\",\"numerical failure, \"\"detail\"\"\r\nsecond line\""));
+    assert!(text.contains("\"-0\""));
+    assert!(text.contains("\"2\""));
+}
+#[test]
+fn invalid_payloads_are_counted_as_failures_while_invalid_keys_are_rejected() {
+    let mut w = AnalysisWriter::new(Vec::new(), spec()).unwrap();
+    let stats = TransitionStats::default();
+    for (index, q) in [&[f64::NAN][..], &[-1000.][..], &[][..]]
+        .into_iter()
+        .enumerate()
+    {
+        assert!(
+            w.write_draw(&draw(9, Phase::Sampling, index + 4, q, &stats), &[0.])
+                .is_err()
+        );
+    }
+    let invalid = TransitionStats {
+        acceptance_probability: f64::NAN,
+        ..stats
+    };
+    assert!(
+        w.write_draw(&draw(9, Phase::Sampling, 7, &[0.], &invalid), &[0.])
+            .is_err()
+    );
+    assert!(
+        w.write_draw(&draw(10, Phase::Sampling, 8, &[0.], &stats), &[0.])
+            .is_err()
+    );
+    w.write_failure(ChainId(9), Phase::Sampling, 8, "failed evaluation")
+        .unwrap();
+    assert!(
+        w.write_draw(&draw(9, Phase::Sampling, 8, &[0.], &stats), &[0.])
+            .is_err()
+    );
+    assert!(
+        w.write_draw(&draw(9, Phase::Sampling, 10, &[0.], &stats), &[0.])
+            .is_err()
+    );
+    assert!(
+        w.write_draw(&draw(9, Phase::Warmup, 0, &[0.], &stats), &[0.])
+            .is_err()
+    );
+    w.write_draw(&draw(9, Phase::Sampling, 9, &[0.], &stats), &[0.])
+        .unwrap();
+    let (_, m) = finish(w);
+    assert_eq!(m["chains"][0]["sampling"]["first"], 4);
+    assert_eq!(m["chains"][0]["sampling"]["last"], 9);
+    assert_eq!(m["chains"][0]["sampling"]["failures"], 5);
+    assert_eq!(m["chains"][0]["sampling"]["rows"], 6);
+}
+#[test]
+fn metadata_and_final_outcomes_are_validated_without_inventing_results() {
+    for case in 0..4 {
+        let mut s = spec();
+        match case {
+            0 => s.chains.push(ChainId(9)),
+            1 => s.provenance.data.clear(),
+            2 => s.predictions.push(s.predictions[0].clone()),
+            _ => {
+                s.units.insert("unknown".into(), "unit".into());
+            }
+        }
+        let mut bytes = Vec::new();
+        assert!(AnalysisWriter::new(&mut bytes, s).is_err());
+        assert!(bytes.is_empty());
+    }
+    let mut s = spec();
+    let mut b = ModelBuilder::new();
+    let _ = b.real("different").unwrap();
+    let f = b.constant(0.).unwrap();
+    b.factor(f).unwrap();
+    let m = b.compile().unwrap();
+    s.parameters = NamedOutput::new(m.coordinates(), m.layout().clone(), ()).unwrap();
+    assert!(AnalysisWriter::new(Vec::new(), s).is_err());
+    for statuses in [
+        vec![],
+        vec![
+            (ChainId(9), ChainStatus::Completed),
+            (ChainId(9), ChainStatus::Completed),
+        ],
+        vec![
+            (ChainId(9), ChainStatus::Completed),
+            (ChainId(u64::MAX), ChainStatus::Failed(String::new())),
+        ],
+    ] {
+        assert!(
+            AnalysisWriter::new(Vec::new(), spec())
+                .unwrap()
+                .finish(Vec::new(), &statuses)
+                .is_err()
+        );
+    }
+}
+struct Switch {
+    failed: Arc<AtomicBool>,
+}
+impl Write for Switch {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        if self.failed.load(Ordering::Relaxed) {
+            Err(io::Error::other("injected I/O"))
+        } else {
+            Ok(bytes.len())
+        }
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        if self.failed.load(Ordering::Relaxed) {
+            Err(io::Error::other("injected flush"))
+        } else {
+            Ok(())
+        }
+    }
+}
+#[test]
+fn failed_writes_poison_the_stream_and_prevent_a_manifest() {
+    let failed = Arc::new(AtomicBool::new(false));
+    let mut w = AnalysisWriter::new(
+        Switch {
+            failed: Arc::clone(&failed),
+        },
+        spec(),
+    )
+    .unwrap();
+    failed.store(true, Ordering::Relaxed);
+    // A long quoted failure forces the bounded I/O buffer to flush.
+    assert!(matches!(
+        w.write_failure(ChainId(9), Phase::Sampling, 0, &"x".repeat(20_000)),
+        Err(AnalysisError::Io(_))
+    ));
+    failed.store(false, Ordering::Relaxed);
+    assert!(matches!(
+        w.write_failure(ChainId(9), Phase::Sampling, 0, "retry"),
+        Err(AnalysisError::Poisoned)
+    ));
+    let mut manifest = Vec::new();
+    assert!(matches!(
+        w.finish(&mut manifest, &[]),
+        Err(AnalysisError::Poisoned)
+    ));
+    assert!(manifest.is_empty());
+    let w = AnalysisWriter::new(
+        Switch {
+            failed: Arc::clone(&failed),
+        },
+        spec(),
+    )
+    .unwrap();
+    failed.store(true, Ordering::Relaxed);
+    let mut manifest = Vec::new();
+    assert!(
+        w.finish(
+            &mut manifest,
+            &[
+                (ChainId(9), ChainStatus::Completed),
+                (ChainId(u64::MAX), ChainStatus::Completed)
+            ]
+        )
+        .is_err()
+    );
+    assert!(manifest.is_empty());
+}
+#[test]
+fn free_coordinates_use_full_round_trip_decimal_and_no_unneeded_jacobian() {
+    let mut b = ModelBuilder::new();
+    let x = b.real("x").unwrap().expr();
+    b.factor(x).unwrap();
+    let m = b.compile().unwrap();
+    let params = NamedOutput::new(
+        m.coordinates(),
+        ParameterLayout::new(vec![Transform::identity(1).unwrap()]).unwrap(),
+        (),
+    )
+    .unwrap();
+    let mut s = AnalysisSpec::new(params, provenance(), vec![ChainId(9)]);
+    s.save_unconstrained = true;
+    let mut w = AnalysisWriter::new(Vec::new(), s).unwrap();
+    let stats = TransitionStats::default();
+    for (i, x) in [
+        -0.,
+        f64::from_bits(1),
+        f64::MAX,
+        -f64::MAX,
+        1.0000000000000002,
+    ]
+    .iter()
+    .enumerate()
+    {
+        w.write_draw(&draw(9, Phase::Sampling, i, &[*x], &stats), &[])
+            .unwrap();
+    }
+    let mut json = Vec::new();
+    let csv = w
+        .finish(&mut json, &[(ChainId(9), ChainStatus::Completed)])
+        .unwrap();
+    let text = String::from_utf8(csv).unwrap();
+    for (line, x) in text.lines().skip(1).zip([
+        -0.,
+        f64::from_bits(1),
+        f64::MAX,
+        -f64::MAX,
+        1.0000000000000002,
+    ]) {
+        let fields: Vec<_> = line.split(',').collect();
+        assert_eq!(
+            fields[5]
+                .trim_matches('"')
+                .parse::<f64>()
+                .unwrap()
+                .to_bits(),
+            x.to_bits()
+        );
+    }
+}
+
+#[test]
+fn pointwise_errors_are_recorded_but_callback_panics_poison_the_stream() {
+    for panic in [false, true] {
+        let mut b = ModelBuilder::new();
+        let x = b.real("x").unwrap().expr();
+        let f = b
+            .custom(&[x], move |_, _| {
+                if panic {
+                    panic!("injected model panic");
+                }
+                Err(alea_core::model::assembly::AssemblyError::Numerical)
+            })
+            .unwrap();
+        b.likelihood("data", f).unwrap();
+        let p = PointwiseLikelihood::new(
+            b.compile().unwrap(),
+            vec![PredictiveUnit {
+                name: "row".into(),
+                factors: vec!["data".into()],
+                observations: vec!["row".into()],
+                conditioned_on: vec!["x".into()],
+                integrated_out: vec![],
+            }],
+        )
+        .unwrap();
+        let s = AnalysisSpec::from_likelihood(p, provenance(), vec![ChainId(9)]).unwrap();
+        let mut w = AnalysisWriter::new(Vec::new(), s).unwrap();
+        let stats = TransitionStats::default();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            w.write_draw(&draw(9, Phase::Sampling, 0, &[0.], &stats), &[])
+        }));
+        let mut json = Vec::new();
+        if panic {
+            assert!(result.is_err());
+            assert!(matches!(
+                w.finish(
+                    &mut json,
+                    &[(ChainId(9), ChainStatus::Failed("panic".into()))]
+                ),
+                Err(AnalysisError::Poisoned)
+            ));
+            assert!(json.is_empty());
+        } else {
+            assert!(matches!(result.unwrap(), Err(AnalysisError::Pointwise(_))));
+            w.finish(
+                &mut json,
+                &[(ChainId(9), ChainStatus::Failed("reporting".into()))],
+            )
+            .unwrap();
+            let m: Value = serde_json::from_slice(&json).unwrap();
+            assert_eq!(m["chains"][0]["sampling"]["rows"], 1);
+            assert_eq!(m["chains"][0]["sampling"]["failures"], 1);
+        }
+    }
+}

@@ -188,3 +188,142 @@ collected output. Reconcile records by `(chain, index)` before retrying output s
 you do not count it twice. File sync does not guarantee that a new directory entry
 survives power loss; applications needing that guarantee must also sync the
 parent directory according to their platform's rules.
+
+## Export a named sampling table
+
+Enable Alea's `analysis` feature to write a CSV table and a JSON manifest. This
+format carries named physical parameters, optional free coordinates, transition
+statistics, scalar predictions and pointwise likelihoods. It is separate from a
+checkpoint: use checkpoints to resume a computation.
+
+The following example writes to memory. Pass files or other `std::io::Write`
+streams instead to save a fit without keeping all rows in memory.
+
+```rust
+use alea::analysis::{AnalysisSpec, AnalysisWriter, ChainStatus, Provenance};
+use alea::distributions::modeling::normal;
+use alea::math::buffer::OwnedBuffer;
+use alea::model::{assembly::ModelBuilder, prediction::NamedOutput};
+use alea::output::{ChainId, DiagnosticTransition, Draw, Phase, SCHEMA_VERSION};
+use alea::sampling::{HmcOptions, Nuts, adapt::{HmcWarmup, WarmupOptions}, config::TreeDepth};
+use rand::{SeedableRng, rngs::SmallRng};
+use std::collections::BTreeMap;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut b = ModelBuilder::new();
+    let mean = b.real("mean")?;
+    let zero = b.constant(0.0)?;
+    let one = b.constant(1.0)?;
+    let prior = normal(&mut b, mean.expr(), zero, one)?;
+    b.prior("mean prior", prior)?;
+    let likelihood = normal(&mut b, one, mean.expr(), one)?;
+    b.likelihood("measurement", likelihood)?;
+    let model = b.compile()?;
+    let parameters = NamedOutput::new(model.coordinates(), model.layout().clone(), ())?;
+    let provenance = Provenance {
+        model: "normal-mean-v1".into(),
+        data: "one-observation:y=1".into(),
+        source: "this-example-v1".into(),
+        method: "NUTS".into(),
+        settings: BTreeMap::from([("seed".into(), "17".into())]),
+    };
+    let mut spec = AnalysisSpec::new(parameters, provenance, vec![ChainId(0)]);
+    spec.save_unconstrained = true;
+    spec.predictions = vec!["expected measurement".into()];
+    let mut writer = AnalysisWriter::new(Vec::new(), spec)?;
+    let target = model.select_posterior()?.into_target()?;
+    let mut rng = SmallRng::seed_from_u64(17);
+    let (hmc, _) = HmcWarmup::new(
+        &target, OwnedBuffer::from_fn(1, |_| 0.0),
+        HmcOptions::new(0.1, 1)?, WarmupOptions::new(128),
+    )?.run(&mut rng)?;
+    let mut chain = Nuts::from_hmc(hmc, TreeDepth::try_from(6)?)?;
+    for index in 0..64 {
+        let transition = chain.step(&mut rng)?;
+        let q = chain.point().position();
+        let draw = Draw {
+            schema_version: SCHEMA_VERSION, chain: ChainId(0),
+            phase: Phase::Sampling, index, position: q,
+            stats: transition.diagnostic_stats(), transition: &transition,
+        };
+        writer.write_draw(&draw, &[q[0]])?;
+    }
+    let mut manifest = Vec::new();
+    let csv = writer.finish(&mut manifest, &[(ChainId(0), ChainStatus::Completed)])?;
+    println!("CSV: {} bytes; manifest: {} bytes", csv.len(), manifest.len());
+    Ok(())
+}
+```
+
+For pointwise output, use `AnalysisSpec::from_likelihood` with a validated
+[`PointwiseLikelihood`](modeling.md#pointwise-likelihoods-and-predictive-units).
+It takes the exact named layout and predictive units from that model. Alternatively,
+attach it to `spec.likelihood`; the writer rejects a different parameter schema.
+Physical values use the model's charts without a density-change Jacobian.
+
+Supply the full planned chain list before writing, and an outcome for every chain
+at `finish`, including chains that never initialized. `Completed` describes the
+computation, not convergence or successful predictive reporting. Interrupted and
+failed outcomes require a reason. Warmup and sampling are distinct phases.
+Within each chain and phase, indices are consecutive; the first may be nonzero,
+so a resumed segment keeps its absolute indices. Chains may interleave.
+
+After a valid logical key is admitted, an invalid numerical payload or pointwise
+failure writes a `failure` row and returns the original error. That index is
+consumed. Handle the error to retain a partial result, then seal the artifact with
+explicit chain outcomes. Do not retry the same index. `write_failure` records
+other unsuccessful attempts. Failed rows contain an explanation and absent
+numeric fields, never invented parameter values or a probability of zero.
+Invalid versions, unknown chains, duplicate indices and gaps are rejected before
+writing. An I/O error or a callback panic poisons the stream; discard it.
+
+### CSV and manifest contract
+
+The manifest identifies `alea-analysis`, schema version `1`, kind `sampling`.
+Its `csv.columns` list is the exact header order:
+
+- `chain`, `phase`, `draw`, `kind`, `error` identify a successful draw or failure.
+- `parameter:NAME` contains constrained coordinates. Free coordinates, when
+  requested, are `unconstrained:0`, `unconstrained:1`, and so on.
+- `stat:...` columns carry the common transition statistics. Unsupported optional
+  statistics are empty; a supported false or zero remains `0`.
+- `log_likelihood:UNIT` and `prediction:NAME` follow their declared metadata order.
+
+Names and explanations are UTF-8. All fields are quoted; embedded quotes are
+doubled, and records end with CRLF. Fields may contain commas, quotes and line
+breaks. Floating-point values use round-trip decimal binary64 representations,
+including negative zero. NaN and infinities are rejected in this version. Integer
+chain IDs and draw indices retain their exact unsigned 64-bit values; do not
+convert them through floating-point numbers.
+
+The JSON manifest preserves parameter names, block/dimension/coordinate labels,
+free-coordinate dimension, optional physical units, predictive-unit definitions,
+model/data/source identities, method settings, per-phase ranges and failure
+counts, and every planned chain's status. `spec.units` associates a physical unit
+with an exact value-column name. For reproducible applications, use content digests
+for model/data identities and record the actual source revision, build features,
+toolchain, seeds and inference settings. Labels alone do not verify provenance.
+Observed data remain identified by their source identity and predictive-unit
+observation identifiers; this format does not embed a copy of the dataset.
+
+The writer flushes CSV before emitting its SHA-256 digest and counts in the
+manifest. Validate both files together. It performs no file creation, atomic
+rename or filesystem synchronization on your behalf. A CSV alone or a partially
+written manifest is not a sealed result. This sampling contract does not turn
+optimization estimates into posterior draws or fabricate standard errors.
+
+### Read and validate an artifact
+
+The source checkout includes a reader requiring only Python's standard library:
+
+```sh
+python3 tools/downstream-conformance/python/analysis.py fit.json draws.csv
+```
+
+Add `--rectangular` to require completed chains with identical nonempty draw-index
+coordinates and no failed rows. The reader checks the digest, schema, names,
+counts, ranges, numeric values and statistic availability. It retains warmup,
+partial chains and failure records. It never pads, truncates or silently drops
+chains. In Python, `artifact.rectangular(chains=[...])` permits an explicitly
+chosen completed subset; `artifact.records` preserves the full validated result.
+The reader materializes records in memory; the native writer streams them.

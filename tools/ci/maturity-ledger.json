@@ -670,6 +670,12 @@
       "promotion_gate": "Close the recorded target-call and held-out efficiency gates."
     },
     {
+      "path": "crates/alea-runtime/src/analysis.rs",
+      "profile": "research_component",
+      "summary": "Explicit mathematical contract or representation with scoped regression coverage.",
+      "promotion_gate": "Broaden independent downstream and numerical validation before promotion."
+    },
+    {
       "path": "crates/alea-runtime/src/chees.rs",
       "profile": "validated_component_opt_in",
       "summary": "Runtime orchestration for opt-in ChEES adaptation."
@@ -788,6 +794,13 @@
     }
   ],
   "root_items": [
+    {
+      "crate": "alea",
+      "item": "analysis",
+      "profile": "research_component",
+      "summary": "Mathematical API exposed through its owning module.",
+      "promotion_gate": "Broaden independent consumer validation before promotion."
+    },
     {
       "crate": "alea",
       "item": "autodiff",
@@ -1079,6 +1092,13 @@
   "cargo_features": [
     {
       "crate": "alea",
+      "feature": "analysis",
+      "profile": "research_utility",
+      "summary": "Opt-in native analysis artifact serialization; no Python dependency.",
+      "promotion_gate": "Qualify external conversion and representative statistical workflows before promotion."
+    },
+    {
+      "crate": "alea",
       "feature": "autodiff",
       "profile": "research_mixed",
       "summary": "Public facade over the existing implementation modules.",
@@ -1234,6 +1254,13 @@
     },
     {
       "crate": "alea-runtime",
+      "feature": "analysis",
+      "profile": "research_utility",
+      "summary": "Opt-in native analysis artifact serialization; no Python dependency.",
+      "promotion_gate": "Qualify external conversion and representative statistical workflows before promotion."
+    },
+    {
+      "crate": "alea-runtime",
       "feature": "default",
       "profile": "validated_component_reference",
       "summary": "Portable deterministic runtime baseline."
@@ -1290,6 +1317,12 @@
       "item": "pub mod alea::sampling",
       "profile": "research_mixed",
       "promotion_gate": "Retain each exported method’s documented numerical and exactness limits; broader evidence is required for numerical promotion."
+    },
+    {
+      "crate": "alea",
+      "item": "pub use alea::analysis",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea",
@@ -38373,6 +38406,12 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "impl alea_runtime::analysis::AnalysisSpec",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "impl alea_runtime::draws::Draws",
       "profile": "validated_component_reference"
     },
@@ -38480,6 +38519,18 @@
       "crate": "alea-runtime",
       "item": "impl alea_runtime::session::storage::Sink for alea_runtime::session::storage::DurableSink",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::clone::Clone for alea_runtime::analysis::ChainStatus",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::clone::Clone for alea_runtime::analysis::Provenance",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -38639,6 +38690,18 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "impl core::cmp::Eq for alea_runtime::analysis::ChainStatus",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::cmp::Eq for alea_runtime::analysis::Provenance",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "impl core::cmp::Eq for alea_runtime::diagnostics::DiagnosticError",
       "profile": "validated_utility_reference"
     },
@@ -38696,6 +38759,18 @@
       "crate": "alea-runtime",
       "item": "impl core::cmp::Ord for alea_runtime::output::ChainId",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::cmp::PartialEq for alea_runtime::analysis::ChainStatus",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::cmp::PartialEq for alea_runtime::analysis::Provenance",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -38795,6 +38870,30 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "impl core::convert::From<alea_core::error::TransformError> for alea_runtime::analysis::AnalysisError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::convert::From<alea_core::model::assembly::pointwise::PointwiseError> for alea_runtime::analysis::AnalysisError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::convert::From<serde_json::error::Error> for alea_runtime::analysis::AnalysisError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::convert::From<std::io::error::Error> for alea_runtime::analysis::AnalysisError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "impl core::convert::From<std::io::error::Error> for alea_runtime::monitor::MonitorError",
       "profile": "validated_component_reference"
     },
@@ -38835,6 +38934,12 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "impl core::error::Error for alea_runtime::analysis::AnalysisError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "impl core::error::Error for alea_runtime::diagnostics::DiagnosticError",
       "profile": "validated_utility_reference"
     },
@@ -38862,6 +38967,24 @@
       "crate": "alea-runtime",
       "item": "impl core::error::Error for alea_runtime::session::storage::SinkError",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::fmt::Debug for alea_runtime::analysis::AnalysisError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::fmt::Debug for alea_runtime::analysis::ChainStatus",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::fmt::Debug for alea_runtime::analysis::Provenance",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -39026,6 +39149,12 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "impl core::fmt::Display for alea_runtime::analysis::AnalysisError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "impl core::fmt::Display for alea_runtime::diagnostics::DiagnosticError",
       "profile": "validated_utility_reference"
     },
@@ -39144,6 +39273,18 @@
       "crate": "alea-runtime",
       "item": "impl core::marker::Copy for alea_runtime::session::storage::Discard",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::marker::StructuralPartialEq for alea_runtime::analysis::ChainStatus",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl core::marker::StructuralPartialEq for alea_runtime::analysis::Provenance",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -39370,6 +39511,138 @@
       "crate": "alea-runtime",
       "item": "impl<R: std::io::Read> alea_runtime::session::storage::DrawReader<R>",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "impl<W: std::io::Write> alea_runtime::analysis::AnalysisWriter<W>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisError::Invalid(&'static str)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisError::Io(std::io::error::Error)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisError::Json(serde_json::error::Error)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisError::Pointwise(alea_core::model::assembly::pointwise::PointwiseError)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisError::Poisoned",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisError::Transform(alea_core::error::TransformError)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisSpec::chains: alloc::vec::Vec<alea_runtime::output::ChainId>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisSpec::likelihood: core::option::Option<alea_core::model::assembly::pointwise::PointwiseLikelihood>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisSpec::parameters: alea_core::model::prediction::NamedOutput<()>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisSpec::predictions: alloc::vec::Vec<alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisSpec::provenance: alea_runtime::analysis::Provenance",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisSpec::save_unconstrained: bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::AnalysisSpec::units: alloc::collections::btree::map::BTreeMap<alloc::string::String, alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::ChainStatus::Completed",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::ChainStatus::Failed(alloc::string::String)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::ChainStatus::Interrupted(alloc::string::String)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::Provenance::data: alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::Provenance::method: alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::Provenance::model: alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::Provenance::settings: alloc::collections::btree::map::BTreeMap<alloc::string::String, alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub alea_runtime::analysis::Provenance::source: alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -40575,8 +40848,26 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "pub const alea_runtime::analysis::SCHEMA_VERSION: u32",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "pub const alea_runtime::output::SCHEMA_VERSION: u32",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub enum alea_runtime::analysis::AnalysisError",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub enum alea_runtime::analysis::ChainStatus",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -40657,6 +40948,126 @@
       "crate": "alea-runtime",
       "item": "pub fn alea_mcmc::walnuts::WalnutsTransition::diagnostic_stats(&self) -> alea_runtime::output::TransitionStats",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisError::from(source: alea_core::error::TransformError) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisError::from(source: alea_core::model::assembly::pointwise::PointwiseError) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisError::from(source: serde_json::error::Error) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisError::from(source: std::io::error::Error) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisSpec::from_likelihood(likelihood: alea_core::model::assembly::pointwise::PointwiseLikelihood, provenance: alea_runtime::analysis::Provenance, chains: alloc::vec::Vec<alea_runtime::output::ChainId>) -> core::result::Result<Self, alea_runtime::analysis::AnalysisError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisSpec::new(parameters: alea_core::model::prediction::NamedOutput<()>, provenance: alea_runtime::analysis::Provenance, chains: alloc::vec::Vec<alea_runtime::output::ChainId>) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisWriter<W>::finish<M: std::io::Write>(self, manifest: M, statuses: &[(alea_runtime::output::ChainId, alea_runtime::analysis::ChainStatus)]) -> core::result::Result<W, alea_runtime::analysis::AnalysisError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisWriter<W>::new(csv: W, spec: alea_runtime::analysis::AnalysisSpec) -> core::result::Result<Self, alea_runtime::analysis::AnalysisError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisWriter<W>::spec(&self) -> &alea_runtime::analysis::AnalysisSpec",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisWriter<W>::write_draw<T>(&mut self, draw: &alea_runtime::output::Draw<'_, T>, predictions: &[f64]) -> core::result::Result<(), alea_runtime::analysis::AnalysisError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::AnalysisWriter<W>::write_failure(&mut self, chain: alea_runtime::output::ChainId, phase: alea_runtime::output::Phase, index: u64, error: &str) -> core::result::Result<(), alea_runtime::analysis::AnalysisError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::ChainStatus::clone(&self) -> alea_runtime::analysis::ChainStatus",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::ChainStatus::eq(&self, other: &alea_runtime::analysis::ChainStatus) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::ChainStatus::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::Provenance::clone(&self) -> alea_runtime::analysis::Provenance",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::Provenance::eq(&self, other: &alea_runtime::analysis::Provenance) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::analysis::Provenance::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",
@@ -41681,6 +42092,12 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "pub mod alea_runtime::analysis",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "pub mod alea_runtime::chees",
       "profile": "validated_component_opt_in"
     },
@@ -41728,6 +42145,24 @@
       "crate": "alea-runtime",
       "item": "pub mod alea_runtime::session::storage",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub struct alea_runtime::analysis::AnalysisSpec",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub struct alea_runtime::analysis::AnalysisWriter<W: std::io::Write>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub struct alea_runtime::analysis::Provenance",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",

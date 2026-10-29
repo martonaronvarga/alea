@@ -10,6 +10,10 @@ pub use alea_math as math;
 #[doc(inline)]
 pub use alea_runtime::{diagnostics, draws, ensemble, monitor, output, run_chain, session};
 
+#[cfg(feature = "analysis")]
+#[doc(inline)]
+pub use alea_runtime::analysis;
+
 /// Sampling algorithms, integrators, and warmup.
 ///
 /// HMC, NUTS, and RWMH are available in ordinary inference sessions. Other

@@ -8,7 +8,7 @@ publish = false
 [workspace]
 
 [dependencies]
-alea = { path = "../../crates/alea", features = ["distributions"] }
+alea = { path = "../../crates/alea", features = ["distributions", "analysis"] }
 rand = "0.10.1"
 rayon = "1.12"
 tokio-util = { version = "0.7", features = ["rt"] }
