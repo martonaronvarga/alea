@@ -8,8 +8,11 @@ import argparse
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import platform
+import random
+import time
 import statistics
 import subprocess
 
@@ -36,15 +39,111 @@ def eligible_pair(b, s):
     )
 
 
+def revision_comparison(before, after):
+    """A whole cohort must qualify before any favorable timing ratio is emitted."""
+    if not before or len(before) != len(after) or any("error" in r for r in before + after) or not all(
+        eligible_pair(b, a) for b, a in zip(before, after)
+    ):
+        return {"eligible": False}
+    result = {"eligible": True}
+    for field in ["construction_seconds", "evaluation_seconds", "fit_seconds", "process_seconds", "peak_rss_kib"]:
+        if all(r.get(field) is not None and r[field] > 0 for r in before + after):
+            result[field + "_before_over_after"] = statistics.median(r[field] for r in before) / statistics.median(r[field] for r in after)
+    result["setup_fit_before_over_after"] = statistics.median(r["construction_seconds"] + r["fit_seconds"] for r in before) / statistics.median(r["construction_seconds"] + r["fit_seconds"] for r in after)
+    result["paired_outputs_identical"] = all(
+        all(b[k] == a[k] for k in ["value", "gradient", "final_value", "final_gradient", "estimate_free", "termination", "iterations", "evaluations", "score_tolerance", "line_search_failure"])
+        for b, a in zip(before, after)
+    )
+    return result
+
+
+def decode_benchmark_output(stdout, job):
+    """Malformed output is an infrastructure failure, never a qualified fit."""
+    def reject_constant(value):
+        raise ValueError(f"nonfinite JSON constant: {value}")
+    payload = json.loads(stdout, parse_constant=reject_constant)
+    required = {"value", "gradient", "final_value", "final_gradient", "estimate_free",
+                "termination", "iterations", "evaluations", "score_tolerance",
+                "line_search_failure", "construction_seconds", "evaluation_seconds",
+                "fit_seconds", "peak_rss_kib"}
+    if not isinstance(payload, dict) or not required.issubset(payload):
+        raise ValueError("incomplete benchmark output")
+    if any(payload.get(key) != job[key] for key in ["family", "mode", "rows"]):
+        raise ValueError("benchmark output does not match planned job")
+    return payload
+
+
+def benchmark_revisions(args):
+    rng = random.Random(args.seed)
+    planned = []
+    for family in ["normal", "bernoulli", "poisson"]:
+        for n in args.rows:
+            for repeat in range(args.runs):
+                order = [(revision, mode) for revision in ["before", "after"] for mode in ["batch", "scalar"]]
+                rng.shuffle(order)
+                for revision, mode in order:
+                    planned.append(dict(family=family, rows=n, repeat=repeat, revision=revision, mode=mode))
+    report = {"protocol": "alea-regression-revisions-v1", "platform": platform.platform(),
+              "affinity": sorted(os.sched_getaffinity(0)),
+              "seed": args.seed, "score_tolerance_per_observation": 1e-7,
+              "toolchain": subprocess.check_output(["rustc", "-Vv"], text=True),
+              "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+              "working_diff_sha256": hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD"])).hexdigest(),
+              "baseline_revision": args.baseline_revision,
+              "binaries": {"before": digest(args.baseline_binary), "after": digest(args.binary)},
+              "planned_runs": planned, "runs": [], "comparisons": []}
+    # Seal the declared jobs before executing, and retain every raw process record.
+    path = Path(args.output)
+    with path.with_suffix(".plan.json").open("x") as plan:
+        json.dump(report, plan, indent=2); plan.write("\n")
+    with path.open("x") as output, path.with_suffix(".jsonl").open("x") as raw:
+        try:
+            for job in planned:
+                binary = args.baseline_binary if job["revision"] == "before" else args.binary
+                command = [binary, job["family"], job["mode"], str(job["rows"]), str(max(3, min(5000, 2000000 // job["rows"])))]
+                row = dict(job)
+                started = time.monotonic()
+                try:
+                    process = subprocess.run(command, capture_output=True, text=True, timeout=300)
+                    row.update(returncode=process.returncode, stdout=process.stdout, stderr=process.stderr)
+                    if process.returncode == 0:
+                        row.update(decode_benchmark_output(process.stdout, job))
+                    else:
+                        row["error"] = "process failure"
+                except (subprocess.TimeoutExpired, ValueError, OSError) as error:
+                    row["error"] = str(error)
+                row["process_seconds"] = time.monotonic() - started
+                report["runs"].append(row)
+                raw.write(json.dumps(row, allow_nan=False) + "\n"); raw.flush()
+            for family in ["normal", "bernoulli", "poisson"]:
+                for n in args.rows:
+                    for mode in ["batch", "scalar"]:
+                        cohorts = [[r for r in report["runs"] if r["family"] == family and r["rows"] == n and r["mode"] == mode and r["revision"] == revision] for revision in ["before", "after"]]
+                        result = {"eligible": False} if any("error" in r for rows in cohorts for r in rows) else revision_comparison(*cohorts)
+                        result.update(family=family, rows=n, mode=mode)
+                        report["comparisons"].append(result)
+                        print(json.dumps(result), flush=True)
+        finally:
+            json.dump(report, output, indent=2, allow_nan=False); output.write("\n")
+
+
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("binary")
     p.add_argument("output")
     p.add_argument("--rows", type=int, nargs="+", default=[10, 1000, 1000000])
     p.add_argument("--runs", type=int, default=3)
+    p.add_argument("--baseline-binary")
+    p.add_argument("--baseline-revision")
+    p.add_argument("--seed", type=int, default=271828)
     args = p.parse_args()
     if args.runs < 1 or any(n < 1 for n in args.rows):
         p.error("positive rows and runs required")
+    if bool(args.baseline_binary) != bool(args.baseline_revision):
+        p.error("baseline binary and revision must be supplied together")
+    if args.baseline_binary:
+        benchmark_revisions(args)
+        raise SystemExit(0)
     report = {"protocol": "alea-regression-v1", "platform": platform.platform(),
               "binary_sha256": digest(args.binary), "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "toolchain": subprocess.check_output(["rustc", "-Vv"], text=True),

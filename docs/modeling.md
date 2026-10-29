@@ -818,3 +818,40 @@ both outputs under their existing contract. Invalid charts, nonfinite values
 (including negative-infinite log likelihoods), or callback failures return errors
 and leave the output untouched. Preserve those failures rather than replacing
 them with a probability of zero.
+
+### Reusing batch evaluation storage
+
+A separate before/after comparison measured the change from temporary batch score
+vectors to evaluator-owned scratch. It used the same three likelihoods at 10,
+1,000 and 1,000,000 rows, with seven fresh processes per revision and path:
+252 planned runs, all completed. Runs were pinned to one CPU and revision/path
+order was shuffled within each repetition. All 18 family/size/path comparisons
+passed the existing numerical gates. Paired values, gradients, fitted parameters,
+termination reasons and work counts were identical. Independent 60-digit Decimal
+calculations also passed the existing initial-evaluation and fitted-candidate checks.
+
+The following ratios are previous fitting time divided by revised fitting time
+for the batch path; values above one favor reuse.
+
+| Likelihood | 10 rows | 1,000 rows | 1,000,000 rows |
+| --- | ---: | ---: | ---: |
+| Gaussian | 0.98 | 0.99 | 1.00 |
+| Bernoulli-logit | 0.99 | 1.01 | 1.02 |
+| Poisson-log | 1.18 | 0.98 | 0.97 |
+
+These exploratory measurements on one Intel i5-8250U host do not establish a
+general fitting speedup. The verified benefit is allocation-free batch evaluation
+with the same compensated arithmetic. At one million rows, scalar controls used
+roughly 4–5% less peak process memory after callback storage moved out of graph
+nodes; batch peak memory was essentially unchanged. Peak RSS is not an allocation
+count. These are repeated deterministic fits, not statistical calibration or an
+inference-engine comparison.
+
+The existing `tools/downstream-conformance/python/benchmark_regression.py` accepts
+`--baseline-binary` and `--baseline-revision` to compare two built revisions.
+It seals a job plan before execution, records binary hashes and CPU affinity,
+retains process records alongside the summary, and withholds timing ratios when
+any repeated fit fails its numerical or agreement gates. Build both binaries with
+the same toolchain and dependency lockfile; report setup, evaluation and fitting
+separately. Baseline labels are supplied by the caller, so retain the build records
+that establish which source produced each binary.

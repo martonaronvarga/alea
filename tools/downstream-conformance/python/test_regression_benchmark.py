@@ -9,3 +9,42 @@ class BenchmarkGates(unittest.TestCase):
         self.assertTrue(eligible_pair(baseline,baseline))
         for key,value in [("termination","LineSearchFailed"),("termination","EvaluationLimit"),("value",-3.),("final_value",-3.),("final_gradient",[1.,0.]),("final_gradient",[float("nan"),0.]),("final_gradient",[0.]),("score_tolerance",1e-6),("gradient",[1.]),("gradient",[1.,3.]),("estimate_free",[0.]),("estimate_free",[0.,2.])]:
             bad=copy.deepcopy(baseline);bad[key]=value;self.assertFalse(eligible_pair(baseline,bad))
+
+class RevisionGates(unittest.TestCase):
+    def setUp(self):
+        self.row = dict(termination="ScoreTolerance", value=-2., gradient=[1., 2.],
+                        estimate_free=[0., 1.], final_gradient=[1e-10, 0.],
+                        final_value=-1., score_tolerance=1e-8, iterations=10,
+                        evaluations=15, line_search_failure="None",
+                        construction_seconds=1., evaluation_seconds=2.,
+                        fit_seconds=3., process_seconds=5., peak_rss_kib=100)
+
+    def test_failure_or_missing_repeat_disables_all_ratios(self):
+        from benchmark_regression import revision_comparison
+        for before, after in [([], []), ([self.row], []),
+                              ([self.row], [dict(error="timeout")]),
+                              ([self.row], [dict(self.row, termination="LineSearchFailed")])]:
+            self.assertEqual(revision_comparison(before, after), {"eligible": False})
+
+    def test_identity_is_distinct_from_qualification_and_timing(self):
+        from benchmark_regression import revision_comparison
+        other = dict(self.row, fit_seconds=1.5)
+        comparison = revision_comparison([self.row], [other])
+        self.assertTrue(comparison["eligible"])
+        self.assertTrue(comparison["paired_outputs_identical"])
+        self.assertEqual(comparison["fit_seconds_before_over_after"], 2.)
+        other["iterations"] = 11
+        comparison = revision_comparison([self.row], [other])
+        self.assertTrue(comparison["eligible"])
+        self.assertFalse(comparison["paired_outputs_identical"])
+
+    def test_malformed_output_and_wrong_jobs_are_infrastructure_failures(self):
+        import json
+        from benchmark_regression import decode_benchmark_output
+        job = dict(family="normal", rows=10, mode="batch")
+        payload = dict(self.row, **job)
+        self.assertEqual(decode_benchmark_output(json.dumps(payload), job), payload)
+        for raw in ["[]", "null", "{}", '{"value":NaN}', "invalid",
+                    json.dumps(dict(payload, rows=100))]:
+            with self.assertRaises(ValueError):
+                decode_benchmark_output(raw, job)
