@@ -47,6 +47,25 @@ def reference(family, x, y):
     return result.x, bool(result.success), str(result.message)
 
 
+def select_cohort(report, binary_digest, revision=None):
+    """Bind references to one measured binary and its complete declared cohort."""
+    if revision is None:
+        expected_digest = report.get('binary_sha256')
+        planned, records = report['planned_runs'], report['runs']
+    else:
+        expected_digest = report.get('binaries', {}).get(revision)
+        planned = [r for r in report['planned_runs'] if r.get('revision') == revision]
+        records = [r for r in report['runs'] if r.get('revision') == revision]
+    if expected_digest != binary_digest:
+        raise ValueError('dataset exporter must be the measured executable')
+    def key(row):
+        return (row['family'], row['mode'], row['rows'], row.get('columns', 2), row['repeat'], row.get('revision'))
+    expected, actual = [key(r) for r in planned], [key(r) for r in records]
+    if not expected or len(set(expected)) != len(expected) or len(actual) != len(set(actual)) or set(expected) != set(actual):
+        raise ValueError('reference cohort has missing, duplicate or unexpected jobs')
+    return records, len(planned)
+
+
 def main():
     import numpy as np
     import scipy
@@ -54,20 +73,20 @@ def main():
     p.add_argument('binary', type=Path)
     p.add_argument('report', type=Path)
     p.add_argument('output', type=Path)
+    p.add_argument('--revision', choices=['before', 'after', 'plain', 'counted', 'timed'])
     args = p.parse_args()
     report = json.loads(args.report.read_text())
     binary_digest = hashlib.sha256(args.binary.read_bytes()).hexdigest()
-    if report.get('binary_sha256') != binary_digest:
-        raise SystemExit('dataset exporter must be the measured executable')
-    records = report['runs']
+    records, planned = select_cohort(report, binary_digest, args.revision)
     results = []
     datasets = {}
+    references = {}
     with tempfile.TemporaryDirectory() as temporary:
         for row in records:
             key = (row['rows'], row.get('columns', 2))
             if key not in datasets:
                 path = Path(temporary)/f'{key[0]}-{key[1]}.json'
-                subprocess.run([str(args.binary), 'normal', 'batch', str(key[0]), '1', 'plain', str(key[1]), str(path)], check=True, capture_output=True)
+                subprocess.run([str(args.binary), 'normal', 'batch', str(key[0]), '1', 'plain', str(key[1]), str(path)], check=True, capture_output=True, timeout=300)
                 datasets[key] = json.loads(path.read_text())
             data = datasets[key]
             item = {k: row[k] for k in ('family', 'mode', 'rows', 'repeat')}
@@ -81,14 +100,17 @@ def main():
             initial = np.array([.1]+[-.2/j for j in range(1,key[1])]+([0.] if row['family']=='normal' else []))
             initial_value, initial_score = evaluate(row['family'], x, y, initial)
             value, score = evaluate(row['family'], x, y, q)
-            ref, success, message = reference(row['family'], x, y)
+            reference_key = (row['family'], *key)
+            if reference_key not in references:
+                references[reference_key] = reference(row['family'], x, y)
+            ref, success, message = references[reference_key]
             prediction_error = float(np.max(np.abs(x@(q[:key[1]]-ref[:key[1]]))))
             scale_error = abs(float(q[-1]-ref[-1])) if row['family']=='normal' else 0.
             score_error = max(float(np.max(np.abs(score-row['final_gradient']))), float(np.max(np.abs(initial_score-row['gradient']))))
             value_error = max(abs(value-row['final_value']), abs(initial_value-row['value']))
             passed = bool(success and prediction_error < 5e-6 and scale_error < 5e-6 and score_error <= 5e-11*key[0] and value_error <= 5e-10*key[0])
             results.append(dict(item, passed=passed, solver_success=success, solver_message=message, predictor_error=prediction_error, log_scale_error=scale_error, score_error=score_error, value_error=value_error, termination=row['termination']))
-    manifest = dict(numpy=np.__version__, scipy=scipy.__version__, planned=len(report['planned_runs']), completed=len(results), binary_sha256=binary_digest, report_sha256=hashlib.sha256(args.report.read_bytes()).hexdigest(), checker_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), results=results)
+    manifest = dict(numpy=np.__version__, scipy=scipy.__version__, planned=planned, revision=args.revision, completed=len(results), binary_sha256=binary_digest, report_sha256=hashlib.sha256(args.report.read_bytes()).hexdigest(), checker_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), results=results)
     with args.output.open('x') as output:
         json.dump(manifest, output, indent=2, allow_nan=False); output.write('\n')
     print(json.dumps(dict(planned=manifest['planned'], completed=len(results), passed=sum(r['passed'] for r in results))))

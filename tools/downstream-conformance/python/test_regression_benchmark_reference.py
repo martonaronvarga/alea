@@ -27,3 +27,38 @@ class DenseReference(unittest.TestCase):
         self.assertTrue(success)
         self.assertLess(np.max(np.abs(evaluate('normal',x,y,q)[1])), 1e-12)
         self.assertAlmostEqual(np.exp(2*q[-1]), np.mean((y-x@q[:2])**2))
+
+
+class ReferenceCohorts(unittest.TestCase):
+    def setUp(self):
+        self.job = dict(family='normal', mode='batch', rows=1000, columns=32, repeat=0)
+
+    def test_revision_binds_binary_and_planned_denominator(self):
+        from check_regression_benchmark import select_cohort
+        before = dict(self.job, revision='before')
+        after = dict(self.job, revision='after')
+        report = dict(binaries={'before':'a','after':'b'}, planned_runs=[before,after], runs=[after,before])
+        self.assertEqual(select_cohort(report,'a','before'),([before],1))
+        with self.assertRaises(ValueError):
+            select_cohort(report,'b','before')
+        with self.assertRaises(ValueError):
+            select_cohort(report,'a','timed')
+
+    def test_duplicates_cannot_replace_missing_jobs(self):
+        from check_regression_benchmark import select_cohort
+        other = dict(self.job, repeat=1)
+        report = dict(binary_sha256='a',planned_runs=[self.job,other],runs=[self.job,self.job])
+        with self.assertRaises(ValueError):
+            select_cohort(report,'a')
+        report['runs']=[self.job,other]
+        self.assertEqual(select_cohort(report,'a'),([self.job,other],2))
+
+    def test_missing_and_unplanned_jobs_reject_even_at_equal_counts(self):
+        from check_regression_benchmark import select_cohort
+        other = dict(self.job, repeat=1)
+        report = dict(binary_sha256='a', planned_runs=[self.job,other], runs=[self.job])
+        with self.assertRaises(ValueError):
+            select_cohort(report,'a')
+        report['runs']=[self.job,dict(other,columns=8)]
+        with self.assertRaises(ValueError):
+            select_cohort(report,'a')

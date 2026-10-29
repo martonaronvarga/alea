@@ -1000,3 +1000,32 @@ parameter error also depends on inverse curvature; predictor error further depen
 on the design matrix. Dividing the threshold by observation count does not remove
 these dependencies. Use independent prediction checks and an explicitly chosen
 stopping policy rather than interpreting `ScoreTolerance` as an accuracy guarantee.
+
+A separate compiler-hint comparison used identical benchmark sources and production
+code differing only by the private predictor's `#[inline]` attribute. It covered
+8 and 32 coefficients, 1,000 and 10,000 observations, all three families, both
+execution paths and three repetitions. All 144 fresh-process runs completed;
+all 24 before/after cohorts had identical numerical outputs and optimizer work
+counts. Independent SciPy checks passed for every run. Execution was randomized,
+pinned to one CPU, and used `n * 1e-8` score tolerance throughout.
+
+At 10,000 observations, median fitting ratios (without hint divided by with hint)
+were:
+
+| Coefficients | Gaussian | Bernoulli | Poisson |
+| --- | ---: | ---: | ---: |
+| 8 | 1.02 | 0.92 | 1.03 |
+| 32 | 1.08 | 0.89 | 1.05 |
+
+Across both observation counts, batch fitting ratios ranged from 0.89 to 1.26;
+scalar controls ranged from 0.86 to 1.04. This mixed three-repetition evidence
+does not establish a general wider-model speedup. The hint remains a small
+compiler choice supported by earlier instruction profiles, not a reason to change
+the numerical algorithm or introduce stronger forced-inlining rules.
+
+For revision reports, pass `--revision before` or `--revision after` to
+`check_regression_benchmark.py`, along with that revision's retained executable.
+The checker verifies its binary hash and the complete declared set of logical
+jobs before evaluating references. Missing, duplicate and unexpected jobs are
+rejected even when total counts happen to match. Reference outcomes are recorded
+separately for each revision; failures are not removed from the denominator.
