@@ -473,6 +473,23 @@ impl ModelBuilder {
     /// # Errors
     /// Rejects an empty parameter/factor plan or an invalid transform layout.
     pub fn compile(self) -> Result<CompiledModel, AssemblyError> {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::debug_span!(target: "alea::model", "compile", expressions = self.nodes.len(), factors = self.factors.len()).entered();
+        #[cfg(feature = "tracing")]
+        tracing::debug!(target: "alea::model", schema_version = 1_u64, event = "started");
+        let outcome = self.compile_inner();
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(_) => {
+                tracing::debug!(target: "alea::model", schema_version = 1_u64, event = "finished")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::model", schema_version = 1_u64, event = "failed")
+            }
+        }
+        outcome
+    }
+    fn compile_inner(self) -> Result<CompiledModel, AssemblyError> {
         if self.transforms.is_empty() || self.factors.is_empty() {
             return Err(AssemblyError::Empty);
         }

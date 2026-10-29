@@ -240,6 +240,40 @@ fn optimizer_completion_cancellation_and_failure_events_do_not_disclose_payloads
     assert!(!format!("{records:?}").contains("SECRET"));
 }
 
+struct FailingTarget;
+impl TargetSpace for FailingTarget {
+    type Error = std::io::Error;
+    fn dimension(&self) -> usize {
+        2
+    }
+}
+impl LogDensityGradient for FailingTarget {
+    fn logp_grad(&self, _: &[f64], _: &mut [f64]) -> Result<f64, Self::Error> {
+        Err(std::io::Error::other("SECRET_BACKEND_PAYLOAD"))
+    }
+}
+#[test]
+fn original_backend_error_is_returned_without_becoming_a_trace_payload() {
+    let (dispatch, capture) = subscriber(true);
+    let error = tracing::dispatcher::with_default(&dispatch, || {
+        maximize(
+            &FailingTarget,
+            &[0., 0.],
+            objective(),
+            LbfgsOptions::new(10, 100).unwrap(),
+        )
+        .unwrap_err()
+    });
+    assert!(error.to_string().contains("SECRET_BACKEND_PAYLOAD"));
+    let records = capture.0.lock().unwrap();
+    assert!(
+        records
+            .iter()
+            .any(|r| r.fields.0.get("failure").is_some_and(|v| v == "evaluation"))
+    );
+    assert!(!format!("{records:?}").contains("SECRET_BACKEND_PAYLOAD"));
+}
+
 #[test]
 fn monitor_worker_keeps_the_scoped_dispatch_and_parent_until_join() {
     let (dispatch, capture) = subscriber(true);
@@ -286,7 +320,8 @@ fn sink_failure_remains_a_typed_outcome_and_emits_one_terminal_summary() {
     assert_eq!(
         records
             .iter()
-            .filter(|r| r.fields.0.get("event").is_some_and(|v| v == "finished"))
+            .filter(|r| r.target == "alea::session"
+                && r.fields.0.get("event").is_some_and(|v| v == "finished"))
             .count(),
         1
     );
@@ -296,6 +331,92 @@ fn sink_failure_remains_a_typed_outcome_and_emits_one_terminal_summary() {
             .get("status")
             .is_some_and(|v| v == "BackendFailure")
     }));
+}
+
+#[test]
+fn traced_checkpoint_restart_keeps_the_uninterrupted_numerical_stream() {
+    use alea_runtime::session::storage::Observer;
+    use tokio_util::sync::CancellationToken;
+    let build = |cancel: CancellationToken| {
+        SessionBuilder::new("restart-trace", 2, vec![vec![0.; 2]])
+            .sampler(SamplerConfig::Hmc(HmcOptions::new(0.2, 3).unwrap()))
+            .draws(32)
+            .seed([17; 32])
+            .collect(true)
+            .cancellation(cancel)
+    };
+    let full = build(CancellationToken::new())
+        .build()
+        .unwrap()
+        .run(|_| Ok(Gaussian), Execution::Sequential, &Discard)
+        .unwrap();
+    let (dispatch, capture) = subscriber(true);
+    let resumed = tracing::dispatcher::with_default(&dispatch, || {
+        let cancel = CancellationToken::new();
+        let stop = cancel.clone();
+        let partial = build(cancel)
+            .build()
+            .unwrap()
+            .run(
+                |_| Ok(Gaussian),
+                Execution::Sequential,
+                &Observer(move |draw: &alea_runtime::session::OwnedDraw| {
+                    if draw.index == 7 {
+                        stop.cancel();
+                    }
+                    Ok(())
+                }),
+            )
+            .unwrap();
+        assert_eq!(partial.status, Status::Cancelled);
+        let cp = partial.chains[0].checkpoint.clone().unwrap();
+        let suffix = build(CancellationToken::new())
+            .restart(vec![cp])
+            .build()
+            .unwrap()
+            .run(|_| Ok(Gaussian), Execution::Sequential, &Discard)
+            .unwrap();
+        let mut draws = partial.chains[0].draws.clone();
+        draws.extend_from_slice(&suffix.chains[0].draws);
+        assert_eq!(draws, full.chains[0].draws);
+        checkpoint_bytes(suffix.chains[0].checkpoint.as_ref().unwrap())
+    });
+    assert_eq!(
+        resumed,
+        checkpoint_bytes(full.chains[0].checkpoint.as_ref().unwrap())
+    );
+    let records = capture.0.lock().unwrap();
+    assert!(
+        records
+            .iter()
+            .any(|r| r.target == "alea::storage"
+                && r.scope.iter().any(|s| s.0 == "checkpoint_write"))
+    );
+}
+
+#[test]
+fn cold_model_and_exact_search_boundaries_are_subscribable_without_payloads() {
+    let (dispatch, capture) = subscriber(true);
+    tracing::dispatcher::with_default(&dispatch, || {
+        use alea_math::exact::{ConeSearch, ConeSearchOptions, strict_cone_direction};
+        assert!(matches!(
+            strict_cone_direction(1, &[1.], &[], ConeSearchOptions::default()).unwrap(),
+            ConeSearch::Direction(_)
+        ));
+        let mut b = alea_core::model::assembly::ModelBuilder::new();
+        let p = b.real("SECRET_PARAMETER").unwrap();
+        b.factor(p.expr()).unwrap();
+        let _ = b.compile().unwrap();
+    });
+    let records = capture.0.lock().unwrap();
+    assert!(records.iter().any(|r| {
+        r.fields
+            .0
+            .get("outcome")
+            .is_some_and(|v| v == "improving_ray")
+    }));
+    assert!(records.iter().any(|r| r.target == "alea::model"));
+    assert!(!format!("{records:?}").contains("SECRET_PARAMETER"));
 }
 
 struct ToyChain {

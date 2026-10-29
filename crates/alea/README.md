@@ -15,6 +15,7 @@ The default build requires stable Rust 1.95 or later. Optional features include:
 
 - `distributions`: probability laws and likelihood factors; requires a C compiler.
 - `analysis`: named CSV/JSON sampling artifacts for downstream analysis.
+- `tracing`: subscribable execution events; the application supplies its subscriber.
 - `faer`: matrix operations and Gaussian least-squares assessment.
 - `std-autodiff`: compiled Enzyme derivatives with a matching nightly toolchain.
 

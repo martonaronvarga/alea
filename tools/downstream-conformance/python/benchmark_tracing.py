@@ -62,14 +62,16 @@ def main():
     args.output.mkdir(parents=True, exist_ok=False)
     root = Path(__file__).resolve().parents[3]
     paths = subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard"], cwd=root, text=True).splitlines()
-    sources = {p: digest(root / p) for p in paths if (root / p).is_file() and (p.endswith(".rs") or p.endswith("Cargo.toml") or p.endswith("Cargo.lock") or p.endswith("benchmark_tracing.py"))}
+    sources = {p: digest(root / p) for p in paths if (root / p).is_file() and (p.endswith(".rs") or p.endswith("Cargo.toml") or p.endswith("Cargo.lock") or p.endswith("benchmark_tracing.py") or p in ("flake.nix", "flake.lock"))}
     manifest = {"schema_version": 1, "rounds": args.rounds, "cases": args.cases, "host": platform.platform(),
+                "git_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(),
                 "cpu": Path("/proc/cpuinfo").read_text() if Path("/proc/cpuinfo").exists() else None,
                 "binaries": {"off": digest(args.off), "on": digest(args.on)}, "sources": sources,
                 "protocol": "3 repetitions/process; first cold, then 2 steady; 15 randomized paired rounds by default; count-only subscriber; no event buffering",
                 "clock": "Rust Instant, end-to-end workload including setup and output collection/fingerprinting; startup/import excluded",
                 "memory": "subscriber buffers no event records; RSS and allocator counts not measured by this runner"}
     (args.output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    (args.output / "source.patch").write_bytes(subprocess.check_output(["git", "diff", "HEAD", "--binary"], cwd=root))
     rng = random.Random(20261029)
     records = []
     with (args.output / "runs.jsonl").open("x") as raw:

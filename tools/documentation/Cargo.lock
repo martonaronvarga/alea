@@ -15,11 +15,21 @@ dependencies = [
 name = "alea"
 version = "0.1.1"
 dependencies = [
+ "alea-autodiff",
  "alea-core",
  "alea-distributions",
  "alea-math",
  "alea-mcmc",
  "alea-runtime",
+]
+
+[[package]]
+name = "alea-autodiff"
+version = "0.1.1"
+dependencies = [
+ "alea-core",
+ "thiserror 2.0.21",
+ "tracing",
 ]
 
 [[package]]
@@ -29,6 +39,7 @@ dependencies = [
  "alea-math",
  "rand 0.10.3",
  "thiserror 2.0.21",
+ "tracing",
 ]
 
 [[package]]
@@ -44,6 +55,7 @@ dependencies = [
  "spec_math",
  "statrs",
  "thiserror 2.0.21",
+ "tracing",
 ]
 
 [[package]]
@@ -64,6 +76,7 @@ version = "0.1.1"
 dependencies = [
  "cc",
  "thiserror 2.0.21",
+ "tracing",
 ]
 
 [[package]]
@@ -77,6 +90,7 @@ dependencies = [
  "pulp",
  "rand 0.10.3",
  "thiserror 2.0.21",
+ "tracing",
 ]
 
 [[package]]
@@ -89,6 +103,7 @@ dependencies = [
  "rand 0.10.3",
  "rand_distr 0.6.0",
  "thiserror 2.0.21",
+ "tracing",
 ]
 
 [[package]]

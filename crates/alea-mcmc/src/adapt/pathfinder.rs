@@ -264,6 +264,32 @@ where
     T: LogDensityGradient + ?Sized,
     R: Rng + ?Sized,
 {
+    #[cfg(feature = "tracing")]
+    let _span = tracing::debug_span!(target: "alea::adaptation", "pathfinder", guarantee = "method_specific").entered();
+    #[cfg(feature = "tracing")]
+    tracing::debug!(target: "alea::adaptation", schema_version = 1_u64, event = "started");
+    let outcome = multi_pathfinder_inner(target, initial_positions, options, rng);
+    #[cfg(feature = "tracing")]
+    match &outcome {
+        Ok(_) => {
+            tracing::debug!(target: "alea::adaptation", schema_version = 1_u64, event = "finished")
+        }
+        Err(_) => {
+            tracing::error!(target: "alea::adaptation", schema_version = 1_u64, event = "failed")
+        }
+    }
+    outcome
+}
+fn multi_pathfinder_inner<T, R>(
+    target: &T,
+    initial_positions: &[f64],
+    options: MultiPathfinderOptions,
+    rng: &mut R,
+) -> Result<PathfinderResult, PathfinderError<T::Error>>
+where
+    T: LogDensityGradient + ?Sized,
+    R: Rng + ?Sized,
+{
     let dimension = target.dimension();
     if dimension == 0
         || dimension.checked_mul(options.paths.get()) != Some(initial_positions.len())

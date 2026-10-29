@@ -806,6 +806,19 @@
           "symbol": "complete_macrosteps_match_scalar_oracle_reverse_and_count_gradients"
         }
       ]
+    },
+    "tracing": {
+      "law": "Optional operation-boundary instrumentation leaves transition selection, refresh, correction and RNG consumption unchanged. Subscriber callbacks are application-owned; timing-driven stopping is outside fixed-work equivalence. No feature-only MarkovChain is introduced.",
+      "evidence": [
+        {
+          "path": "crates/alea-runtime/tests/tracing.rs",
+          "symbol": "scoped_subscribers_follow_reused_pools_and_preserve_draws_rng_and_checkpoint_bytes"
+        },
+        {
+          "path": "crates/alea-runtime/tests/tracing.rs",
+          "symbol": "traced_checkpoint_restart_keeps_the_uninterrupted_numerical_stream"
+        }
+      ]
     }
   }
 }

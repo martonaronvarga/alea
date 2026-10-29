@@ -408,6 +408,30 @@ impl<'a, T: LogDensityGradient + ?Sized, I: SymmetricSplitting> HmcWarmup<'a, T,
     /// Returns the same numerical/backend errors as [`Self::run`]. Successful
     /// cancellation returns `None`, with no partially adapted chain.
     pub fn run_controlled<R: Rng + ?Sized>(
+        self,
+        rng: &mut R,
+        proceed: impl FnMut(usize) -> bool,
+    ) -> ControlledHmcWarmupResult<'a, T, I> {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::info_span!(target: "alea::adaptation", "hmc_warmup", requested = self.options.iterations).entered();
+        #[cfg(feature = "tracing")]
+        tracing::info!(target: "alea::adaptation", schema_version = 1_u64, event = "started");
+        let outcome = self.run_controlled_inner(rng, proceed);
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(Some((_, report))) => {
+                tracing::info!(target: "alea::adaptation", schema_version = 1_u64, event = "finished", iterations = report.iterations, metric_updates = report.metric_updates, search_probes = report.search_probes, integration_attempts = report.integration_attempts)
+            }
+            Ok(None) => {
+                tracing::info!(target: "alea::adaptation", schema_version = 1_u64, event = "cancelled")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::adaptation", schema_version = 1_u64, event = "failed")
+            }
+        }
+        outcome
+    }
+    fn run_controlled_inner<R: Rng + ?Sized>(
         mut self,
         rng: &mut R,
         mut proceed: impl FnMut(usize) -> bool,
@@ -460,6 +484,8 @@ impl<'a, T: LogDensityGradient + ?Sized, I: SymmetricSplitting> HmcWarmup<'a, T,
                     adapter =
                         DualAveraging::new(self.chain.options().step_size(), self.options.target);
                     report.metric_updates += 1;
+                    #[cfg(feature = "tracing")]
+                    tracing::debug!(target: "alea::adaptation", schema_version = 1_u64, event = "metric_updated", completed = report.iterations, metric_updates = report.metric_updates);
                     continue;
                 }
             }

@@ -192,6 +192,8 @@ pub unsafe fn hcubature_ptr(
     if code == 0 {
         Ok(())
     } else {
+        #[cfg(feature = "tracing")]
+        tracing::trace!(target: "alea::numerics", schema_version = 1_u64, event = "cubature_backend_failure", code);
         Err(CubatureError::Backend { code })
     }
 }

@@ -119,7 +119,24 @@ impl<'a, T: PotentialHessianVector + ?Sized> JointHmcWarmup<'a, T> {
     }
 
     /// Consume all estimators/controllers and publish one fully frozen kernel.
-    pub fn run<R: Rng + ?Sized>(mut self, rng: &mut R) -> JointWarmupResult<'a, T> {
+    pub fn run<R: Rng + ?Sized>(self, rng: &mut R) -> JointWarmupResult<'a, T> {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::debug_span!(target: "alea::adaptation", "joint_hmc_warmup", guarantee = "method_specific").entered();
+        #[cfg(feature = "tracing")]
+        tracing::debug!(target: "alea::adaptation", schema_version = 1_u64, event = "started");
+        let outcome = self.run_inner(rng);
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(_) => {
+                tracing::debug!(target: "alea::adaptation", schema_version = 1_u64, event = "finished")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::adaptation", schema_version = 1_u64, event = "failed")
+            }
+        }
+        outcome
+    }
+    fn run_inner<R: Rng + ?Sized>(mut self, rng: &mut R) -> JointWarmupResult<'a, T> {
         let mut report = JointWarmupReport {
             iterations: self.options.base.iterations,
             accepted: 0,

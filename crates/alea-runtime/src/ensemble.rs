@@ -228,7 +228,7 @@ where
                 #[cfg(feature = "tracing")]
                 let _context = trace_context.enter();
                 #[cfg(feature = "tracing")]
-                    let _span = tracing::debug_span!(target: "alea::ensemble", "chunk", chain_id = chain.id.0, phase = ?phase, requested = count).entered();
+                let _span = tracing::debug_span!(target: "alea::ensemble", "chunk", chain_id = chain.id.0, phase = ?phase, requested = count).entered();
                 for _ in 0..count {
                     if cancel.is_cancelled() {
                         return Ok(false);

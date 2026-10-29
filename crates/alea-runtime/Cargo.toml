@@ -41,6 +41,6 @@ tracing-subscriber.workspace = true
 
 [features]
 default = []
-tracing = ["dep:tracing"]
+tracing = ["dep:tracing", "alea-mcmc/tracing", "alea-core/tracing", "alea-math/tracing"]
 analysis = ["dep:serde_json", "dep:sha2"]
 faer = ["alea-mcmc/faer"]

@@ -75,6 +75,30 @@ pub fn strict_cone_direction(
     equalities: &[f64],
     options: ConeSearchOptions,
 ) -> Result<ConeSearch, ExactDotError> {
+    #[cfg(feature = "tracing")]
+    let _span =
+        tracing::debug_span!(target: "alea::numerics", "recession_search", columns = columns)
+            .entered();
+    #[cfg(feature = "tracing")]
+    tracing::debug!(target: "alea::numerics", schema_version = 1_u64, event = "started");
+    let outcome = strict_cone_direction_inner(columns, inequalities, equalities, options);
+    #[cfg(feature = "tracing")]
+    match &outcome {
+        Ok(result) => {
+            tracing::debug!(target: "alea::numerics", schema_version = 1_u64, event = "finished", outcome = match result { ConeSearch::Direction(_) => "improving_ray", ConeSearch::NoImprovingDirection => "no_improving_ray", ConeSearch::BudgetExceeded => "unresolved" })
+        }
+        Err(_) => {
+            tracing::error!(target: "alea::numerics", schema_version = 1_u64, event = "failed")
+        }
+    }
+    outcome
+}
+fn strict_cone_direction_inner(
+    columns: usize,
+    inequalities: &[f64],
+    equalities: &[f64],
+    options: ConeSearchOptions,
+) -> Result<ConeSearch, ExactDotError> {
     if (columns == 0 && (!inequalities.is_empty() || !equalities.is_empty()))
         || (columns != 0
             && (!inequalities.len().is_multiple_of(columns)

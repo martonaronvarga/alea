@@ -167,6 +167,21 @@ impl<W: Write> AnalysisWriter<W> {
     /// Rejects invalid identities, chain/quantity names, mismatched likelihood
     /// schemas or unknown unit columns before touching the output stream.
     pub fn new(csv: W, spec: AnalysisSpec) -> Result<Self, AnalysisError> {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::debug_span!(target: "alea::storage", "analysis_create").entered();
+        let outcome = Self::new_inner(csv, spec);
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(_) => {
+                tracing::debug!(target: "alea::storage", schema_version = 1_u64, event = "finished")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::storage", schema_version = 1_u64, event = "failed")
+            }
+        }
+        outcome
+    }
+    fn new_inner(csv: W, spec: AnalysisSpec) -> Result<Self, AnalysisError> {
         let columns = schema::validate(&spec)?;
         let counts = spec
             .chains
@@ -267,6 +282,27 @@ impl<W: Write> AnalysisWriter<W> {
     /// Rejects missing/duplicate/unknown statuses or empty failure reasons;
     /// preserves CSV/manifest I/O errors. Does not perform fsync or atomic rename.
     pub fn finish<M: Write>(
+        self,
+        manifest: M,
+        statuses: &[(ChainId, ChainStatus)],
+    ) -> Result<W, AnalysisError> {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::debug_span!(target: "alea::storage", "analysis_seal").entered();
+        #[cfg(feature = "tracing")]
+        tracing::debug!(target: "alea::storage", schema_version = 1_u64, event = "started");
+        let outcome = self.finish_inner(manifest, statuses);
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(_) => {
+                tracing::debug!(target: "alea::storage", schema_version = 1_u64, event = "finished")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::storage", schema_version = 1_u64, event = "failed")
+            }
+        }
+        outcome
+    }
+    fn finish_inner<M: Write>(
         mut self,
         mut manifest: M,
         statuses: &[(ChainId, ChainStatus)],

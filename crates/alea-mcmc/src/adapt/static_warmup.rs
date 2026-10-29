@@ -107,6 +107,28 @@ pub(super) fn drive<R: Rng + ?Sized, E: Error + 'static>(
     initial: StepSize,
     options: StaticWarmupOptions,
     rng: &mut R,
+    step: impl FnMut(StepSize, &mut R) -> Result<Observation, E>,
+) -> Result<StaticWarmupReport, StaticWarmupError<E>> {
+    #[cfg(feature = "tracing")]
+    let _span = tracing::debug_span!(target: "alea::adaptation", "static_step_warmup", guarantee = "method_specific").entered();
+    #[cfg(feature = "tracing")]
+    tracing::debug!(target: "alea::adaptation", schema_version = 1_u64, event = "started");
+    let outcome = drive_inner(initial, options, rng, step);
+    #[cfg(feature = "tracing")]
+    match &outcome {
+        Ok(_) => {
+            tracing::debug!(target: "alea::adaptation", schema_version = 1_u64, event = "finished")
+        }
+        Err(_) => {
+            tracing::error!(target: "alea::adaptation", schema_version = 1_u64, event = "failed")
+        }
+    }
+    outcome
+}
+pub(super) fn drive_inner<R: Rng + ?Sized, E: Error + 'static>(
+    initial: StepSize,
+    options: StaticWarmupOptions,
+    rng: &mut R,
     mut step: impl FnMut(StepSize, &mut R) -> Result<Observation, E>,
 ) -> Result<StaticWarmupReport, StaticWarmupError<E>> {
     let mut report = StaticWarmupReport {

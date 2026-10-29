@@ -42,9 +42,32 @@ impl alea::density::LogDensity for Gaussian {
     }
 }
 fn mix(hash: &mut u64, n: u64) {
-    *hash = hash.rotate_left(7) ^ n.wrapping_mul(0x9e3779b97f4a7c15);
+    *hash = (*hash ^ n).wrapping_mul(0x100000001b3);
 }
 fn workload(case: &str) -> Result<(u64, String), Box<dyn std::error::Error>> {
+    if ![
+        "stream",
+        "hmc",
+        "nuts",
+        "rwmh",
+        "parallel50",
+        "bernoulli",
+        "poisson",
+        "cone",
+        "svd",
+        "wiener4_density",
+        "wiener4_fused",
+        "wiener5_density",
+        "wiener5_fused",
+        "wiener7_density",
+        "wiener7_fused",
+        "wiener7_rare_density",
+        "wiener7_rare_fused",
+    ]
+    .contains(&case)
+    {
+        return Err("unknown workload".into());
+    }
     let mut hash = 1;
     let mut outcome = "Completed".to_owned();
     if case == "stream" {
@@ -100,6 +123,110 @@ fn workload(case: &str) -> Result<(u64, String), Box<dyn std::error::Error>> {
                 }
             }
         }
+    } else if case.starts_with("wiener") {
+        use alea::wiener::{
+            Boundary, Wiener4, Wiener4Params, Wiener5, Wiener5Params, Wiener7, Wiener7Params,
+            WienerObservation, WienerOptions,
+        };
+        let p4 = Wiener4Params::with_params(1.6, 0.2, 0.45, 0.7)?;
+        let p5 = Wiener5Params::with_params(1.6, 0.2, 0.45, 0.7, 0.1)?;
+        let rare = case.contains("rare");
+        let p7 = if rare {
+            Wiener7Params::with_params(0.1, 0., 0.1, -10., 0.0001, 0.001, 0.1)?
+        } else {
+            Wiener7Params::with_params(1.6, 0.2, 0.45, 0.7, 0.05, 0.1, 0.1)?
+        };
+        let density = case.ends_with("density");
+        let count = if case.starts_with("wiener7") {
+            200
+        } else {
+            300_000
+        };
+        for i in 0..count {
+            let obs = WienerObservation {
+                rt: if rare {
+                    0.000001
+                } else {
+                    0.4 + (i % 101) as f64 / 100.
+                },
+                boundary: Boundary::Upper,
+            };
+            let obs = black_box(&obs);
+            let options = WienerOptions::new(if case.starts_with("wiener7") {
+                1e-4
+            } else {
+                1e-12
+            });
+            let value = if case.starts_with("wiener4") {
+                if density {
+                    Wiener4.try_log_prob(obs, black_box(&p4), options)?.log_prob
+                } else {
+                    let e = Wiener4.try_fused(obs, black_box(&p4), options)?;
+                    for g in e.grad_array() {
+                        mix(&mut hash, g.to_bits());
+                    }
+                    e.log_prob
+                }
+            } else if case.starts_with("wiener5") {
+                if density {
+                    Wiener5.try_log_prob(obs, black_box(&p5), options)?.log_prob
+                } else {
+                    let e = Wiener5.try_fused(obs, black_box(&p5), options)?;
+                    for g in e.grad_array() {
+                        mix(&mut hash, g.to_bits());
+                    }
+                    e.log_prob
+                }
+            } else {
+                if density {
+                    Wiener7.try_log_prob(obs, black_box(&p7), options)?.log_prob
+                } else {
+                    let e = Wiener7.try_fused(obs, black_box(&p7), options)?;
+                    for g in e.grad_array() {
+                        mix(&mut hash, g.to_bits());
+                    }
+                    e.log_prob
+                }
+            };
+            mix(&mut hash, value.to_bits());
+        }
+    } else if case == "cone" {
+        for _ in 0..20_000 {
+            use alea::math::exact::{ConeSearch, ConeSearchOptions, strict_cone_direction};
+            let result = strict_cone_direction(
+                2,
+                black_box(&[1., -0.5, -0.5, 1.]),
+                &[],
+                ConeSearchOptions::default(),
+            )?;
+            match result {
+                ConeSearch::Direction(d) => {
+                    for n in d.coefficients() {
+                        for b in n.to_signed_bytes_le() {
+                            mix(&mut hash, u64::from(b));
+                        }
+                    }
+                }
+                _ => return Err("cone unexpectedly unresolved".into()),
+            }
+        }
+    } else if case == "svd" {
+        #[cfg(feature = "faer")]
+        for _ in 0..2000 {
+            let fit = alea::math::least_squares::solve(
+                4,
+                2,
+                black_box(&[1., -1., 1., 0., 1., 1., 1., 2.]),
+                &[0., 1., 2., 2.5],
+                1e-12,
+            )?;
+            for x in fit.coefficients {
+                mix(&mut hash, x.to_bits());
+            }
+            mix(&mut hash, fit.residual_norm.to_bits());
+        }
+        #[cfg(not(feature = "faer"))]
+        return Err("svd requires the faer feature".into());
     } else if case == "bernoulli" || case == "poisson" {
         use alea::distributions::modeling::regression::{
             RegressionData, bernoulli_logit_regression, poisson_log_regression,

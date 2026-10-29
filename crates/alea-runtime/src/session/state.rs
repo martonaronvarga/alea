@@ -177,6 +177,27 @@ impl Checkpoint {
         path: impl AsRef<Path>,
         maximum_bytes: usize,
     ) -> Result<(), CheckpointError> {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::debug_span!(target: "alea::storage", "checkpoint_write").entered();
+        #[cfg(feature = "tracing")]
+        tracing::debug!(target: "alea::storage", schema_version = 1_u64, event = "started");
+        let outcome = self.write_new_inner(path, maximum_bytes);
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(_) => {
+                tracing::debug!(target: "alea::storage", schema_version = 1_u64, event = "finished")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::storage", schema_version = 1_u64, event = "failed")
+            }
+        }
+        outcome
+    }
+    fn write_new_inner(
+        &self,
+        path: impl AsRef<Path>,
+        maximum_bytes: usize,
+    ) -> Result<(), CheckpointError> {
         super::storage::write_checkpoint(self, path.as_ref(), maximum_bytes)
     }
     /// Decode with a hard file-size budget, preserving every f64 bit and RNG word.
@@ -184,6 +205,23 @@ impl Checkpoint {
     /// Rejects unknown versions/phases, corruption, truncation, nonfinite caches,
     /// invalid geometry, trailing data and budgets before running a model.
     pub fn read(path: impl AsRef<Path>, maximum_bytes: usize) -> Result<Self, CheckpointError> {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::debug_span!(target: "alea::storage", "checkpoint_read").entered();
+        #[cfg(feature = "tracing")]
+        tracing::debug!(target: "alea::storage", schema_version = 1_u64, event = "started");
+        let outcome = Self::read_inner(path, maximum_bytes);
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(_) => {
+                tracing::debug!(target: "alea::storage", schema_version = 1_u64, event = "finished")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::storage", schema_version = 1_u64, event = "failed")
+            }
+        }
+        outcome
+    }
+    fn read_inner(path: impl AsRef<Path>, maximum_bytes: usize) -> Result<Self, CheckpointError> {
         super::storage::read_checkpoint(path.as_ref(), maximum_bytes)
     }
     pub(super) fn matches(&self, q: &[f64], logp: f64, gradient: &[f64]) -> bool {

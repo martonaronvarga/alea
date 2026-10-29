@@ -434,6 +434,8 @@ impl Wiener7 {
         gradients: bool,
         reduction: Reduction,
     ) -> Wiener7Eval {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::trace_span!(target: "alea::numerics", "wiener7_scaled_integral", scores = gradients, integration_dimension = core.dim, reduction = match reduction { Reduction::None => "none", Reduction::Start => "start", Reduction::Time => "time" }, error_contract = "estimated_quadrature").entered();
         let start_faces =
             if gradients && reduction != Reduction::Time && Self::start_face_budget(core).is_some()
             {
@@ -543,6 +545,8 @@ impl Wiener7 {
                             <= tolerance * g.abs().max(1.0)
                 });
             if converged {
+                #[cfg(feature = "tracing")]
+                tracing::trace!(target: "alea::numerics", schema_version = 1_u64, event = "wiener7_integral_completed", evaluations, regions = regions.len(), error_contract = "estimated_quadrature");
                 return Wiener7Eval {
                     log_prob: scale + density.ln(),
                     grad: Wiener7Grad::from_array(scores),
@@ -550,6 +554,8 @@ impl Wiener7 {
             }
             // Bounded rare path; failure stays visible through the checked API.
             if evaluations + 2 * per_region > 100_000 {
+                #[cfg(feature = "tracing")]
+                tracing::trace!(target: "alea::numerics", schema_version = 1_u64, event = "wiener7_work_limit", evaluations);
                 return fail_eval_7();
             }
             let (index, _) = regions

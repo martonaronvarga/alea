@@ -1235,6 +1235,13 @@
       "promotion_gate": "Complete generated-derivative, compiler-version, and portability evidence."
     },
     {
+      "crate": "alea-autodiff",
+      "feature": "tracing",
+      "profile": "research_utility",
+      "summary": "Opt-in coarse operation, adaptation or rare numerical recovery events without instrumentation inside arithmetic or generated differentiation.",
+      "promotion_gate": "Retain documented overhead/coverage limits, scientific error labels and numerical identity; broaden workload/platform qualification."
+    },
+    {
       "crate": "alea-cli",
       "feature": "default",
       "profile": "research_utility",
@@ -1247,6 +1254,13 @@
       "profile": "research_utility",
       "summary": "Nightly gradient-check CLI support.",
       "promotion_gate": "Graduate with the underlying autodiff feature and CLI workflow."
+    },
+    {
+      "crate": "alea-core",
+      "feature": "tracing",
+      "profile": "research_utility",
+      "summary": "Opt-in coarse operation, adaptation or rare numerical recovery events without instrumentation inside arithmetic or generated differentiation.",
+      "promotion_gate": "Retain documented overhead/coverage limits, scientific error labels and numerical identity; broaden workload/platform qualification."
     },
     {
       "crate": "alea-distributions",
@@ -1275,6 +1289,20 @@
       "summary": "Explicit portable-SIMD distribution kernels in their tested scope."
     },
     {
+      "crate": "alea-distributions",
+      "feature": "tracing",
+      "profile": "research_utility",
+      "summary": "Opt-in coarse operation, adaptation or rare numerical recovery events without instrumentation inside arithmetic or generated differentiation.",
+      "promotion_gate": "Retain documented overhead/coverage limits, scientific error labels and numerical identity; broaden workload/platform qualification."
+    },
+    {
+      "crate": "alea-ffi",
+      "feature": "tracing",
+      "profile": "research_utility",
+      "summary": "Opt-in coarse operation, adaptation or rare numerical recovery events without instrumentation inside arithmetic or generated differentiation.",
+      "promotion_gate": "Retain documented overhead/coverage limits, scientific error labels and numerical identity; broaden workload/platform qualification."
+    },
+    {
       "crate": "alea-math",
       "feature": "default",
       "profile": "validated_component_reference",
@@ -1299,6 +1327,13 @@
       "feature": "simd",
       "profile": "validated_component_opt_in",
       "summary": "Explicit portable-SIMD math kernels in their tested scope."
+    },
+    {
+      "crate": "alea-math",
+      "feature": "tracing",
+      "profile": "research_utility",
+      "summary": "Opt-in coarse operation, adaptation or rare numerical recovery events without instrumentation inside arithmetic or generated differentiation.",
+      "promotion_gate": "Retain documented overhead/coverage limits, scientific error labels and numerical identity; broaden workload/platform qualification."
     },
     {
       "crate": "alea-mcmc",
@@ -1326,6 +1361,13 @@
       "feature": "simd",
       "profile": "validated_component_opt_in",
       "summary": "Explicit portable-SIMD MCMC hot loops in their tested scope."
+    },
+    {
+      "crate": "alea-mcmc",
+      "feature": "tracing",
+      "profile": "research_utility",
+      "summary": "Opt-in coarse operation, adaptation or rare numerical recovery events without instrumentation inside arithmetic or generated differentiation.",
+      "promotion_gate": "Retain documented overhead/coverage limits, scientific error labels and numerical identity; broaden workload/platform qualification."
     },
     {
       "crate": "alea-runtime",

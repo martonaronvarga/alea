@@ -267,6 +267,23 @@ pub enum Failure<E: Error + 'static> {
     NumericalLimit,
 }
 impl<E: Error + 'static> Failure<E> {
+    #[cfg(feature = "tracing")]
+    fn trace_code(&self) -> &'static str {
+        match self {
+            Self::Target(_) => "target_factory",
+            Self::Hmc(_) => "hmc",
+            Self::Nuts(_) => "nuts",
+            Self::Rwmh(_) => "rwmh",
+            Self::Warmup(_) => "hmc_warmup",
+            Self::NutsWarmup(_) => "nuts_warmup",
+            Self::Sink(_) => "sink",
+            Self::WorkerPanic => "worker_panic",
+            Self::ObserverPanic => "observer_panic",
+            Self::Contract => "contract",
+            Self::RestartMismatch => "restart_mismatch",
+            Self::NumericalLimit => "numerical_limit",
+        }
+    }
     fn numerical(&self) -> bool {
         fn evaluation<E: Error + 'static>(e: &EvaluationError<E>) -> bool {
             matches!(
@@ -727,6 +744,8 @@ impl Session {
         S: Sink,
     {
         if matches!(self.spec.kernel, SamplerConfig::Rwmh(_)) {
+            #[cfg(feature = "tracing")]
+            tracing::error!(target: "alea::session", schema_version = 1_u64, event = "failed", failure = "gradient_capability", operation = "run");
             return Err(ConfigurationError);
         }
         self.execute(execution, sink, |id, out, window, control| {
@@ -843,6 +862,8 @@ impl Session {
         S: Sink,
     {
         let SamplerConfig::Rwmh(options) = self.spec.kernel else {
+            #[cfg(feature = "tracing")]
+            tracing::error!(target: "alea::session", schema_version = 1_u64, event = "failed", failure = "density_kernel_capability", operation = "run_density");
             return Err(ConfigurationError);
         };
         self.execute(execution, sink, |id, out, window, control| {
@@ -1025,7 +1046,7 @@ impl Session {
                 }
             }
             #[cfg(feature = "tracing")]
-            tracing::info!(target: "alea::session", schema_version = 1_u64, event = "chain_finished", completed = out.completed, warmup_completed = out.warmup_completed, failed = out.failure.is_some(), cancelled = out.cancelled, numerical_rejections = out.numerical_rejections);
+            tracing::info!(target: "alea::session", schema_version = 1_u64, event = "chain_finished", completed = out.completed, warmup_completed = out.warmup_completed, failed = out.failure.is_some(), failure = out.failure.as_ref().map(Failure::trace_code), cancelled = out.cancelled, numerical_rejections = out.numerical_rejections);
             (out, window)
         };
         let results: Vec<_> = match execution {

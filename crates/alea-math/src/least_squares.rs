@@ -55,6 +55,29 @@ pub fn solve(
     response: &[f64],
     relative_tolerance: f64,
 ) -> Result<LeastSquares, LeastSquaresError> {
+    #[cfg(feature = "tracing")]
+    let _span = tracing::debug_span!(target: "alea::numerics", "least_squares", rows = rows, columns = columns).entered();
+    #[cfg(feature = "tracing")]
+    tracing::debug!(target: "alea::numerics", schema_version = 1_u64, event = "started");
+    let outcome = solve_inner(rows, columns, design, response, relative_tolerance);
+    #[cfg(feature = "tracing")]
+    match &outcome {
+        Ok(result) => {
+            tracing::debug!(target: "alea::numerics", schema_version = 1_u64, event = "finished", numerical_rank = result.numerical_rank, rank_policy = "relative_singular_value")
+        }
+        Err(_) => {
+            tracing::error!(target: "alea::numerics", schema_version = 1_u64, event = "failed")
+        }
+    }
+    outcome
+}
+fn solve_inner(
+    rows: usize,
+    columns: usize,
+    design: &[f64],
+    response: &[f64],
+    relative_tolerance: f64,
+) -> Result<LeastSquares, LeastSquaresError> {
     if rows == 0
         || rows.checked_mul(columns) != Some(design.len())
         || response.len() != rows

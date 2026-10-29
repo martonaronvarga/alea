@@ -489,6 +489,27 @@ impl<'a, T: LogDensityGradient + ?Sized, I: SymmetricSplitting> FisherHmcWarmup<
     // Private static-dispatch observation seam for controller contract tests.
     // The public path monomorphizes a no-op: no observer storage or allocations.
     fn run_observed<R: Rng + ?Sized>(
+        self,
+        rng: &mut R,
+        observe: impl FnMut(usize, &Self, &crate::HmcTransition, &HmcWarmupReport),
+    ) -> FisherWarmupResult<'a, T, I> {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::debug_span!(target: "alea::adaptation", "fisher_hmc_warmup", guarantee = "method_specific").entered();
+        #[cfg(feature = "tracing")]
+        tracing::debug!(target: "alea::adaptation", schema_version = 1_u64, event = "started");
+        let outcome = self.run_observed_inner(rng, observe);
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(_) => {
+                tracing::debug!(target: "alea::adaptation", schema_version = 1_u64, event = "finished")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::adaptation", schema_version = 1_u64, event = "failed")
+            }
+        }
+        outcome
+    }
+    fn run_observed_inner<R: Rng + ?Sized>(
         mut self,
         rng: &mut R,
         mut observe: impl FnMut(usize, &Self, &crate::HmcTransition, &HmcWarmupReport),

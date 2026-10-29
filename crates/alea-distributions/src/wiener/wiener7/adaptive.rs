@@ -93,6 +93,8 @@ impl Wiener7 {
             // support. Recalibrate once from the computed integrals instead of
             // weakening the final ratio budget or repeatedly splitting boxes.
             std::hint::cold_path();
+            #[cfg(feature = "tracing")]
+            tracing::trace!(target: "alea::numerics", schema_version = 1_u64, event = "wiener7_recalibration", attempt = attempt + 1, error_contract = "estimated_quadrature");
             if unlikely(value[0] <= 0. || value.iter().any(|x| !x.is_finite())) {
                 return fail_eval_7();
             }

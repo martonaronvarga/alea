@@ -33,6 +33,21 @@ pub fn enzyme_objective_source(model: &CompiledModel) -> Result<String, Assembly
 }
 
 fn mapped_source(model: &CompiledModel, density: bool) -> Result<String, AssemblyError> {
+    #[cfg(feature = "tracing")]
+    let _span =
+        tracing::debug_span!(target: "alea::model", "enzyme_lowering", density_jacobian = density)
+            .entered();
+    #[cfg(feature = "tracing")]
+    tracing::debug!(target: "alea::model", schema_version = 1_u64, event = "started");
+    let outcome = mapped_source_inner(model, density);
+    #[cfg(feature = "tracing")]
+    match &outcome {
+        Ok(_) => tracing::debug!(target: "alea::model", schema_version = 1_u64, event = "finished"),
+        Err(_) => tracing::error!(target: "alea::model", schema_version = 1_u64, event = "failed"),
+    }
+    outcome
+}
+fn mapped_source_inner(model: &CompiledModel, density: bool) -> Result<String, AssemblyError> {
     let body = if density {
         model.rust_primal()?
     } else {

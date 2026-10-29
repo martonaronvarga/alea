@@ -20,6 +20,8 @@ mod scaled;
 #[cold]
 #[inline(never)]
 fn fail_eval_7() -> Wiener7Eval {
+    #[cfg(feature = "tracing")]
+    tracing::trace!(target: "alea::numerics", schema_version = 1_u64, event = "wiener7_nonfinite_evaluation", error_contract = "uncertified");
     Wiener7Eval {
         log_prob: f64::NEG_INFINITY,
         grad: NAN_GRAD_7,

@@ -173,6 +173,21 @@ impl Bingham {
     /// Requires 2..=64 finite concentrations, spread<=10,000, and successful
     /// error-controlled holonomic continuation within 50,000 attempted steps.
     pub fn new(concentrations: Vec<f64>) -> Result<Self, E> {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::debug_span!(target: "alea::numerics", "bingham_normalization", dimension = concentrations.len()).entered();
+        let outcome = Self::new_inner(concentrations);
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(result) => {
+                tracing::debug!(target: "alea::numerics", schema_version = 1_u64, event = "finished", steps = result.steps, error_contract = "estimated")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::numerics", schema_version = 1_u64, event = "failed")
+            }
+        }
+        outcome
+    }
+    fn new_inner(concentrations: Vec<f64>) -> Result<Self, E> {
         let d = concentrations.len();
         if !(2..=64).contains(&d) {
             return Err(E::Shape);

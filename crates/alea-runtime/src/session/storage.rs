@@ -141,6 +141,27 @@ impl DurableSink {
         provenance: &Provenance,
         maximum_bytes: usize,
     ) -> Result<Self, SinkError> {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::debug_span!(target: "alea::storage", "draw_file_create").entered();
+        #[cfg(feature = "tracing")]
+        tracing::debug!(target: "alea::storage", schema_version = 1_u64, event = "started");
+        let outcome = Self::create_new_inner(path, provenance, maximum_bytes);
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(_) => {
+                tracing::debug!(target: "alea::storage", schema_version = 1_u64, event = "finished")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::storage", schema_version = 1_u64, event = "failed")
+            }
+        }
+        outcome
+    }
+    fn create_new_inner(
+        path: impl AsRef<Path>,
+        provenance: &Provenance,
+        maximum_bytes: usize,
+    ) -> Result<Self, SinkError> {
         if !provenance.valid() {
             return Err(SinkError::Format);
         }
@@ -164,6 +185,23 @@ impl DurableSink {
             provenance: provenance.clone(),
             maximum_bytes,
         })
+    }
+}
+impl DurableSink {
+    fn finish_io(&self) -> Result<(), SinkError> {
+        let mut state = self.state.lock().map_err(|_| SinkError::Failed)?;
+        if state.failed {
+            return Err(SinkError::Failed);
+        }
+        if state.finished {
+            return Ok(());
+        }
+        if let Err(e) = state.file.flush().and_then(|()| state.file.sync_all()) {
+            state.failed = true;
+            return Err(SinkError::Io(e));
+        }
+        state.finished = true;
+        Ok(())
     }
 }
 impl Sink for DurableSink {
@@ -201,19 +239,19 @@ impl Sink for DurableSink {
         Ok(())
     }
     fn finish(&self) -> Result<(), SinkError> {
-        let mut state = self.state.lock().map_err(|_| SinkError::Failed)?;
-        if state.failed {
-            return Err(SinkError::Failed);
+        #[cfg(feature = "tracing")]
+        let _span = tracing::debug_span!(target: "alea::storage", "draw_file_finish").entered();
+        let outcome = self.finish_io();
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(_) => {
+                tracing::debug!(target: "alea::storage", schema_version = 1_u64, event = "finished")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::storage", schema_version = 1_u64, event = "failed")
+            }
         }
-        if state.finished {
-            return Ok(());
-        }
-        if let Err(e) = state.file.flush().and_then(|()| state.file.sync_all()) {
-            state.failed = true;
-            return Err(SinkError::Io(e));
-        }
-        state.finished = true;
-        Ok(())
+        outcome
     }
 }
 
@@ -229,7 +267,22 @@ impl<R: Read> DrawReader<R> {
     /// Read the versioned provenance header with an allocation bound.
     /// # Errors
     /// Rejects malformed/truncated headers, unknown versions and oversized frames.
-    pub fn new(mut reader: R, maximum_frame_bytes: usize) -> Result<Self, SinkError> {
+    pub fn new(reader: R, maximum_frame_bytes: usize) -> Result<Self, SinkError> {
+        #[cfg(feature = "tracing")]
+        let _span = tracing::debug_span!(target: "alea::storage", "draw_reader_create").entered();
+        let outcome = Self::new_inner(reader, maximum_frame_bytes);
+        #[cfg(feature = "tracing")]
+        match &outcome {
+            Ok(_) => {
+                tracing::debug!(target: "alea::storage", schema_version = 1_u64, event = "finished")
+            }
+            Err(_) => {
+                tracing::error!(target: "alea::storage", schema_version = 1_u64, event = "failed")
+            }
+        }
+        outcome
+    }
+    fn new_inner(mut reader: R, maximum_frame_bytes: usize) -> Result<Self, SinkError> {
         let mut magic = [0; 8];
         reader.read_exact(&mut magic)?;
         if &magic != b"ALEADW01" {

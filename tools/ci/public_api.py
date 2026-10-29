@@ -20,6 +20,12 @@ POLICY = {
     "parameter_names": True,
 }
 FEATURE_VARIANTS = {
+    "alea-core+tracing": {"package": "alea-core", "features": ["alea-core/tracing"], "same_as": "alea-core"},
+    "alea-math+tracing": {"package": "alea-math", "features": ["alea-math/tracing"], "same_as": "alea-math"},
+    "alea-mcmc+tracing": {"package": "alea-mcmc", "features": ["alea-mcmc/tracing"], "same_as": "alea-mcmc"},
+    "alea-distributions+tracing": {"package": "alea-distributions", "features": ["alea-distributions/tracing"], "same_as": "alea-distributions"},
+    "alea-autodiff+tracing": {"package": "alea-autodiff", "features": ["alea-autodiff/tracing"], "same_as": "alea-autodiff"},
+    "alea-ffi+tracing": {"package": "alea-ffi", "features": ["alea-ffi/tracing"], "same_as": "alea-ffi"},
     "alea+tracing": {"package": "alea", "features": ["alea/tracing"], "same_as": "alea"},
     "alea-runtime+tracing": {"package": "alea-runtime", "features": ["alea-runtime/tracing"], "same_as": "alea-runtime"},
     "alea+simd": {"package": "alea", "features": ["alea/simd"], "same_as": "alea"},
