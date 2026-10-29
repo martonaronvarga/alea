@@ -1,32 +1,29 @@
 # Alea
 
-Bayesian modeling and Monte Carlo inference in Rust. Build a model or supply a
-log density and gradient, then run NUTS, Hamiltonian Monte Carlo, or Metropolis.
-Alea provides parameter transforms, warmup, parallel chains, diagnostics,
-posterior prediction, and checkpoint recovery.
+Probability computation and statistical inference in Rust. Evaluate and sample
+distributions, construct models with named constrained parameters, optimize
+likelihoods or posterior modes, and run NUTS, HMC, or random-walk Metropolis.
 
-```rust
-use alea::prelude::*;
+Alea includes hierarchical modeling, batch regression likelihoods, analytic model
+gradients, warmup, parallel chains, diagnostics, posterior prediction, streaming
+output, and checkpoint recovery. Specialized laws include Wiener diffusion and
+directional distributions. Optimization records point estimates and numerical
+termination; finite estimator existence and uncertainty need separate assessment.
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let kernel = SamplerConfig::Nuts(NutsOptions::new(0.2, 8)?);
-    let warmup = Warmup::Covariance {
-        iterations: 1_000,
-        metric: alea::sampling::adapt::MetricKind::Diagonal,
-        target: 0.8.try_into()?,
-        search: None,
-    };
-    let _ = (kernel, warmup);
-    Ok(())
-}
-```
+Use `alea` as the application dependency and import its modules or `alea::prelude`.
+The default build requires stable Rust 1.95 or later. Optional features include:
 
-See the [user guide](https://github.com/martonaronvarga/alea/blob/release/0.1.1/docs/README.md)
-for complete programs and advice on interpreting a fit. Add the `distributions`
-feature for probability laws and Wiener models; that feature requires a C compiler.
-Other optional backends are described in the installation guide.
+- `distributions`: probability laws and likelihood factors; requires a C compiler.
+- `analysis`: named CSV/JSON sampling artifacts for downstream analysis.
+- `faer`: matrix operations and Gaussian least-squares assessment.
+- `std-autodiff`: compiled Enzyme derivatives with a matching nightly toolchain.
+
+See the [user guide](https://github.com/martonaronvarga/alea/blob/main/docs/README.md)
+for complete programs covering modeling, optimization, sampling, and result
+export. The [installation guide](https://github.com/martonaronvarga/alea/blob/main/docs/installation.md)
+describes Git dependencies, reproducible builds, and optional backends.
 
 ## License
 
-GPL-3.0-or-later; see [LICENSE](https://github.com/martonaronvarga/alea/blob/release/0.1.1/LICENSE-GPL) and
-[THIRD_PARTY_NOTICES.md](https://github.com/martonaronvarga/alea/blob/release/0.1.1/THIRD_PARTY_NOTICES.md).
+GPL-3.0-or-later; see [LICENSE](https://github.com/martonaronvarga/alea/blob/main/LICENSE-GPL) and
+[THIRD_PARTY_NOTICES.md](https://github.com/martonaronvarga/alea/blob/main/THIRD_PARTY_NOTICES.md).
