@@ -109,6 +109,7 @@ impl<Y> RegressionData<Y> {
     pub fn offsets(&self) -> &[f64] {
         &self.offsets
     }
+    #[inline]
     fn linear_predictor(&self, row: usize, beta: &[f64]) -> f64 {
         let mut sum = CompensatedSum::default();
         sum.add(self.offsets[row]);

@@ -93,17 +93,23 @@ def decode_benchmark_output(stdout, job):
     return payload
 
 
-def benchmark_revisions(args):
-    rng = random.Random(args.seed)
-    variants = ["plain", "counted", "timed"] if args.attribution else ["before", "after"]
+def planned_revision_jobs(families, rows, runs, variants, seed):
+    """Declare every requested logical job before any execution or filtering."""
+    rng = random.Random(seed)
     planned = []
-    for family in ["normal", "bernoulli", "poisson"]:
-        for n in args.rows:
-            for repeat in range(args.runs):
+    for family in families:
+        for n in rows:
+            for repeat in range(runs):
                 order = [(revision, mode) for revision in variants for mode in ["batch", "scalar"]]
                 rng.shuffle(order)
-                for revision, mode in order:
-                    planned.append(dict(family=family, rows=n, repeat=repeat, revision=revision, mode=mode))
+                planned.extend(dict(family=family, rows=n, repeat=repeat, revision=revision, mode=mode)
+                               for revision, mode in order)
+    return planned
+
+
+def benchmark_revisions(args):
+    variants = ["plain", "counted", "timed"] if args.attribution else ["before", "after"]
+    planned = planned_revision_jobs(args.families, args.rows, args.runs, variants, args.seed)
     report = {"protocol": "alea-regression-attribution-v1" if args.attribution else "alea-regression-revisions-v1", "platform": platform.platform(),
               "affinity": sorted(os.sched_getaffinity(0)),
               "seed": args.seed, "score_tolerance_per_observation": 1e-7,
@@ -139,7 +145,7 @@ def benchmark_revisions(args):
                 row["process_seconds"] = time.monotonic() - started
                 report["runs"].append(row)
                 raw.write(json.dumps(row, allow_nan=False) + "\n"); raw.flush()
-            for family in ["normal", "bernoulli", "poisson"]:
+            for family in args.families:
                 for n in args.rows:
                     for mode in ["batch", "scalar"]:
                         for variant in variants[1:]:
@@ -160,6 +166,7 @@ if __name__ == "__main__":
     p.add_argument("output")
     p.add_argument("--rows", type=int, nargs="+", default=[10, 1000, 1000000])
     p.add_argument("--runs", type=int, default=3)
+    p.add_argument("--families", nargs="+", choices=["normal", "bernoulli", "poisson"], default=["normal", "bernoulli", "poisson"])
     p.add_argument("--attribution", action="store_true")
     p.add_argument("--baseline-binary")
     p.add_argument("--baseline-revision")
@@ -167,6 +174,8 @@ if __name__ == "__main__":
     args = p.parse_args()
     if args.runs < 1 or any(n < 1 for n in args.rows):
         p.error("positive rows and runs required")
+    if len(set(args.rows)) != len(args.rows) or len(set(args.families)) != len(args.families):
+        p.error("rows and families must be unique")
     if bool(args.baseline_binary) != bool(args.baseline_revision):
         p.error("baseline binary and revision must be supplied together")
     if args.attribution and args.baseline_binary:
@@ -181,12 +190,12 @@ if __name__ == "__main__":
               "working_diff_sha256": hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD"])).hexdigest(),
               "score_tolerance_per_observation": 1e-7,
               "planned_runs": [{"family": f, "mode": m, "rows": n, "repeat": r}
-                               for f in ["normal", "bernoulli", "poisson"] for n in args.rows
+                               for f in args.families for n in args.rows
                                for r in range(args.runs) for m in ["batch", "scalar"]],
               "runs": [], "comparisons": []}
     with Path(args.output).open("x") as output:
         try:
-            for family in ["normal", "bernoulli", "poisson"]:
+            for family in args.families:
                 for n in args.rows:
                     groups = {mode: [] for mode in ["batch", "scalar"]}
                     for repeat in range(args.runs):

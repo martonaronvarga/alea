@@ -63,3 +63,15 @@ class AttributionGates(unittest.TestCase):
                     dict(row, target_seconds=2.), dict(row, target_seconds=float('nan')),
                     dict(row, fit_seconds=0.)]:
             self.assertEqual(attribution_summary([bad]), {'attribution_valid': False})
+
+class PlannedJobs(unittest.TestCase):
+    def test_targeted_runs_preserve_complete_denominators_and_randomization(self):
+        from benchmark_regression import planned_revision_jobs
+        args = (['normal'], [1000000], 15, ['before', 'after'], 271828)
+        jobs = planned_revision_jobs(*args)
+        self.assertEqual(jobs, planned_revision_jobs(*args))
+        self.assertEqual(len(jobs), 60)
+        keys = {(r['family'],r['rows'],r['repeat'],r['revision'],r['mode']) for r in jobs}
+        expected = {('normal',1000000,i,v,m) for i in range(15)
+                    for v in ['before','after'] for m in ['batch','scalar']}
+        self.assertEqual(keys, expected)

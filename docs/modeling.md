@@ -923,3 +923,17 @@ one-host measurements support a workload-specific improvement, not a general
 performance guarantee. Independent 60-digit checks and the separate 72-case
 conditioning/existence cohort passed all required accuracy gates. The latter
 retains known raw-coordinate Poisson failures and distinct stopping outcomes.
+
+The compensated predictor can also be inlined into the batch score loop. This
+compiler hint leaves the offset, multiplication residuals, addition compensation
+and coefficient order unchanged. Whole-process Callgrind counts fell about 10%
+for Gaussian and 8.5% for Bernoulli in the profiled two-predictor workloads.
+A separate 252-process native comparison preserved all numerical outputs and
+work counts, and the 72-case conditioning replay passed the required gates.
+Million-row Bernoulli and Poisson batch fitting ratios were 1.06 and 1.07.
+Gaussian was initially slower (0.88), so a separately retained 15-repetition
+Gaussian replay measured it again: evaluation and fitting ratios were both 1.03,
+with the unchanged scalar fitting control at 0.99. The initial result remains
+recorded. These mixed one-host timings support a modest, workload-dependent
+compiler optimization, not a general speed guarantee. The runner's `--families`
+option supports such targeted replays while retaining the complete declared jobs.
