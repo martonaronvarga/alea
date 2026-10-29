@@ -286,3 +286,28 @@ fn structured_handles_reject_wrong_domains_before_mutating_builder() {
         3
     );
 }
+
+#[test]
+fn native_factor_sum_retains_small_terms_and_original_scores() {
+    for filtered in [false, true] {
+        let mut b = ModelBuilder::new();
+        let q = b.real("q").unwrap();
+        let big = b.constant(1e16).unwrap();
+        let opposite = b.constant(-1e16).unwrap();
+        b.likelihood("large positive", big).unwrap();
+        b.likelihood("small", q.expr()).unwrap();
+        b.likelihood("large negative", opposite).unwrap();
+        let model = b.compile().unwrap();
+        let model = if filtered {
+            model.select_likelihood().unwrap()
+        } else {
+            model
+        };
+        let target = model.into_objective().unwrap();
+        let mut score = [f64::NAN];
+        assert_eq!(target.logp_grad(&[1.], &mut score).unwrap(), 1.);
+        assert_eq!(score, [1.]);
+        assert_eq!(target.logp_grad(&[-3.], &mut score).unwrap(), -3.);
+        assert_eq!(score, [1.]);
+    }
+}

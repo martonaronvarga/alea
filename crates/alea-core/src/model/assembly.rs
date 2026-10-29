@@ -4,6 +4,7 @@
 //! TransformedTarget, once per declared parameter, regardless of its use count.
 use super::{ConstrainedModel, TransformedTarget};
 use crate::transform::{ParameterLayout, Transform, TransformError};
+use alea_math::numeric::CompensatedSum;
 use std::{
     cell::RefCell,
     marker::PhantomData,
@@ -606,9 +607,9 @@ impl CompiledModel {
         } = &mut *work;
         adjoints.fill(0.0);
         gradient.fill(0.0);
-        let mut total = 0.0;
+        let mut total = CompensatedSum::default();
         for i in self.retained_factors() {
-            total += values[*i];
+            total.add(values[*i]);
             adjoints[*i] += 1.0;
         }
         for (i, op) in self.nodes.iter().enumerate().rev() {
@@ -636,6 +637,7 @@ impl CompiledModel {
                 }
             }
         }
+        let total = total.total();
         if !total.is_finite() || gradient.iter().any(|x| !x.is_finite()) {
             return Err(AssemblyError::Numerical);
         }
