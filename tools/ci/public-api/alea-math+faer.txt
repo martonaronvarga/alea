@@ -539,6 +539,7 @@ pub mod alea_math::numeric
 pub struct alea_math::numeric::CompensatedSum
 impl alea_math::numeric::CompensatedSum
 pub fn alea_math::numeric::CompensatedSum::add(&mut self, value: f64)
+pub fn alea_math::numeric::CompensatedSum::add_product(&mut self, left: f64, right: f64)
 pub fn alea_math::numeric::CompensatedSum::total(self) -> f64
 impl core::clone::Clone for alea_math::numeric::CompensatedSum
 pub fn alea_math::numeric::CompensatedSum::clone(&self) -> alea_math::numeric::CompensatedSum

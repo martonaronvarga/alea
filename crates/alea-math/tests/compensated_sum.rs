@@ -15,3 +15,26 @@ fn cancellation_and_small_terms_are_retained_without_certification() {
     sum.add(f64::INFINITY);
     assert!(!sum.total().is_finite());
 }
+
+#[test]
+fn product_residuals_survive_cancellation_against_exact_dyadic_reference() {
+    let a = 1. + 2_f64.powi(-27);
+    let b = 1. - 2_f64.powi(-27);
+    let mut sum = CompensatedSum::default();
+    sum.add_product(a, b);
+    sum.add(-1.);
+    assert_eq!(sum.total(), -2_f64.powi(-54));
+    // A rounded product sum cannot recover this residual.
+    let mut rounded = CompensatedSum::default();
+    rounded.add(a * b);
+    rounded.add(-1.);
+    assert_eq!(rounded.total(), 0.);
+    let mut sum = CompensatedSum::default();
+    sum.add_product(f64::MIN_POSITIVE, 0.5);
+    assert_eq!(sum.total(), f64::MIN_POSITIVE * 0.5);
+    for pair in [(f64::INFINITY, 0.), (f64::MAX, 2.), (f64::NAN, 1.)] {
+        let mut sum = CompensatedSum::default();
+        sum.add_product(pair.0, pair.1);
+        assert!(!sum.total().is_finite());
+    }
+}

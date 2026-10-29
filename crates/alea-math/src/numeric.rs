@@ -228,6 +228,20 @@ impl CompensatedSum {
         };
         self.sum = next;
     }
+    /// Adds a product and its fused-multiply-add rounding residual.
+    /// This retains multiplication error that compensation of rounded products
+    /// alone cannot recover (Ogita, Rump and Oishi, 2005, TwoProductFMA).
+    /// Nonfinite products propagate. Underflow may discard residual bits; this
+    /// is an accuracy improvement, not a certified enclosure or overflow recovery.
+    #[inline]
+    pub fn add_product(&mut self, left: f64, right: f64) {
+        let product = left * right;
+        self.add(product);
+        if product.is_finite() {
+            // The low-order residual joins the existing summation correction.
+            self.correction += left.mul_add(right, -product);
+        }
+    }
     /// Returns the compensated total; does not reset this accumulator.
     pub fn total(self) -> f64 {
         self.sum + self.correction

@@ -30,6 +30,12 @@ pub enum RegressionDataError {
         /// Flat index in that field.
         index: usize,
     },
+    /// Standardization needs an explicit column containing exactly one in every row.
+    #[error("standardization requires column {column} to be a unit intercept")]
+    Intercept {
+        /// Requested intercept column in the original design.
+        column: usize,
+    },
     /// Count conversion would lose integer precision.
     #[error("Poisson count exceeds exact binary64 integers at row {index}")]
     CountPrecision {
@@ -110,7 +116,7 @@ impl<Y> RegressionData<Y> {
             .iter()
             .zip(beta)
         {
-            sum.add(x * b);
+            sum.add_product(*x, *b);
         }
         sum.total()
     }
@@ -250,3 +256,6 @@ fn finish(total: CompensatedSum, scores: &[CompensatedSum], g: &mut [f64]) -> Re
 
 /// Likelihood-specific existence diagnostics, separate from numerical convergence.
 pub mod diagnostics;
+
+mod standardization;
+pub use standardization::*;

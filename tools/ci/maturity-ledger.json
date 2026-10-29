@@ -281,6 +281,12 @@
       "promotion_gate": "Broaden numerical rank/residual policy qualification; no exact rank, finite-estimator or covariance certificate."
     },
     {
+      "path": "crates/alea-distributions/src/modeling/regression/standardization.rs",
+      "profile": "research_component",
+      "summary": "Explicit reversible coefficient standardization with unit intercept, shared observations/offsets and no rank truncation or prior transformation.",
+      "promotion_gate": "Qualify problematic estimator existence/rank, independent optimizer comparisons and broader workloads; no automatic pointwise splitting or Enzyme source export."
+    },
+    {
       "path": "crates/alea-distributions/src/multivariate.rs",
       "profile": "validated_component_opt_in",
       "summary": "Vector and matrix probability laws with explicit reference measures and parameter coordinate conventions."
@@ -6056,6 +6062,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::linear_combination(&mut self, inputs: &[alea_core::model::assembly::Expr], coefficients: &[f64], offset: f64) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Native analytic linear combination; generated source is explicitly unavailable. Extend derivative/roundoff and downstream workload evidence before broader qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ModelBuilder::log(&mut self, a: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
       "profile": "validated_component_opt_in"
     },
@@ -8746,6 +8758,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl alea_distributions::modeling::regression::CoefficientStandardization",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl alea_distributions::modeling::regression::RegressionData<bool>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -9264,6 +9282,12 @@
       "item": "impl core::clone::Clone for alea_distributions::latent::LatentWienerObservation",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::modeling::regression::CoefficientStandardization",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
     },
     {
       "crate": "alea-distributions",
@@ -10357,6 +10381,12 @@
       "item": "impl core::fmt::Debug for alea_distributions::latent::LatentWienerObservation",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::CoefficientStandardization",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
     },
     {
       "crate": "alea-distributions",
@@ -11919,15 +11949,33 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl<Y: core::clone::Clone> core::clone::Clone for alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl<Y: core::fmt::Debug> core::fmt::Debug for alea_distributions::modeling::regression::RegressionData<Y>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-distributions",
+      "item": "impl<Y: core::fmt::Debug> core::fmt::Debug for alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl<Y> alea_distributions::modeling::regression::RegressionData<Y>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl<Y> alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
     },
     {
       "crate": "alea-distributions",
@@ -12035,6 +12083,18 @@
       "item": "pub alea_distributions::modeling::regression::RegressionDataError::Empty",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::RegressionDataError::Intercept",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::RegressionDataError::Intercept::column: usize",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
     },
     {
       "crate": "alea-distributions",
@@ -13289,6 +13349,48 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::CoefficientStandardization::centers(&self) -> &[f64]",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::CoefficientStandardization::clone(&self) -> alea_distributions::modeling::regression::CoefficientStandardization",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::CoefficientStandardization::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::CoefficientStandardization::intercept_column(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::CoefficientStandardization::scales(&self) -> &[f64]",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::CoefficientStandardization::to_original(&self, coefficients: &[f64]) -> core::result::Result<alloc::vec::Vec<f64>, alea_distributions::modeling::regression::RegressionDataError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::CoefficientStandardization::to_standardized(&self, coefficients: &[f64]) -> core::result::Result<alloc::vec::Vec<f64>, alea_distributions::modeling::regression::RegressionDataError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::regression::RegressionData<Y>::clone(&self) -> alea_distributions::modeling::regression::RegressionData<Y>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -13334,6 +13436,12 @@
       "item": "pub fn alea_distributions::modeling::regression::RegressionData<Y>::rows(&self) -> usize",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<Y>::standardize(&self, intercept_column: usize) -> core::result::Result<alea_distributions::modeling::regression::StandardizedRegressionData<Y>, alea_distributions::modeling::regression::RegressionDataError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
     },
     {
       "crate": "alea-distributions",
@@ -13436,6 +13544,36 @@
       "item": "pub fn alea_distributions::modeling::regression::RegressionDataError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::clone(&self) -> alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::coefficient_map(&self) -> &alea_distributions::modeling::regression::CoefficientStandardization",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::data(&self) -> &alea_distributions::modeling::regression::RegressionData<Y>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::into_parts(self) -> (alea_distributions::modeling::regression::RegressionData<Y>, alea_distributions::modeling::regression::CoefficientStandardization)",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
     },
     {
       "crate": "alea-distributions",
@@ -18786,9 +18924,21 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub struct alea_distributions::modeling::regression::CoefficientStandardization",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub struct alea_distributions::modeling::regression::RegressionData<Y>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub struct alea_distributions::modeling::regression::StandardizedRegressionData<Y>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
     },
     {
       "crate": "alea-distributions",
@@ -23892,6 +24042,12 @@
     {
       "crate": "alea-math",
       "item": "pub fn alea_math::numeric::CompensatedSum::add(&mut self, value: f64)",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::numeric::CompensatedSum::add_product(&mut self, left: f64, right: f64)",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },

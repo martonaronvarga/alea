@@ -378,6 +378,41 @@ impl ModelBuilder {
         let a = self.index(a)?;
         Ok(self.push(Op::Log(a)))
     }
+    /// Fuses `offset + sum(coefficients[i] * inputs[i])` into one native node.
+    /// Product residuals and addition residuals are accumulated before the final
+    /// rounding, avoiding loss from large cancelling terms in linear predictors.
+    /// The analytic derivatives are the supplied coefficients. This native node
+    /// has no generated Rust primal; source lowering returns `MissingPrimal`.
+    /// # Errors
+    /// Rejects mismatched shapes, nonfinite coefficients/offsets, foreign handles,
+    /// and nonrepresentable evaluation. No output derivatives are published on error.
+    pub fn linear_combination(
+        &mut self,
+        inputs: &[Expr],
+        coefficients: &[f64],
+        offset: f64,
+    ) -> Result<Expr, AssemblyError> {
+        if inputs.len() != coefficients.len() {
+            return Err(AssemblyError::Shape);
+        }
+        if !offset.is_finite() || coefficients.iter().any(|x| !x.is_finite()) {
+            return Err(AssemblyError::Numerical);
+        }
+        let coefficients = coefficients.to_vec();
+        self.custom(inputs, move |values, gradient| {
+            let mut sum = CompensatedSum::default();
+            sum.add(offset);
+            for (&value, &coefficient) in values.iter().zip(&coefficients) {
+                sum.add_product(value, coefficient);
+            }
+            let result = sum.total();
+            if !result.is_finite() {
+                return Err(AssemblyError::Numerical);
+            }
+            gradient.copy_from_slice(&coefficients);
+            Ok(result)
+        })
+    }
     /// Adds a deterministic/custom scalar node with an explicit local VJP. The
     /// callback must fill every derivative and preserve the mathematical model.
     /// # Errors

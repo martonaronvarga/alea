@@ -311,3 +311,39 @@ fn native_factor_sum_retains_small_terms_and_original_scores() {
         assert_eq!(score, [1.]);
     }
 }
+
+#[test]
+fn fused_linear_predictor_retains_products_and_exposes_analytic_score() {
+    let mut b = ModelBuilder::new();
+    let q = b.real("q").unwrap();
+    let a = 1. + 2_f64.powi(-27);
+    let coefficient = 1. - 2_f64.powi(-27);
+    let linear = b
+        .linear_combination(&[q.expr()], &[coefficient], -1.)
+        .unwrap();
+    b.likelihood("linear", linear).unwrap();
+    let m = b.compile().unwrap();
+    assert!(matches!(
+        m.rust_objective_primal(),
+        Err(AssemblyError::MissingPrimal { .. })
+    ));
+    let t = m.into_objective().unwrap();
+    let mut g = [f64::NAN];
+    assert_eq!(t.logp_grad(&[a], &mut g).unwrap(), -2_f64.powi(-54));
+    assert_eq!(g, [coefficient]);
+    let mut b = ModelBuilder::new();
+    let q = b.real("q").unwrap();
+    assert!(matches!(
+        b.linear_combination(&[q.expr()], &[], 0.),
+        Err(AssemblyError::Shape)
+    ));
+    assert!(matches!(
+        b.linear_combination(&[q.expr()], &[f64::NAN], 0.),
+        Err(AssemblyError::Numerical)
+    ));
+    let mut other = ModelBuilder::new();
+    assert!(matches!(
+        other.linear_combination(&[q.expr()], &[1.], 0.),
+        Err(AssemblyError::ForeignHandle)
+    ));
+}

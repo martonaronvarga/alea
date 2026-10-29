@@ -274,3 +274,107 @@ fn graph_size_is_independent_of_rows_and_bad_estimators_still_have_likelihoods()
     let m = b.compile().unwrap().into_objective().unwrap();
     assert!(evaluate(&m, &[20.]).0 > evaluate(&m, &[10.]).0);
 }
+
+#[test]
+fn cancelling_predictor_scores_match_independent_decimal_reference() {
+    // Decimal60 on the stored binary64 design/response/parameters, not a finite difference.
+    let q = [-50151514.17263073, 50151515.175358005, -0.6022896768086836];
+    let expected = [
+        -4.7807209030239335e-6,
+        -4.780720928196566e-6,
+        -4.2292765882427065e-7,
+    ];
+    for batch in [false, true] {
+        let mut b = ModelBuilder::new();
+        let beta = [b.real("a").unwrap().expr(), b.real("b").unwrap().expr()];
+        let sigma = b.positive("sigma").unwrap();
+        let mut design = Vec::new();
+        let mut response = Vec::new();
+        for i in 0..330 {
+            let x = (i % 11) as f64 - 5.;
+            let predictor = 1. + 1e-8 * x;
+            let y = 1. + 0.5 * x + ((i * 17 % 19) as f64 - 9.) / 10.;
+            design.extend([1., predictor]);
+            response.push(y);
+            if !batch {
+                let mu = b.linear_combination(&beta, &[1., predictor], 0.).unwrap();
+                let f = normal_observation(&mut b, y, mu, &sigma).unwrap();
+                b.factor(f).unwrap();
+            }
+        }
+        if batch {
+            let f = normal_regression(
+                &mut b,
+                &beta,
+                &sigma,
+                RegressionData::new(2, design, response).unwrap(),
+            )
+            .unwrap();
+            b.factor(f).unwrap();
+        }
+        let target = b.compile().unwrap().into_objective().unwrap();
+        let mut gradient = [f64::NAN; 3];
+        target.logp_grad(&q, &mut gradient).unwrap();
+        for (actual, expected) in gradient.into_iter().zip(expected) {
+            assert!((actual - expected).abs() < 1e-10, "{actual} != {expected}");
+        }
+    }
+}
+
+#[test]
+fn standardization_preserves_offsets_null_columns_and_original_coefficient_order() {
+    let eps = 2_f64.powi(-26);
+    let data = RegressionData::new(3, vec![1. - eps, 1., 3., 1. + eps, 1., 3.], vec![1., 2.])
+        .unwrap()
+        .with_offsets(vec![0.25, -0.25])
+        .unwrap();
+    let standardized = data.standardize(1).unwrap();
+    let map = standardized.coefficient_map();
+    assert_eq!(map.intercept_column(), 1);
+    assert_eq!(map.centers(), [1., 0., 3.]);
+    assert_eq!(map.scales(), [eps, 1., 1.]);
+    assert_eq!(standardized.data().design(), [-1., 1., 0., 1., 1., 0.]);
+    assert_eq!(standardized.data().offsets(), data.offsets());
+    assert!(std::ptr::eq(
+        standardized.data().observations().as_ptr(),
+        data.observations().as_ptr()
+    ));
+    let original = map.to_original(&[0.5, 1., 0.]).unwrap();
+    assert_eq!(map.to_standardized(&original).unwrap(), [0.5, 1., 0.]);
+    for i in 0..2 {
+        let mut sum = alea_math::numeric::CompensatedSum::default();
+        for (&x, &b) in data.design()[3 * i..3 * i + 3].iter().zip(&original) {
+            sum.add_product(x, b);
+        }
+        sum.add(data.offsets()[i]);
+        assert_eq!(sum.total(), [0.75, 1.25][i]);
+    }
+    assert!(matches!(
+        data.standardize(0),
+        Err(RegressionDataError::Intercept { column: 0 })
+    ));
+    assert!(data.standardize(99).is_err());
+    assert!(map.to_original(&[0.]).is_err());
+    assert!(map.to_standardized(&[0., f64::NAN, 0.]).is_err());
+    let extremes = RegressionData::new(2, vec![1., -f64::MAX, 1., f64::MAX], vec![0., 1.]).unwrap();
+    assert!(extremes.standardize(0).is_ok());
+}
+
+#[test]
+fn constant_nonbinary_columns_are_exactly_removed_from_centered_design() {
+    let data =
+        RegressionData::new(2, (0..7).flat_map(|_| [1., 0.1]).collect(), vec![0.; 7]).unwrap();
+    let standardized = data.standardize(0).unwrap();
+    assert_eq!(standardized.coefficient_map().centers(), [0., 0.1]);
+    assert_eq!(standardized.coefficient_map().scales(), [1., 1.]);
+    for row in standardized.data().design().chunks_exact(2) {
+        assert_eq!(row, [1., 0.]);
+    }
+    // A model without an intercept must request a different, explicit map.
+    assert!(
+        RegressionData::new(0, vec![], vec![0.])
+            .unwrap()
+            .standardize(0)
+            .is_err()
+    );
+}
