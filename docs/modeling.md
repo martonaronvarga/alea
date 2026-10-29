@@ -602,6 +602,15 @@ constant in the objective can make strict objective improvements unresolvable
 before a stringent score tolerance is met. Alea does not accept equal-valued
 steps or silently loosen the tolerance in that situation.
 
+The optimizer reuses scaled-score, trial-position and trial-gradient buffers within
+one fit. An accepted trial swaps buffers with the retained candidate; rejected or
+failed evaluations cannot overwrite that candidate. Every trial gradient is reset
+to NaN so incomplete backend writes remain detectable. Rejected line-search trials
+do not allocate optimizer working vectors. Secant history, result construction
+and allocations inside a supplied model remain separate costs. This storage
+policy preserves the objective and acceptance rules; it is not a guarantee of
+lower fitting time.
+
 ### Stable predictors and coefficient coordinates
 
 Linear predictors can lose accuracy when large products cancel. Compensating

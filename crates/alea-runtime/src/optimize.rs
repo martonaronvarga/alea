@@ -323,17 +323,17 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
     let mut y_history = Vec::new();
     let mut alphas = Vec::new();
     let mut direction = vec![0.; n];
+    let mut score = vec![0.; n];
+    let mut trial_position = vec![0.; n];
+    let mut trial_gradient = vec![f64::NAN; n];
     loop {
         let current = result
             .candidate
             .as_ref()
             .expect("initial candidate admitted");
-        let score: Vec<_> = current
-            .gradient
-            .iter()
-            .zip(&scales)
-            .map(|(g, s)| g * s)
-            .collect();
+        for ((out, g), scale) in score.iter_mut().zip(&current.gradient).zip(&scales) {
+            *out = g * scale;
+        }
         let norm = score.iter().fold(0_f64, |m, x| m.max(x.abs()));
         if norm.is_finite() && norm <= options.score_tolerance {
             result.termination = OptimizationTermination::ScoreTolerance;
@@ -389,24 +389,29 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
                 result.termination = OptimizationTermination::EvaluationLimit;
                 return Ok(result);
             }
-            let position: Vec<_> = current
-                .position
-                .iter()
+            for (((out, q), d), scale) in trial_position
+                .iter_mut()
+                .zip(&current.position)
                 .zip(&direction)
                 .zip(&scales)
-                .map(|((q, d), s)| q + step * d * s)
-                .collect();
-            if position == current.position {
+            {
+                *out = q + step * d * scale;
+            }
+            if trial_position == current.position {
                 search_failure = LineSearchFailure::NoRepresentableStep;
                 break;
             }
-            if position.iter().all(|x| x.is_finite()) {
-                let mut gradient = vec![f64::NAN; n];
-                let value =
-                    match trial(target, &position, &mut gradient, n, &mut result.evaluations) {
-                        Ok(value) => value,
-                        Err(error) => return Err(failed(result, error)),
-                    };
+            if trial_position.iter().all(|x| x.is_finite()) {
+                let value = match trial(
+                    target,
+                    &trial_position,
+                    &mut trial_gradient,
+                    n,
+                    &mut result.evaluations,
+                ) {
+                    Ok(value) => value,
+                    Err(error) => return Err(failed(result, error)),
+                };
                 if let Some(value) = value {
                     let improvement = score
                         .iter()
@@ -414,11 +419,7 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
                         .map(|(g, d)| g * (step * d))
                         .sum::<f64>();
                     if value > current.value && value >= current.value + 1e-4 * improvement {
-                        accepted = Some(OptimizationCandidate {
-                            position,
-                            value,
-                            gradient,
-                        });
+                        accepted = Some(value);
                         break;
                     }
                 } else {
@@ -429,13 +430,12 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
             }
             step *= 0.5;
         }
-        let Some(candidate) = accepted else {
+        let Some(value) = accepted else {
             result.termination = OptimizationTermination::LineSearchFailed;
             result.line_search_failure = Some(search_failure);
             break;
         };
-        let s: Vec<_> = candidate
-            .position
+        let s: Vec<_> = trial_position
             .iter()
             .zip(&current.position)
             .zip(&scales)
@@ -445,7 +445,7 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
         let y: Vec<_> = current
             .gradient
             .iter()
-            .zip(&candidate.gradient)
+            .zip(&trial_gradient)
             .zip(&scales)
             .map(|((old, new), scale)| (old - new) * scale)
             .collect();
@@ -461,7 +461,15 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
         } else {
             result.skipped_updates += 1;
         }
-        result.candidate = Some(candidate);
+        // Publish only the accepted trial. Old candidate buffers become the
+        // next trial workspace; failures above retain the original candidate.
+        let current = result
+            .candidate
+            .as_mut()
+            .expect("initial candidate admitted");
+        std::mem::swap(&mut current.position, &mut trial_position);
+        std::mem::swap(&mut current.gradient, &mut trial_gradient);
+        current.value = value;
         result.iterations += 1;
         #[cfg(feature = "tracing")]
         tracing::debug!(target: "alea::optimization", schema_version = 1_u64, event = "iteration_completed", iterations = result.iterations, evaluations = result.evaluations, domain_trials = result.domain_trials, skipped_updates = result.skipped_updates);
@@ -503,6 +511,7 @@ fn trial<T: LogDensityGradient + ?Sized>(
         }
         .into());
     }
+    g.fill(f64::NAN);
     *evaluations += 1;
     let value = target.logp_grad(q, g).map_err(EvaluationError::Model)?;
     if value == f64::NEG_INFINITY {

@@ -114,6 +114,14 @@ impl LogDensityGradient for Fault {
                 1 => return Ok(0.), // incomplete gradient
                 2 => return Ok(f64::NAN),
                 3 => return Ok(f64::NEG_INFINITY),
+                4 => {
+                    if count == 1 {
+                        g[0] = 99.;
+                        return Ok(f64::NEG_INFINITY);
+                    }
+                    return Ok(0.); // incomplete after a rejected trial
+                }
+                5 if count > 1 => return Ok(0.), // incomplete after acceptance
                 _ => {}
             }
         }
@@ -584,4 +592,90 @@ fn unrepresentable_step_retains_candidate_without_an_extra_evaluation() {
     .unwrap();
     assert_eq!(r.termination, OptimizationTermination::ScoreTolerance);
     assert_eq!(r.line_search_failure, None);
+}
+
+#[test]
+fn rejected_line_search_trials_reuse_working_storage() {
+    struct Isolated;
+    impl TargetSpace for Isolated {
+        type Error = Infallible;
+        fn dimension(&self) -> usize {
+            16
+        }
+    }
+    impl LogDensityGradient for Isolated {
+        fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Infallible> {
+            g.fill(1.);
+            Ok(if q.iter().all(|x| *x == 0.) {
+                0.
+            } else {
+                f64::NEG_INFINITY
+            })
+        }
+    }
+    let measure = |trials| {
+        let options = LbfgsOptions::new(1, 100)
+            .unwrap()
+            .with_line_search(trials)
+            .unwrap();
+        let description = identity();
+        let mut result = None;
+        let allocations = allocation_counter::measure(|| {
+            result = Some(maximize(&Isolated, &[0.; 16], description, options).unwrap());
+        });
+        let result = result.unwrap();
+        assert_eq!(
+            result.termination,
+            OptimizationTermination::LineSearchFailed
+        );
+        assert_eq!(result.domain_trials, trials);
+        assert_eq!(result.evaluations, trials + 1);
+        assert_eq!(result.iterations, 0);
+        let candidate = result.candidate.unwrap();
+        assert_eq!(candidate.position, [0.; 16]);
+        assert_eq!(candidate.gradient, [1.; 16]);
+        allocations
+    };
+    let short = measure(10);
+    let long = measure(40);
+    eprintln!(
+        "rejected trials10/40: allocations={}/{}, bytes={}/{}",
+        short.count_total, long.count_total, short.bytes_total, long.bytes_total
+    );
+    assert_eq!(short.count_total, long.count_total);
+    assert_eq!(short.bytes_total, long.bytes_total);
+}
+
+#[test]
+fn reused_trial_gradients_do_not_hide_incomplete_backend_writes() {
+    for mode in [4, 5] {
+        let target = Fault {
+            calls: Cell::new(0),
+            mode,
+        };
+        let MaximizeError::Evaluation(error) = maximize(
+            &target,
+            &[0.],
+            identity(),
+            LbfgsOptions::new(10, 100).unwrap(),
+        )
+        .unwrap_err() else {
+            panic!("wrong error")
+        };
+        assert!(matches!(
+            error.source,
+            EvaluationError::NonFiniteGradient { index: 0 }
+        ));
+        assert_eq!(error.result.evaluations, 3);
+        let candidate = error.result.candidate.unwrap();
+        if mode == 4 {
+            assert_eq!(candidate.position, [0.]);
+            assert_eq!(candidate.gradient, [2.]);
+            assert_eq!(error.result.iterations, 0);
+        } else {
+            assert_eq!(candidate.position, [1.]);
+            assert_eq!(candidate.gradient, [1.]);
+            assert_eq!(error.result.iterations, 1);
+        }
+    }
 }
