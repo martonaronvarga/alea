@@ -3,7 +3,115 @@ use alea::{
     autodiff::autodiff::AutodiffError, capability::PotentialHessianDerivative,
     target::LogDensityGradient,
 };
-use alea_enzyme_conformance::{tensor_control, tensor_empty, tensor_zero_scan};
+use alea_enzyme_conformance::{
+    tensor_checkpoint, tensor_checkpoint_zero, tensor_control, tensor_empty, tensor_zero_scan,
+};
+
+#[test]
+fn source_checkpoint_long_replay_and_mixed_native_prior_chart_match_independent_scores() {
+    use alea_enzyme_conformance::{
+        tensor_checkpoint_long as long, tensor_checkpoint_mixed as mixed,
+    };
+    const {
+        assert!(long::SOURCE_CHECKPOINTED && mixed::SOURCE_CHECKPOINTED);
+    }
+    const {
+        assert!(!tensor_control::SOURCE_CHECKPOINTED);
+    }
+    for q in [[-0.7, -0.57], [0.4, 0.53], [2., 1.]] {
+        let [mut r, b] = q;
+        let (mut da, mut db) = (1., 0.);
+        for step in 0..257 {
+            db = db * b + r;
+            da *= b;
+            r = r * b + [-0.1, 0.25, 0.5][step % 3];
+        }
+        let mut g = [41.; 2];
+        let target = long::target();
+        close(target.logp_grad(&q, &mut g).unwrap(), r.abs().ln());
+        close(g[0], da / r);
+        close(g[1], db / r);
+        for j in 0..2 {
+            let mut lo = q;
+            let mut hi = q;
+            lo[j] -= 1e-6;
+            hi[j] += 1e-6;
+            let fd = (long::log_density(&hi) - long::log_density(&lo)) / 2e-6;
+            assert!((fd - g[j]).abs() < 2e-5 * (1. + g[j].abs()));
+        }
+    }
+    for q in [[-0.7, -0.57], [0.4, 0.53], [0., 0.]] {
+        let a: f64 = q[0];
+        let a = a.exp();
+        let (l, s, _, _) = reference([a, q[1]], false);
+        let mut g = [41.; 2];
+        let expected = l * l - 0.5 * a * a - 0.5 * (2. * std::f64::consts::PI).ln() + q[0];
+        close(mixed::target().logp_grad(&q, &mut g).unwrap(), expected);
+        close(g[0], (2. * l * s[0] - a) * a + 1.);
+        close(g[1], 2. * l * s[1]);
+        let mut h = [41.; 2];
+        mixed::composition::objective()
+            .logp_grad(&q, &mut h)
+            .unwrap();
+        close(h[0], g[0] - 1.);
+        close(h[1], g[1]);
+    }
+    let mut g = [41.; 2];
+    assert!(
+        tensor_checkpoint_zero::target()
+            .logp_grad(&[0., 0.5], &mut g)
+            .is_err()
+    );
+    // Raw backend outputs are disposable after failure (as on the existing
+    // compiler path); successful recovery must overwrite every coordinate.
+    assert!(g.iter().all(|v| v.is_nan()));
+    assert!(
+        tensor_checkpoint_zero::target()
+            .logp_grad(&[1., 0.5], &mut g)
+            .is_ok()
+    );
+}
+
+#[test]
+fn source_checkpoint_gradient_reuses_explicit_workspace_without_heap_tape() {
+    use alea_enzyme_conformance::{
+        tensor_checkpoint_long as checkpoint, tensor_retained_long as retained,
+    };
+    let q = [0.4, 0.53];
+    let mut expected = [0.; 2];
+    let mut actual = [0.; 2];
+    let baseline = retained::target();
+    let candidate = checkpoint::target();
+    let before = allocation_counter::measure(|| {
+        baseline.logp_grad(&q, &mut expected).unwrap();
+    });
+    let after = allocation_counter::measure(|| {
+        candidate.logp_grad(&q, &mut actual).unwrap();
+    });
+    for j in 0..2 {
+        close(actual[j], expected[j]);
+    }
+    assert_eq!(after.count_total, 0);
+    println!("source scan 257 retained {before:?}; checkpoint {after:?}");
+}
+
+#[test]
+fn source_replay_preserves_first_activity_and_rejects_a_genuine_singular_score() {
+    use alea_enzyme_conformance::tensor_checkpoint_activity as model;
+    let target = model::target();
+    let mut g = [41.];
+    for gain in [0.25_f64, 0.5, 2.] {
+        let middle = gain.sqrt() + gain;
+        let value = middle.sqrt() + gain;
+        let score = 0.5 * (0.5 / gain.sqrt() + 1.) / middle.sqrt() + 1.;
+        close(target.logp_grad(&[gain], &mut g).unwrap(), value);
+        close(g[0], score);
+    }
+    assert!(target.logp_grad(&[0.], &mut g).is_err());
+    assert!(target.logp_grad(&[-1.], &mut g).is_err());
+    assert!(target.logp_grad(&[0.5], &mut g).is_ok());
+    assert!(g[0].is_finite());
+}
 
 #[track_caller]
 fn close(actual: f64, expected: f64) {
@@ -73,6 +181,8 @@ fn scan_and_zero_trip_both_branches_match_closed_form_through_third_order() {
     }
     check(tensor_control::target(), false);
     check(tensor_zero_scan::target(), true);
+    check(tensor_checkpoint::target(), false);
+    check(tensor_checkpoint_zero::target(), true);
 }
 
 #[test]
@@ -128,6 +238,11 @@ fn selected_domain_errors_survive_empty_outputs_and_zero_trip_loops_and_recover(
     check(tensor_control::target(), [-0.65, 1.], [0.3, -0.4]);
     check(tensor_zero_scan::target(), [0., 1.], [-1., 0.5]);
     check(tensor_empty::target(), [-1.], [0.]);
+    check(
+        alea_enzyme_conformance::tensor_checkpoint_empty::target(),
+        [-1.],
+        [0.],
+    );
     let target = tensor_empty::target();
     let mut g = [41.];
     let mut h = [41.];

@@ -3,6 +3,43 @@ use super::{Kind, Transform};
 use std::fmt::Write;
 
 impl Transform {
+    // Reconstruct a validated, allocation-free chart for explicit source VJPs.
+    // Reuse the native pullback rather than duplicating chart mathematics.
+    pub(crate) fn rust_constructor(&self) -> String {
+        let call = match self.kind {
+            Kind::Identity => format!("identity({})", self.input),
+            Kind::Lower(b) => format!("lower({}, {b:?}_f64)", self.input),
+            Kind::Upper(b) => format!("upper({}, {b:?}_f64)", self.input),
+            Kind::Interval { lower, upper, .. } => {
+                format!("interval({}, {lower:?}_f64, {upper:?}_f64)", self.input)
+            }
+            Kind::Ordered { positive } => format!(
+                "{}({})",
+                if positive {
+                    "positive_ordered"
+                } else {
+                    "ordered"
+                },
+                self.input
+            ),
+            Kind::Simplex => format!("simplex({})", self.output),
+            Kind::UnitVector => format!("unit_vector({})", self.output),
+            Kind::Matrix {
+                n,
+                correlation,
+                covariance,
+            } => format!(
+                "{}({n})",
+                match (correlation, covariance) {
+                    (false, false) => "cholesky_covariance",
+                    (true, false) => "cholesky_correlation",
+                    (false, true) => "covariance",
+                    (true, true) => "correlation",
+                }
+            ),
+        };
+        format!("::alea::transform::Transform::{call}.expect(\"validated transform\")")
+    }
     pub(crate) fn rust_validation(&self, density: bool) -> Option<String> {
         let Kind::Matrix {
             n,

@@ -40,7 +40,15 @@ generated!(
     selected_likelihood,
     selected_posterior,
     tensor_matrix,
+    tensor_checkpoint_matrix,
     tensor_control,
+    tensor_checkpoint,
+    tensor_checkpoint_zero,
+    tensor_checkpoint_long,
+    tensor_retained_long,
+    tensor_checkpoint_mixed,
+    tensor_checkpoint_activity,
     tensor_empty,
+    tensor_checkpoint_empty,
     tensor_zero_scan
 );

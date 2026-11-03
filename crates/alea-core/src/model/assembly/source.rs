@@ -1,6 +1,7 @@
 //! Cold source lowering. No graph, callbacks or reverse tape survives in the primal.
 use super::{AssemblyError, CompiledModel, Op};
 use std::fmt::Write;
+mod checkpoint;
 
 impl CompiledModel {
     pub(super) fn has_primal(&self, node: usize) -> bool {

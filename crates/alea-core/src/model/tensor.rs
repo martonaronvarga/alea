@@ -16,6 +16,7 @@ use std::{
 mod execute;
 mod fusion;
 mod kernels;
+mod pullback;
 mod source;
 pub use execute::TensorWorkspace;
 

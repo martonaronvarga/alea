@@ -16,6 +16,7 @@ fn close(actual: f64, expected: f64) {
 #[test]
 fn matrix_density_score_curvature_and_third_match_independent_quadratic() {
     let target = tensor_matrix::target();
+    let checkpoint = alea_enzyme_conformance::tensor_checkpoint_matrix::target();
     for [a, b] in [[0.3, -0.4], [0., 0.], [-10., 1.], [2., 0.5]] {
         let mut g = [41.; 2];
         let mut h = [41.; 4];
@@ -27,6 +28,13 @@ fn matrix_density_score_curvature_and_third_match_independent_quadratic() {
         );
         close(g[0], -1.25 * a + 0.25 * b);
         close(g[1], 0.25 * a - 2.5 * b);
+        let mut cg = [41.; 2];
+        close(
+            checkpoint.logp_grad(&q, &mut cg).unwrap(),
+            tensor_matrix::log_density(&q),
+        );
+        close(cg[0], g[0]);
+        close(cg[1], g[1]);
         target
             .potential_hessian_and_derivatives(&q, &mut h, &mut t)
             .unwrap();

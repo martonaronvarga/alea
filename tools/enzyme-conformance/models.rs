@@ -209,6 +209,24 @@ pub fn native_batch(family: usize) -> Result<CompiledModel, AssemblyError> {
     b.compile()
 }
 pub fn tensor_matrix() -> Result<CompiledModel, AssemblyError> {
+    tensor_matrix_policy(false)
+}
+pub fn tensor_checkpoint_matrix() -> Result<CompiledModel, AssemblyError> {
+    tensor_matrix_policy(true)
+}
+fn checkpoint_identity(
+    t: &mut alea::model::tensor::TensorBuilder,
+    value: alea::model::tensor::Value,
+) -> Result<alea::model::tensor::Value, AssemblyError> {
+    use alea::model::tensor::*;
+    let mut body = TensorBuilder::new();
+    let carry = body.input("carry", Shape::scalar())?;
+    let _row = body.input("row", Shape::scalar())?;
+    let body = body.compile(carry)?.bind(&[])?;
+    let rows = t.constant(Shape::new(vec![0])?, vec![])?;
+    t.checkpointed_scan(value, rows, &[], body)
+}
+fn tensor_matrix_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError> {
     use alea::model::tensor::*;
     let mut t = TensorBuilder::new();
     let q = t.input("q", Shape::new(vec![2, 1])?)?;
@@ -218,6 +236,11 @@ pub fn tensor_matrix() -> Result<CompiledModel, AssemblyError> {
     let sum = t.sum(squared)?;
     let scale = t.constant(Shape::scalar(), vec![-0.5])?;
     let result = t.binary(BinaryOp::Multiply, sum, scale)?;
+    let result = if checkpoint {
+        checkpoint_identity(&mut t, result)?
+    } else {
+        result
+    };
     let binding = t
         .compile(result)?
         .bind(&[("matrix", &[1., 0.5, -0.5, 1.5])])?;
@@ -228,12 +251,52 @@ pub fn tensor_matrix() -> Result<CompiledModel, AssemblyError> {
     b.compile()
 }
 pub fn tensor_control() -> Result<CompiledModel, AssemblyError> {
-    tensor_control_steps(3)
+    tensor_control_steps(3, false, false)
 }
 pub fn tensor_zero_scan() -> Result<CompiledModel, AssemblyError> {
-    tensor_control_steps(0)
+    tensor_control_steps(0, false, false)
 }
-fn tensor_control_steps(steps: usize) -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_checkpoint() -> Result<CompiledModel, AssemblyError> {
+    tensor_control_steps(3, true, false)
+}
+pub fn tensor_checkpoint_zero() -> Result<CompiledModel, AssemblyError> {
+    tensor_control_steps(0, true, false)
+}
+pub fn tensor_checkpoint_long() -> Result<CompiledModel, AssemblyError> {
+    tensor_control_steps(257, true, false)
+}
+pub fn tensor_retained_long() -> Result<CompiledModel, AssemblyError> {
+    tensor_control_steps(257, false, false)
+}
+pub fn tensor_checkpoint_mixed() -> Result<CompiledModel, AssemblyError> {
+    tensor_control_steps(3, true, true)
+}
+pub fn tensor_checkpoint_activity() -> Result<CompiledModel, AssemblyError> {
+    use alea::model::tensor::*;
+    let mut body = TensorBuilder::new();
+    let carry = body.input("carry", Shape::scalar())?;
+    let _row = body.input("row", Shape::scalar())?;
+    let gain = body.input("gain", Shape::scalar())?;
+    let root = body.unary(UnaryOp::Sqrt, carry)?;
+    let next = body.binary(BinaryOp::Add, root, gain)?;
+    let body = body.compile(next)?.bind(&[])?;
+    let mut t = TensorBuilder::new();
+    let gain = t.input("gain", Shape::scalar())?;
+    let zero = t.constant(Shape::scalar(), vec![0.])?;
+    let rows = t.constant(Shape::new(vec![3])?, vec![0.; 3])?;
+    let result = t.checkpointed_scan(zero, rows, &[gain], body)?;
+    let binding = t.compile(result)?.bind(&[])?;
+    let mut b = ModelBuilder::new();
+    let gain = b.real("gain")?.expr();
+    let term = b.primitive(TensorFactor::new(binding, &[gain])?)?;
+    b.potential("objective", term)?;
+    b.compile()
+}
+fn tensor_control_steps(
+    steps: usize,
+    checkpoint: bool,
+    mixed: bool,
+) -> Result<CompiledModel, AssemblyError> {
     use alea::model::tensor::*;
     let mut body = TensorBuilder::new();
     let carry = body.input("carry", Shape::scalar())?;
@@ -257,7 +320,11 @@ fn tensor_control_steps(steps: usize) -> Result<CompiledModel, AssemblyError> {
     let initial = t.input("initial", Shape::scalar())?;
     let gain = t.input("gain", Shape::scalar())?;
     let xs = t.data("xs", Shape::new(vec![steps])?)?;
-    let carry = t.scan(initial, xs, &[gain], body)?;
+    let carry = if checkpoint {
+        t.checkpointed_scan(initial, xs, &[gain], body)?
+    } else {
+        t.scan(initial, xs, &[gain], body)?
+    };
     let zero = t.constant(Shape::scalar(), vec![0.])?;
     let out = t.cond(
         carry,
@@ -267,17 +334,36 @@ fn tensor_control_steps(steps: usize) -> Result<CompiledModel, AssemblyError> {
         branch(false)?,
         branch(true)?,
     )?;
-    let binding = t
-        .compile(out)?
-        .bind(&[("xs", &[-0.1, 0.25, 0.5][..steps])])?;
+    let rows: Vec<_> = (0..steps).map(|i| [-0.1, 0.25, 0.5][i % 3]).collect();
+    let binding = t.compile(out)?.bind(&[("xs", &rows)])?;
     let mut b = ModelBuilder::new();
-    let q = [b.real("initial")?.expr(), b.real("gain")?.expr()];
+    let initial = if mixed {
+        b.positive("initial")?.expr()
+    } else {
+        b.real("initial")?.expr()
+    };
+    let q = [initial, b.real("gain")?.expr()];
     let term = b.primitive(TensorFactor::new(binding, &q)?)?;
+    let term = if mixed {
+        let zero = b.constant(0.)?;
+        let one = b.constant(1.)?;
+        let prior = normal(&mut b, initial, zero, one)?;
+        b.prior("prior", prior)?;
+        b.multiply(term, term)?
+    } else {
+        term
+    };
     b.potential("objective", term)?;
     b.compile()
 }
 
 pub fn tensor_empty() -> Result<CompiledModel, AssemblyError> {
+    tensor_empty_policy(false)
+}
+pub fn tensor_checkpoint_empty() -> Result<CompiledModel, AssemblyError> {
+    tensor_empty_policy(true)
+}
+fn tensor_empty_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError> {
     use alea::model::tensor::{Comparison, Shape, TensorBuilder, TensorFactor, UnaryOp};
     let branch = |log: bool| -> Result<_, AssemblyError> {
         let mut b = TensorBuilder::new();
@@ -298,6 +384,11 @@ pub fn tensor_empty() -> Result<CompiledModel, AssemblyError> {
         branch(false)?,
     )?;
     let out = t.sum(chosen)?;
+    let out = if checkpoint {
+        checkpoint_identity(&mut t, out)?
+    } else {
+        out
+    };
     let binding = t.compile(out)?.bind(&[])?;
     let mut b = ModelBuilder::new();
     let x = b.real("x")?.expr();
@@ -312,8 +403,16 @@ pub fn all() -> Result<Vec<(&'static str, CompiledModel)>, AssemblyError> {
         ("native_logit_batch", native_batch(1)?),
         ("native_poisson_batch", native_batch(2)?),
         ("tensor_matrix", tensor_matrix()?),
+        ("tensor_checkpoint_matrix", tensor_checkpoint_matrix()?),
         ("tensor_control", tensor_control()?),
+        ("tensor_checkpoint", tensor_checkpoint()?),
+        ("tensor_checkpoint_zero", tensor_checkpoint_zero()?),
+        ("tensor_checkpoint_long", tensor_checkpoint_long()?),
+        ("tensor_retained_long", tensor_retained_long()?),
+        ("tensor_checkpoint_mixed", tensor_checkpoint_mixed()?),
+        ("tensor_checkpoint_activity", tensor_checkpoint_activity()?),
         ("tensor_empty", tensor_empty()?),
+        ("tensor_checkpoint_empty", tensor_checkpoint_empty()?),
         ("tensor_zero_scan", tensor_zero_scan()?),
         ("regression", regression()?),
         ("likelihood_location_scale", likelihood_location_scale()?),

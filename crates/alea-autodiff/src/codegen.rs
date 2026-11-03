@@ -13,6 +13,10 @@ use alea_core::model::assembly::{AssemblyError, CompiledModel};
 /// workspace element count, and O(d²) directional third-derivative evaluations.
 /// This does not bound compiler-generated reverse tapes or guarantee arbitrary
 /// programs fit a thread stack. Native analytic evaluation is unaffected.
+/// Explicit `checkpointed_scan` regions select a source-generated first-order
+/// pullback, exposed by the generated `SOURCE_CHECKPOINTED` receipt. HVPs and
+/// third derivatives retain the compiler-owned reverse path: they are not
+/// checkpointed. Other factors' compiler tapes are not bounded by the receipt.
 /// HVP/tensor calls also evaluate the scalar primal once for domain admission:
 /// derivatives of a non-finite-return branch cannot establish valid support.
 ///
@@ -50,7 +54,7 @@ fn mapped_source(model: &CompiledModel, density: bool) -> Result<String, Assembl
     outcome
 }
 fn mapped_source_inner(model: &CompiledModel, density: bool) -> Result<String, AssemblyError> {
-    let (body, workspace) = if density {
+    let (body, mut workspace) = if density {
         model.rust_primal_with_workspace()?
     } else {
         model.rust_objective_primal_with_workspace()?
@@ -64,7 +68,32 @@ fn mapped_source_inner(model: &CompiledModel, density: bool) -> Result<String, A
     } else {
         model.rust_objective_validation()
     };
-    Ok(TEMPLATE
+    let checkpoint = model.rust_checkpoint_gradient(density)?;
+    let mut template = TEMPLATE.to_owned();
+    template = template.replace(
+        "__CHECKPOINTED__",
+        if checkpoint.is_some() {
+            "true"
+        } else {
+            "false"
+        },
+    );
+    if let Some((source, count)) = checkpoint {
+        workspace = workspace.max(count);
+        template = template.replace(
+            "#[::std::autodiff::autodiff_reverse(__gradient, Duplicated, Duplicated, Active)]",
+            &(source + "\n#[::std::autodiff::autodiff_reverse(__higher_gradient, Duplicated, Duplicated, Active)]"),
+        );
+        // The pinned compiler cannot yet forward-differentiate the explicit
+        // rematerialized reverse program reliably. Preserve the qualified
+        // original compiler reverse for HVPs/third derivatives, not a fallback
+        // numerical approximation. Only first-order gradients are checkpointed.
+        template = template.replace(
+            "__gradient(q, g, work, reverse, 1.0)",
+            "__higher_gradient(q, g, work, reverse, 1.0)",
+        );
+    }
+    Ok(template
         .replace("__DIMENSION__", &dimension.to_string())
         .replace("__WORKSPACE__", &workspace.to_string())
         .replace("__PRIMAL__", &body)
@@ -81,11 +110,20 @@ fn mapped_source_inner(model: &CompiledModel, density: bool) -> Result<String, A
 
 const TEMPLATE: &str = r#"
 pub const DIMENSION: usize = __DIMENSION__;
+/// Whether first-order gradients use explicit segmented tensor replay.
+/// Higher derivatives still use the compiler-owned reverse tape.
+pub const SOURCE_CHECKPOINTED: bool = __CHECKPOINTED__;
 
 // Each float buffer must stay explicit across nested AD. The generated Enzyme
 // ABI duplicates arguments; a user-facing argument-count convention does not
 // apply to these private compiler entry points (including macro-generated ones).
 #[allow(clippy::too_many_arguments)]
+// Shape-specialized generated loops intentionally retain zero offsets, empty
+// ranges, explicit float copies and identical first/steady replay arms. These
+// are generator style artifacts, not hand-written numerical validation waivers.
+#[allow(clippy::identity_op, clippy::manual_memcpy, clippy::modulo_one,
+        clippy::reversed_empty_ranges, clippy::if_same_then_else,
+        clippy::possible_missing_else)]
 mod __enzyme {
 use super::DIMENSION;
 

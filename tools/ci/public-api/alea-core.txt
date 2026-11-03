@@ -532,6 +532,8 @@ pub fn alea_core::model::assembly::CompiledModel::source_capabilities(&self) -> 
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::rebind<P: alea_core::model::assembly::Primitive>(self, expression: alea_core::model::assembly::Expr, update: impl core::ops::function::FnOnce(&P) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> core::result::Result<Self, alea_core::model::assembly::RebindError>
 impl alea_core::model::assembly::CompiledModel
+pub fn alea_core::model::assembly::CompiledModel::rust_checkpoint_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>
+impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal_with_workspace(&self) -> core::result::Result<(alloc::string::String, usize), alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_validation(&self) -> alloc::string::String
@@ -1211,6 +1213,8 @@ pub fn alea_core::model::assembly::CompiledModel::graph(&self) -> impl core::ite
 pub fn alea_core::model::assembly::CompiledModel::source_capabilities(&self) -> alea_core::model::assembly::SourceCapabilities
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::rebind<P: alea_core::model::assembly::Primitive>(self, expression: alea_core::model::assembly::Expr, update: impl core::ops::function::FnOnce(&P) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> core::result::Result<Self, alea_core::model::assembly::RebindError>
+impl alea_core::model::assembly::CompiledModel
+pub fn alea_core::model::assembly::CompiledModel::rust_checkpoint_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal_with_workspace(&self) -> core::result::Result<(alloc::string::String, usize), alea_core::model::assembly::AssemblyError>

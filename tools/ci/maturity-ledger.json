@@ -205,6 +205,12 @@
       "promotion_gate": "Broaden generated-source compilation, scale and custom-primal conformance beyond bounded fixtures."
     },
     {
+      "path": "crates/alea-core/src/model/assembly/source/checkpoint.rs",
+      "profile": "research_utility",
+      "summary": "Explicit first-order source pullback composition and tensor scan replay.",
+      "promotion_gate": "Broaden replay/error/memory qualification; compiler-owned higher-order tapes remain outside this guarantee."
+    },
+    {
       "path": "crates/alea-core/src/model/prediction.rs",
       "profile": "validated_component_opt_in",
       "summary": "Cold named transform metadata and separate prior/posterior generated-quantity workflows."
@@ -7217,6 +7223,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_checkpoint_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify explicit first-order source replay separately from compiler-owned higher-order tapes; no arbitrary-program memory or speed guarantee."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -8301,6 +8313,12 @@
       "item": "pub fn alea_core::model::tensor::TensorBuilder::binary(&mut self, kind: alea_core::model::tensor::BinaryOp, a: alea_core::model::tensor::Value, b: alea_core::model::tensor::Value) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::TensorBuilder::checkpointed_scan(&mut self, initial: alea_core::model::tensor::Value, xs: alea_core::model::tensor::Value, captures: &[alea_core::model::tensor::Value], body: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify retained/replayed numerical equivalence and memory/CPU tradeoffs; higher-order source tapes remain compiler-owned."
     },
     {
       "crate": "alea-core",
