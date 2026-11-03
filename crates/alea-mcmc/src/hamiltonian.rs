@@ -31,6 +31,9 @@ pub enum Divergence {
         /// Zero-based index of the invalid entry.
         index: usize,
     },
+    /// The target explicitly classified a typed evaluation error as numerical
+    /// representability loss. Direct evaluation retains the original error.
+    TargetNumerical,
     /// Momentum generation or an integration kick produced a non-finite value.
     Momentum {
         /// Zero-based index of the invalid entry.
@@ -404,6 +407,11 @@ impl<'a, T: LogDensityGradient + ?Sized> PhaseWorkspace<'a, T> {
                 .try_update_owned(&mut self.next_position, &mut self.evaluation)
             {
                 return Err(match error {
+                    EvaluationError::Model(ref source)
+                        if self.point.target().is_numerical_error(source) =>
+                    {
+                        PhaseError::Divergence(Divergence::TargetNumerical)
+                    }
                     EvaluationError::NonFinitePosition { index } => {
                         PhaseError::Divergence(Divergence::Position { index })
                     }
