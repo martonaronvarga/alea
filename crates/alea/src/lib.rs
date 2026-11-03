@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
+mod model_macros;
 
 #[doc(inline)]
 pub use alea_core::{
