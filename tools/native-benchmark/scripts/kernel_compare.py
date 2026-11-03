@@ -42,6 +42,8 @@ SUITES['tensor'] = [(case,size,calls) for case in ['tensor','tensor_scalar','ten
 SUITES['tensor-checkpoint'] = SUITES['tensor'] + [
     ('tensor_scan',1025,1000),('tensor_scan',10000,100),
     ('tensor_scan_checkpoint',1025,1000),('tensor_scan_checkpoint',10000,100)]
+SUITES['tensor-fusion'] = SUITES['tensor-checkpoint'] + [
+    ('tensor_dag',1000,10000),('tensor_dag',10000,1000),('tensor_dag',100000,100)]
 
 
 def compatible(a,b,case):
@@ -104,6 +106,7 @@ def main():
            REPO/'crates/alea-core/src/model/tensor/execute.rs',
            REPO/'crates/alea-core/src/model/tensor/kernels.rs',
            REPO/'crates/alea-core/src/model/tensor/source.rs',
+           REPO/'crates/alea-core/src/model/tensor/fusion.rs',
            REPO/'crates/alea-distributions/src/mixture.rs',
            REPO/'crates/alea-distributions/src/scalar.rs',REPO/'crates/alea-distributions/src/modeling.rs',
            REPO/'crates/alea-distributions/src/modeling/regression.rs',

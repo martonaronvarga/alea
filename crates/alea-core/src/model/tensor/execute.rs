@@ -264,7 +264,7 @@ impl BoundProgram {
             return Err(E::Shape);
         }
         self.validate(x, w)?;
-        self.forward(x, w)?;
+        self.execute_forward(x, w)?;
         out.copy_from_slice(&w.values[self.plan.nodes[self.plan.output.node].range()]);
         Ok(())
     }
@@ -290,15 +290,45 @@ impl BoundProgram {
         if seed.iter().any(|v| !v.is_finite()) {
             return Err(E::Numerical);
         }
-        self.forward(x, w)?;
+        self.execute_forward(x, w)?;
         self.reverse(seed, w)?;
         out.copy_from_slice(&w.values[self.plan.nodes[self.plan.output.node].range()]);
         g.copy_from_slice(&w.gradient);
         Ok(())
     }
+    fn execute_forward(&self, x: &[f64], w: &mut TensorWorkspace) -> Result<(), E> {
+        let Some(schedule) = &self.plan.execution else {
+            return self.forward(x, w);
+        };
+        for step in &schedule.0 {
+            match step {
+                fusion::Step::Nodes(range) => self.forward_nodes::<false>(x, w, range.clone())?,
+                fusion::Step::Fused(group) => fusion::forward(&self.plan, group, &mut w.values)?,
+            }
+        }
+        Ok(())
+    }
+    // Keep the unscheduled interpreter as one outlined call, as before fusion.
+    // In particular, scalar scan bodies must not inline a complete interpreter
+    // or re-check the planner on every trip.
     fn forward(&self, x: &[f64], w: &mut TensorWorkspace) -> Result<(), E> {
+        self.forward_nodes::<true>(x, w, 0..0)
+    }
+    #[inline(always)]
+    fn forward_nodes<const FULL: bool>(
+        &self,
+        x: &[f64],
+        w: &mut TensorWorkspace,
+        range: Range<usize>,
+    ) -> Result<(), E> {
         let p = &self.plan;
-        for (i, node) in p.nodes.iter().enumerate() {
+        let nodes = if FULL {
+            &p.nodes[..]
+        } else {
+            &p.nodes[range.clone()]
+        };
+        for (offset, node) in nodes.iter().enumerate() {
+            let i = if FULL { offset } else { range.start + offset };
             if !p.active[i] {
                 continue;
             }
@@ -382,7 +412,7 @@ impl BoundProgram {
                         region.args[offset..offset + values.len()].copy_from_slice(values);
                         offset += values.len();
                     }
-                    selected.forward(&region.args, &mut region.frames[choice])?;
+                    selected.execute_forward(&region.args, &mut region.frames[choice])?;
                     let output = selected.plan.nodes[selected.plan.output.node].range();
                     w.values[node.range()].copy_from_slice(&region.frames[choice].values[output]);
                 }
@@ -510,8 +540,22 @@ impl BoundProgram {
 }
 // Select storage policy once per scan, not per ordinary trip. Keeping the loop
 // bodies out of the shared interpreter also bounds its code-size cost.
-#[inline(never)]
+#[inline]
 fn scan_forward(
+    s: &Scan,
+    p: &Plan,
+    parent: &[f64],
+    out: &mut [f64],
+    region: &mut RegionWork,
+) -> Result<(), E> {
+    if s.body.plan.execution.is_none() {
+        scan_forward_with::<false>(s, p, parent, out, region)
+    } else {
+        scan_forward_with::<true>(s, p, parent, out, region)
+    }
+}
+#[inline(never)]
+fn scan_forward_with<const FUSED: bool>(
     s: &Scan,
     p: &Plan,
     parent: &[f64],
@@ -529,7 +573,7 @@ fn scan_forward(
             };
             region.args[..carry].copy_from_slice(previous);
             scan_arguments(s, p, parent, &mut region.args, step);
-            s.body.forward(&region.args, &mut region.frames[step])?;
+            scan_body_forward::<FUSED>(&s.body, &region.args, &mut region.frames[step])?;
         }
         if s.steps == 0 {
             out.copy_from_slice(&parent[p.nodes[s.initial.node].range()]);
@@ -547,15 +591,29 @@ fn scan_forward(
                 let start = step / checkpoint.interval * carry;
                 checkpoint.carries[start..start + carry].copy_from_slice(&region.args[..carry]);
             }
-            scan_step(s, p, parent, region, step)?;
+            scan_step::<FUSED>(s, p, parent, region, step)?;
         }
         out.copy_from_slice(&region.args[..carry]);
     }
     Ok(())
 }
 
-#[inline(never)]
+#[inline]
 fn scan_reverse(
+    s: &Scan,
+    p: &Plan,
+    parent: &[f64],
+    adjoints: &mut [f64],
+    region: &mut RegionWork,
+) -> Result<(), E> {
+    if s.body.plan.execution.is_none() {
+        scan_reverse_with::<false>(s, p, parent, adjoints, region)
+    } else {
+        scan_reverse_with::<true>(s, p, parent, adjoints, region)
+    }
+}
+#[inline(never)]
+fn scan_reverse_with<const FUSED: bool>(
     s: &Scan,
     p: &Plan,
     parent: &[f64],
@@ -574,7 +632,7 @@ fn scan_reverse(
                 &region.checkpoint.as_ref().expect("replay boundary").carries[saved..saved + carry],
             );
             for step in start..end {
-                scan_step(s, p, parent, region, step)?;
+                scan_step::<FUSED>(s, p, parent, region, step)?;
             }
             for step in (start..end).rev() {
                 reverse_scan_step(s, p, adjoints, region, step, scan_frame(interval, step))?;
@@ -628,7 +686,7 @@ fn scan_frame(interval: usize, step: usize) -> usize {
 }
 // Args' carry is both the input and returned carry. No heap work occurs here,
 // including segment replay. Body bindings are immutable and operations pure.
-fn scan_step(
+fn scan_step<const FUSED: bool>(
     s: &Scan,
     p: &Plan,
     parent: &[f64],
@@ -639,10 +697,22 @@ fn scan_step(
     scan_arguments(s, p, parent, &mut region.args, step);
     let index = scan_frame(region.checkpoint.as_ref().map_or(0, |c| c.interval), step);
     let frame = &mut region.frames[index];
-    s.body.forward(&region.args, frame)?;
+    scan_body_forward::<FUSED>(&s.body, &region.args, frame)?;
     region.args[..carry]
         .copy_from_slice(&frame.values[s.body.plan.nodes[s.body.plan.output.node].range()]);
     Ok(())
+}
+#[inline]
+fn scan_body_forward<const FUSED: bool>(
+    body: &BoundProgram,
+    args: &[f64],
+    frame: &mut TensorWorkspace,
+) -> Result<(), E> {
+    if FUSED {
+        body.execute_forward(args, frame)
+    } else {
+        body.forward(args, frame)
+    }
 }
 #[inline]
 fn scan_arguments(s: &Scan, p: &Plan, parent: &[f64], args: &mut [f64], step: usize) {
@@ -664,7 +734,7 @@ fn compare(op: Comparison, a: f64, b: f64) -> bool {
         Comparison::GreaterEqual => a >= b,
     }
 }
-fn unary(op: UnaryOp, x: f64) -> f64 {
+pub(super) fn unary(op: UnaryOp, x: f64) -> f64 {
     match op {
         UnaryOp::Neg => -x,
         UnaryOp::Exp => x.exp(),

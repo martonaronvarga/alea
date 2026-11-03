@@ -56,20 +56,34 @@ impl BoundProgram {
             self.function_source("tensor_region_work")
         )
     }
-    fn function_source(&self, name: &str) -> String {
+    pub(super) fn function_source(&self, name: &str) -> String {
         let p = &self.plan;
         let failure = "*valid=false; return;";
         let mut source = format!(
-            "#[inline(always)]\nfn {name}(x: &[f64; {}], out: &mut [f64], scratch: &mut [f64], valid: &mut bool) {{\nlet _ = (x, &*valid, &*out); let rest=scratch;\n",
-            self.dimension()
+            "#[inline(always)]\nfn {name}(x: &[f64], out: &mut [f64], scratch: &mut [f64], valid: &mut bool) {{\nlet _ = (x, &*valid, &*out); let rest=scratch;\n"
         );
         writeln!(
             source,
             "if x.iter().any(|v| !v.is_finite()) {{ {failure} }}"
         )
         .unwrap();
+        let schedule = fusion::schedule(p, false);
+        let mut groups = schedule
+            .iter()
+            .filter_map(|step| match step {
+                fusion::Step::Fused(group) => Some(group),
+                fusion::Step::Nodes(_) => None,
+            })
+            .peekable();
+        let mut fused_until = 0;
         for (i, node) in p.nodes.iter().enumerate() {
-            if !p.active[i] {
+            if !p.active[i] || i < fused_until {
+                continue;
+            }
+            if groups.peek().is_some_and(|group| group.maps.start == i) {
+                let group = groups.next().expect("peeked fusion group");
+                fused_source(&mut source, p, group, failure);
+                fused_until = group.end();
                 continue;
             }
             let len = node.shape.elements;
@@ -99,39 +113,12 @@ impl BoundProgram {
                 Op::Input(_) | Op::Data(_) | Op::Constant(_) | Op::Alias(_) => {
                     unreachable!("borrowed nodes emitted above")
                 }
-                Op::Unary(op, a) => {
-                    let a = format!("n{}[j]", a.node);
-                    let value = match op {
-                        UnaryOp::Neg => format!("-{a}"),
-                        UnaryOp::Exp => format!("{a}.exp()"),
-                        UnaryOp::Log => format!("{a}.ln()"),
-                        UnaryOp::Log1p => format!("{a}.ln_1p()"),
-                        UnaryOp::Expm1 => format!("{a}.exp_m1()"),
-                        UnaryOp::Tanh => format!("{a}.tanh()"),
-                        UnaryOp::Sin => format!("{a}.sin()"),
-                        UnaryOp::Cos => format!("{a}.cos()"),
-                        UnaryOp::Sqrt => format!("{a}.sqrt()"),
-                    };
+                Op::Unary(..) | Op::Binary(_) => {
+                    let value = element_source(node);
                     if len == 1 {
                         writeln!(source, "{{ let j=0_usize; n{i}[j] = {value}; }}").unwrap();
                     } else {
                         writeln!(source, "for j in 0..{len} {{ n{i}[j] = {value}; }}").unwrap();
-                    }
-                }
-                Op::Binary(b) => {
-                    let lhs = index_source(&b.left);
-                    let rhs = index_source(&b.right);
-                    let op = match b.kind {
-                        BinaryOp::Add => "+",
-                        BinaryOp::Subtract => "-",
-                        BinaryOp::Multiply => "*",
-                        BinaryOp::Divide => "/",
-                    };
-                    let body = format!("n{i}[j]=n{}[{lhs}] {op} n{}[{rhs}];", b.a.node, b.b.node);
-                    if len == 1 {
-                        writeln!(source, "{{ let j=0_usize; {body} }}").unwrap();
-                    } else {
-                        writeln!(source, "for j in 0..{len} {{ {body} }}").unwrap();
                     }
                 }
                 Op::Sum(a) => {
@@ -166,7 +153,7 @@ impl BoundProgram {
                         Comparison::Greater => ">",
                         Comparison::GreaterEqual => ">=",
                     };
-                    writeln!(source,"if n{}[0] {comparison} n{}[0] {{yes{i}((&*args{i}).try_into().expect(\"fixed arguments\"), n{i}, work{i}, valid)}} else {{no{i}((&*args{i}).try_into().expect(\"fixed arguments\"), n{i}, work{i}, valid)}}; if !*valid {{ {failure} }}",c.lhs.node,c.rhs.node).unwrap();
+                    writeln!(source,"if n{}[0] {comparison} n{}[0] {{yes{i}(args{i}, n{i}, work{i}, valid)}} else {{no{i}(args{i}, n{i}, work{i}, valid)}}; if !*valid {{ {failure} }}",c.lhs.node,c.rhs.node).unwrap();
                 }
                 Op::Scan(s) => {
                     if s.steps == 0 {
@@ -213,7 +200,11 @@ impl BoundProgram {
                         &format!("n{xs}[{start}..{end}]"),
                         row,
                     );
-                    writeln!(source,"body{i}((&*args{i}).try_into().expect(\"fixed arguments\"), n{i}, work{i}, valid); if !*valid {{ {failure} }} }}").unwrap();
+                    writeln!(
+                        source,
+                        "body{i}(args{i}, n{i}, work{i}, valid); if !*valid {{ {failure} }} }}"
+                    )
+                    .unwrap();
                 }
             }
             writeln!(
@@ -232,6 +223,79 @@ impl BoundProgram {
         source.push_str("}\n");
         source
     }
+}
+fn element_source(node: &Node) -> String {
+    match &node.op {
+        Op::Unary(op, a) => {
+            let a = format!("n{}[j]", a.node);
+            match op {
+                UnaryOp::Neg => format!("-{a}"),
+                UnaryOp::Exp => format!("{a}.exp()"),
+                UnaryOp::Log => format!("{a}.ln()"),
+                UnaryOp::Log1p => format!("{a}.ln_1p()"),
+                UnaryOp::Expm1 => format!("{a}.exp_m1()"),
+                UnaryOp::Tanh => format!("{a}.tanh()"),
+                UnaryOp::Sin => format!("{a}.sin()"),
+                UnaryOp::Cos => format!("{a}.cos()"),
+                UnaryOp::Sqrt => format!("{a}.sqrt()"),
+            }
+        }
+        Op::Binary(b) => {
+            let op = match b.kind {
+                BinaryOp::Add => "+",
+                BinaryOp::Subtract => "-",
+                BinaryOp::Multiply => "*",
+                BinaryOp::Divide => "/",
+            };
+            format!(
+                "n{}[{}] {op} n{}[{}]",
+                b.a.node,
+                index_source(&b.left),
+                b.b.node,
+                index_source(&b.right)
+            )
+        }
+        _ => unreachable!("pointwise expression"),
+    }
+}
+fn fused_source(source: &mut String, p: &Plan, group: &fusion::Group, failure: &str) {
+    for i in group.maps.clone().chain(group.reduction) {
+        writeln!(
+            source,
+            "let (n{i}, rest)=rest.split_at_mut({});",
+            p.nodes[i].shape.elements
+        )
+        .unwrap();
+    }
+    let elements = group.elements;
+    source.push_str("{\n");
+    if group.reduction.is_some() {
+        source.push_str("let mut total=::alea::math::numeric::CompensatedSum::default();\n");
+    }
+    writeln!(source, "for j in 0..{elements} {{").unwrap();
+    for i in group.maps.clone() {
+        writeln!(
+            source,
+            "n{i}[j]={}; if !n{i}[j].is_finite() {{ {failure} }}",
+            element_source(&p.nodes[i])
+        )
+        .unwrap();
+    }
+    if let Some(i) = group.reduction {
+        let Op::Sum(a) = p.nodes[i].op else {
+            unreachable!("compiled reduction")
+        };
+        writeln!(source, "total.add(n{}[j]);", a.node).unwrap();
+    }
+    source.push_str("}\n");
+    if let Some(i) = group.reduction {
+        writeln!(
+            source,
+            "n{i}[0]=total.total(); if !n{i}[0].is_finite() {{ {failure} }}"
+        )
+        .unwrap();
+    }
+    source.push_str("}\n");
 }
 fn scaled(index: &str, stride: usize) -> String {
     match stride {

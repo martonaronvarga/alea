@@ -21,6 +21,18 @@ spec.loader.exec_module(bench)
 
 
 class SummaryTests(unittest.TestCase):
+    def test_fusion_suite_keeps_every_checkpoint_control_and_exact_dag_admission(self):
+        cases = SUITES['tensor-fusion']
+        self.assertEqual(cases[:14], SUITES['tensor-checkpoint'])
+        self.assertEqual(cases[14:], [('tensor_dag',1000,10000),
+                                     ('tensor_dag',10000,1000),('tensor_dag',100000,100)])
+        self.assertEqual(len(cases), len(set(cases)))
+        for row in summarize_kernels([], cases, reps=7):
+            self.assertIsNone(row['paired_gain'])
+            self.assertTrue(all(engine['unstarted']==7 for engine in row['engines'].values()))
+        a=dict(case='tensor_dag',size=10000,calls=1000,checksum=1.)
+        self.assertFalse(kernel_compatible(a,dict(a,checksum=1.+1e-12),'tensor_dag'))
+
     def test_tensor_suite_keeps_scalar_matrix_branch_and_scan_controls(self):
         cases = SUITES['tensor']
         self.assertEqual(len(cases), 10)

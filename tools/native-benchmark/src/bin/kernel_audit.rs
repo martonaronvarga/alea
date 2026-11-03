@@ -62,6 +62,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         | "normal_factors"
         | "mixture_factors"
         | "tensor"
+        | "tensor_dag"
         | "tensor_scalar"
         | "tensor_matmul"
         | "tensor_scan"
@@ -163,7 +164,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let input = tensor.input("input", Shape::scalar())?;
                     let weights = tensor.data("weights", Shape::new(vec![size])?)?;
                     let product = tensor.binary(BinaryOp::Multiply, input, weights)?;
-                    let square = tensor.binary(BinaryOp::Multiply, product, product)?;
+                    let mut square = tensor.binary(BinaryOp::Multiply, product, product)?;
+                    if case == "tensor_dag" {
+                        // Shared operands exercise a DAG, not merely a unary chain.
+                        // Both binaries evaluate exactly this same public-API graph.
+                        for _ in 0..8 {
+                            let shifted = tensor.binary(BinaryOp::Add, square, product)?;
+                            square = tensor.binary(BinaryOp::Multiply, shifted, weights)?;
+                        }
+                    }
                     let sum = tensor.sum(square)?;
                     let values: Vec<_> = (0..size).map(|i| (i % 17) as f64 / 16.).collect();
                     let program = tensor.compile(sum)?.bind(&[("weights", &values)])?;

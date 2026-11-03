@@ -14,6 +14,7 @@ use std::{
     },
 };
 mod execute;
+mod fusion;
 mod kernels;
 mod source;
 pub use execute::TensorWorkspace;
@@ -230,6 +231,7 @@ struct Plan {
     active: Vec<bool>,
     workspace_bytes: usize,
     source_slots: usize,
+    execution: Option<Box<fusion::Schedule>>,
 }
 /// Construction of shape-checked, deterministic tensor/control-flow regions.
 /// No global AD stack is used. Builder identities and escaped values are never recycled.
@@ -560,7 +562,12 @@ impl TensorBuilder {
             active,
             workspace_bytes: 0,
             source_slots: 0,
+            execution: None,
         };
+        let schedule = fusion::schedule(&plan, true);
+        if !schedule.is_empty() {
+            plan.execution = Some(Box::new(fusion::Schedule(schedule)));
+        }
         plan.workspace_bytes = execute::workspace_bytes(&plan)?;
         plan.source_slots = source::workspace_elements(&plan)?;
         Ok(TensorProgram {
