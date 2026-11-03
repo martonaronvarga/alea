@@ -11,6 +11,8 @@ pub mod buffer;
 pub mod exact;
 #[cfg(feature = "faer")]
 pub mod fisher;
+#[cfg(feature = "faer")]
+pub mod information;
 pub mod interpolation;
 #[cfg(feature = "faer")]
 pub mod least_squares;

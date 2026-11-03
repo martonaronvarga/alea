@@ -1,5 +1,6 @@
 //! Sequential thin-SVD least squares through the optional Faer backend.
 #![deny(missing_docs)]
+use crate::matrix::{MatrixError, RowMajor, cholesky_in_place};
 use crate::numeric::{CompensatedSum, euclidean_norm, first_nonfinite};
 use faer::{
     Mat, Par,
@@ -17,6 +18,12 @@ pub enum LeastSquaresError {
     /// Input entries are not finite.
     #[error("nonfinite least-squares input")]
     NonFinite,
+    /// Covariance was requested but the supplied rank policy discards a column.
+    #[error("least-squares covariance requires full column rank")]
+    RankDeficient,
+    /// Original rounded-covariance Cholesky failure, including its pivot index.
+    #[error("least-squares covariance factorization failed: {0}")]
+    Covariance(#[from] MatrixError),
     /// Factorization, coefficients or residual norm are not representable.
     #[error("least-squares numerical failure")]
     Numerical,
@@ -59,7 +66,8 @@ pub fn solve(
     let _span = tracing::debug_span!(target: "alea::numerics", "least_squares", rows = rows, columns = columns).entered();
     #[cfg(feature = "tracing")]
     tracing::debug!(target: "alea::numerics", schema_version = 1_u64, event = "started");
-    let outcome = solve_inner(rows, columns, design, response, relative_tolerance);
+    let outcome =
+        solve_inner(rows, columns, design, response, relative_tolerance, None).map(|(fit, _)| fit);
     #[cfg(feature = "tracing")]
     match &outcome {
         Ok(result) => {
@@ -71,13 +79,49 @@ pub fn solve(
     }
     outcome
 }
+/// Solves once and computes row-major `RSS/divisor * (X^T X)^-1` from the same
+/// thin SVD. No normal equations, explicit inverse or rank truncation for this
+/// covariance path. The divisor is explicit; this function assigns no statistical
+/// meaning to it. Residual scaling precedes the Gram calculation, avoiding an
+/// unscaled inverse-design covariance intermediate. Positive-residual covariance
+/// also requires a checked Cholesky on its max-absolute-scaled rounded entries.
+/// No full-range or exact-rank guarantee.
+/// # Errors
+/// Rejects invalid shapes/policy, zero or non-exactly representable divisor,
+/// deficient numerical column rank and nonrepresentable factor/solve/covariance.
+pub fn solve_with_residual_covariance(
+    rows: usize,
+    columns: usize,
+    design: &[f64],
+    response: &[f64],
+    relative_tolerance: f64,
+    divisor: usize,
+) -> Result<(LeastSquares, Vec<f64>), LeastSquaresError> {
+    if divisor == 0
+        || u64::try_from(divisor).map_or(true, |n| n > (1_u64 << 53))
+        || columns
+            .checked_mul(columns)
+            .is_none_or(|n| n > isize::MAX as usize / size_of::<f64>())
+    {
+        return Err(LeastSquaresError::Shape);
+    }
+    solve_inner(
+        rows,
+        columns,
+        design,
+        response,
+        relative_tolerance,
+        Some(divisor),
+    )
+}
 fn solve_inner(
     rows: usize,
     columns: usize,
     design: &[f64],
     response: &[f64],
     relative_tolerance: f64,
-) -> Result<LeastSquares, LeastSquaresError> {
+    divisor: Option<usize>,
+) -> Result<(LeastSquares, Vec<f64>), LeastSquaresError> {
     if rows == 0
         || rows.checked_mul(columns) != Some(design.len())
         || response.len() != rows
@@ -107,6 +151,7 @@ fn solve_inner(
     let mut singular_values = Vec::new();
     let mut rank = 0;
     let mut cutoff = 0.;
+    let mut covariance_vectors = None;
     if k > 0 {
         let matrix = Mat::from_fn(rows, columns, |i, j| design[i * columns + j] / design_scale);
         let mut u = Mat::zeros(rows, k);
@@ -136,6 +181,9 @@ fn solve_inner(
         }
         cutoff = relative_tolerance * singular_values[0];
         rank = singular_values.iter().filter(|&&s| s > cutoff).count();
+        if divisor.is_some() && rank != columns {
+            return Err(LeastSquaresError::RankDeficient);
+        }
         let mut actions = vec![0.; k];
         for j in 0..k {
             if singular_values[j] > cutoff {
@@ -152,6 +200,9 @@ fn solve_inner(
                 dot.add(v[(i, j)] * actions[j]);
             }
             coefficients[i] = rescale(dot.total(), response_scale, design_scale);
+        }
+        if divisor.is_some() {
+            covariance_vectors = Some(v);
         }
     }
     if first_nonfinite(&coefficients).is_some() {
@@ -171,16 +222,63 @@ fn solve_inner(
     if !norm.is_finite() {
         return Err(LeastSquaresError::Numerical);
     }
-    Ok(LeastSquares {
-        coefficients,
-        scaled_singular_values: singular_values,
-        design_scale,
-        numerical_rank: rank,
-        relative_tolerance,
-        scaled_cutoff: cutoff,
-        residual_norm: norm,
-        residual_degrees_of_freedom: rows - rank,
-    })
+    let mut covariance = Vec::new();
+    if let (Some(divisor), Some(mut vectors)) = (divisor, covariance_vectors) {
+        let residual_scale = norm / (divisor as f64).sqrt();
+        if norm > 0. && residual_scale == 0. {
+            return Err(LeastSquaresError::Numerical);
+        }
+        for i in 0..columns {
+            for j in 0..columns {
+                let original = vectors[(i, j)];
+                let value = rescale(original / singular_values[j], residual_scale, design_scale);
+                if !value.is_finite() || (norm > 0. && original != 0. && value == 0.) {
+                    return Err(LeastSquaresError::Numerical);
+                }
+                vectors[(i, j)] = value;
+            }
+        }
+        covariance.resize(columns * columns, 0.);
+        for i in 0..columns {
+            for j in 0..=i {
+                let mut sum = CompensatedSum::default();
+                for k in 0..columns {
+                    sum.add_product(vectors[(i, k)], vectors[(j, k)]);
+                }
+                let value = sum.total();
+                if !value.is_finite() || (norm > 0. && i == j && value <= 0.) {
+                    return Err(LeastSquaresError::Numerical);
+                }
+                covariance[i * columns + j] = value;
+                covariance[j * columns + i] = value;
+            }
+        }
+        if norm > 0. && columns > 0 {
+            let scale = covariance.iter().fold(0_f64, |a, x| a.max(x.abs()));
+            let mut check: Vec<_> = covariance.iter().map(|x| x / scale).collect();
+            if covariance
+                .iter()
+                .zip(&check)
+                .any(|(a, b)| *a != 0. && *b == 0.)
+            {
+                return Err(LeastSquaresError::Numerical);
+            }
+            cholesky_in_place::<RowMajor>(columns, &mut check)?;
+        }
+    }
+    Ok((
+        LeastSquares {
+            coefficients,
+            scaled_singular_values: singular_values,
+            design_scale,
+            numerical_rank: rank,
+            relative_tolerance,
+            scaled_cutoff: cutoff,
+            residual_norm: norm,
+            residual_degrees_of_freedom: rows - rank,
+        },
+        covariance,
+    ))
 }
 fn rescale(value: f64, numerator: f64, denominator: f64) -> f64 {
     let (v, a) = libm::frexp(value);

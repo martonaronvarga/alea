@@ -150,6 +150,9 @@ impl pulp::WithSimd for FirstNonfinite<'_> {
 /// Max-scaled Euclidean norm, avoiding overflow in the sum of squares for finite
 /// inputs. A nonrepresentable result is infinite; any nonfinite input yields NaN.
 pub fn scaled_norm(values: &[f64]) -> f64 {
+    if values.len() >= 32 {
+        return pulp::Arch::new().dispatch(ScaledNorm(values));
+    }
     if values.iter().any(|x| !x.is_finite()) {
         return f64::NAN;
     }
@@ -167,10 +170,65 @@ pub fn scaled_norm(values: &[f64]) -> f64 {
             .sqrt()
 }
 
+struct ScaledNorm<'a>(&'a [f64]);
+impl pulp::WithSimd for ScaledNorm<'_> {
+    type Output = f64;
+    #[inline(always)]
+    fn with_simd<S: pulp::Simd>(self, simd: S) -> f64 {
+        let (head, tail) = S::as_simd_f64s(self.0);
+        let infinity = simd.splat_f64s(f64::INFINITY);
+        let mut maximum = simd.splat_f64s(0.);
+        let mut finite = simd.less_than_f64s(maximum, infinity);
+        for &packet in head {
+            let magnitude = simd.abs_f64s(packet);
+            finite = simd.and_m64s(finite, simd.less_than_f64s(magnitude, infinity));
+            maximum = simd.max_f64s(maximum, magnitude);
+        }
+        let lanes = size_of::<S::f64s>() / size_of::<f64>();
+        if simd.first_true_m64s(simd.not_m64s(finite)) < lanes {
+            return f64::NAN;
+        }
+        let mut scale = simd.reduce_max_f64s(maximum);
+        for &value in tail {
+            if !value.is_finite() {
+                return f64::NAN;
+            }
+            scale = scale.max(value.abs());
+        }
+        if scale == 0. {
+            return 0.;
+        }
+        let divisor = simd.splat_f64s(scale);
+        let mut squared = -0.;
+        for &packet in head {
+            // Division is intentional: multiplying by 1/scale loses subnormal
+            // cases and can overflow a representable ratio. No reciprocal trick.
+            let normalized = simd.div_f64s(packet, divisor);
+            let products = simd.mul_f64s(normalized, normalized);
+            // Retain the original coordinate reduction order while vectorizing
+            // the expensive arithmetic, so optimizer thresholds do not drift.
+            for &value in
+                pulp::bytemuck::cast_slice::<S::f64s, f64>(std::slice::from_ref(&products))
+            {
+                squared += value;
+            }
+        }
+        for value in tail {
+            let z = value / scale;
+            squared += z * z;
+        }
+        scale * squared.sqrt()
+    }
+}
+
 #[cfg(test)]
 mod finite_tests {
     use super::*;
     #[test]
+    #[cfg_attr(
+        miri,
+        ignore = "exact transcendental identities run explicitly with deterministic floats"
+    )]
     fn logistic_primitives_preserve_small_log_probabilities() {
         // Independently rounded high-precision values of log(1+exp(x)).
         let fixtures: [(f64, f64); 6] = [
@@ -194,6 +252,22 @@ mod finite_tests {
         assert_eq!(softplus(f64::INFINITY), f64::INFINITY);
         assert_eq!(softplus(f64::MAX), f64::MAX);
         assert!(softplus(f64::NAN).is_nan());
+    }
+    #[test]
+    fn logistic_primitives_remain_finite_and_monotone_with_perturbed_transcendentals() {
+        // The default Miri gate deliberately perturbs exp/ln_1p. Test robust
+        // properties here; the separate deterministic gate retains exact bits.
+        let mut previous = 0.;
+        for x in [-40., -30., -20., -1., 0., 1., 20., 30., 40.] {
+            let value = softplus(x);
+            let (fused, slope) = softplus_and_sigmoid(x);
+            assert!(value.is_finite() && value > previous);
+            assert!(fused.is_finite() && fused > 0.);
+            assert!(slope.is_finite() && (0.0..=1.0).contains(&slope));
+            assert!(log_sigmoid(x).is_finite() && log_sigmoid(x) < 0.);
+            assert!(log1m_sigmoid(x).is_finite() && log1m_sigmoid(x) < 0.);
+            previous = value;
+        }
     }
     #[test]
     fn finite_check_preserves_first_error_across_lanes_tails_and_alignment() {
@@ -233,6 +307,66 @@ mod finite_tests {
         assert_eq!(scaled_norm(&[f64::from_bits(1)]), f64::from_bits(1));
         assert!(scaled_norm(&[f64::INFINITY]).is_nan());
         assert!(scaled_norm(&[f64::NAN]).is_nan());
+    }
+
+    #[test]
+    fn vector_norm_matches_ordered_scalar_for_all_tails_and_extremes() {
+        fn reference(values: &[f64]) -> f64 {
+            if values.iter().any(|x| !x.is_finite()) {
+                return f64::NAN;
+            }
+            let scale = values.iter().fold(0_f64, |a, x| a.max(x.abs()));
+            if scale == 0. {
+                return 0.;
+            }
+            scale
+                * values
+                    .iter()
+                    .map(|x| (x / scale) * (x / scale))
+                    .sum::<f64>()
+                    .sqrt()
+        }
+        // Native coverage exhausts the wider grid. The interpreter retains all
+        // alignments/tails through both sides of the >=32 dispatch boundary.
+        let max_len = if cfg!(miri) { 33 } else { 257 };
+        for n in 0..=max_len {
+            for scale in [
+                0.,
+                f64::from_bits(1),
+                f64::MIN_POSITIVE,
+                1e-200,
+                1.,
+                1e200,
+                f64::MAX / 32.,
+            ] {
+                let mut values: Vec<_> = (0..n + 4)
+                    .map(|i| scale * ((i as f64 / 17.).sin()))
+                    .collect();
+                for offset in 0..4 {
+                    let slice = &values[offset..offset + n];
+                    assert_eq!(
+                        scaled_norm(slice).to_bits(),
+                        reference(slice).to_bits(),
+                        "n={n},scale={scale}"
+                    );
+                    assert_eq!(
+                        pulp::WithSimd::with_simd(ScaledNorm(slice), pulp::Scalar).to_bits(),
+                        reference(slice).to_bits()
+                    );
+                }
+                for index in [0, n / 2, n.saturating_sub(1)]
+                    .into_iter()
+                    .filter(|i| *i < n)
+                {
+                    let saved = values[index];
+                    for invalid in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+                        values[index] = invalid;
+                        assert!(scaled_norm(&values[..n]).is_nan());
+                    }
+                    values[index] = saved;
+                }
+            }
+        }
     }
 }
 

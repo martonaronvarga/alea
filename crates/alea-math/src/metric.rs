@@ -641,6 +641,8 @@ impl EuclideanMetric for IdentityMetric {
 #[must_use]
 pub struct DiagonalMetric {
     diag: OwnedBuffer,
+    sqrt: OwnedBuffer,
+    log_det: f64,
 }
 
 impl DiagonalMetric {
@@ -673,7 +675,19 @@ impl DiagonalMetric {
             }
         }
 
-        Ok(Self { diag })
+        // Tiny actions are faster using their original short loop than carrying
+        // another independent buffer length/load through the generated code.
+        let sqrt = if diag.len() >= 16 {
+            OwnedBuffer::from_fn(diag.len(), |i| diag[i].sqrt())
+        } else {
+            OwnedBuffer::new(0)
+        };
+        let log_det = diag.iter().map(|x| x.ln()).sum();
+        Ok(Self {
+            diag,
+            sqrt,
+            log_det,
+        })
     }
 }
 
@@ -692,18 +706,54 @@ impl EuclideanMetric for DiagonalMetric {
         Ok(())
     }
 
-    #[inline]
+    // Fixed-work profiles show a tiny-dimension call overhead without this hint.
+    // Keep the larger ISA dispatcher outlined below.
+    #[inline(always)]
     fn sample_momentum(&self, src: &[f64], dst: &mut [f64]) -> Result<(), MetricError> {
         check_vector_lengths(self.dimension(), src, dst)?;
-        for ((out, x), d) in dst.iter_mut().zip(src).zip(self.diag.iter()) {
-            *out = *x * d.sqrt();
+        if src.len() >= 16 {
+            diagonal_momentum_large(src, &self.sqrt, dst);
+            return Ok(());
+        }
+        for ((out, x), mass) in dst.iter_mut().zip(src).zip(self.diag.iter()) {
+            *out = *x * mass.sqrt();
         }
         Ok(())
     }
 
     #[inline]
     fn log_det(&self) -> f64 {
-        self.diag.iter().map(|x| x.ln()).sum()
+        self.log_det
+    }
+}
+
+// Keep the ISA dispatcher out of the tiny public wrapper's inline budget.
+// Profiling found that inlining regressed when this dispatch lived in the wrapper.
+#[inline(never)]
+fn diagonal_momentum_large(src: &[f64], scale: &[f64], dst: &mut [f64]) {
+    pulp::Arch::new().dispatch(DiagonalMomentum { src, dst, scale });
+}
+
+// No reassociation or per-action allocation. Velocity keeps direct division;
+// explicit SIMD did not improve that already-autovectorized loop in measurements.
+struct DiagonalMomentum<'a> {
+    src: &'a [f64],
+    dst: &'a mut [f64],
+    scale: &'a [f64],
+}
+impl pulp::WithSimd for DiagonalMomentum<'_> {
+    type Output = ();
+    #[inline(always)]
+    fn with_simd<S: pulp::Simd>(self, simd: S) {
+        let (src, st) = S::as_simd_f64s(self.src);
+        let (dst, dt) = S::as_mut_simd_f64s(self.dst);
+        let (scale, ct) = S::as_simd_f64s(self.scale);
+        for ((out, x), s) in dst.iter_mut().zip(src).zip(scale) {
+            *out = simd.mul_f64s(*x, *s);
+        }
+        for ((out, x), s) in dt.iter_mut().zip(st).zip(ct) {
+            *out = x * s;
+        }
     }
 }
 
