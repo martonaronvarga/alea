@@ -1,0 +1,9 @@
+/target/
+/data/
+/results/
+/stan/mean
+/stan/linear
+/stan/logistic
+/stan/funnel
+/stan/*.hpp
+/scripts/__pycache__/

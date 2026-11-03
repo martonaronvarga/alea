@@ -1,0 +1,261 @@
+import importlib.util
+from pathlib import Path
+import tempfile
+import copy
+import json
+import subprocess
+import sys
+from unittest.mock import patch
+import compare
+import kernel_compare
+import unittest
+from compare import performance_regressions, compare_work
+from kernel_compare import compatible as kernel_compatible, summarize as summarize_kernels
+from kernel_compare import SUITES
+from compare import summarize as summarize_paired
+from replay import rebuild
+
+spec = importlib.util.spec_from_file_location('bench', Path(__file__).with_name('bench.py'))
+bench = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(bench)
+
+
+class SummaryTests(unittest.TestCase):
+    def test_tensor_suite_keeps_scalar_matrix_branch_and_scan_controls(self):
+        cases = SUITES['tensor']
+        self.assertEqual(len(cases), 10)
+        self.assertEqual({case for case, _, _ in cases},
+                         {'tensor', 'tensor_scalar', 'tensor_matmul', 'tensor_cond', 'tensor_scan'})
+        self.assertEqual(len(set(cases)), len(cases))
+        for row in summarize_kernels([], cases, reps=7):
+            self.assertIsNone(row['paired_gain'])
+            self.assertTrue(all(engine['unstarted']==7 for engine in row['engines'].values()))
+        a=dict(case='tensor', size=1000, calls=10000, checksum=1.)
+        self.assertFalse(kernel_compatible(a,dict(a,checksum=1.+1e-12),'tensor'))
+
+    def test_checkpoint_suite_retains_short_scan_and_unrelated_controls(self):
+        cases = SUITES['tensor-checkpoint']
+        self.assertEqual(cases[:10], SUITES['tensor'])
+        self.assertEqual(cases[10:], [('tensor_scan',1025,1000), ('tensor_scan',10000,100),
+                                    ('tensor_scan_checkpoint',1025,1000),
+                                    ('tensor_scan_checkpoint',10000,100)])
+        self.assertEqual(len(cases), len(set(cases)))
+        for row in summarize_kernels([], cases, reps=7):
+            self.assertIsNone(row['paired_gain'])
+            self.assertTrue(all(engine['unstarted']==7 for engine in row['engines'].values()))
+
+    def test_sufficient_statistics_suite_keeps_common_and_distinct_controls_separate(self):
+        cases = SUITES['sufficient-statistics']
+        self.assertEqual(len(cases), 6)
+        self.assertEqual({(case, size) for case, size, _ in cases},
+                         {(case, size) for case in ['poisson', 'poisson_common', 'poisson_scalar']
+                          for size in [1000, 10000]})
+        for row in summarize_kernels([], cases, reps=7):
+            self.assertIsNone(row['paired_gain'])
+            for engine in row['engines'].values():
+                self.assertEqual(engine['unstarted'], 7)
+                self.assertIsNone(engine['seconds'])
+
+    def test_common_poisson_checksum_does_not_admit_changed_work_or_nonfinite_results(self):
+        a = dict(case='poisson_common', calls=100, size=1000, checksum=-100.)
+        self.assertTrue(kernel_compatible(a, dict(a, checksum=-100.+1e-12), 'poisson_common'))
+        for b in [dict(a, calls=101), dict(a, size=10000), dict(a, case='poisson'),
+                  dict(a, checksum=float('nan')), dict(a, checksum=-99.)]:
+            self.assertFalse(kernel_compatible(a, b, 'poisson_common'))
+
+    def test_kernel_suites_preserve_the_original_protocol_and_declare_new_work(self):
+        self.assertEqual(len(SUITES['base']),15)
+        self.assertEqual(len(SUITES['mixture-scores']),10)
+        self.assertEqual(SUITES['all'],SUITES['base']+SUITES['mixture-scores'])
+        self.assertEqual(len(set(SUITES['all'])),25)
+        rows=summarize_kernels([],SUITES['mixture-scores'])
+        self.assertEqual(len(rows),10)
+        self.assertTrue(all(r['case'].startswith('mixture_') for r in rows))
+
+    def test_kernel_checks_require_work_finite_values_and_exact_controls(self):
+        a=dict(case='norm',calls=100,size=32,checksum=10.)
+        self.assertTrue(kernel_compatible(a,a,'norm'))
+        self.assertFalse(kernel_compatible(a,dict(a,calls=101),'norm'))
+        self.assertFalse(kernel_compatible(a,dict(a,checksum=10.000000000001),'norm'))
+        a=dict(a,case='poisson')
+        self.assertTrue(kernel_compatible(a,dict(a,checksum=10.000000000001),'poisson'))
+        self.assertFalse(kernel_compatible(a,dict(a,checksum=11.),'poisson'))
+        self.assertFalse(kernel_compatible(dict(a,checksum=float('inf')),dict(a,checksum=float('inf')),'poisson'))
+
+    def test_kernel_summary_excludes_failed_attempts(self):
+        rows=[dict(case='norm',size=4,engine='before',rep=0,success=False),
+              dict(case='norm',size=4,engine='after',rep=0,success=True,
+                   metrics=dict(seconds=2.,construction_seconds=0.1))]
+        result=next(r for r in summarize_kernels(rows) if r['case']=='norm' and r['size']==4)
+        self.assertEqual(result['engines']['before']['failed'],1)
+        self.assertIsNone(result['engines']['before']['seconds'])
+        self.assertIsNone(result['paired_gain'])
+        self.assertIsNone(result['engines']['after']['seconds'])
+        self.assertEqual(result['engines']['after']['unvalidated_or_incompatible'],1)
+
+    def qualified(self):
+        return dict(case='mean',engine='alea',rep=0,success=True,returncode=0,mode='sampling',wall_seconds=2.,
+                    metrics=dict(chains=4,completed=4000,dimension=2,evaluations=100,
+                        trajectory_hash='a',retained_leapfrog_steps=96,retained_divergences=0,
+                        diagnostics=[dict(rhat=1.001,bulk_ess=200,tail_ess=150) for _ in range(2)]))
+
+    def test_ess_requires_complete_finite_all_coordinate_multichain_diagnostics(self):
+        row = self.qualified()
+        self.assertEqual(bench.summarize([row])[0]['min_bulk_ess_per_second']['median'],100.)
+        mutations = [dict(rhat=1.2),dict(rhat=float('nan')),dict(rhat=float('inf')),
+                     dict(rhat=None),dict(bulk_ess=99),dict(tail_ess=99),dict(bulk_ess=True)]
+        for mutation in mutations:
+            bad = copy.deepcopy(row)
+            bad['metrics']['diagnostics'][1].update(mutation)
+            bad['diagnostic_pass'] = True  # cached historical flags are not authority
+            with self.subTest(mutation=mutation):
+                self.assertIsNone(bench.summarize([bad])[0]['min_bulk_ess_per_second'])
+                self.assertIsNotNone(bench.summarize([bad])[0]['wall_seconds'])
+        for mutation in [dict(chains=1),dict(completed=3999),dict(diagnostics=[]),
+                         dict(retained_divergences=1),dict(diagnostics=[row['metrics']['diagnostics'][0]]),
+                         dict(diagnostics=[{},{}])]:
+            bad = copy.deepcopy(row)
+            bad['metrics'].update(mutation)
+            self.assertIsNone(bench.summarize([bad])[0]['min_bulk_ess_per_second'])
+        bad = copy.deepcopy(row)
+        bad['metrics']['retained_divergences']=1
+        mixed=bench.summarize([row,bad])[0]
+        self.assertEqual(mixed['wall_seconds']['n'],2)
+        self.assertEqual(mixed['min_bulk_ess_per_second']['n'],1)
+
+    def test_paired_ratios_require_validation_and_ess_requires_both_eligible(self):
+        row=self.qualified()
+        pair=[dict(row,engine=engine) for engine in ['baseline','current']]
+        plan=dict(modes=['sampling'],cases=['mean'],chains=4,reps=7)
+        decision=dict(mode='sampling',case='mean',rep=0,compatible=True)
+        self.assertIsNone(summarize_paired(pair,plan,[])[0]['baseline_over_current'])
+        self.assertIsNone(summarize_paired(pair,plan,[dict(decision,compatible=False)])[0]['baseline_over_current'])
+        summary=summarize_paired(pair,plan,[decision])[0]
+        self.assertEqual(summary['engines']['baseline']['unstarted'],6)
+        self.assertEqual(summary['current_over_baseline_ess_per_second']['median'],1.)
+        pair[1]=copy.deepcopy(pair[1])
+        pair[1]['metrics']['retained_divergences']=1
+        summary=summarize_paired(pair,plan,[decision])[0]
+        self.assertIsNotNone(summary['baseline_over_current'])
+        self.assertIsNone(summary['current_over_baseline_ess_per_second'])
+
+    def test_kernel_journal_replay_never_promotes_pending_or_incompatible_pair(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'manifest.json').write_text(json.dumps(dict(cases=[['norm',4,100]],reps=7)))
+            rows=[dict(case='norm',size=4,rep=0,engine=e,success=True,
+                       metrics=dict(seconds=2.,construction_seconds=.1)) for e in ['before','after']]
+            (root/'records.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+            self.assertIsNone(rebuild(root,'kernel')[0]['paired_gain'])
+            for valid in [False,True]:
+                (root/'validation.jsonl').write_text(json.dumps(dict(case='norm',size=4,rep=0,compatible=valid))+'\n')
+                summary=rebuild(root,'kernel')[0]
+                self.assertEqual(summary['engines']['after']['unstarted'],6)
+                self.assertEqual(summary['paired_gain'] is not None,valid)
+            (root/'records.jsonl').write_text(json.dumps(rows[0])+'\n')
+            self.assertIsNone(rebuild(root,'kernel')[0]['engines']['before']['seconds'])
+            (root/'records.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+            # A torn trailing write is not a completed record. Duplicate completed
+            # identities and malformed newline-terminated JSON are hard errors.
+            with (root/'records.jsonl').open('a') as stream: stream.write('{')
+            self.assertIsNotNone(rebuild(root,'kernel')[0]['paired_gain'])
+            with (root/'records.jsonl').open('a') as stream: stream.write('\n')
+            with self.assertRaises(ValueError): rebuild(root,'kernel')
+            (root/'records.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows+rows))
+            with self.assertRaisesRegex(ValueError,'duplicate'): rebuild(root,'kernel')
+
+    def test_malformed_child_metrics_cannot_be_successful(self):
+        for text in ['[]','null','{"x":NaN}','{"x":1e999}','{"x":1,"x":2}']:
+            with self.assertRaises(ValueError): bench.read_metrics(text)
+
+    def test_stan_requires_every_chain_complete_and_launch_errors_stay_failed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'draws.csv'
+            path.write_text('n_leapfrog__,divergent__,treedepth__\n1,0,1\n')
+            with self.assertRaisesRegex(ValueError,'incomplete Stan chain'): bench.parse_stan([path])
+            path.write_text('n_leapfrog__,n_leapfrog__\n')
+            with self.assertRaisesRegex(ValueError,'duplicate Stan'): bench.parse_stan([path])
+        with patch.object(bench.subprocess,'run',side_effect=OSError('injected launch failure')):
+            process=bench.run_process(['absent'])
+        self.assertNotEqual(process.returncode,0)
+        self.assertIn('injected launch failure',process.stderr)
+
+    def test_runner_mismatch_preserves_summary_and_replays_identically(self):
+        for module,kind in [(compare,'paired'),(kernel_compare,'kernel')]:
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                root=Path(directory)
+                before,after=root/'before',root/'after'
+                before.write_text('before'); after.write_text('after')
+                output=root/'run'
+                if kind=='paired':
+                    argv=['compare.py','--baseline',str(before),'--current',str(after),
+                          '--output',str(output),'--reps','1','--modes','evaluation','--cases','mean']
+                else:
+                    argv=['kernel_compare.py','--before',str(before),'--after',str(after),
+                          '--output',str(output),'--reps','1']
+                def child(command, **kwargs):
+                    checksum=1. if command[0]==str(before) else 2.
+                    metrics=(dict(evaluations=10000,evaluation_seconds=1.,checksum=checksum)
+                        if kind=='paired' else dict(case='poisson',size=1000,calls=10000,
+                            seconds=1.,construction_seconds=.1,checksum=checksum))
+                    return subprocess.CompletedProcess(command,0,json.dumps(metrics),'')
+                with patch.object(sys,'argv',argv), patch.object(module.os,'sched_setaffinity',create=True), \
+                     patch.object(module.subprocess,'run',side_effect=child), \
+                     patch.object(module.subprocess,'check_output',return_value='fixture'):
+                    with self.assertRaises(AssertionError): module.main()
+                summary=json.loads((output/'summary.json').read_text())
+                self.assertEqual(summary,rebuild(output,kind))
+                self.assertTrue(all(r['success'] for r in map(json.loads,(output/'records.jsonl').read_text().splitlines())))
+                self.assertFalse(json.loads((output/'validation.jsonl').read_text())['compatible'])
+                key='baseline_over_current' if kind=='paired' else 'paired_gain'
+                self.assertIsNone(summary[0][key])
+                if kind=='kernel': self.assertEqual(summary[-1]['engines']['after']['unstarted'],1)
+
+    def test_changed_arithmetic_requires_explicit_opt_in(self):
+        a = dict(checksum=10.,evaluations=100)
+        b = dict(checksum=10.000000000001,evaluations=100)
+        with self.assertRaises(AssertionError):
+            compare_work(a,b,'evaluation')
+        self.assertFalse(compare_work(a,b,'evaluation',True)['checksum'])
+        with self.assertRaises(AssertionError):
+            compare_work(a,dict(checksum=11.,evaluations=100),'evaluation',True)
+        a = dict(trajectory_hash='a',evaluations=100,retained_leapfrog_steps=90,retained_divergences=0)
+        b = dict(a,trajectory_hash='b',evaluations=101)
+        with self.assertRaises(AssertionError):
+            compare_work(a,b,'sampling')
+        self.assertFalse(compare_work(a,b,'sampling',True)['evaluations'])
+
+    def test_optional_performance_alert_ignores_failed_fits(self):
+        rows = [dict(mode='sampling',case='failed',baseline_over_current=None),
+                dict(mode='evaluation',case='slow',baseline_over_current=dict(median=0.5))]
+        self.assertEqual(performance_regressions(rows,None),[])
+        self.assertEqual(performance_regressions(rows,1.2),[dict(mode='evaluation',case='slow',slowdown=2.)])
+        self.assertEqual(performance_regressions(rows,2.),[])
+
+    def test_unstarted_jobs_remain_in_plan(self):
+        rows = bench.summarize([],dict(cases=['mean'],reps=7))
+        self.assertEqual(len(rows),2)
+        self.assertTrue(all(r['planned']==7 and r['unstarted']==7 and r['attempted']==0 for r in rows))
+
+    def test_failures_have_no_eligible_times_and_missing_calls_stay_missing(self):
+        rows = [dict(case='linear',engine='alea',success=False,wall_seconds=0.001),
+                dict(case='linear',engine='stan',success=True,wall_seconds=2.,
+                     metrics=dict(evaluations=None,completed=1000))]
+        result = bench.summarize(rows)
+        self.assertIsNone(result[0]['wall_seconds'])
+        self.assertEqual(result[0]['failed'],1)
+        self.assertIsNone(result[1]['evaluations_per_second'])
+        self.assertEqual(result[1]['iterations_per_second']['median'],500.)
+
+    def test_successful_subset_and_repeat_spread_are_retained(self):
+        rows = [dict(case='mean',engine='alea',success=s,wall_seconds=t,
+                     metrics=dict(evaluations=20,completed=10)) for s,t in [(True,1.),(False,.01),(True,3.)]]
+        row = bench.summarize(rows)[0]
+        self.assertEqual((row['planned'],row['successful'],row['failed']),(3,2,1))
+        self.assertEqual(row['wall_seconds']['median'],2.)
+        self.assertEqual(row['wall_seconds']['minimum'],1.)
+        self.assertEqual(row['wall_seconds']['maximum'],3.)
+
+
+if __name__ == '__main__':
+    unittest.main()

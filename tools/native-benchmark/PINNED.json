@@ -1,0 +1,17 @@
+{
+  "baseline_alea_commit": "3984ba6c3773a6542d48019d61a1f07594889526",
+  "current_alea": "same commit plus source patch and source_sha256 in each run manifest; local path dependency, never floating main",
+  "rust_nixpkgs_commit": "68d8aa3d661f0e6bd5862291b5bb263b2a6595c9",
+  "cmdstan_version": "2.40.0",
+  "stan_model_compiler": "GCC 16.2.0, verified from ELF .comment; -O3 -std=c++17 -pthread, no explicit target-cpu or fast-math",
+  "alea_compiler": "rustc 1.95.0 (f2d3ce0bd 2026-03-21), fat LTO, codegen-units=1, release opt-level=3, no explicit target-cpu or fast-math",
+  "cmdstan_store_path": "/nix/store/zdb9gq6d00i09k3dsdd1flab6mmgswsb-cmdstan-2.40.0",
+  "cmdstan_nar_hash": "sha256-5320BLvrmE3DMlYMUvm2LTHRkOaN401pjD3mrQjmEqg=",
+  "cmdstan_derivation": "/nix/store/rhvimn1qfrjzj8d0jnhx99vf9f1fqkd5-cmdstan-2.40.0.drv",
+  "cmdstan_nixpkgs_source": "path:/nix/store/2g1ydkkflg5kl8hb1f8js0s0p9v4gl53-source?narHash=sha256-zp8ToDMnqZcu4o4IH9pdwXFXGp7yLm%2FM0dEnNWnyd7I%3D",
+  "cmdstan_nixpkgs_revision": null,
+  "cmdstan_nixpkgs_revision_reason": "Installed Nixpkgs registry is a path source without Git revision; exact tree is pinned by NAR hash. Rust shell and CmdStan package use different Nixpkgs trees.",
+  "data_seed": 20261029,
+  "alea_seed": "32 bytes each equal to 17; ChaCha12 stream equals logical chain id",
+  "stan_seed": 17
+}
