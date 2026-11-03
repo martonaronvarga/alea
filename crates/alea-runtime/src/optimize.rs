@@ -13,6 +13,8 @@ use alea_core::{
 use alea_math::quasi_newton::lbfgs_inverse_product_with_scratch;
 use std::error::Error;
 use thiserror::Error;
+#[cfg(feature = "faer")]
+pub mod information;
 
 /// Caller-declared statistical interpretation; not verified by the optimizer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

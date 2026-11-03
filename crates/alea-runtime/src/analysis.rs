@@ -1,6 +1,7 @@
-//! Streamed, named sampling tables with a sealed JSON analysis manifest.
+//! Named sampling tables and point-estimation reports with explicit provenance.
 #![deny(missing_docs)]
 mod data;
+mod fit;
 mod schema;
 use crate::output::{ChainId, Draw, Phase, TransitionStats};
 use alea_core::{
@@ -11,14 +12,20 @@ use alea_core::{
     transform::TransformError,
 };
 pub use data::{ArrayValues, DataArray, DataAxis, ObservedData, PosteriorPredictive};
+pub use fit::{FIT_SCHEMA_VERSION, write_fit};
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
     io::{self, BufWriter, Write},
 };
 
-/// Version of the CSV/JSON analysis contract; independent of checkpoint storage.
+/// Default whole-factor CSV/JSON contract version, independent of checkpoints.
+/// Explicit batch-row partitions use [`BATCH_SCHEMA_VERSION`] instead.
 pub const SCHEMA_VERSION: u32 = 2;
+/// Sampling manifest version used only for explicit batch-row predictive
+/// partitions. CSV columns remain unchanged; each unit records factor/local rows
+/// and complete factor row counts. Whole-factor reports still emit version two.
+pub const BATCH_SCHEMA_VERSION: u32 = 3;
 
 /// Caller-supplied identities and method settings; not inferred from type names.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -123,7 +130,7 @@ pub enum AnalysisError {
     /// Original output-stream failure. Discard the unsealed artifact.
     #[error(transparent)]
     Io(#[from] io::Error),
-    /// JSON manifest serialization failure. Discard the unsealed artifact.
+    /// JSON analysis serialization failure. Discard incomplete output.
     #[error(transparent)]
     Json(#[from] serde_json::Error),
 }

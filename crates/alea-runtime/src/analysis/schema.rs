@@ -1,6 +1,7 @@
 //! Cold metadata validation and explicit version-two wire representation.
 use super::{
-    AnalysisError, AnalysisSpec, ChainCount, ChainId, ChainStatus, PhaseCount, SCHEMA_VERSION,
+    AnalysisError, AnalysisSpec, ChainCount, ChainId, ChainStatus, PhaseCount, Provenance,
+    SCHEMA_VERSION,
 };
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, HashSet};
@@ -16,7 +17,14 @@ pub(super) const STATS: [&str; 7] = [
 ];
 pub(super) fn validate(spec: &AnalysisSpec) -> Result<Vec<String>, AnalysisError> {
     super::data::validate(spec)?;
-    let p = &spec.provenance;
+    validate_provenance(&spec.provenance)?;
+    let mut chains = HashSet::new();
+    if spec.chains.is_empty() || spec.chains.iter().any(|id| !chains.insert(id.0)) {
+        return Err(AnalysisError::Invalid("empty or duplicate planned chains"));
+    }
+    validate_columns(spec)
+}
+pub(super) fn validate_provenance(p: &Provenance) -> Result<(), AnalysisError> {
     if [&p.source, &p.model, &p.data, &p.method]
         .iter()
         .any(|s| s.is_empty())
@@ -26,10 +34,12 @@ pub(super) fn validate(spec: &AnalysisSpec) -> Result<Vec<String>, AnalysisError
             "empty provenance identity or setting key",
         ));
     }
-    let mut chains = HashSet::new();
-    if spec.chains.is_empty() || spec.chains.iter().any(|id| !chains.insert(id.0)) {
-        return Err(AnalysisError::Invalid("empty or duplicate planned chains"));
-    }
+    Ok(())
+}
+pub(super) fn provenance(p: &Provenance) -> Value {
+    json!({"model": p.model, "data": p.data, "source": p.source, "method": p.method, "settings": p.settings})
+}
+fn validate_columns(spec: &AnalysisSpec) -> Result<Vec<String>, AnalysisError> {
     if let Some(likelihood) = &spec.likelihood
         && (likelihood.model().layout() != spec.parameters.layout()
             || likelihood.model().coordinates().as_ref() != spec.parameters.coordinates())
@@ -116,17 +126,29 @@ pub(super) fn manifest(
     statuses: &BTreeMap<u64, &ChainStatus>,
     digest: &str,
 ) -> Value {
-    let p = &spec.provenance;
     let parameters: Vec<_> = spec.parameters.coordinates().iter().map(|p| json!({"name": p.name, "dimension": p.dimension, "coordinate": p.coordinate, "block": p.block})).collect();
-    let predictive_units: Vec<_> = spec.likelihood.as_ref().map(|p| p.units()).unwrap_or(&[]).iter().map(|u| json!({"name": u.name, "factors": u.factors, "observations": u.observations, "conditioned_on": u.conditioned_on, "integrated_out": u.integrated_out})).collect();
+    let batch_rows = spec.likelihood.as_ref().and_then(|p| p.batch_rows());
+    let mut batch_counts = BTreeMap::new();
+    if let Some(groups) = &batch_rows {
+        for row in groups.iter().flatten() {
+            *batch_counts.entry(row.factor.as_str()).or_insert(0_usize) += 1;
+        }
+    }
+    let predictive_units: Vec<_> = spec.likelihood.as_ref().map(|p| p.units()).unwrap_or(&[]).iter().enumerate().map(|(i,u)| {
+        let mut unit = json!({"name": u.name, "factors": u.factors, "observations": u.observations, "conditioned_on": u.conditioned_on, "integrated_out": u.integrated_out});
+        if let Some(groups) = &batch_rows {
+            unit["batch_rows"] = json!(groups[i].iter().map(|r| json!({"factor":r.factor,"row":r.row,"rows":batch_counts[r.factor.as_str()]})).collect::<Vec<_>>());
+        }
+        unit
+    }).collect();
     let chains: Vec<_> = spec.chains.iter().map(|id| {
         let (status, reason) = match statuses[&id.0] { ChainStatus::Completed => ("completed", None), ChainStatus::Failed(s) => ("failed", Some(s)), ChainStatus::Interrupted(s) => ("interrupted", Some(s)) };
         let c = &counts[&id.0];
         json!({"id": id.0, "status": status, "reason": reason, "warmup": count(&c.warmup), "sampling": count(&c.sampling)})
     }).collect();
-    json!({"format": "alea-analysis", "schema_version": SCHEMA_VERSION, "kind": "sampling",
+    json!({"format": "alea-analysis", "schema_version": if batch_rows.is_some() { super::BATCH_SCHEMA_VERSION } else { SCHEMA_VERSION }, "kind": "sampling",
         "csv": {"sha256": digest, "columns": columns},
-        "provenance": {"model": p.model, "data": p.data, "source": p.source, "method": p.method, "settings": p.settings},
+        "provenance": provenance(&spec.provenance),
         "parameters": parameters,
         "unconstrained_dimension": spec.parameters.layout().unconstrained_dimension(),
         "save_unconstrained": spec.save_unconstrained,
