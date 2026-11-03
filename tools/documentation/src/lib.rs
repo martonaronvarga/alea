@@ -3,6 +3,8 @@
 pub mod getting_started {}
 #[doc = include_str!("../../../docs/modeling.md")]
 pub mod modeling {}
+#[doc = include_str!("../../../docs/tensor-ir.md")]
+pub mod tensor_ir {}
 #[doc = include_str!("../../../docs/sampling.md")]
 pub mod sampling {}
 #[doc = include_str!("../../../docs/diagnostics.md")]

@@ -59,7 +59,7 @@ def validate_manifest(m):
              "unconstrained_dimension", "save_unconstrained", "predictions", "units",
              "predictive_units", "chains", "observed_data", "constant_data", "posterior_predictive"])
     require(m["format"] == "alea-analysis" and type(m["schema_version"]) is int
-            and m["schema_version"] == 2 and m["kind"] == "sampling", "unsupported analysis format")
+            and m["schema_version"] in (2, 3) and m["kind"] == "sampling", "unsupported analysis format")
     keys(m["csv"], ["columns", "sha256"])
     require(type(m["csv"]["sha256"]) is str and re.fullmatch("[0-9a-f]{64}", m["csv"]["sha256"]), "invalid CSV digest")
     p = m["provenance"]
@@ -76,15 +76,37 @@ def validate_manifest(m):
     names(m["predictions"])
     require(type(m["predictive_units"]) is list, "invalid predictive units")
     factors, observations = set(), set()
+    batch_rows, batch_counts = {}, {}
     for unit in m["predictive_units"]:
-        keys(unit, ["name", "factors", "observations", "conditioned_on", "integrated_out"])
+        keys(unit, ["name", "factors", "observations", "conditioned_on", "integrated_out"]
+             + (["batch_rows"] if m["schema_version"] == 3 else []))
         for field in ("factors", "observations", "conditioned_on", "integrated_out"):
             names(unit[field], field in ("factors", "observations"))
         require(not set(unit["conditioned_on"]) & set(unit["integrated_out"]), "contradictory conditioning")
-        require(not factors.intersection(unit["factors"]), "overlapping factors")
+        if m["schema_version"] == 2:
+            require(not factors.intersection(unit["factors"]), "overlapping factors")
+        else:
+            require(type(unit["batch_rows"]) is list and unit["batch_rows"], "empty batch row partition")
+            row_factors = set()
+            for row in unit["batch_rows"]:
+                keys(row, ["factor", "row", "rows"])
+                factor = row["factor"]
+                require(type(factor) is str and factor in unit["factors"], "unknown batch factor")
+                index, count = uint(row["row"]), uint(row["rows"])
+                require(count > 0 and index < count, "batch row outside declared factor")
+                require(factor not in batch_counts or batch_counts[factor] == count, "inconsistent batch row count")
+                batch_counts[factor] = count
+                assigned = batch_rows.setdefault(factor, set())
+                require(index not in assigned, "overlapping batch rows")
+                assigned.add(index)
+                row_factors.add(factor)
+            require(row_factors == set(unit["factors"]), "batch rows do not cover unit factors")
         require(not observations.intersection(unit["observations"]), "overlapping observations")
         factors.update(unit["factors"])
         observations.update(unit["observations"])
+    if m["schema_version"] == 3:
+        require(bool(batch_rows) and all(len(rows) == batch_counts[factor]
+                for factor, rows in batch_rows.items()), "incomplete batch row partition")
     names([u["name"] for u in m["predictive_units"]])
     columns = ["chain", "phase", "draw", "kind", "error"]
     columns += ["parameter:" + p["name"] for p in m["parameters"]]
@@ -260,52 +282,72 @@ def load(manifest_path, csv_path):
     with Path(manifest_path).open(encoding="utf-8") as handle:
         manifest = json.load(handle, object_pairs_hook=unique_object, parse_constant=reject_constant)
     columns = validate_manifest(manifest)
-    digest = hashlib.sha256()
-    # Hash and parse the same open file. Exact bytes include UTF-8 and CSV CRLF.
     with Path(csv_path).open("rb") as raw:
-        for block in iter(lambda: raw.read(65536), b""):
-            digest.update(block)
-        require(digest.hexdigest() == manifest["csv"]["sha256"], "CSV digest mismatch")
-        raw.seek(0)
-        import io
-        text = io.TextIOWrapper(raw, encoding="utf-8", newline="")
-        reader = csv.reader(text, strict=True)
-        require(next(reader, None) == columns, "CSV header mismatch")
-        plan = {c["id"]: c for c in manifest["chains"]}
-        seen = {(c, phase): [] for c in plan for phase in ("warmup", "sampling")}
-        records = []
-        observed = {b["array"]["name"]: b["array"] for b in manifest["observed_data"]}
-        predictive_types = {"prediction:" + c: observed[b["variable"]]["dtype"]
-                            for b in manifest["posterior_predictive"] for c in b["columns"]}
-        for row in reader:
-            require(len(row) == len(columns), "CSV row width mismatch")
-            chain, phase, draw, kind, error = row[:5]
-            chain, draw = integer_field(chain), integer_field(draw)
-            require(chain in plan and phase in ("warmup", "sampling"), "unknown chain or phase")
-            require(not (phase == "warmup" and seen[chain, "sampling"]), "warmup after sampling")
-            previous = seen[chain, phase]
-            require(not previous or previous[-1][0] + 1 == draw, "nonconsecutive or duplicate draw")
-            require(kind in ("draw", "failure"), "unknown record kind")
-            if kind == "failure":
-                require(error and all(v == "" for v in row[5:]), "invalid failure payload")
-                values = dict.fromkeys(columns[5:])
-            else:
-                require(error == "", "successful row has an error")
-                values = {name: numeric_field(name, value) for name, value in zip(columns[5:], row[5:])}
-                for column, dtype in predictive_types.items():
-                    value = values[column]
-                    if dtype == "bool":
-                        require(value in (0, 1), "predictive value outside Boolean domain")
-                    elif dtype == "int64":
-                        require(value.is_integer() and -(2**63) <= value < 2**63, "predictive value outside int64 domain")
-                    elif dtype == "uint64":
-                        require(value.is_integer() and 0 <= value < 2**64, "predictive value outside uint64 domain")
-            seen[chain, phase].append((draw, kind == "failure"))
-            records.append(Record(chain, phase, draw, error or None, values))
-        for (chain, phase), rows in seen.items():
-            expected = plan[chain][phase]
-            require(len(rows) == expected["rows"] and sum(r[1] for r in rows) == expected["failures"], "record counts differ from manifest")
-            require((rows[0][0] if rows else None) == expected["first"] and (rows[-1][0] if rows else None) == expected["last"], "record range differs from manifest")
+        return _load_stream(manifest, columns, raw)
+
+
+def load_stream(manifest, raw):
+    """Validate a decoded manifest and caller-owned seekable binary CSV stream.
+
+    Reads from byte zero and leaves the stream open. Shares every schema/digest/
+    record check with load(); useful for embedded, already-buffered artifacts.
+    """
+    return _load_stream(manifest, validate_manifest(manifest), raw)
+
+
+def _load_stream(manifest, columns, raw):
+    raw.seek(0)
+    digest = hashlib.sha256()
+    for block in iter(lambda: raw.read(65536), b""):
+        digest.update(block)
+    require(digest.hexdigest() == manifest["csv"]["sha256"], "CSV digest mismatch")
+    raw.seek(0)
+    import io
+    # Detach on both success and failure: the caller owns the binary stream.
+    text = io.TextIOWrapper(raw, encoding="utf-8", newline="")
+    try:
+        return _read_records(manifest, columns, csv.reader(text, strict=True))
+    finally:
+        text.detach()
+
+
+def _read_records(manifest, columns, reader):
+    require(next(reader, None) == columns, "CSV header mismatch")
+    plan = {c["id"]: c for c in manifest["chains"]}
+    seen = {(c, phase): [] for c in plan for phase in ("warmup", "sampling")}
+    records = []
+    observed = {b["array"]["name"]: b["array"] for b in manifest["observed_data"]}
+    predictive_types = {"prediction:" + c: observed[b["variable"]]["dtype"]
+                        for b in manifest["posterior_predictive"] for c in b["columns"]}
+    for row in reader:
+        require(len(row) == len(columns), "CSV row width mismatch")
+        chain, phase, draw, kind, error = row[:5]
+        chain, draw = integer_field(chain), integer_field(draw)
+        require(chain in plan and phase in ("warmup", "sampling"), "unknown chain or phase")
+        require(not (phase == "warmup" and seen[chain, "sampling"]), "warmup after sampling")
+        previous = seen[chain, phase]
+        require(not previous or previous[-1][0] + 1 == draw, "nonconsecutive or duplicate draw")
+        require(kind in ("draw", "failure"), "unknown record kind")
+        if kind == "failure":
+            require(error and all(v == "" for v in row[5:]), "invalid failure payload")
+            values = dict.fromkeys(columns[5:])
+        else:
+            require(error == "", "successful row has an error")
+            values = {name: numeric_field(name, value) for name, value in zip(columns[5:], row[5:])}
+            for column, dtype in predictive_types.items():
+                value = values[column]
+                if dtype == "bool":
+                    require(value in (0, 1), "predictive value outside Boolean domain")
+                elif dtype == "int64":
+                    require(value.is_integer() and -(2**63) <= value < 2**63, "predictive value outside int64 domain")
+                elif dtype == "uint64":
+                    require(value.is_integer() and 0 <= value < 2**64, "predictive value outside uint64 domain")
+        seen[chain, phase].append((draw, kind == "failure"))
+        records.append(Record(chain, phase, draw, error or None, values))
+    for (chain, phase), rows in seen.items():
+        expected = plan[chain][phase]
+        require(len(rows) == expected["rows"] and sum(r[1] for r in rows) == expected["failures"], "record counts differ from manifest")
+        require((rows[0][0] if rows else None) == expected["first"] and (rows[-1][0] if rows else None) == expected["last"], "record range differs from manifest")
     return Artifact(manifest, tuple(records))
 
 

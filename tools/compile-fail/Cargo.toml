@@ -16,6 +16,18 @@ rand = "0.10.1"
 doctest = false
 
 [[example]]
+name = "model_macro_support"
+path = "cases/model_macro_support.rs"
+
+[[example]]
+name = "model_macro_event"
+path = "cases/model_macro_event.rs"
+
+[[example]]
+name = "model_macro_body"
+path = "cases/model_macro_body.rs"
+
+[[example]]
 name = "phase_reuse"
 path = "cases/phase_reuse.rs"
 

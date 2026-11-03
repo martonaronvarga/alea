@@ -20,3 +20,11 @@ tracing-subscriber = { version = "0.3.23", default-features = false, features = 
 default = []
 faer = ["alea/faer"]
 tracing = ["alea/tracing", "dep:tracing", "dep:tracing-subscriber"]
+
+[[example]]
+name = "gaussian_workflow"
+required-features = ["faer"]
+
+[[example]]
+name = "glm_workflow"
+required-features = ["faer"]

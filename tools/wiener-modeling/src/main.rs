@@ -18,7 +18,7 @@ use alea::{
         adapt::{MetricKind, SearchOptions},
     },
     session::{Diagnostics, SamplerConfig, SessionBuilder, Warmup, storage::Observer},
-    target::{EvaluationError, LogDensityGradient},
+    target::{EvaluationError, LogDensityGradient, TargetSpace},
 };
 use rand::{SeedableRng, rngs::SmallRng};
 use serde::{Deserialize, Serialize};

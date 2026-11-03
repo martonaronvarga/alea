@@ -246,3 +246,11 @@ where
 }
 
 pub mod profiling;
+
+#[cfg(feature = "faer")]
+pub mod gaussian_workflow;
+
+pub mod gaussian_hierarchy;
+
+#[cfg(feature = "faer")]
+pub mod glm_workflow;

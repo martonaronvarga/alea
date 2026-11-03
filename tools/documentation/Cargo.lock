@@ -51,6 +51,7 @@ dependencies = [
  "alea-math",
  "libm",
  "once_cell",
+ "pulp",
  "rand 0.10.3",
  "spec_math",
  "statrs",

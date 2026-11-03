@@ -32,7 +32,7 @@ Run the three complete examples with:
 cargo run --manifest-path tools/downstream-conformance/Cargo.toml --locked --example modeling
 ```
 
-See [the modeling guide](../../docs/m14-modeling.md) for support, measure,
+See [the modeling guide](../../docs/modeling.md) for support, measure,
 Jacobian, metadata and prediction semantics and the bounded validation scope.
 
 The normalized-distribution extension point has its own independent external

@@ -41,6 +41,9 @@ impl<T: TargetSpace + ?Sized, const TIMED: bool> TargetSpace for EvaluationObser
 impl<T: LogDensityGradient + ?Sized, const TIMED: bool> LogDensityGradient
     for EvaluationObserver<'_, T, TIMED>
 {
+    fn is_numerical_error(&self, error: &Self::Error) -> bool {
+        self.target.is_numerical_error(error)
+    }
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         let started = TIMED.then(Instant::now);
         let result = self.target.logp_grad(q, g);

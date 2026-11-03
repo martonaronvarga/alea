@@ -100,6 +100,35 @@ class AnalysisTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "digest"):
             analysis.load(mp, cp)
 
+    def test_seekable_embedded_stream_reuses_validation_without_taking_ownership(self):
+        m, rows = self.fixture()
+        mp, cp = self.files(m, rows)
+        manifest = json.loads(mp.read_text(encoding="utf-8"))
+        payload = cp.read_bytes()
+        raw = io.BytesIO(payload)
+        raw.seek(5)
+        a = analysis.load_stream(manifest, raw)
+        self.assertEqual(a, analysis.load(mp, cp))
+        self.assertFalse(raw.closed)
+        self.assertEqual(analysis.load_stream(manifest, raw), a)
+        for bad in (payload+b"\r\n", b"\xff", b"wrong,header\r\n"):
+            with self.subTest(payload=bad[:20]):
+                altered = copy.deepcopy(manifest)
+                altered["csv"]["sha256"] = hashlib.sha256(bad).hexdigest()
+                stream = io.BytesIO(bad)
+                with self.assertRaises((ValueError, UnicodeError)):
+                    analysis.load_stream(altered, stream)
+                self.assertFalse(stream.closed)
+        altered = copy.deepcopy(manifest)
+        altered["csv"]["sha256"] = "0"*64
+        with self.assertRaisesRegex(ValueError,"digest"):
+            analysis.load_stream(altered, raw)
+        self.assertFalse(raw.closed)
+        # Preserve file-reader error precedence: bad metadata rejects before CSV I/O.
+        mp.write_text("{}",encoding="utf-8")
+        with self.assertRaises(ValueError):
+            analysis.load(mp,self.root/"does-not-exist.csv")
+
     def test_numeric_grammar_does_not_admit_missing_nonfinite_or_ambiguous_values(self):
         for value in ["NaN", "-inf", "1_0", " 0", "", "1e999", "True"]:
             with self.subTest(value=value):
@@ -108,6 +137,31 @@ class AnalysisTests(unittest.TestCase):
         for column, value in [("stat:accepted", "2"), ("stat:tree_depth", "1.0"), ("stat:energy", "nan"), ("stat:acceptance_probability", "1.1")]:
             m, rows = self.fixture(); rows[0][m["csv"]["columns"].index(column)] = value
             with self.assertRaises(ValueError): analysis.load(*self.files(m, rows))
+
+    def test_batch_manifest_requires_complete_disjoint_explicit_rows(self):
+        import copy
+        m, _ = self.fixture()
+        m["csv"]["sha256"] = "0" * 64
+        m["schema_version"] = 3
+        m["predictive_units"][0]["batch_rows"] = [
+            {"factor": "first", "row": 0, "rows": 2},
+            {"factor": "first", "row": 1, "rows": 2},
+            {"factor": "second", "row": 0, "rows": 1},
+        ]
+        analysis.validate_manifest(m)
+        for case in range(8):
+            altered = copy.deepcopy(m)
+            rows = altered["predictive_units"][0]["batch_rows"]
+            if case == 0: rows.pop()
+            elif case == 1: rows[1]["row"] = 0
+            elif case == 2: rows[1]["row"] = 2
+            elif case == 3: rows[1]["rows"] = 3
+            elif case == 4: rows[0]["row"] = True
+            elif case == 5: rows[0]["factor"] = "foreign"
+            elif case == 6: rows[0]["rows"] = 2**64 - 1
+            else: altered["schema_version"] = 2
+            with self.subTest(case=case), self.assertRaises(ValueError):
+                analysis.validate_manifest(altered)
 
     def test_duplicate_gapped_out_of_order_and_missing_records_fail(self):
         for case in range(5):
