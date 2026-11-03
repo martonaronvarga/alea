@@ -95,6 +95,110 @@ def statistical_qualification(row, plan=None):
     return True, None
 
 
+def conformance_summary(manifest, report):
+    """Layered admission of an existing source-bound experiment, without reruns.
+
+    Accept the existing PosteriorDB report contract, retaining every planned
+    method/case/repetition. Summary replay is not raw draw verification and a
+    failed diagnostic is not proof of a particular numerical/sampler defect.
+    Historical thresholds/reports are never rewritten by this new policy.
+    """
+    from collections import Counter
+    identity = manifest.get('manifest_sha256')
+    unsigned = {k: v for k, v in manifest.items() if k != 'manifest_sha256'}
+    digest = hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+    if identity != digest or report.get('manifest_sha256') != identity:
+        raise ValueError('experiment manifest/report identity mismatch')
+    protocol = manifest['protocol']
+    cases = {c['id']: c for c in manifest['corpus']['cases']}
+    selected = protocol.get('cases', list(cases))
+    methods = protocol['methods']
+    repetitions = protocol['repetitions']
+    if (not selected or len(set(selected)) != len(selected) or not set(selected) <= cases.keys()
+            or not methods or len(set(methods)) != len(methods)
+            or type(repetitions) is not int or repetitions < 1):
+        raise ValueError('invalid declared experiment matrix')
+    expected = {(case, method, rep) for case in selected for method in methods for rep in range(repetitions)}
+    observed = {}
+    for row in report['rows']:
+        key = (row['case'], row['method'], row['repetition'])
+        if key not in expected or key in observed:
+            raise ValueError('unknown or duplicate experiment job')
+        observed[key] = row
+    preparation = manifest['preparation']
+    native = preparation.get('native', {})
+    results = []
+    for case, method, rep in sorted(expected):
+        row = observed.get((case, method, rep))
+        record = dict(case=case, method=method, repetition=rep, family=cases[case].get('family'),
+                      reference_available=cases[case].get('reference_available'),
+                      representation='unavailable', target='unavailable', sampling='unavailable',
+                      qualified_bulk_ess_per_process_second=None)
+        if row is None:
+            results.append(dict(record, classification='unstarted'))
+            continue
+        record.update(status=row['status'], backend=row.get('backend'),
+                      failure=row.get('failure'), unsupported_reason=row.get('unsupported_reason'))
+        rejected = (row.get('work') or {}).get('domain_rejections')
+        record['reported_domain_rejections'] = rejected if type(rejected) is int and rejected >= 0 else None
+        metadata = preparation.get('models', {}).get(case, {}).get('metadata') or {}
+        check = native.get('conformance', {}).get(case, {})
+        # A native cross-backend check admits these points only. Standalone
+        # reference engines retain their separately recorded derivative preflight.
+        if check.get('status') == 'validated':
+            record.update(representation='passed', target='passed', target_evidence=check)
+        else:
+            derivatives = metadata.get('derivative_validation', {})
+            error = derivatives.get('gradient_relative_error')
+            if row.get('engine') == 'stan' and finite_number(error) and 0 <= error <= 2e-6:
+                record.update(representation='passed', target='reference_preflight', target_evidence=derivatives)
+            elif check.get('status') in ('failed', 'error'):
+                record.update(target='failed', target_evidence=check)
+            elif check.get('status') == 'unsupported':
+                record.update(representation='unsupported', target_evidence=check)
+            elif check:
+                record['target_evidence'] = check
+        if record['representation'] == 'unsupported':
+            record['classification'] = 'unsupported'
+        elif row['status'] != 'completed':
+            record['classification'] = ('target_failure' if record['target'] == 'failed' else
+                'unsupported' if row['status'] == 'unsupported' else 'runtime_failure')
+        elif record['target'] == 'failed':
+            record['classification'] = 'target_failure'
+        elif record['target'] not in ('passed', 'reference_preflight'):
+            record['classification'] = 'target_unqualified'
+        elif row.get('guarantee') not in ('reference', 'corrected', 'exact'):
+            record['classification'] = 'method_unqualified'
+        else:
+            chains = row.get('chains')
+            diagnostics = [row.get('diagnostics'), row.get('constrained_diagnostics')]
+            available = (type(chains) is int and chains >= 4 and all(isinstance(d, dict)
+                and all(finite_number(d.get(k)) for k in ('maximum_rhat','minimum_bulk_ess','minimum_tail_ess'))
+                and d.get('undefined_diagnostics') == 0 for d in diagnostics)
+                and type(row.get('divergences')) is int)
+            if not available:
+                record['classification'] = 'diagnostics_unavailable'
+            elif (row['divergences'] != 0 or any(not (0 < d['maximum_rhat'] < 1.01
+                    and d['minimum_bulk_ess'] >= 100*chains and d['minimum_tail_ess'] >= 100*chains)
+                    for d in diagnostics)):
+                record.update(sampling='failed', classification='sampling_unqualified')
+            else:
+                record.update(sampling='passed', classification='qualified_sampling')
+                seconds = row.get('process_seconds')
+                if finite_number(seconds) and seconds > 0:
+                    record['qualified_bulk_ess_per_process_second'] = min(d['minimum_bulk_ess'] for d in diagnostics)/seconds
+        results.append(record)
+    return dict(schema_version=1, manifest_sha256=identity,
+                policy=dict(chains_minimum=4, rhat_maximum_exclusive=1.01, ess_minimum_per_chain=100,
+                            retained_divergences_maximum=0),
+                verification='derived source-bound summary; raw draws and backend claims not independently reverified',
+                limitations=['Pointwise preflight is not proof of global target equivalence or posterior exploration.',
+                             'Sampling failure is not uniquely attributable to numerical stability or efficiency.',
+                             'Reference-moment agreement and SBC remain separate scientific evidence.'],
+                planned=len(expected), observed=len(observed),
+                classifications=dict(sorted(Counter(r['classification'] for r in results).items())), rows=results)
+
+
 def command_output(command):
     try:
         result = subprocess.run(command, text=True, capture_output=True, check=False)
@@ -103,8 +207,28 @@ def command_output(command):
     return result.stdout.strip() if result.returncode == 0 else result.stderr.strip()
 
 
+def host_metadata():
+    """Describe the measurement host; never change governor or service policy."""
+    def read(path):
+        try:
+            return path.read_text().strip()
+        except OSError as error:
+            return f'unavailable: {error}'
+    power = Path('/sys/class/power_supply')
+    return dict(hostname=platform.node(), kernel=platform.release(),
+        affinity=sorted(os.sched_getaffinity(0)), load_average=list(os.getloadavg()),
+        governors={p.parent.parent.name:read(p) for p in
+            Path('/sys/devices/system/cpu').glob('cpu[0-9]*/cpufreq/scaling_governor')},
+        power_supplies={p.name:{name:read(p/name) for name in ['type','online','status']
+            if (p/name).exists()} for p in sorted(power.iterdir())} if power.exists() else {})
+
+
 def sha(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1024*1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def describe(values):
@@ -211,7 +335,7 @@ def main():
                     pins=json.loads((ROOT/'PINNED.json').read_text()),
                     flake_lock_sha256=sha(REPO/'flake.lock'), nixpkgs=lock['nodes']['nixpkgs']['locked'],
                     cmdstan_path=str(args.cmdstan.resolve()), cmdstan_version=command_output([str(args.cmdstan/'bin/stanc'),'--version']),
-                    platform=platform.platform(), machine=platform.machine(), cpuinfo=Path('/proc/cpuinfo').read_text(),
+                    platform=platform.platform(), machine=platform.machine(), host=host_metadata(), cpuinfo=Path('/proc/cpuinfo').read_text(),
                     affinity=sorted(os.sched_getaffinity(0)), rustc=command_output(['rustc','-vV']),
                     runtime_cxx=command_output(['g++','--version']),
                     stan_binary_compiler_comments={model:command_output(['readelf','-p','.comment',str(ROOT/'stan'/model)])

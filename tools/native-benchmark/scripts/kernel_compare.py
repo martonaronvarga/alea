@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import platform
 import subprocess
-from bench import describe, sha, REPO, read_metrics, finite_number, run_process
+from bench import describe, sha, REPO, read_metrics, finite_number, run_process, host_metadata
 
 # Declared before measurements. Small dimensions test dispatch crossovers;
 # NIG/standard-normal paths control unrelated codegen effects. Normal factors
@@ -44,6 +44,9 @@ SUITES['tensor-checkpoint'] = SUITES['tensor'] + [
     ('tensor_scan_checkpoint',1025,1000),('tensor_scan_checkpoint',10000,100)]
 SUITES['tensor-fusion'] = SUITES['tensor-checkpoint'] + [
     ('tensor_dag',1000,10000),('tensor_dag',10000,1000),('tensor_dag',100000,100)]
+SUITES['tensor-storage'] = SUITES['tensor-fusion'] + [
+    (case,size,calls) for case in ['tensor_vector','tensor_reuse']
+    for size,calls in [(1000,1000),(10000,100),(100000,10)]]
 
 
 def compatible(a,b,case):
@@ -107,14 +110,16 @@ def main():
            REPO/'crates/alea-core/src/model/tensor/kernels.rs',
            REPO/'crates/alea-core/src/model/tensor/source.rs',
            REPO/'crates/alea-core/src/model/tensor/fusion.rs',
+           REPO/'crates/alea-core/src/model/tensor/pullback.rs',
+           REPO/'crates/alea-math/src/gemm.rs',
            REPO/'crates/alea-distributions/src/mixture.rs',
            REPO/'crates/alea-distributions/src/scalar.rs',REPO/'crates/alea-distributions/src/modeling.rs',
            REPO/'crates/alea-distributions/src/modeling/regression.rs',
            REPO/'crates/alea-distributions/src/modeling/regression/links.rs',
            REPO/'crates/alea-distributions/src/modeling/regression/poisson_statistics.rs',
            REPO/'crates/alea-distributions/src/modeling/regression/kernels.rs',
-           Path(__file__).resolve().parents[1]/'src/bin/kernel_audit.rs',Path(__file__).resolve()]
-    manifest=dict(schema_version=2,cases=cases,suite=args.suite,reps=args.reps,cpu=args.cpu,machine=platform.machine(),
+           Path(__file__).resolve().parents[1]/'src/bin/kernel_audit.rs',Path(__file__).with_name('bench.py'),Path(__file__).resolve()]
+    manifest=dict(schema_version=2,cases=cases,suite=args.suite,reps=args.reps,cpu=args.cpu,machine=platform.machine(),host=host_metadata(),
         alea_commit=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip(),
         flake_lock_sha256=sha(REPO/'flake.lock'),
         cargo_lock_sha256=sha(Path(__file__).resolve().parents[1]/'Cargo.lock'),

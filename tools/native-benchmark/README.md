@@ -320,6 +320,11 @@ Use the actual saved binary paths; the usual current binary is
 construction and evaluation times, partial failures and checksum qualification.
 Run without concurrent compilation, profiling or other CPU-heavy work. These
 fixed-work gains are not interchangeable with inference throughput or ESS/sec.
+Execute timing campaigns on Dusk or another stable remote server, not a laptop
+whose AC/battery policy can change. Transfer the same sealed source, binaries
+and runtime closure; record the measurement host, CPU affinity, governor, load
+and thread settings. Never pool laptop exploratory timings with remote results.
+Correctness tests and compilation can remain local and separate from measurement.
 
 `kernel_compare.py --suite base` preserves the original 15-case default.
 `--suite mixture-scores` selects ten event-score, parameter-score and native
@@ -327,3 +332,47 @@ mixture-factor controls; `--suite all` runs both sets. New mixture cases require
 the updated runner in both saved builds and exact checksum agreement. The native
 factor uses public `modeling::continuous` and `FiniteMixture<Normal>` and includes
 per-evaluation construction. No benchmark-local probability or derivative is used.
+
+## Reusing PosteriorDB evidence and local sealed capsules
+
+Do not create another model registry or inference runner to classify an existing
+experiment. The existing PosteriorDB manifest/report contract can be replayed by
+the same summary tool:
+
+```sh
+python3 tools/native-benchmark/scripts/replay.py conformance /path/to/existing-run /tmp/conformance.json
+python3 tools/native-benchmark/scripts/replay.py pack /path/to/evidence-tree /tmp/local-capsule
+python3 tools/native-benchmark/scripts/replay.py unpack /tmp/local-capsule /tmp/restored-capsule
+```
+
+All destinations must be new. Capsules are local only; no upload, download service
+or second experiment database is introduced. Pack the original source seals,
+workload data, manifests, raw draws, journals, validation and failures together.
+The deterministic gzip stream is segmented into 32 MiB parts, with SHA-256 and
+byte counts for every part and every file. Restoring verifies all segments before
+creating output, rejects symlinks, traversal, duplicate/unsealed members and
+overwrites, and verifies all restored file bytes. Members are limited to 1 GiB
+and capsules to 999 segments. A checksum establishes integrity, not correctness
+or authenticity; use the existing source-bound experiment reader after restore.
+File contents, not ownership/permissions, are sealed: restored files are ordinary
+data files. Mark only trusted saved binaries executable before running them.
+Existing PosteriorDB bundles can be included unchanged, then opened with their
+original loader. Historical manifests and qualification policies stay unchanged.
+
+Conformance replay preserves every planned case/method/repetition, including
+unsupported, failed and unstarted jobs. It distinguishes recorded target
+preflight failures, runtime failures, unavailable evidence and diagnostic
+failures. Qualification requires a recorded reference/corrected/exact method guarantee,
+at least four chains, finite defined constrained **and** unconstrained diagnostics,
+R-hat strictly below 1.01, bulk/tail ESS at least 100 per chain and no retained
+divergences. Only qualified jobs receive bulk ESS/process-second. Recorded domain
+rejections remain explicit; a failed diagnostic alone cannot identify a numerical
+bug, an expressive limitation or poor mixing. Cross-backend pointwise preflight
+does not prove global posterior equivalence. Reference-moment agreement and SBC
+remain separate scientific requirements, not inferred passing flags.
+
+The existing `kernel_compare.py --suite tensor-storage` adds vector-input and
+alias-separated lifetime controls to the entire `tensor-fusion` suite. Both saved
+binaries must contain the identical updated harness. Performance admission is
+still exact-checksum based, with complete-coordinate correctness tests separate
+from timing. This is not a PosteriorDB or Stan inference comparison.

@@ -56,6 +56,42 @@ fn main() -> Result<(), Box<dyn Error>> {
     let construction = Instant::now();
     let construction_seconds;
     let (seconds, checksum) = match case.as_str() {
+        "tensor_vector" | "tensor_reuse" => {
+            use alea::model::tensor::{BinaryOp, Shape, TensorBuilder, UnaryOp};
+            let mut b = TensorBuilder::new();
+            let input = b.input("input", Shape::new(vec![size])?)?;
+            let mut value = input;
+            for _ in 0..32 {
+                value = b.unary(UnaryOp::Tanh, value)?;
+                value = if case == "tensor_reuse" {
+                    b.reshape(value, Shape::new(vec![size])?)?
+                } else {
+                    b.binary(BinaryOp::Add, value, input)?
+                };
+            }
+            let result = b.sum(value)?;
+            let program = b.compile(result)?.bind(&[])?;
+            let mut workspace = program.workspace();
+            let mut x: Vec<_> = (0..size).map(|i| 0.3 + (i % 17) as f64 / 31.).collect();
+            let mut out = [0.];
+            let mut g = vec![0.; size];
+            program.value_and_vjp(&x, &[0.7], &mut out, &mut g, &mut workspace)?;
+            construction_seconds = construction.elapsed().as_secs_f64();
+            let start = Instant::now();
+            let mut checksum = 0.;
+            for i in 0..calls {
+                x[0] = 0.2 + (i % 10) as f64 / 31.;
+                program.value_and_vjp(
+                    black_box(&x),
+                    black_box(&[0.7]),
+                    black_box(&mut out),
+                    black_box(&mut g),
+                    &mut workspace,
+                )?;
+                checksum += black_box(out[0]) + black_box(g.iter().sum::<f64>());
+            }
+            (start.elapsed().as_secs_f64(), checksum)
+        }
         "poisson"
         | "poisson_scalar"
         | "poisson_common"

@@ -13,7 +13,7 @@ from pathlib import Path
 import subprocess
 import time
 from bench import (CASES, ROOT, describe, sha, completed_run, finite_number,
-                   read_metrics, statistical_qualification, run_process)
+                   read_metrics, statistical_qualification, run_process, host_metadata)
 
 
 def performance_regressions(summary, max_slowdown):
@@ -114,7 +114,7 @@ def main():
     args.output.mkdir(parents=True,exist_ok=False)
     os.sched_setaffinity(0,{args.cpu})
     binaries = dict(baseline=args.baseline.resolve(), current=args.current.resolve())
-    plan = dict(schema_version=2,reps=args.reps,chains=args.chains,modes=args.modes,cpu=args.cpu,max_slowdown=args.max_slowdown,allow_trajectory_change=args.allow_trajectory_change,cases=args.cases)
+    plan = dict(schema_version=2,reps=args.reps,chains=args.chains,modes=args.modes,cpu=args.cpu,host=host_metadata(),max_slowdown=args.max_slowdown,allow_trajectory_change=args.allow_trajectory_change,cases=args.cases)
     (args.output/'plan.json').write_text(json.dumps(plan,indent=2)+'\n')
     (args.output/'binaries.json').write_text(json.dumps({k:dict(path=str(v),sha256=sha(v)) for k,v in binaries.items()},indent=2)+'\n')
     records = []

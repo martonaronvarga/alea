@@ -1445,10 +1445,28 @@ controls and failures. Do not label changes in unchanged scalar controls as a
 new scalar algorithm. Do not remove compensation or finite admission to make
 two numerical policies look comparable.
 
-### A PosteriorDB comparison should be a qualified model registry
+### Reuse the existing PosteriorDB registry and qualify its evidence
 
-This is the proposed extension, not a claim that a comprehensive suite was run
-in this increment. [PosteriorDB](https://github.com/stan-dev/posteriordb) associates
+Do not start another corpus, port collection or runner. The retained native-v3
+experiment already contains 20 posteriors, six methods and three repetitions
+(360 jobs), pinned to PosteriorDB revision
+`91027f9cdd13b7e76283fec3f2898f59d4b83ec4`. The existing bundle loader and raw
+archives remain authoritative. New `replay.py conformance` derives a separate
+layered qualification summary from the original manifest/report without changing
+their bytes or original policy. Under the explicit four-chain, both-coordinate-
+space policy, 244 historical jobs qualify and 116 are sampling-unqualified.
+All 20 archived payload parts (647,731,517 bytes) were checked and a local generic
+capsule was restored through the original PosteriorDB loader. This is evidence
+preservation/reclassification, **not** a fresh run of today's native kernels or
+independent recomputation of all diagnostics/reference comparisons.
+
+The old native ports include generated source/Enzyme pathways. Do not present
+their timings as a benchmark of every current public native distribution.
+Unsupported and unstarted cases remain explicit in other retained experiments;
+an all-completed historical matrix does not establish universal expressiveness.
+Capsule byte integrity also does not establish scientific admission.
+
+[PosteriorDB](https://github.com/stan-dev/posteriordb) associates
 model/data specifications with reference information where available; reference
 draws and their provenance must be checked per posterior, not assumed to exist
 for every entry. See its [database specification](https://github.com/stan-dev/posteriordb/blob/master/doc/DATABASE_CONTENT.md).
@@ -1490,3 +1508,10 @@ cases stay visible and are excluded from speed rankings, not from the registry.
 The acceptance milestone is broad correct composition with competitive measured
 throughput and ESS/sec. It is not a universal speed claim inferred from one
 Gaussian compression, source-code resemblance to Stan, or the presence of an IR.
+Passing pointwise target checks and R-hat/ESS thresholds is necessary evidence,
+not research-grade qualification by itself: still require representative
+reference-functional agreement with uncertainty, repeated-seed difficult
+geometries, simulation-based calibration, documented unsupported cases, failure
+recovery and independent reproduction. A missing criterion stays missing rather
+than being inferred from a successful run. These criteria do not promote the
+current experimental compiler or API maturity classifications.

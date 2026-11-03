@@ -12,7 +12,7 @@ import sys
 import tarfile
 import time
 
-from bench import REPO, command_output, describe, finite_number, read_metrics, sha
+from bench import REPO, command_output, describe, finite_number, read_metrics, sha, host_metadata
 
 sys.path.insert(0, str(REPO / 'tools/release'))
 import source as source_archive
@@ -281,7 +281,7 @@ def campaign(args):
     if len(executables) != 1:
         raise ValueError('expected exactly one Criterion executable')
     shutil.copy2(executables.pop(), output / 'benchmark')
-    manifest = dict(schema_version=VERSION, suite=args.suite, reps=args.reps, cpu=args.cpu,
+    manifest = dict(schema_version=VERSION, suite=args.suite, reps=args.reps, cpu=args.cpu, host=host_metadata(),
                     cpuinfo=Path('/proc/cpuinfo').read_text(), rustc=command_output(['rustc', '-vV']),
                     commit=command_output(['git', '-C', str(REPO), 'rev-parse', 'HEAD']),
                     binary_sha256=sha(output / 'benchmark'), source_archive_sha256=archive_sha,

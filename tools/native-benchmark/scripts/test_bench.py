@@ -13,7 +13,7 @@ from compare import performance_regressions, compare_work
 from kernel_compare import compatible as kernel_compatible, summarize as summarize_kernels
 from kernel_compare import SUITES
 from compare import summarize as summarize_paired
-from replay import rebuild
+from replay import rebuild, pack, unpack, capsule_index, relative
 
 spec = importlib.util.spec_from_file_location('bench', Path(__file__).with_name('bench.py'))
 bench = importlib.util.module_from_spec(spec)
@@ -21,6 +21,89 @@ spec.loader.exec_module(bench)
 
 
 class SummaryTests(unittest.TestCase):
+    def test_host_metadata_records_the_measurement_host_without_tuning_it(self):
+        with patch.object(bench.platform, 'node', return_value='measurement-host'), \
+             patch.object(bench.os, 'sched_getaffinity', return_value={3, 1}), \
+             patch.object(bench.os, 'getloadavg', return_value=(0.1, 0.2, 0.3)):
+            metadata=bench.host_metadata()
+        self.assertEqual(metadata['hostname'],'measurement-host')
+        self.assertEqual(metadata['affinity'],[1,3])
+        self.assertEqual(metadata['load_average'],[0.1,0.2,0.3])
+        self.assertIsInstance(metadata['governors'],dict)
+        self.assertIsInstance(metadata['power_supplies'],dict)
+
+    def test_capsule_index_rejects_malformed_metadata_before_restoring(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);source=root/'source';source.mkdir()
+            (source/'data').write_bytes(b'original')
+            index=pack(source,root/'bundle')
+            for invalid in [None, [], {'bytes':1,'sha256':False}]:
+                changed=copy.deepcopy(index);changed['files']['data']=invalid
+                (root/'bundle/capsule.json').write_text(json.dumps(changed))
+                with self.assertRaises(ValueError):unpack(root/'bundle',root/'uncreated')
+                self.assertFalse((root/'uncreated').exists())
+            (root/'valid.json').write_text(json.dumps(index))
+            (root/'bundle/capsule.json').unlink()
+            (root/'bundle/capsule.json').symlink_to(root/'valid.json')
+            with self.assertRaisesRegex(ValueError,'symlink'):capsule_index(root/'bundle')
+            for name in [None, 1, '../bad', '/absolute', 'a/./b', 'a\\b']:
+                with self.assertRaises(ValueError):relative(name)
+
+    def test_generic_capsule_round_trip_seals_every_byte_and_refuses_mutation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);source=root/'source';source.mkdir()
+            (source/'failures.json').write_text('{"failed":true}\n')
+            (source/'nested').mkdir();(source/'nested/data.bin').write_bytes(bytes(range(256))*8)
+            index=pack(source,root/'bundle',limit=128)
+            self.assertGreater(len(index['parts']),1)
+            restored=unpack(root/'bundle',root/'restore')
+            for name in index['files']:
+                self.assertEqual((source/name).read_bytes(),(restored/name).read_bytes())
+            with self.assertRaises(FileExistsError):unpack(root/'bundle',root/'restore')
+            part=root/'bundle'/index['parts'][0]['name'];part.write_bytes(b'changed')
+            with self.assertRaisesRegex(ValueError,'checksum'):unpack(root/'bundle',root/'bad')
+            self.assertFalse((root/'bad').exists())
+            with self.assertRaises(ValueError):pack(source,source/'recursive')
+            (source/'link').symlink_to(source/'failures.json')
+            with self.assertRaisesRegex(ValueError,'symlink'):pack(source,root/'linked')
+
+    def test_conformance_replay_retains_matrix_and_separates_target_runtime_and_sampling(self):
+        cases=[dict(id='a',family='hierarchy',reference_available=True)]
+        manifest=dict(protocol=dict(cases=['a'],methods=['nuts'],repetitions=5),corpus=dict(cases=cases),
+                      preparation=dict(native=dict(conformance={'a':{'status':'validated'}})))
+        def seal():
+            unsigned={k:v for k,v in manifest.items() if k!='manifest_sha256'}
+            manifest['manifest_sha256']=__import__('hashlib').sha256(json.dumps(unsigned,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        seal()
+        diag=dict(maximum_rhat=1.001,minimum_bulk_ess=800.,minimum_tail_ess=700.,undefined_diagnostics=0)
+        base=dict(case='a',method='nuts',status='completed',chains=4,diagnostics=diag,
+                  constrained_diagnostics=diag,divergences=0,process_seconds=2.,backend='native',guarantee='reference')
+        rows=[dict(base,repetition=0),dict(base,repetition=1,divergences=1),
+              dict(base,repetition=2,status='failed',failure={'kind':'BackendFailure'}),
+              dict(base,repetition=3,diagnostics=None)]
+        report=dict(manifest_sha256=manifest['manifest_sha256'],rows=rows)
+        result=bench.conformance_summary(manifest,report)
+        self.assertEqual(result['planned'],5)
+        self.assertEqual(result['classifications'],dict(qualified_sampling=1,sampling_unqualified=1,runtime_failure=1,diagnostics_unavailable=1,unstarted=1))
+        qualified=[r for r in result['rows'] if r['classification']=='qualified_sampling'][0]
+        self.assertEqual(qualified['qualified_bulk_ess_per_process_second'],400.)
+        self.assertTrue(all(r['qualified_bulk_ess_per_process_second'] is None for r in result['rows'] if r is not qualified))
+        report['rows'].append(dict(base,repetition=0))
+        with self.assertRaisesRegex(ValueError,'duplicate'):bench.conformance_summary(manifest,report)
+        report['rows'].pop();manifest['preparation']['native']['conformance']['a']={'status':'failed','reason':'derivative preflight'};seal()
+        report['manifest_sha256']=manifest['manifest_sha256']
+        self.assertEqual(bench.conformance_summary(manifest,report)['rows'][0]['classification'],'target_failure')
+        manifest['preparation']['native']['conformance']['a']={'status':'unsupported','reason':'missing source rule'};seal()
+        report['manifest_sha256']=manifest['manifest_sha256']
+        unsupported=bench.conformance_summary(manifest,report)['rows'][0]
+        self.assertEqual(unsupported['classification'],'unsupported')
+        self.assertEqual(unsupported['representation'],'unsupported')
+        self.assertEqual(unsupported['target'],'unavailable')
+        manifest['preparation']['native']['conformance']['a']={'status':'pending'};seal()
+        report['manifest_sha256']=manifest['manifest_sha256']
+        self.assertEqual(bench.conformance_summary(manifest,report)['rows'][0]['classification'],'target_unqualified')
+        manifest['protocol']['repetitions']=6
+        with self.assertRaisesRegex(ValueError,'identity'):bench.conformance_summary(manifest,report)
     def test_fusion_suite_keeps_every_checkpoint_control_and_exact_dag_admission(self):
         cases = SUITES['tensor-fusion']
         self.assertEqual(cases[:14], SUITES['tensor-checkpoint'])
