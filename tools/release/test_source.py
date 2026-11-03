@@ -8,7 +8,7 @@ import tarfile
 import tempfile
 import unittest
 
-from source import archive, source_files
+from source import archive, source_files, check_source_links
 from verify import verify_archive
 
 
@@ -44,12 +44,54 @@ class SourceTests(unittest.TestCase):
                     "tools/stan-reference/probe.cpp", "tools/release/observe.py",
                     "tools/release/examples/probe.rs", "crates/alea/design.md",
                     "crates/alea/tests/data/private.csv",
-                    "crates/alea-cli/src/bin/bench.rs", "crates/alea-mcmc/examples/hard_nuts.rs"]
+                    "crates/alea-cli/src/bin/bench.rs", "crates/alea-mcmc/examples/hard_nuts.rs",
+                    "tools/native-benchmark/stan/linear", "tools/native-benchmark/results/raw.json",
+                    "tools/native-benchmark/scripts/private.json", "tools/wiener-validation/failures.jsonl",
+                    "tools/wiener-modeling/data/empirical.csv"]
         for name in excluded:
             p = self.root / name
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text("local-only")
         self.assertFalse(set(excluded) & {p.relative_to(self.root).as_posix() for p in source_files(self.root)})
+
+    def test_verification_source_and_locks_ship_without_generated_artifacts(self):
+        included = ['docs/native-model-performance.md','docs/kernel-optimization.md',
+                    'tools/native-benchmark/PINNED.json','tools/native-benchmark/REPORT.md',
+                    'tools/native-benchmark/stan/linear.stan','tools/native-benchmark/scripts/replay.py',
+                    'tools/wiener-validation/report.py','tools/wiener-validation/test_report.py']
+        for tool in ['native-benchmark','wiener-validation','wiener-modeling']:
+            included += [f'tools/{tool}/{p}' for p in ['Cargo.toml','Cargo.lock','README.md','src/main.rs']]
+        for name in included:
+            p = self.root/name
+            p.parent.mkdir(parents=True,exist_ok=True)
+            p.write_text('verification source')
+        paths = {p.relative_to(self.root).as_posix() for p in source_files(self.root)}
+        self.assertTrue(set(included).issubset(paths))
+
+    def test_relative_links_use_shipped_manifest_not_checkout_existence(self):
+        contents = {'docs/README.md': b'[guide](modeling.md#model) [tool](../tools/check)\n'
+                    b'[web](https://example.invalid/missing) [heading](#local)\n'
+                    b'[guide][ref]\n[ref]: modeling.md\n```md\n[example](omitted.md)\n```\n',
+                    'docs/modeling.md': b'guide', 'tools/check/main.py': b'check',
+                    'crates/ffi/vendor/README.md': b'[upstream wiki](missing.md)'}
+        check_source_links(contents)
+        for target in [b'missing.md', b'../.agent/secret', b'modeling%20notes.md']:
+            with self.subTest(target=target), self.assertRaisesRegex(ValueError,'omitted files'):
+                check_source_links(dict(contents, **{'docs/README.md': b'[bad]('+target+b')'}))
+
+    def test_archive_rejects_broken_links_and_git_free_recheck_uses_exact_manifest(self):
+        doc = self.root/'docs/README.md'
+        doc.parent.mkdir()
+        doc.write_text('[private](../.agent/secret)')
+        output = self.root/'broken.tar.gz'
+        with self.assertRaisesRegex(ValueError,'omitted files'): archive(self.root,output)
+        self.assertFalse(output.exists())
+        doc.write_text('[source](../crates/alea-core/src/lib.rs)')
+        archive(self.root,output)
+        with tarfile.open(output) as tar: tar.extractall(self.root,filter='data')
+        unpacked = self.root/'alea'
+        paths = source_files(unpacked)
+        check_source_links({p.relative_to(unpacked).as_posix(): p.read_bytes() for p in paths})
 
     def test_unpacked_manifest_cannot_reintroduce_excluded_material(self):
         content = b"local-only"

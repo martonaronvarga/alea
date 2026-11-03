@@ -1722,6 +1722,7 @@ pub alea_mcmc::hamiltonian::Divergence::Momentum
 pub alea_mcmc::hamiltonian::Divergence::Momentum::index: usize
 pub alea_mcmc::hamiltonian::Divergence::Position
 pub alea_mcmc::hamiltonian::Divergence::Position::index: usize
+pub alea_mcmc::hamiltonian::Divergence::TargetNumerical
 impl core::clone::Clone for alea_mcmc::hamiltonian::Divergence
 pub fn alea_mcmc::hamiltonian::Divergence::clone(&self) -> alea_mcmc::hamiltonian::Divergence
 impl core::cmp::Eq for alea_mcmc::hamiltonian::Divergence
@@ -1791,6 +1792,7 @@ pub alea_mcmc::hmc::Divergence::Momentum
 pub alea_mcmc::hmc::Divergence::Momentum::index: usize
 pub alea_mcmc::hmc::Divergence::Position
 pub alea_mcmc::hmc::Divergence::Position::index: usize
+pub alea_mcmc::hmc::Divergence::TargetNumerical
 impl core::clone::Clone for alea_mcmc::hamiltonian::Divergence
 pub fn alea_mcmc::hamiltonian::Divergence::clone(&self) -> alea_mcmc::hamiltonian::Divergence
 impl core::cmp::Eq for alea_mcmc::hamiltonian::Divergence
@@ -2316,6 +2318,7 @@ pub alea_mcmc::prelude::Divergence::Momentum
 pub alea_mcmc::prelude::Divergence::Momentum::index: usize
 pub alea_mcmc::prelude::Divergence::Position
 pub alea_mcmc::prelude::Divergence::Position::index: usize
+pub alea_mcmc::prelude::Divergence::TargetNumerical
 impl core::clone::Clone for alea_mcmc::hamiltonian::Divergence
 pub fn alea_mcmc::hamiltonian::Divergence::clone(&self) -> alea_mcmc::hamiltonian::Divergence
 impl core::cmp::Eq for alea_mcmc::hamiltonian::Divergence

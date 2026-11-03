@@ -238,6 +238,22 @@ impl core::clone::Clone for alea_distributions::modeling::regression::diagnostic
 pub fn alea_distributions::modeling::regression::diagnostics::DirectionAssessment::clone(&self) -> alea_distributions::modeling::regression::diagnostics::DirectionAssessment
 impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::DirectionAssessment
 pub fn alea_distributions::modeling::regression::diagnostics::DirectionAssessment::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub enum alea_distributions::modeling::regression::diagnostics::GaussianIntervalError
+pub alea_distributions::modeling::regression::diagnostics::GaussianIntervalError::LeastSquares(alea_math::least_squares::LeastSquaresError)
+pub alea_distributions::modeling::regression::diagnostics::GaussianIntervalError::Numerical
+pub alea_distributions::modeling::regression::diagnostics::GaussianIntervalError::Policy
+pub alea_distributions::modeling::regression::diagnostics::GaussianIntervalError::Quantile(statrs::distribution::students_t::StudentsTError)
+pub alea_distributions::modeling::regression::diagnostics::GaussianIntervalError::Unqualified
+impl core::convert::From<alea_math::least_squares::LeastSquaresError> for alea_distributions::modeling::regression::diagnostics::GaussianIntervalError
+pub fn alea_distributions::modeling::regression::diagnostics::GaussianIntervalError::from(source: alea_math::least_squares::LeastSquaresError) -> Self
+impl core::convert::From<statrs::distribution::students_t::StudentsTError> for alea_distributions::modeling::regression::diagnostics::GaussianIntervalError
+pub fn alea_distributions::modeling::regression::diagnostics::GaussianIntervalError::from(source: statrs::distribution::students_t::StudentsTError) -> Self
+impl core::error::Error for alea_distributions::modeling::regression::diagnostics::GaussianIntervalError
+pub fn alea_distributions::modeling::regression::diagnostics::GaussianIntervalError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::GaussianIntervalError
+pub fn alea_distributions::modeling::regression::diagnostics::GaussianIntervalError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_distributions::modeling::regression::diagnostics::GaussianIntervalError
+pub fn alea_distributions::modeling::regression::diagnostics::GaussianIntervalError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub enum alea_distributions::modeling::regression::diagnostics::GaussianIssue
 pub alea_distributions::modeling::regression::diagnostics::GaussianIssue::NumericalRankDeficiency
 pub alea_distributions::modeling::regression::diagnostics::GaussianIssue::ScaleNotRepresentable
@@ -323,6 +339,31 @@ impl core::clone::Clone for alea_distributions::modeling::regression::diagnostic
 pub fn alea_distributions::modeling::regression::diagnostics::GaussianAssessment::clone(&self) -> alea_distributions::modeling::regression::diagnostics::GaussianAssessment
 impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::GaussianAssessment
 pub fn alea_distributions::modeling::regression::diagnostics::GaussianAssessment::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals
+pub alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals::assessment: alea_distributions::modeling::regression::diagnostics::GaussianAssessment
+pub alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals::bounds: alloc::vec::Vec<[f64; 2]>
+pub alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals::covariance: alloc::vec::Vec<f64>
+pub alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals::critical_value: f64
+pub alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals::options: alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions
+pub alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals::residual_variance: f64
+pub alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals::standard_errors: alloc::vec::Vec<f64>
+impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals
+pub fn alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals::clone(&self) -> alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals
+impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals
+pub fn alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions
+pub alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions::confidence_level: f64
+pub alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions::quantile_relative_tolerance: f64
+pub alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions::relative_rank_tolerance: f64
+pub alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions::relative_residual_tolerance: f64
+impl core::clone::Clone for alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions
+pub fn alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions::clone(&self) -> alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions
+impl core::cmp::PartialEq for alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions
+pub fn alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions::eq(&self, other: &alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions) -> bool
+impl core::fmt::Debug for alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions
+pub fn alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions
+impl core::marker::StructuralPartialEq for alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions
 pub struct alea_distributions::modeling::regression::diagnostics::RecessionWitness
 impl alea_distributions::modeling::regression::diagnostics::RecessionWitness
 pub fn alea_distributions::modeling::regression::diagnostics::RecessionWitness::direction(&self) -> &[f64]
@@ -367,6 +408,36 @@ impl core::fmt::Display for alea_distributions::modeling::regression::Regression
 pub fn alea_distributions::modeling::regression::RegressionDataError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_distributions::modeling::regression::RegressionDataError
 impl core::marker::StructuralPartialEq for alea_distributions::modeling::regression::RegressionDataError
+#[non_exhaustive] pub enum alea_distributions::modeling::regression::RegressionExecution
+pub alea_distributions::modeling::regression::RegressionExecution::Auto
+pub alea_distributions::modeling::regression::RegressionExecution::Scalar
+impl core::clone::Clone for alea_distributions::modeling::regression::RegressionExecution
+pub fn alea_distributions::modeling::regression::RegressionExecution::clone(&self) -> alea_distributions::modeling::regression::RegressionExecution
+impl core::cmp::Eq for alea_distributions::modeling::regression::RegressionExecution
+impl core::cmp::PartialEq for alea_distributions::modeling::regression::RegressionExecution
+pub fn alea_distributions::modeling::regression::RegressionExecution::eq(&self, other: &alea_distributions::modeling::regression::RegressionExecution) -> bool
+impl core::default::Default for alea_distributions::modeling::regression::RegressionExecution
+pub fn alea_distributions::modeling::regression::RegressionExecution::default() -> alea_distributions::modeling::regression::RegressionExecution
+impl core::fmt::Debug for alea_distributions::modeling::regression::RegressionExecution
+pub fn alea_distributions::modeling::regression::RegressionExecution::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::modeling::regression::RegressionExecution
+impl core::marker::StructuralPartialEq for alea_distributions::modeling::regression::RegressionExecution
+pub struct alea_distributions::modeling::regression::BernoulliLogitRegression
+impl alea_distributions::modeling::regression::BernoulliLogitRegression
+pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::data(&self) -> &alea_distributions::modeling::regression::RegressionData<bool>
+pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::execution_plan(&self) -> &alea_distributions::modeling::regression::RegressionPlan
+pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::new(inputs: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::with_data(&self, data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::with_execution(self, execution: alea_distributions::modeling::regression::RegressionExecution) -> Self
+impl alea_core::model::assembly::primitives::Primitive for alea_distributions::modeling::regression::BernoulliLogitRegression
+pub type alea_distributions::modeling::regression::BernoulliLogitRegression::Workspace = alea_distributions::modeling::regression::LinkRegressionWorkspace
+pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::primitives::BatchRule<Self>>
+pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::batch_workspace(&self) -> Self::Workspace
+pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::evaluate(&self, x: &[f64], g: &mut [f64], w: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::inputs(&self) -> &[alea_core::model::assembly::Expr]
+pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::signature(&self) -> alea_core::model::assembly::primitives::PrimitiveSignature
+pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>
+pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::workspace(&self) -> Self::Workspace
 pub struct alea_distributions::modeling::regression::CoefficientStandardization
 impl alea_distributions::modeling::regression::CoefficientStandardization
 pub fn alea_distributions::modeling::regression::CoefficientStandardization::centers(&self) -> &[f64]
@@ -378,6 +449,63 @@ impl core::clone::Clone for alea_distributions::modeling::regression::Coefficien
 pub fn alea_distributions::modeling::regression::CoefficientStandardization::clone(&self) -> alea_distributions::modeling::regression::CoefficientStandardization
 impl core::fmt::Debug for alea_distributions::modeling::regression::CoefficientStandardization
 pub fn alea_distributions::modeling::regression::CoefficientStandardization::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_distributions::modeling::regression::GlmLikelihood
+impl alea_distributions::modeling::regression::GlmLikelihood
+pub fn alea_distributions::modeling::regression::GlmLikelihood::bernoulli_logit(data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::regression::GlmLikelihood::poisson_log(data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+impl alea_core::capability::PotentialHessianVector for alea_distributions::modeling::regression::GlmLikelihood
+pub fn alea_distributions::modeling::regression::GlmLikelihood::potential_hvp(&self, x: &[f64], vector: &[f64], out: &mut [f64]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+impl alea_core::target::LogDensityGradient for alea_distributions::modeling::regression::GlmLikelihood
+pub fn alea_distributions::modeling::regression::GlmLikelihood::is_numerical_error(&self, error: &alea_core::model::assembly::AssemblyError) -> bool
+pub fn alea_distributions::modeling::regression::GlmLikelihood::logp_grad(&self, x: &[f64], out: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+impl alea_core::target::TargetSpace for alea_distributions::modeling::regression::GlmLikelihood
+pub type alea_distributions::modeling::regression::GlmLikelihood::Error = alea_core::model::assembly::AssemblyError
+pub fn alea_distributions::modeling::regression::GlmLikelihood::dimension(&self) -> usize
+pub struct alea_distributions::modeling::regression::LinearPredictor<Y>
+impl alea_distributions::modeling::regression::LinearPredictor<bool>
+pub fn alea_distributions::modeling::regression::LinearPredictor<bool>::bernoulli_logit(self) -> core::result::Result<alea_distributions::modeling::regression::ObservationMap<alea_distributions::modeling::regression::BernoulliLogitRegression>, alea_core::model::assembly::AssemblyError>
+impl alea_distributions::modeling::regression::LinearPredictor<f64>
+pub fn alea_distributions::modeling::regression::LinearPredictor<f64>::normal(self, scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>) -> core::result::Result<alea_distributions::modeling::regression::ObservationMap<alea_distributions::modeling::regression::NormalRegression>, alea_core::model::assembly::AssemblyError>
+impl alea_distributions::modeling::regression::LinearPredictor<u64>
+pub fn alea_distributions::modeling::regression::LinearPredictor<u64>::poisson_log(self) -> core::result::Result<alea_distributions::modeling::regression::ObservationMap<alea_distributions::modeling::regression::PoissonLogRegression>, alea_core::model::assembly::AssemblyError>
+pub struct alea_distributions::modeling::regression::LinkRegressionWorkspace
+pub struct alea_distributions::modeling::regression::NormalRegression
+impl alea_distributions::modeling::regression::NormalRegression
+pub fn alea_distributions::modeling::regression::NormalRegression::data(&self) -> &alea_distributions::modeling::regression::RegressionData<f64>
+pub fn alea_distributions::modeling::regression::NormalRegression::execution_plan(&self) -> &alea_distributions::modeling::regression::RegressionPlan
+pub fn alea_distributions::modeling::regression::NormalRegression::new(beta: &[alea_core::model::assembly::Expr], sigma: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::regression::NormalRegression::with_data(&self, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::regression::NormalRegression::with_execution(self, execution: alea_distributions::modeling::regression::RegressionExecution) -> Self
+impl alea_core::model::assembly::primitives::Primitive for alea_distributions::modeling::regression::NormalRegression
+pub type alea_distributions::modeling::regression::NormalRegression::Workspace = alea_distributions::modeling::regression::NormalRegressionWorkspace
+pub fn alea_distributions::modeling::regression::NormalRegression::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::primitives::BatchRule<Self>>
+pub fn alea_distributions::modeling::regression::NormalRegression::batch_workspace(&self) -> Self::Workspace
+pub fn alea_distributions::modeling::regression::NormalRegression::evaluate(&self, x: &[f64], g: &mut [f64], workspace: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::regression::NormalRegression::inputs(&self) -> &[alea_core::model::assembly::Expr]
+pub fn alea_distributions::modeling::regression::NormalRegression::signature(&self) -> alea_core::model::assembly::primitives::PrimitiveSignature
+pub fn alea_distributions::modeling::regression::NormalRegression::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>
+pub fn alea_distributions::modeling::regression::NormalRegression::workspace(&self) -> Self::Workspace
+pub struct alea_distributions::modeling::regression::NormalRegressionWorkspace
+pub struct alea_distributions::modeling::regression::ObservationMap<P: alea_core::model::assembly::primitives::Primitive>
+impl<P: alea_core::model::assembly::primitives::Primitive> alea_distributions::modeling::regression::ObservationMap<P>
+pub fn alea_distributions::modeling::regression::ObservationMap<P>::primitive(&self) -> &P
+pub fn alea_distributions::modeling::regression::ObservationMap<P>::sum_log_prob(self, builder: &mut alea_core::model::assembly::ModelBuilder) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub struct alea_distributions::modeling::regression::PoissonLogRegression
+impl alea_distributions::modeling::regression::PoissonLogRegression
+pub fn alea_distributions::modeling::regression::PoissonLogRegression::data(&self) -> &alea_distributions::modeling::regression::RegressionData<u64>
+pub fn alea_distributions::modeling::regression::PoissonLogRegression::execution_plan(&self) -> &alea_distributions::modeling::regression::RegressionPlan
+pub fn alea_distributions::modeling::regression::PoissonLogRegression::new(inputs: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::regression::PoissonLogRegression::with_data(&self, data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::regression::PoissonLogRegression::with_execution(self, execution: alea_distributions::modeling::regression::RegressionExecution) -> Self
+impl alea_core::model::assembly::primitives::Primitive for alea_distributions::modeling::regression::PoissonLogRegression
+pub type alea_distributions::modeling::regression::PoissonLogRegression::Workspace = alea_distributions::modeling::regression::LinkRegressionWorkspace
+pub fn alea_distributions::modeling::regression::PoissonLogRegression::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::primitives::BatchRule<Self>>
+pub fn alea_distributions::modeling::regression::PoissonLogRegression::batch_workspace(&self) -> Self::Workspace
+pub fn alea_distributions::modeling::regression::PoissonLogRegression::evaluate(&self, x: &[f64], g: &mut [f64], w: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::regression::PoissonLogRegression::inputs(&self) -> &[alea_core::model::assembly::Expr]
+pub fn alea_distributions::modeling::regression::PoissonLogRegression::signature(&self) -> alea_core::model::assembly::primitives::PrimitiveSignature
+pub fn alea_distributions::modeling::regression::PoissonLogRegression::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>
+pub fn alea_distributions::modeling::regression::PoissonLogRegression::workspace(&self) -> Self::Workspace
 pub struct alea_distributions::modeling::regression::RegressionData<Y>
 impl alea_distributions::modeling::regression::RegressionData<bool>
 pub fn alea_distributions::modeling::regression::RegressionData<bool>::assess_bernoulli(&self, coefficients: &[&str], options: alea_math::exact::cone::ConeSearchOptions) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::RegressionAssessment, alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError>
@@ -390,6 +518,7 @@ impl alea_distributions::modeling::regression::RegressionData<f64>
 pub fn alea_distributions::modeling::regression::RegressionData<f64>::assess_gaussian(&self, coefficients: &[&str], relative_rank_tolerance: f64, relative_residual_tolerance: f64) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::RegressionAssessment, alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError>
 impl alea_distributions::modeling::regression::RegressionData<f64>
 pub fn alea_distributions::modeling::regression::RegressionData<f64>::gaussian_assessment(&self, relative_rank_tolerance: f64, relative_residual_tolerance: f64) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::GaussianAssessment, alea_math::least_squares::LeastSquaresError>
+pub fn alea_distributions::modeling::regression::RegressionData<f64>::gaussian_coefficient_intervals(&self, options: alea_distributions::modeling::regression::diagnostics::GaussianIntervalOptions) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::GaussianCoefficientIntervals, alea_distributions::modeling::regression::diagnostics::GaussianIntervalError>
 impl alea_distributions::modeling::regression::RegressionData<u64>
 pub fn alea_distributions::modeling::regression::RegressionData<u64>::assess_poisson(&self, coefficients: &[&str], options: alea_math::exact::cone::ConeSearchOptions) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::RegressionAssessment, alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError>
 pub fn alea_distributions::modeling::regression::RegressionData<u64>::assess_poisson_with_rank(&self, coefficients: &[&str], options: alea_math::exact::cone::ConeSearchOptions, relative_rank_tolerance: f64) -> core::result::Result<alea_distributions::modeling::regression::diagnostics::RegressionAssessment, alea_distributions::modeling::regression::diagnostics::RegressionAssessmentError>
@@ -404,13 +533,32 @@ pub fn alea_distributions::modeling::regression::RegressionData<Y>::new(columns:
 pub fn alea_distributions::modeling::regression::RegressionData<Y>::observations(&self) -> &[Y]
 pub fn alea_distributions::modeling::regression::RegressionData<Y>::offsets(&self) -> &[f64]
 pub fn alea_distributions::modeling::regression::RegressionData<Y>::rows(&self) -> usize
+pub fn alea_distributions::modeling::regression::RegressionData<Y>::with_observations<Z>(&self, observations: alloc::vec::Vec<Z>) -> core::result::Result<alea_distributions::modeling::regression::RegressionData<Z>, alea_distributions::modeling::regression::RegressionDataError>
 pub fn alea_distributions::modeling::regression::RegressionData<Y>::with_offsets(self, offsets: alloc::vec::Vec<f64>) -> core::result::Result<Self, alea_distributions::modeling::regression::RegressionDataError>
+impl<Y> alea_distributions::modeling::regression::RegressionData<Y>
+pub fn alea_distributions::modeling::regression::RegressionData<Y>::linear_map(self, coefficients: &[alea_core::model::assembly::Expr]) -> core::result::Result<alea_distributions::modeling::regression::LinearPredictor<Y>, alea_core::model::assembly::AssemblyError>
 impl<Y> alea_distributions::modeling::regression::RegressionData<Y>
 pub fn alea_distributions::modeling::regression::RegressionData<Y>::standardize(&self, intercept_column: usize) -> core::result::Result<alea_distributions::modeling::regression::StandardizedRegressionData<Y>, alea_distributions::modeling::regression::RegressionDataError>
 impl<Y: core::clone::Clone> core::clone::Clone for alea_distributions::modeling::regression::RegressionData<Y>
 pub fn alea_distributions::modeling::regression::RegressionData<Y>::clone(&self) -> alea_distributions::modeling::regression::RegressionData<Y>
 impl<Y: core::fmt::Debug> core::fmt::Debug for alea_distributions::modeling::regression::RegressionData<Y>
 pub fn alea_distributions::modeling::regression::RegressionData<Y>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_distributions::modeling::regression::RegressionPlan
+impl alea_distributions::modeling::regression::RegressionPlan
+pub fn alea_distributions::modeling::regression::RegressionPlan::columns(&self) -> usize
+pub fn alea_distributions::modeling::regression::RegressionPlan::execution(&self) -> alea_distributions::modeling::regression::RegressionExecution
+pub fn alea_distributions::modeling::regression::RegressionPlan::is_broadcast(&self) -> bool
+pub fn alea_distributions::modeling::regression::RegressionPlan::is_scalar_for_shape(&self) -> bool
+pub fn alea_distributions::modeling::regression::RegressionPlan::lanes(&self) -> usize
+pub fn alea_distributions::modeling::regression::RegressionPlan::packed_design_bytes(&self) -> usize
+pub fn alea_distributions::modeling::regression::RegressionPlan::rows(&self) -> usize
+pub fn alea_distributions::modeling::regression::RegressionPlan::tile_rows(&self) -> usize
+pub fn alea_distributions::modeling::regression::RegressionPlan::workers(&self) -> usize
+impl core::clone::Clone for alea_distributions::modeling::regression::RegressionPlan
+pub fn alea_distributions::modeling::regression::RegressionPlan::clone(&self) -> alea_distributions::modeling::regression::RegressionPlan
+impl core::fmt::Debug for alea_distributions::modeling::regression::RegressionPlan
+pub fn alea_distributions::modeling::regression::RegressionPlan::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_distributions::modeling::regression::RegressionPlan
 pub struct alea_distributions::modeling::regression::StandardizedRegressionData<Y>
 impl<Y> alea_distributions::modeling::regression::StandardizedRegressionData<Y>
 pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::coefficient_map(&self) -> &alea_distributions::modeling::regression::CoefficientStandardization
@@ -423,11 +571,42 @@ pub fn alea_distributions::modeling::regression::StandardizedRegressionData<Y>::
 pub fn alea_distributions::modeling::regression::bernoulli_logit_regression(builder: &mut alea_core::model::assembly::ModelBuilder, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
 pub fn alea_distributions::modeling::regression::normal_regression(builder: &mut alea_core::model::assembly::ModelBuilder, beta: &[alea_core::model::assembly::Expr], sigma: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
 pub fn alea_distributions::modeling::regression::poisson_log_regression(builder: &mut alea_core::model::assembly::ModelBuilder, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
-pub fn alea_distributions::modeling::bernoulli_logit(builder: &mut alea_core::model::assembly::ModelBuilder, event: bool, logit: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub struct alea_distributions::modeling::NormalFactor
+impl alea_distributions::modeling::NormalFactor
+pub fn alea_distributions::modeling::NormalFactor::new(event: alea_core::model::assembly::Expr, location: alea_core::model::assembly::Expr, scale: alea_core::model::assembly::Expr) -> Self
+impl alea_core::model::assembly::primitives::Primitive for alea_distributions::modeling::NormalFactor
+pub type alea_distributions::modeling::NormalFactor::Workspace = ()
+pub fn alea_distributions::modeling::NormalFactor::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::primitives::BatchRule<Self>>
+pub fn alea_distributions::modeling::NormalFactor::evaluate(&self, x: &[f64], g: &mut [f64], _: &mut ()) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::NormalFactor::inputs(&self) -> &[alea_core::model::assembly::Expr]
+pub fn alea_distributions::modeling::NormalFactor::rust_primal(&self) -> core::option::Option<&'static str>
+pub fn alea_distributions::modeling::NormalFactor::signature(&self) -> alea_core::model::assembly::primitives::PrimitiveSignature
+pub fn alea_distributions::modeling::NormalFactor::workspace(&self)
+impl core::clone::Clone for alea_distributions::modeling::NormalFactor
+pub fn alea_distributions::modeling::NormalFactor::clone(&self) -> alea_distributions::modeling::NormalFactor
+impl core::fmt::Debug for alea_distributions::modeling::NormalFactor
+pub fn alea_distributions::modeling::NormalFactor::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub trait alea_distributions::modeling::ModelBuilderExt
+pub fn alea_distributions::modeling::ModelBuilderExt::bernoulli_logit_likelihood(&mut self, name: &str, event: bool, logit: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::ModelBuilderExt::bernoulli_logit_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::ModelBuilderExt::normal_likelihood(&mut self, name: &str, event: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::ModelBuilderExt::normal_observations(&mut self, name: &str, observations: &[f64], location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::ModelBuilderExt::normal_prior(&mut self, name: &str, event: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::ModelBuilderExt::normal_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::ModelBuilderExt::poisson_log_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+impl alea_distributions::modeling::ModelBuilderExt for alea_core::model::assembly::ModelBuilder
+pub fn alea_core::model::assembly::ModelBuilder::bernoulli_logit_likelihood(&mut self, name: &str, event: bool, logit: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::bernoulli_logit_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::normal_likelihood(&mut self, name: &str, event: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::normal_observations(&mut self, name: &str, observations: &[f64], location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::normal_prior(&mut self, name: &str, event: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::normal_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::poisson_log_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::bernoulli_logit(builder: &mut alea_core::model::assembly::ModelBuilder, event: bool, logit: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
 pub fn alea_distributions::modeling::continuous<D, F>(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_core::model::assembly::Expr, parameters: &[alea_core::model::assembly::Expr], construct: F) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError> where D: alea_core::distribution::ScalarEventScore + alea_core::distribution::ParameterScore + 'static, F: core::ops::function::Fn(&[f64]) -> core::result::Result<D, <D as alea_core::distribution::Distribution>::Error> + core::marker::Send + core::marker::Sync + 'static
 pub fn alea_distributions::modeling::ddm_upper_probability(alpha: f64, beta: f64, drift: f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>
-pub fn alea_distributions::modeling::normal(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_core::model::assembly::Expr, location: alea_core::model::assembly::Expr, scale: alea_core::model::assembly::Expr) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
-pub fn alea_distributions::modeling::normal_observation(builder: &mut alea_core::model::assembly::ModelBuilder, event: f64, location: alea_core::model::assembly::Expr, scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::normal(builder: &mut alea_core::model::assembly::ModelBuilder, event: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::modeling::normal_observation(builder: &mut alea_core::model::assembly::ModelBuilder, event: f64, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
 pub fn alea_distributions::modeling::observation<D, F, O>(builder: &mut alea_core::model::assembly::ModelBuilder, event: O, parameters: &[alea_core::model::assembly::Expr], construct: F) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError> where D: alea_core::distribution::ParameterScore + 'static, O: core::borrow::Borrow<<D as alea_core::distribution::Distribution>::Event> + core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64]) -> core::result::Result<D, <D as alea_core::distribution::Distribution>::Error> + core::marker::Send + core::marker::Sync + 'static
 pub fn alea_distributions::modeling::wiener4(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_distributions::prelude::WienerObservation, parameters: [alea_core::model::assembly::Expr; 4], options: alea_distributions::prelude::WienerOptions) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>
 pub mod alea_distributions::multivariate
@@ -2678,6 +2857,22 @@ pub fn alea_distributions::scalar::Zipf::eq(&self, other: &alea_distributions::s
 impl core::fmt::Debug for alea_distributions::scalar::Zipf
 pub fn alea_distributions::scalar::Zipf::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::StructuralPartialEq for alea_distributions::scalar::Zipf
+pub trait alea_distributions::prelude::ModelBuilderExt
+pub fn alea_distributions::prelude::ModelBuilderExt::bernoulli_logit_likelihood(&mut self, name: &str, event: bool, logit: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::prelude::ModelBuilderExt::bernoulli_logit_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::prelude::ModelBuilderExt::normal_likelihood(&mut self, name: &str, event: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::prelude::ModelBuilderExt::normal_observations(&mut self, name: &str, observations: &[f64], location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::prelude::ModelBuilderExt::normal_prior(&mut self, name: &str, event: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::prelude::ModelBuilderExt::normal_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_distributions::prelude::ModelBuilderExt::poisson_log_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+impl alea_distributions::modeling::ModelBuilderExt for alea_core::model::assembly::ModelBuilder
+pub fn alea_core::model::assembly::ModelBuilder::bernoulli_logit_likelihood(&mut self, name: &str, event: bool, logit: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::bernoulli_logit_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::normal_likelihood(&mut self, name: &str, event: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::normal_observations(&mut self, name: &str, observations: &[f64], location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::normal_prior(&mut self, name: &str, event: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::normal_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::poisson_log_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
 pub mod alea_distributions::scalar
 pub struct alea_distributions::scalar::Bernoulli
 impl alea_distributions::scalar::Bernoulli

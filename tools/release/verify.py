@@ -8,7 +8,7 @@ import re
 import subprocess
 import tarfile
 
-from source import allowed_source_path
+from source import allowed_source_path, check_source_links
 
 
 def verify_archive(path: Path) -> int:
@@ -48,6 +48,8 @@ def verify_archive(path: Path) -> int:
                 raise ValueError(f"source content/mode differs: {name}")
         if set(names) != expected:
             raise ValueError("source manifest coverage differs from archive")
+        check_source_links({e['path']: tar.extractfile('alea/' + e['path']).read()
+                            for e in manifest['files']})
     return len(manifest["files"])
 
 

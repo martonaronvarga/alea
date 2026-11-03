@@ -42,6 +42,9 @@ tools/stan-reference/stantest
 !/docs/installation.md
 !/docs/metric-contract.md
 !/docs/modeling.md
+!/docs/native-model-performance.md
+!/docs/kernel-optimization.md
+!/docs/tensor-ir.md
 !/docs/releases.md
 !/docs/sampling.md
 !/docs/sessions.md

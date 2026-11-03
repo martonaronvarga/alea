@@ -12,6 +12,7 @@ cargo fetch --manifest-path crates/Cargo.toml --locked
 if [[ "$scope" == all ]]; then
   python3 tools/ci/architecture.py
   python3 tools/ci/test_run.py
+  python3 tools/ci/test_miri.py
   python3 tools/ci/maturity.py
   python3 tools/ci/test_maturity.py
   python3 tools/ci/public_api.py --validate
@@ -22,19 +23,36 @@ if [[ "$scope" == all ]]; then
   python3 tools/ci/test_exactness.py
   python3 tools/release/metadata.py
   python3 -m unittest discover -s tools/release -p 'test_*.py'
+  python3 tools/release/links.py
+  python3 -m unittest discover -s tools/native-benchmark/scripts -p 'test_*.py'
+  cargo fmt --manifest-path tools/native-benchmark/Cargo.toml --all --check
+  cargo test --manifest-path tools/native-benchmark/Cargo.toml --locked
+  cargo test --manifest-path crates/Cargo.toml --locked -p alea --features distributions --test model_builder --test model_macro --test tensor_workflow
+  cargo clippy --manifest-path tools/native-benchmark/Cargo.toml --all-targets --locked -- -D warnings
+  cargo test --manifest-path tools/wiener-validation/Cargo.toml --locked
+  cargo test --manifest-path tools/wiener-modeling/Cargo.toml --locked
+  python3 -m unittest discover -s tools/wiener-validation -p 'test_*.py'
   cargo fmt --manifest-path tools/downstream-conformance/Cargo.toml --all --check
   cargo fmt --manifest-path tools/compile-fail/Cargo.toml --all --check
   cargo fetch --manifest-path tools/downstream-conformance/Cargo.toml --locked
   cargo fetch --manifest-path tools/compile-fail/Cargo.toml --locked
   cargo test --manifest-path tools/downstream-conformance/Cargo.toml --locked --offline
+  cargo run --quiet --manifest-path tools/downstream-conformance/Cargo.toml --example gaussian_hierarchy --locked --offline -- complete | python3 tools/downstream-conformance/python/gaussian_hierarchy.py
   cargo test --manifest-path tools/downstream-conformance/Cargo.toml --features tracing --test tracing --locked --offline
   cargo test --manifest-path tools/downstream-conformance/Cargo.toml --features faer --test fit_assessment --locked --offline
+  cargo test --manifest-path tools/downstream-conformance/Cargo.toml --features faer --test gaussian_intervals --locked --offline
+  cargo test --manifest-path tools/downstream-conformance/Cargo.toml --features faer --test gaussian_workflow --locked --offline
+  cargo test --manifest-path tools/downstream-conformance/Cargo.toml --features faer --test glm_workflow --locked --offline
+  cargo test --manifest-path tools/downstream-conformance/Cargo.toml --features faer --test native_verticals --locked --offline
+  cargo run --quiet --manifest-path tools/downstream-conformance/Cargo.toml --features faer --example glm_workflow --locked --offline | python3 tools/downstream-conformance/python/glm_workflow.py
+  cargo run --quiet --manifest-path tools/downstream-conformance/Cargo.toml --features faer --example gaussian_workflow --locked --offline -- all | python3 tools/downstream-conformance/python/gaussian_workflow.py
   python3 -m unittest discover -s tools/downstream-conformance/python
   cargo test --manifest-path crates/Cargo.toml -p alea-runtime --features analysis --test analysis --locked --offline
   cargo test --manifest-path crates/Cargo.toml -p alea-runtime --features tracing,analysis --locked --offline
   cargo clippy --manifest-path crates/Cargo.toml -p alea-runtime --features analysis --all-targets --locked --offline -- -D warnings
   python3 tools/ci/compile_fail.py
   cargo clippy --manifest-path tools/downstream-conformance/Cargo.toml --all-targets --locked --offline -- -D warnings
+  cargo clippy --manifest-path tools/downstream-conformance/Cargo.toml --features faer --all-targets --locked --offline -- -D warnings
   cargo clippy --manifest-path tools/compile-fail/Cargo.toml --lib --locked --offline -- -D warnings
   RUSTDOCFLAGS='-D warnings' cargo doc --manifest-path tools/downstream-conformance/Cargo.toml --locked --offline --no-deps
   RUSTDOCFLAGS='-D warnings' cargo doc --manifest-path tools/compile-fail/Cargo.toml --lib --locked --offline --no-deps

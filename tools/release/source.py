@@ -12,9 +12,12 @@ import gzip
 import hashlib
 import io
 import json
+import posixpath
 from pathlib import Path, PurePosixPath
+import re
 import subprocess
 import tarfile
+from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 FILES = {"README.md", "flake.nix", "flake.lock", ".gitmodules",
@@ -29,8 +32,10 @@ DOCS = {
     "hierarchical-models.md",
     "wiener.md", "wiener-numerics.md", "troubleshooting.md", "releases.md",
     "enzyme-native-models.md", "metric-contract.md",
+    "native-model-performance.md", "kernel-optimization.md", "tensor-ir.md",
 }
 TOOLS = {"ci", "release", "documentation", "downstream-conformance", "compile-fail", "enzyme-conformance"}
+VERIFICATION_TOOLS = {"native-benchmark", "wiener-validation", "wiener-modeling"}
 
 
 def allowed_source_path(relative: PurePosixPath) -> bool:
@@ -50,10 +55,49 @@ def allowed_source_path(relative: PurePosixPath) -> bool:
     if parts[0] == "docs":
         return len(parts) == 2 and parts[1] in DOCS
     if parts[0] == "tools":
+        if parts[1] in VERIFICATION_TOOLS:
+            # Do not admit arbitrary generated outputs or extensionless Stan binaries.
+            tail = parts[2:]
+            return ((len(tail) == 1 and tail[0] in {
+                        "Cargo.toml", "Cargo.lock", "README.md", "REPORT.md", "PINNED.json",
+                        "report.py", "test_report.py"})
+                    or (len(tail) > 1 and tail[0] == "src" and relative.suffix == ".rs")
+                    or (len(tail) == 2 and tail[0] == "scripts" and relative.suffix == ".py")
+                    or (len(tail) == 2 and tail[0] == "stan" and relative.suffix == ".stan")
+                    or str(relative) == "tools/native-benchmark/stan/evaluate.cpp")
         return parts[1] in TOOLS
     if parts[0] == ".github":
         return len(parts) == 3 and parts[1] == "workflows" and parts[2] in {"ci.yml", "release-validation.yml"}
     return parts[0] in {"crates", "nix"}
+
+
+def check_source_links(contents: dict[str, bytes]) -> None:
+    """Check first-party Markdown relative file links against shipped contents.
+
+    This is file-target closure, not a heading-anchor or external-URL checker.
+    Vendored upstream documentation follows its own link conventions.
+    """
+    errors = []
+    for name, content in contents.items():
+        if not name.endswith('.md') or 'vendor' in PurePosixPath(name).parts:
+            continue
+        text = content.decode('utf-8')
+        text = re.sub(r'^\s*(```|~~~)[\s\S]*?^\s*\1[^\n]*$', '', text, flags=re.MULTILINE)
+        text = re.sub(r'`[^`\n]*`', '', text)
+        targets = re.findall(r'!?\[[^\]\n]*\]\(\s*(<[^>]*>|[^\s)]+)', text)
+        targets += re.findall(r'^\s*\[[^\]\n]+\]:\s*(<[^>]*>|\S+)', text, flags=re.MULTILINE)
+        for target in targets:
+            target = target.strip('<>')
+            parsed = urlsplit(target)
+            if parsed.scheme or parsed.netloc or not parsed.path:
+                continue
+            path = posixpath.normpath(posixpath.join(posixpath.dirname(name), unquote(parsed.path)))
+            if path == '.':
+                continue
+            if path not in contents and not any(p.startswith(path.rstrip('/') + '/') for p in contents):
+                errors.append(f'{name}: {target} -> {path}')
+    if errors:
+        raise ValueError('source Markdown links target omitted files:\n' + '\n'.join(errors))
 
 
 def source_files(root: Path) -> list[Path]:
@@ -121,6 +165,7 @@ def source_files(root: Path) -> list[Path]:
 def archive(root: Path, destination: Path) -> str:
     """Write once, with normalized tar metadata and gzip headers."""
     paths = source_files(root)
+    check_source_links({p.relative_to(root).as_posix(): p.read_bytes() for p in paths})
     entries = []
     with destination.open("xb") as output:
         with gzip.GzipFile(fileobj=output, filename="", mode="wb", mtime=0, compresslevel=9) as zipped:

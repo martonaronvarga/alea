@@ -54,3 +54,4 @@ pub use alea::sampling::prelude
 pub use alea::sampling::riemannian
 pub use alea::sampling::rwmh
 pub use alea::sampling::walnuts
+pub macro alea::model!

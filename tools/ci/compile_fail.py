@@ -26,6 +26,9 @@ class Case:
 
 
 CASES = (
+    Case("model_macro_support", "E0308", ("Positive", "Real")),
+    Case("model_macro_event", "E0277", ("ScalarInput", "bool")),
+    Case("model_macro_body", "E0308", ("()", "Parameter")),
     Case("vector_domain_mismatch", "E0308", ("Simplex", "Real")),
     Case("matrix_layout_mismatch", "E0308", ("RowMajor", "ColumnMajor")),
     Case("sample_event_mismatch", "E0277", ("Borrow<f64>", "bool")),

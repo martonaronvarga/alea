@@ -125,7 +125,10 @@ pub fn alea_runtime::analysis::Provenance::eq(&self, other: &alea_runtime::analy
 impl core::fmt::Debug for alea_runtime::analysis::Provenance
 pub fn alea_runtime::analysis::Provenance::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::StructuralPartialEq for alea_runtime::analysis::Provenance
+pub const alea_runtime::analysis::BATCH_SCHEMA_VERSION: u32
+pub const alea_runtime::analysis::FIT_SCHEMA_VERSION: u32
 pub const alea_runtime::analysis::SCHEMA_VERSION: u32
+pub fn alea_runtime::analysis::write_fit<W: std::io::Write, A>(writer: W, fit: &alea_runtime::optimize::NamedFit<A>, provenance: &alea_runtime::analysis::Provenance, encode_assessment: impl core::ops::function::FnOnce(&A) -> core::result::Result<serde_json::value::Value, alea_runtime::analysis::AnalysisError>) -> core::result::Result<(), alea_runtime::analysis::AnalysisError>
 pub mod alea_runtime::chees
 pub enum alea_runtime::chees::CheesWarmupError<E: core::error::Error + 'static>
 pub alea_runtime::chees::CheesWarmupError::Adaptation(alea_mcmc::adapt::chees::CheesConfigError)

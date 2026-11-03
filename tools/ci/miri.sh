@@ -14,9 +14,11 @@ selected() { [[ "$scope" == all || "$scope" == "$1" ]]; }
 if selected storage; then
 cargo miri test "${args[@]}" -p alea-ffi --lib
 cargo miri test "${args[@]}" -p alea-math --lib --test metrics --test inverse_metrics --test interpolation --test low_rank
+MIRIFLAGS="$MIRIFLAGS -Zmiri-deterministic-floats" cargo miri test "${args[@]}" -p alea-math --lib numeric::finite_tests::logistic_primitives_preserve_small_log_probabilities -- --exact --ignored
 fi
 if selected targets; then
 cargo miri test "${args[@]}" -p alea-core --test target --test transforms --test density --test capability --test transport
+MIRIFLAGS="$MIRIFLAGS -Zmiri-deterministic-floats" cargo miri test "${args[@]}" -p alea-core --test transforms rejects_precision_collapse_with_deterministic_transcendentals -- --exact --ignored
 cargo miri test "${args[@]}" -p alea-autodiff --test models
 cargo miri test "${args[@]}" -p alea-distributions --lib latent::tests
 cargo miri test "${args[@]}" -p alea-distributions --test latent
@@ -25,7 +27,7 @@ fi
 # algorithmic contracts. Native CI owns long statistical/calibration tests.
 if selected hmc; then
 cargo miri test "${args[@]}" -p alea-mcmc --test hmc_chain --test hmc_validation --test hmc_stress --test phase_state --test rwmh --test adaptation --test warmup --test warmup_reference --test fisher --test integrators --test integrator_failures
-MIRIFLAGS="$MIRIFLAGS -Zmiri-deterministic-floats" cargo miri test "${args[@]}" -p alea-mcmc --test warmup warmup_freezes_is_deterministic_and_zero_iterations_consume_no_rng -- --ignored
+MIRIFLAGS="$MIRIFLAGS -Zmiri-deterministic-floats" cargo miri test "${args[@]}" -p alea-mcmc --test warmup warmup_freezes_is_deterministic_and_zero_iterations_consume_no_rng -- --exact --ignored
 fi
 if selected nuts; then
 cargo miri test "${args[@]}" -p alea-mcmc --test nuts_contracts

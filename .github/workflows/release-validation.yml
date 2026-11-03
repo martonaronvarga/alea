@@ -95,6 +95,12 @@ jobs:
             tar -xzf target/release-preparation/alea-source.tar.gz -C target/release-preparation
             python3 target/release-preparation/alea/tools/release/source.py target/release-preparation/reproduced.tar.gz
             cmp target/release-preparation/alea-source.tar.gz target/release-preparation/reproduced.tar.gz
+            python3 target/release-preparation/alea/tools/release/links.py target/release-preparation/alea
+            python3 -m unittest discover -s target/release-preparation/alea/tools/native-benchmark/scripts -p "test_*.py"
+            cargo test --manifest-path target/release-preparation/alea/tools/native-benchmark/Cargo.toml --locked
+            cargo test --manifest-path target/release-preparation/alea/tools/wiener-validation/Cargo.toml --locked
+            cargo test --manifest-path target/release-preparation/alea/tools/wiener-modeling/Cargo.toml --locked
+            python3 -m unittest discover -s target/release-preparation/alea/tools/wiener-validation -p "test_*.py"
             cargo fetch --manifest-path crates/Cargo.toml --locked
             python3 tools/release/fresh.py target/release-preparation/alea
             python3 tools/release/packages.py target/release-preparation/packages

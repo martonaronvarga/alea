@@ -141,6 +141,53 @@ pub fn alea_math::fisher::FisherFitError::fmt(&self, f: &mut core::fmt::Formatte
 impl core::fmt::Display for alea_math::fisher::FisherFitError
 pub fn alea_math::fisher::FisherFitError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn alea_math::fisher::fit_low_rank(positions: &[f64], scores: &[f64], scales: &[f64], ridge: f64, threshold: f64, max_rank: usize) -> core::result::Result<alea_math::metric::LowRankDiagonalMetric, alea_math::fisher::FisherFitError>
+pub mod alea_math::information
+pub enum alea_math::information::InformationError
+pub alea_math::information::InformationError::Asymmetric
+pub alea_math::information::InformationError::Asymmetric::column: usize
+pub alea_math::information::InformationError::Asymmetric::row: usize
+pub alea_math::information::InformationError::EigenvalueConvergence
+pub alea_math::information::InformationError::Factor(alea_math::matrix::MatrixError)
+pub alea_math::information::InformationError::IllConditioned
+pub alea_math::information::InformationError::IllConditioned::reciprocal_condition: f64
+pub alea_math::information::InformationError::Invalid
+pub alea_math::information::InformationError::NonFinite
+pub alea_math::information::InformationError::NotPositiveDefinite
+pub alea_math::information::InformationError::Numerical
+impl core::convert::From<alea_math::matrix::MatrixError> for alea_math::information::InformationError
+pub fn alea_math::information::InformationError::from(source: alea_math::matrix::MatrixError) -> Self
+impl core::error::Error for alea_math::information::InformationError
+pub fn alea_math::information::InformationError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl core::fmt::Debug for alea_math::information::InformationError
+pub fn alea_math::information::InformationError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_math::information::InformationError
+pub fn alea_math::information::InformationError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_math::information::InformationMatrix
+impl alea_math::information::InformationMatrix
+pub fn alea_math::information::InformationMatrix::covariance(&self) -> core::result::Result<alloc::vec::Vec<f64>, alea_math::information::InformationError>
+pub fn alea_math::information::InformationMatrix::dimension(&self) -> usize
+pub fn alea_math::information::InformationMatrix::new(matrix: alea_math::matrix::SquareMatrixRef<'_, alea_math::matrix::RowMajor>, options: alea_math::information::InformationOptions) -> core::result::Result<Self, alea_math::information::InformationError>
+pub fn alea_math::information::InformationMatrix::options(&self) -> alea_math::information::InformationOptions
+pub fn alea_math::information::InformationMatrix::project(&self, rows: usize, jacobian: &[f64]) -> core::result::Result<alloc::vec::Vec<f64>, alea_math::information::InformationError>
+pub fn alea_math::information::InformationMatrix::reciprocal_condition(&self) -> f64
+pub fn alea_math::information::InformationMatrix::scale(&self) -> f64
+impl core::clone::Clone for alea_math::information::InformationMatrix
+pub fn alea_math::information::InformationMatrix::clone(&self) -> alea_math::information::InformationMatrix
+impl core::fmt::Debug for alea_math::information::InformationMatrix
+pub fn alea_math::information::InformationMatrix::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_math::information::InformationOptions
+pub alea_math::information::InformationOptions::relative_eigenvalue_cutoff: f64
+pub alea_math::information::InformationOptions::relative_symmetry_tolerance: f64
+impl alea_math::information::InformationOptions
+pub fn alea_math::information::InformationOptions::validate(self) -> core::result::Result<(), alea_math::information::InformationError>
+impl core::clone::Clone for alea_math::information::InformationOptions
+pub fn alea_math::information::InformationOptions::clone(&self) -> alea_math::information::InformationOptions
+impl core::cmp::PartialEq for alea_math::information::InformationOptions
+pub fn alea_math::information::InformationOptions::eq(&self, other: &alea_math::information::InformationOptions) -> bool
+impl core::fmt::Debug for alea_math::information::InformationOptions
+pub fn alea_math::information::InformationOptions::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::information::InformationOptions
+impl core::marker::StructuralPartialEq for alea_math::information::InformationOptions
 pub mod alea_math::interpolation
 pub enum alea_math::interpolation::InterpolationError
 pub alea_math::interpolation::InterpolationError::Knots
@@ -184,15 +231,20 @@ pub fn alea_math::interpolation::UniformGrid::fmt(&self, f: &mut core::fmt::Form
 impl core::marker::Copy for alea_math::interpolation::UniformGrid
 pub mod alea_math::least_squares
 pub enum alea_math::least_squares::LeastSquaresError
+pub alea_math::least_squares::LeastSquaresError::Covariance(alea_math::matrix::MatrixError)
 pub alea_math::least_squares::LeastSquaresError::NonFinite
 pub alea_math::least_squares::LeastSquaresError::Numerical
+pub alea_math::least_squares::LeastSquaresError::RankDeficient
 pub alea_math::least_squares::LeastSquaresError::Shape
 impl core::clone::Clone for alea_math::least_squares::LeastSquaresError
 pub fn alea_math::least_squares::LeastSquaresError::clone(&self) -> alea_math::least_squares::LeastSquaresError
 impl core::cmp::Eq for alea_math::least_squares::LeastSquaresError
 impl core::cmp::PartialEq for alea_math::least_squares::LeastSquaresError
 pub fn alea_math::least_squares::LeastSquaresError::eq(&self, other: &alea_math::least_squares::LeastSquaresError) -> bool
+impl core::convert::From<alea_math::matrix::MatrixError> for alea_math::least_squares::LeastSquaresError
+pub fn alea_math::least_squares::LeastSquaresError::from(source: alea_math::matrix::MatrixError) -> Self
 impl core::error::Error for alea_math::least_squares::LeastSquaresError
+pub fn alea_math::least_squares::LeastSquaresError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
 impl core::fmt::Debug for alea_math::least_squares::LeastSquaresError
 pub fn alea_math::least_squares::LeastSquaresError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::fmt::Display for alea_math::least_squares::LeastSquaresError
@@ -213,6 +265,7 @@ pub fn alea_math::least_squares::LeastSquares::clone(&self) -> alea_math::least_
 impl core::fmt::Debug for alea_math::least_squares::LeastSquares
 pub fn alea_math::least_squares::LeastSquares::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn alea_math::least_squares::solve(rows: usize, columns: usize, design: &[f64], response: &[f64], relative_tolerance: f64) -> core::result::Result<alea_math::least_squares::LeastSquares, alea_math::least_squares::LeastSquaresError>
+pub fn alea_math::least_squares::solve_with_residual_covariance(rows: usize, columns: usize, design: &[f64], response: &[f64], relative_tolerance: f64, divisor: usize) -> core::result::Result<(alea_math::least_squares::LeastSquares, alloc::vec::Vec<f64>), alea_math::least_squares::LeastSquaresError>
 pub mod alea_math::matrix
 pub enum alea_math::matrix::MatrixError
 pub alea_math::matrix::MatrixError::NonFinite
@@ -226,6 +279,10 @@ pub fn alea_math::matrix::MatrixError::clone(&self) -> alea_math::matrix::Matrix
 impl core::cmp::Eq for alea_math::matrix::MatrixError
 impl core::cmp::PartialEq for alea_math::matrix::MatrixError
 pub fn alea_math::matrix::MatrixError::eq(&self, other: &alea_math::matrix::MatrixError) -> bool
+impl core::convert::From<alea_math::matrix::MatrixError> for alea_math::information::InformationError
+pub fn alea_math::information::InformationError::from(source: alea_math::matrix::MatrixError) -> Self
+impl core::convert::From<alea_math::matrix::MatrixError> for alea_math::least_squares::LeastSquaresError
+pub fn alea_math::least_squares::LeastSquaresError::from(source: alea_math::matrix::MatrixError) -> Self
 impl core::error::Error for alea_math::matrix::MatrixError
 impl core::fmt::Debug for alea_math::matrix::MatrixError
 pub fn alea_math::matrix::MatrixError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
