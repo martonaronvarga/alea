@@ -37,6 +37,11 @@ pub enum AutodiffError {
 }
 impl<F: Fn(&[f64], &mut [f64], f64) -> f64> ConstrainedModel for EnzymeModel<F> {
     type Error = AutodiffError;
+    fn is_numerical_error(&self, error: &Self::Error) -> bool {
+        // Checked integration has already admitted finite, correctly shaped inputs.
+        // Direct evaluation and initialization still return the original error.
+        matches!(error, AutodiffError::NonFinite)
+    }
     fn dimension(&self) -> usize {
         self.dimension
     }
@@ -101,6 +106,9 @@ where
     H: Fn(&[f64], &[f64], &mut [f64]),
     D: Fn(&[f64], &mut [f64], &mut [f64]),
 {
+    fn is_numerical_error(&self, error: &Self::Error) -> bool {
+        matches!(error, AutodiffError::NonFinite)
+    }
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         if q.len() != self.dimension || gradient.len() != self.dimension {
             return Err(AutodiffError::Dimension);

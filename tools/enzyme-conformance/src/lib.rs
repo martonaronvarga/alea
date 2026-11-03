@@ -14,7 +14,14 @@ macro_rules! generated {
 }
 generated!(
     polynomial,
+    native_normal_batch,
+    native_logit_batch,
+    native_poisson_batch,
     regression,
+    likelihood_location_scale,
+    uncertainty_base,
+    uncertainty_large,
+    uncertainty_small,
     logistic,
     interval,
     lower,
@@ -31,5 +38,9 @@ generated!(
     correlation3,
     gaussian16,
     selected_likelihood,
-    selected_posterior
+    selected_posterior,
+    tensor_matrix,
+    tensor_control,
+    tensor_empty,
+    tensor_zero_scan
 );

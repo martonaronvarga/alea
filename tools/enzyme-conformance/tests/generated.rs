@@ -6,6 +6,7 @@ use alea::{
 };
 use alea_enzyme_conformance as generated;
 
+#[track_caller]
 fn close(actual: f64, expected: f64, tolerance: f64) {
     assert!(
         (actual - expected).abs() <= tolerance * (1.0 + expected.abs()),
@@ -133,6 +134,9 @@ fn check_model<T: PotentialHessianDerivative>(name: &str, target: T) {
 fn typed_models_and_every_transform_include_one_jacobian_through_third_order() {
     macro_rules! check { ($($name:ident),* $(,)?) => {$(check_model(stringify!($name), generated::$name::target());)*}; }
     check!(
+        native_normal_batch,
+        native_logit_batch,
+        native_poisson_batch,
         regression,
         logistic,
         interval,
@@ -149,6 +153,51 @@ fn typed_models_and_every_transform_include_one_jacobian_through_third_order() {
         covariance3,
         correlation3
     );
+}
+
+#[test]
+fn native_batch_source_matches_tail_and_scale_admission_without_clipping() {
+    fn compare<T: LogDensityGradient>(family: usize, target: T, points: &[Vec<f64>]) {
+        let native = models::native_batch(family).unwrap().into_target().unwrap();
+        for q in points {
+            let mut actual = vec![91.; q.len()];
+            let mut expected = vec![92.; q.len()];
+            let a = target.logp_grad(q, &mut actual);
+            let b = native.logp_grad(q, &mut expected);
+            assert_eq!(a.is_ok(), b.is_ok(), "family {family}, q={q:?}");
+            if let (Ok(a), Ok(b)) = (a, b) {
+                close(a, b, 2e-11);
+                for (a, b) in actual.into_iter().zip(expected) {
+                    close(a, b, 2e-10);
+                }
+            }
+        }
+    }
+    compare(
+        0,
+        generated::native_normal_batch::target(),
+        &[
+            vec![0.3, -0.4, -100.],
+            vec![0., 0., -1000.],
+            vec![0., 0., 1000.],
+        ],
+    );
+    compare(
+        1,
+        generated::native_logit_batch::target(),
+        &[vec![1000., 0.], vec![-1000., 0.], vec![0., 1000.]],
+    );
+    compare(
+        2,
+        generated::native_poisson_batch::target(),
+        &[vec![-1000., 0.], vec![0., 0.], vec![1000., 0.]],
+    );
+}
+
+#[test]
+fn tensor_regions_match_native_scores_and_finite_difference_curvature() {
+    check_model("tensor_matrix", generated::tensor_matrix::target());
+    check_model("tensor_control", generated::tensor_control::target());
 }
 
 #[test]

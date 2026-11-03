@@ -16,6 +16,13 @@ alea = { path = "../../crates/alea", features = ["autodiff", "distributions"] }
 rand = "=0.10.1"
 allocation-counter = "=0.8.1"
 
+[features]
+faer = ["alea/faer"]
+
+[[example]]
+name = "gaussian_uncertainty"
+required-features = ["faer"]
+
 [profile.release]
 lto = "fat"
 

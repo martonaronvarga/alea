@@ -57,6 +57,7 @@ fn typed_lowering_agrees_with_independent_elementary_primals_and_enzyme_where_en
                 event: false,
             },
         ]),
+        downstream::hierarchy_counts(&[(1, 1), (0, 1)]),
     ];
     for (kind, model) in models.into_iter().enumerate() {
         let target = model.into_target().unwrap();

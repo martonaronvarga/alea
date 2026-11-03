@@ -50,4 +50,7 @@ fn main() {
     compare("polynomial", generated::polynomial::target());
     compare("regression", generated::regression::target());
     compare("logistic", generated::logistic::target());
+    compare("tensor_matrix", generated::tensor_matrix::target());
+    compare("tensor_control", generated::tensor_control::target());
+    compare("tensor_zero_scan", generated::tensor_zero_scan::target());
 }
