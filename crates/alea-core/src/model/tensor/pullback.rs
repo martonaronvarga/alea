@@ -6,6 +6,7 @@ use std::fmt::Write;
 pub(crate) struct PullbackSource {
     pub source: String,
     pub workspace: usize,
+    residuals: usize,
 }
 fn add(a: usize, b: usize) -> Result<usize, E> {
     a.checked_add(b)
@@ -17,13 +18,128 @@ fn mul(a: usize, b: usize) -> Result<usize, E> {
         .filter(|&v| v <= isize::MAX as usize / size_of::<f64>())
         .ok_or(E::Shape)
 }
+
+// Which computed primals are actually read by the explicit reverse rules?
+// Forward admission still evaluates every selected operation. Borrowed inputs,
+// immutable bindings and constants remain available without retained copies.
+// Control arguments/predicates are retained because child reverse replay admits
+// the complete selected primal, not just its differentiable operands.
+struct ResidualLayout {
+    offsets: Vec<usize>,
+    slots: usize,
+    copies: Vec<(usize, usize, usize)>,
+}
+fn residual_layout(p: &Plan, active: &[bool], full: &[usize]) -> Result<ResidualLayout, E> {
+    let mut needed = vec![false; p.nodes.len()];
+    let mut owner: Vec<_> = (0..p.nodes.len()).collect();
+    for (i, n) in p.nodes.iter().enumerate() {
+        if let Op::Alias(v) = n.op {
+            owner[i] = owner[v.node];
+        }
+    }
+    let mut mark = |v: Value| {
+        needed[owner[v.node]] = true;
+    };
+    for (i, n) in p.nodes.iter().enumerate() {
+        if !p.active[i] || !active[i] {
+            continue;
+        }
+        match &n.op {
+            Op::Unary(op, v) => match op {
+                UnaryOp::Neg => {}
+                UnaryOp::Exp | UnaryOp::Tanh | UnaryOp::Sqrt => mark(Value {
+                    owner: p.owner,
+                    node: i,
+                }),
+                UnaryOp::Log | UnaryOp::Log1p | UnaryOp::Expm1 | UnaryOp::Sin | UnaryOp::Cos => {
+                    mark(*v)
+                }
+            },
+            Op::Binary(b) => match b.kind {
+                BinaryOp::Add | BinaryOp::Subtract => {}
+                BinaryOp::Multiply => {
+                    if active[b.a.node] {
+                        mark(b.b);
+                    }
+                    if active[b.b.node] {
+                        mark(b.a);
+                    }
+                }
+                BinaryOp::Divide => {
+                    mark(b.b);
+                    if active[b.b.node] {
+                        mark(b.a);
+                    }
+                }
+            },
+            Op::Matmul { a, b, .. } => {
+                if active[a.node] {
+                    mark(*b);
+                }
+                if active[b.node] {
+                    mark(*a);
+                }
+            }
+            Op::Cond(c) => {
+                mark(c.lhs);
+                mark(c.rhs);
+                for &arg in &c.args {
+                    mark(arg);
+                }
+            }
+            Op::Scan(s) if s.steps != 0 => {
+                mark(s.initial);
+                mark(s.xs);
+                for &arg in &s.captures {
+                    mark(arg);
+                }
+            }
+            Op::Input(_)
+            | Op::Data(_)
+            | Op::Constant(_)
+            | Op::Alias(_)
+            | Op::Sum(_)
+            | Op::Gather(_, _)
+            | Op::Scan(_) => {}
+        }
+    }
+    let output = owner[p.output.node];
+    let mut offsets = vec![0; p.nodes.len()];
+    let mut slots = p.nodes[p.output.node].shape.elements;
+    let mut copies = Vec::new();
+    for (i, n) in p.nodes.iter().enumerate() {
+        if !p.active[i]
+            || !needed[i]
+            || i == output
+            || matches!(
+                n.op,
+                Op::Input(_) | Op::Data(_) | Op::Constant(_) | Op::Alias(_)
+            )
+        {
+            continue;
+        }
+        offsets[i] = slots;
+        copies.push((full[i], slots, n.shape.elements));
+        slots = add(slots, n.shape.elements)?;
+    }
+    for (i, &root) in owner.iter().enumerate() {
+        if root != i {
+            offsets[i] = offsets[root];
+        }
+    }
+    Ok(ResidualLayout {
+        offsets,
+        slots,
+        copies,
+    })
+}
 // Primal slots include immutable bindings and constants; their adjoints do not
 // exist. Aliases share their producer's range, exactly as in the semantic plan.
-fn adjoint_layout(p: &Plan, active: &[bool]) -> Result<(Vec<usize>, usize), E> {
+pub(super) fn adjoint_layout(p: &Plan, active: &[bool]) -> Result<(Vec<usize>, usize), E> {
     let mut offsets = vec![0; p.nodes.len()];
     let mut slots = 0;
     for (i, n) in p.nodes.iter().enumerate() {
-        if !p.active[i] || !active[i] {
+        if !p.active[i] || !active[i] || matches!(n.op, Op::Data(_) | Op::Constant(_)) {
             continue;
         }
         if let Op::Alias(v) = n.op {
@@ -34,6 +150,95 @@ fn adjoint_layout(p: &Plan, active: &[bool]) -> Result<(Vec<usize>, usize), E> {
         }
     }
     Ok((offsets, slots))
+}
+
+// Backward live intervals are inclusive: an output seed and its input
+// destinations must coexist during their VJP. Alias classes die at the original
+// producer, not at a reshape. Best-fit free blocks give O((V+E) log V) planning;
+// fragmentation may decline reuse, never exceed the dense reference budget.
+pub(super) fn reused_adjoint_layout(
+    p: &Plan,
+    active: &[bool],
+    dense: usize,
+) -> Result<Option<(Vec<usize>, usize, usize)>, E> {
+    use std::cmp::Reverse;
+    use std::collections::{BTreeMap, BinaryHeap};
+    // Preserve tiled reverse schedules and tiny/control-model construction.
+    if p.execution.is_some() || dense < 1024 * 1024 / size_of::<f64>() {
+        return Ok(None);
+    }
+    let count = p.nodes.len();
+    let mut owner: Vec<_> = (0..count).collect();
+    for (i, n) in p.nodes.iter().enumerate() {
+        if let Op::Alias(v) = n.op {
+            owner[i] = owner[v.node];
+        }
+    }
+    let mut first: Vec<_> = (0..count).collect();
+    for (i, n) in p.nodes.iter().enumerate() {
+        if !p.active[i] || !active[i] {
+            continue;
+        }
+        for input in n.inputs() {
+            if active[input.node] {
+                first[owner[input.node]] = first[owner[input.node]].max(i);
+            }
+        }
+    }
+    if active[p.output.node] {
+        first[owner[p.output.node]] = count;
+    }
+    let mut intervals = Vec::new();
+    let mut scratch = 0;
+    for (i, n) in p.nodes.iter().enumerate() {
+        if p.active[i]
+            && active[i]
+            && owner[i] == i
+            && n.shape.elements != 0
+            && !matches!(n.op, Op::Data(_) | Op::Constant(_))
+        {
+            intervals.push((count - first[i], count - i, i, n.shape.elements));
+            scratch = scratch.max(n.shape.elements);
+        }
+    }
+    intervals.sort_unstable();
+    let mut free: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
+    let mut live = BinaryHeap::new();
+    let mut slots = 0;
+    let mut offsets = vec![0; count];
+    for (birth, death, i, len) in intervals {
+        while live.peek().is_some_and(|Reverse((end, _, _))| *end < birth) {
+            let Reverse((_, base, size)) = live.pop().expect("peeked live interval");
+            free.entry(size).or_default().push(base);
+        }
+        let block = free.range(len..).next().map(|(&size, _)| size);
+        let base = if let Some(size) = block {
+            let entries = free.get_mut(&size).expect("selected free block");
+            let base = entries.pop().expect("nonempty free block");
+            if entries.is_empty() {
+                free.remove(&size);
+            }
+            if size > len {
+                free.entry(size - len).or_default().push(add(base, len)?);
+            }
+            base
+        } else {
+            let base = slots;
+            slots = add(slots, len)?;
+            base
+        };
+        offsets[i] = base;
+        live.push(Reverse((death, base, len)));
+    }
+    if add(slots, scratch)? >= dense {
+        return Ok(None);
+    }
+    for (i, &root) in owner.iter().enumerate() {
+        if root != i {
+            offsets[i] = offsets[root];
+        }
+    }
+    Ok(Some((offsets, slots, scratch)))
 }
 // Balance boundary carries against segment inputs AND materialized body primals.
 // Widen before multiplication: T*C may overflow usize even when the selected
@@ -55,7 +260,7 @@ impl BoundProgram {
                 }
         })
     }
-    fn activity(&self, inputs: &[bool]) -> Vec<bool> {
+    pub(super) fn activity(&self, inputs: &[bool]) -> Vec<bool> {
         let p = &self.plan;
         let mut active = vec![false; p.nodes.len()];
         for (i, n) in p.nodes.iter().enumerate() {
@@ -118,6 +323,11 @@ impl BoundProgram {
             };
         }
         debug_assert_eq!(cursor, p.source_slots);
+        let ResidualLayout {
+            offsets,
+            slots: residuals,
+            copies,
+        } = residual_layout(p, &active, &offsets)?;
         let mut source = self.function_source(&format!("{name}_primal"));
         let mut reverse = String::new();
         let mut extra = 0;
@@ -288,17 +498,19 @@ impl BoundProgram {
                     };
                     let body = s.body.pullback_with_activity(&one, &first)?;
                     let primal = s.body.plan.source_slots;
+                    let mut saved=body.residuals;
                     let mut work = body.workspace - primal;
                     source.push_str(&body.source);
                     if first != steady {
                         let other = s.body.pullback_with_activity(&later, &steady)?;
                         work = work.max(other.workspace - primal);
+                        saved=saved.max(other.residuals);
                         source.push_str(&other.source);
                     }
-                    let interval = replay_interval(s.steps, len, primal);
+                    let interval = replay_interval(s.steps, len, saved);
                     let checkpoints = mul(s.steps.div_ceil(interval), len)?;
                     let states = mul(interval, len)?;
-                    let primals = mul(interval, primal)?;
+                    let primals = mul(interval, saved)?;
                     extra = extra.max(add(
                         add(mul(s.body.dimension(), 2)?, mul(len, 2)?)?,
                         add(work.max(primal), add(checkpoints, add(states, primals)?)?)?,
@@ -312,9 +524,9 @@ impl BoundProgram {
                     writeln!(reverse,"{one}_primal(args,result,child,valid); if !*valid {{return;}} args[..{len}].copy_from_slice(result); }}").unwrap();
                     writeln!(reverse,"seeds.copy_from_slice(&a[{base}..{}]);let mut end={}_usize;while end!=0 {{let start=(end-1)/{interval}*{interval};let at=start/{interval}*{len};args[..{len}].copy_from_slice(&checkpoints[at..at+{len}]);for step in start..end {{ let at=(step-start)*{len}; states[at..at+{len}].copy_from_slice(&args[..{len}]);",base+len,s.steps).unwrap();
                     pack_row(&mut reverse, s, p, &offsets, len);
-                    writeln!(reverse,"let at=(step-start)*{primal};let frame=&mut primals[at..at+{primal}];let(result,work)=frame.split_at_mut({len});{one}_primal(args,result,work,valid);if !*valid{{return;}}args[..{len}].copy_from_slice(result);}} for step in (start..end).rev() {{let at=(step-start)*{len};args[..{len}].copy_from_slice(&states[at..at+{len}]);").unwrap();
+                    writeln!(reverse,"let at=(step-start)*{saved};let frame=&mut child[..{primal}];{{let(result,work)=frame.split_at_mut({len});{one}_primal(args,result,work,valid);if !*valid{{return;}}args[..{len}].copy_from_slice(result);}}let saved=&mut primals[at..at+{saved}];if step==0 {{{one}_pack(frame,saved);}}else{{{later}_pack(frame,saved);}}}} for step in (start..end).rev() {{let at=(step-start)*{len};args[..{len}].copy_from_slice(&states[at..at+{len}]);").unwrap();
                     pack_row(&mut reverse, s, p, &offsets, len);
-                    writeln!(reverse,"let at=(step-start)*{primal};let frame=&primals[at..at+{primal}];if step==0 {{{one}_prepared(args,seeds,result,scores,frame,child,valid);}} else {{{later}_prepared(args,seeds,result,scores,frame,child,valid);}}if !*valid{{return;}}seeds.copy_from_slice(&scores[..{len}]);").unwrap();
+                    writeln!(reverse,"let at=(step-start)*{saved};let frame=&primals[at..at+{saved}];if step==0 {{{one}_prepared(args,seeds,result,scores,frame,child,valid);}} else {{{later}_prepared(args,seeds,result,scores,frame,child,valid);}}if !*valid{{return;}}seeds.copy_from_slice(&scores[..{len}]);").unwrap();
                     if active[s.xs.node] {
                         writeln!(
                             reverse,
@@ -339,7 +551,26 @@ impl BoundProgram {
         }
         let workspace = add(add(p.source_slots, adjoint_slots)?, extra)?;
         let output = self.output_shape().elements;
-        writeln!(source,"#[allow(clippy::too_many_arguments,clippy::needless_range_loop)]\nfn {name}(x:&[f64],seed:&[f64],out:&mut[f64],g:&mut[f64],scratch:&mut[f64],valid:&mut bool) {{g.fill(0.0);let (primal,rest)=scratch.split_at_mut({});{{let (result,work)=primal.split_at_mut({output});{name}_primal(x,result,work,valid);}}if !*valid {{return;}}{name}_prepared(x,seed,out,g,primal,rest,valid);}}\n#[allow(clippy::too_many_arguments,clippy::needless_range_loop)]\nfn {name}_prepared(x:&[f64],seed:&[f64],out:&mut[f64],g:&mut[f64],primal:&[f64],scratch:&mut[f64],valid:&mut bool) {{let _=x;let (a,extra)=scratch.split_at_mut({});a.fill(0.0);g.fill(0.0);if !*valid || seed.iter().any(|s|!s.is_finite()) {{*valid=false;return;}}",p.source_slots,adjoint_slots).unwrap();
+        let mut compact = String::new();
+        let mut in_place = String::new();
+        for &(from, to, len) in &copies {
+            // Full forward slots start after the same output prefix and are
+            // allocated in node order. Filtering preserves to<=from, so these
+            // ascending in-place moves cannot clobber later source ranges.
+            debug_assert!(to <= from);
+            writeln!(
+                compact,
+                "saved[{to}..{}].copy_from_slice(&primal[{from}..{}]);",
+                to + len,
+                from + len
+            )
+            .unwrap();
+            if to != from {
+                writeln!(in_place, "primal.copy_within({from}..{},{to});", from + len).unwrap();
+            }
+        }
+        writeln!(source,"fn {name}_pack(primal:&[f64],saved:&mut[f64]) {{saved[..{output}].copy_from_slice(&primal[..{output}]);{compact}}}").unwrap();
+        writeln!(source,"#[allow(clippy::too_many_arguments,clippy::needless_range_loop)]\nfn {name}(x:&[f64],seed:&[f64],out:&mut[f64],g:&mut[f64],scratch:&mut[f64],valid:&mut bool) {{g.fill(0.0);let (primal,rest)=scratch.split_at_mut({});{{let (result,work)=primal.split_at_mut({output});{name}_primal(x,result,work,valid);}}if !*valid {{return;}}{in_place}{name}_prepared(x,seed,out,g,&primal[..{residuals}],rest,valid);}}\n#[allow(clippy::too_many_arguments,clippy::needless_range_loop)]\nfn {name}_prepared(x:&[f64],seed:&[f64],out:&mut[f64],g:&mut[f64],primal:&[f64],scratch:&mut[f64],valid:&mut bool) {{let _=x;let (a,extra)=scratch.split_at_mut({});a.fill(0.0);g.fill(0.0);if !*valid || seed.iter().any(|s|!s.is_finite()) {{*valid=false;return;}}",p.source_slots,adjoint_slots).unwrap();
         for (i, n) in p.nodes.iter().enumerate() {
             if !p.active[i] {
                 continue;
@@ -370,7 +601,11 @@ impl BoundProgram {
         // mixed pointer/integer state. The pinned compiler fails type analysis
         // when forward-differentiating that state in this rematerialized VJP.
         writeln!(source,"{reverse}\nif g.iter().any(|v|!v.is_finite()) || a.iter().any(|v|!v.is_finite()) {{*valid=false;return;}}out.copy_from_slice(&primal[..{output}]);let _=extra;}}").unwrap();
-        Ok(PullbackSource { source, workspace })
+        Ok(PullbackSource {
+            source,
+            workspace,
+            residuals,
+        })
     }
 }
 
@@ -448,6 +683,36 @@ fn accumulate(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn source_residuals_retain_only_values_read_by_the_pullback() {
+        let n = 17;
+        let mut b = TensorBuilder::new();
+        let x = b.input("x", Shape::new(vec![n]).unwrap()).unwrap();
+        let mut out = x;
+        for _ in 0..32 {
+            out = b.binary(BinaryOp::Add, out, x).unwrap();
+        }
+        let binding = b.compile(out).unwrap().bind(&[]).unwrap();
+        let source = binding.pullback_source("additive").unwrap();
+        // Additions read seeds, not primals. The returned output alone remains.
+        assert_eq!(source.residuals, n);
+        assert!(binding.plan.source_slots > 32 * n);
+
+        let mut b = TensorBuilder::new();
+        let x = b.input("x", Shape::new(vec![n]).unwrap()).unwrap();
+        let exponential = b.unary(UnaryOp::Exp, x).unwrap();
+        let alias = b
+            .reshape(exponential, Shape::new(vec![n]).unwrap())
+            .unwrap();
+        let sine = b.unary(UnaryOp::Sin, alias).unwrap();
+        let out = b.binary(BinaryOp::Add, sine, x).unwrap();
+        let binding = b.compile(out).unwrap().bind(&[]).unwrap();
+        let source = binding.pullback_source("nonlinear").unwrap();
+        // Exp needs its result; Sin needs that same result through the alias.
+        // Neither the Sin result nor an additional alias copy is retained.
+        assert_eq!(source.residuals, 2 * n);
+    }
 
     #[test]
     fn replay_segments_account_for_body_primals_without_integer_overflow() {

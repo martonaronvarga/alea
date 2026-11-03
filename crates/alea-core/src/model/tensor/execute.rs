@@ -59,11 +59,19 @@ pub(super) fn workspace_bytes(p: &Plan) -> Result<usize, E> {
             .ok_or(E::Shape)
     };
     let mut bytes = add(
-        size_of::<TensorWorkspace>(),
-        mul(add(mul(p.slots, 2)?, p.dimension)?, size_of::<f64>())?,
+        add(size_of::<TensorWorkspace>(), size_of::<AdjointPlan>())?,
+        mul(
+            add(
+                add(p.slots, super::pullback::adjoint_layout(p, &p.active)?.1)?,
+                p.dimension,
+            )?,
+            size_of::<f64>(),
+        )?,
     )?;
+    bytes = add(bytes, mul(p.nodes.len(), size_of::<usize>())?)?;
     bytes = add(bytes, mul(p.nodes.len(), size_of::<Option<RegionWork>>())?)?;
     bytes = add(bytes, p.nodes.len())?;
+    bytes = add(bytes, p.nodes.len())?; // Cached reverse schedule eligibility.
     bytes = add(bytes, mul(p.nodes.len(), size_of::<Range<usize>>())?)?;
     bytes = add(bytes, mul(p.data.len(), size_of::<Arc<[f64]>>())?)?;
     for (index, node) in p.nodes.iter().enumerate() {
@@ -105,13 +113,25 @@ pub(super) fn workspace_bytes(p: &Plan) -> Result<usize, E> {
     }
     Ok(bytes)
 }
-/// Execution-local dense values/adjoints and structured-control-flow frames.
+// Keep cold layout and optional reverse metadata outside retained scan-frame
+// headers. A Vec per optional feature taxes every trip even when it is unused.
+#[inline]
+fn adjoint_start<const PLANNED: bool>(p: &Plan, starts: &[usize], i: usize) -> usize {
+    if PLANNED { starts[i] } else { p.nodes[i].start }
+}
+struct AdjointPlan {
+    starts: Box<[usize]>,
+    seed: Option<Box<[f64]>>,
+    groups: Box<[bool]>,
+}
+/// Execution-local values, planned adjoints and structured-control-flow frames.
 /// Reusable for same-plan immutable data bindings. Outputs are scratch on failure;
 /// public evaluation methods stage caller-visible values and gradients.
 pub struct TensorWorkspace {
     owner: u64,
     values: Vec<f64>,
     adjoints: Vec<f64>,
+    adjoint_plan: Option<Box<AdjointPlan>>,
     gradient: Vec<f64>,
     differential: Vec<bool>,
     adjoint_ranges: Vec<Range<usize>>,
@@ -212,6 +232,30 @@ impl BoundProgram {
             regions.push(region);
         }
         let mut adjoint_ranges: Vec<Range<usize>> = Vec::with_capacity(p.nodes.len());
+        let (mut adjoint_starts, mut adjoint_slots) =
+            super::pullback::adjoint_layout(p, &differential)
+                .expect("compiled tensor adjoint layout is addressable");
+        let reuse = super::pullback::reused_adjoint_layout(p, &differential, adjoint_slots)
+            .expect("compiled tensor live intervals are addressable");
+        let reuse_adjoints = reuse.is_some();
+        let mut seed_slots = 0;
+        if let Some((offsets, slots, scratch)) = reuse {
+            adjoint_starts = offsets;
+            adjoint_slots = slots;
+            seed_slots = scratch;
+        }
+        // A scalar scan body can save less storage than the address table costs.
+        // Keep its original dense layout and avoid a per-trip metadata object.
+        let layout_bytes = size_of::<AdjointPlan>() + p.nodes.len() * size_of::<usize>();
+        let planned = p.execution.is_some()
+            || reuse_adjoints
+            || (p.slots - adjoint_slots) * size_of::<f64>() > layout_bytes;
+        if !planned {
+            adjoint_slots = p.slots;
+            for (i, n) in p.nodes.iter().enumerate() {
+                adjoint_starts[i] = n.start;
+            }
+        }
         let mut values = vec![0.; p.slots];
         for (i, node) in p.nodes.iter().enumerate() {
             if !p.active[i] {
@@ -222,21 +266,47 @@ impl BoundProgram {
                 Op::Constant(data) => values[node.range()].copy_from_slice(data),
                 _ => {}
             }
-            if differential[i] && !matches!(node.op, Op::Alias(_)) && node.shape.elements != 0 {
+            if !reuse_adjoints
+                && differential[i]
+                && !matches!(node.op, Op::Alias(_))
+                && node.shape.elements != 0
+            {
                 if let Some(last) = adjoint_ranges
                     .last_mut()
-                    .filter(|last| last.end == node.start)
+                    .filter(|last| last.end == adjoint_starts[i])
                 {
-                    last.end = node.range().end;
+                    last.end = adjoint_starts[i] + node.shape.elements;
                 } else {
-                    adjoint_ranges.push(node.range());
+                    adjoint_ranges.push(adjoint_starts[i]..adjoint_starts[i] + node.shape.elements);
                 }
             }
         }
+        if reuse_adjoints {
+            adjoint_ranges.push(0..adjoint_slots);
+        }
+        let reverse_groups = p.execution.as_ref().map_or_else(Vec::new, |schedule| {
+            schedule
+                .0
+                .iter()
+                .map(|step| match step {
+                    fusion::Step::Fused(group) => {
+                        fusion::reverse_compatible(p, group, &differential)
+                    }
+                    fusion::Step::Nodes(_) => false,
+                })
+                .collect()
+        });
         TensorWorkspace {
             owner: p.owner,
             values,
-            adjoints: vec![0.; p.slots],
+            adjoints: vec![0.; adjoint_slots],
+            adjoint_plan: planned.then(|| {
+                Box::new(AdjointPlan {
+                    starts: adjoint_starts.into_boxed_slice(),
+                    seed: reuse_adjoints.then(|| vec![0.; seed_slots].into_boxed_slice()),
+                    groups: reverse_groups.into_boxed_slice(),
+                })
+            }),
             gradient: vec![0.; self.dimension()],
             differential,
             adjoint_ranges,
@@ -442,30 +512,111 @@ impl BoundProgram {
             w.adjoints[range.clone()].fill(0.);
         }
         w.gradient.fill(0.);
-        w.adjoints[p.nodes[p.output.node].range()].copy_from_slice(seed);
-        for (i, node) in p.nodes.iter().enumerate().rev() {
+        if w.differential[p.output.node] {
+            let start = w
+                .adjoint_plan
+                .as_ref()
+                .map_or(p.nodes[p.output.node].start, |a| a.starts[p.output.node]);
+            w.adjoints[start..start + seed.len()].copy_from_slice(seed);
+        }
+        if let Some(schedule) = &p.execution {
+            for (index, step) in schedule.0.iter().enumerate().rev() {
+                match step {
+                    fusion::Step::Fused(group)
+                        if w.adjoint_plan.as_ref().expect("fused layout").groups[index] =>
+                    {
+                        fusion::reverse(
+                            p,
+                            group,
+                            &w.values,
+                            &mut w.adjoints,
+                            &w.differential,
+                            &w.adjoint_plan.as_ref().expect("fused layout").starts,
+                        );
+                    }
+                    fusion::Step::Fused(group) => {
+                        self.reverse_nodes::<false, true>(w, group.maps.start..group.end())?
+                    }
+                    fusion::Step::Nodes(range) => {
+                        self.reverse_nodes::<false, true>(w, range.clone())?
+                    }
+                }
+            }
+        } else {
+            if let Some(layout) = &w.adjoint_plan {
+                if layout.seed.is_some() {
+                    self.reverse_nodes::<true, true>(w, 0..p.nodes.len())?;
+                } else {
+                    self.reverse_nodes::<false, true>(w, 0..p.nodes.len())?;
+                }
+            } else {
+                self.reverse_nodes::<false, false>(w, 0..p.nodes.len())?;
+            }
+        }
+        if alea_math::numeric::first_nonfinite(&w.gradient).is_some()
+            || w.adjoint_ranges.iter().any(|range| {
+                alea_math::numeric::first_nonfinite(&w.adjoints[range.clone()]).is_some()
+            })
+        {
+            return Err(E::Numerical);
+        }
+        Ok(())
+    }
+    fn reverse_nodes<const REUSE: bool, const PLANNED: bool>(
+        &self,
+        w: &mut TensorWorkspace,
+        range: Range<usize>,
+    ) -> Result<(), E> {
+        let p = &self.plan;
+        let (starts, mut seed_buffer): (&[usize], Option<&mut [f64]>) =
+            match w.adjoint_plan.as_mut() {
+                Some(a) => (&a.starts, a.seed.as_deref_mut()),
+                None => (&[], None),
+            };
+        for i in range.rev() {
+            let node = &p.nodes[i];
             if !p.active[i] || !w.differential[i] {
                 continue;
+            }
+            if REUSE && matches!(node.op, Op::Binary(_) | Op::Matmul { .. }) {
+                let start = adjoint_start::<PLANNED>(p, starts, i);
+                seed_buffer.as_deref_mut().expect("reused adjoint seed")[..node.shape.elements]
+                    .copy_from_slice(&w.adjoints[start..start + node.shape.elements]);
             }
             match &node.op {
                 Op::Input(input) => {
                     let input = &p.inputs[*input];
-                    w.gradient[input.start..input.start + input.shape.elements]
-                        .copy_from_slice(&w.adjoints[node.range()]);
+                    w.gradient[input.start..input.start + input.shape.elements].copy_from_slice(
+                        &w.adjoints[adjoint_start::<PLANNED>(p, starts, i)
+                            ..adjoint_start::<PLANNED>(p, starts, i) + node.shape.elements],
+                    );
                 }
                 Op::Data(_) | Op::Constant(_) | Op::Alias(_) => {}
                 Op::Unary(op, a) => {
-                    let start = p.nodes[a.node].start;
-                    for j in 0..node.shape.elements {
-                        let seed = w.adjoints[node.start + j];
-                        if seed != 0. {
-                            w.adjoints[start + j] += seed
-                                * derivative(*op, w.values[start + j], w.values[node.start + j]);
-                        }
-                    }
+                    kernels::unary_reverse_range(
+                        *op,
+                        &w.values[p.nodes[a.node].range()],
+                        &w.values[node.range()],
+                        &mut w.adjoints,
+                        (
+                            adjoint_start::<PLANNED>(p, starts, a.node),
+                            adjoint_start::<PLANNED>(p, starts, i),
+                        ),
+                    );
                 }
                 Op::Binary(b) => {
-                    let (adjoints, after) = w.adjoints.split_at_mut(node.start);
+                    let (adjoints, after): (&mut [f64], &[f64]) = if REUSE {
+                        (
+                            &mut w.adjoints,
+                            &seed_buffer.as_deref().expect("reused adjoint seed")
+                                [..node.shape.elements],
+                        )
+                    } else {
+                        let (before, after) = w
+                            .adjoints
+                            .split_at_mut(adjoint_start::<PLANNED>(p, starts, i));
+                        (before, &after[..node.shape.elements])
+                    };
                     kernels::reverse(
                         b,
                         kernels::Pullback {
@@ -473,21 +624,28 @@ impl BoundProgram {
                             r: &w.values[p.nodes[b.b.node].range()],
                             seeds: &after[..node.shape.elements],
                             adjoints,
-                            starts: (p.nodes[b.a.node].start, p.nodes[b.b.node].start),
+                            starts: (
+                                adjoint_start::<PLANNED>(p, starts, b.a.node),
+                                adjoint_start::<PLANNED>(p, starts, b.b.node),
+                            ),
                             active: (w.differential[b.a.node], w.differential[b.b.node]),
                         },
                     );
                 }
                 Op::Sum(a) => {
-                    let seed = w.adjoints[node.start];
-                    for j in p.nodes[a.node].range() {
+                    let seed = w.adjoints[adjoint_start::<PLANNED>(p, starts, i)];
+                    for j in adjoint_start::<PLANNED>(p, starts, a.node)
+                        ..adjoint_start::<PLANNED>(p, starts, a.node)
+                            + p.nodes[a.node].shape.elements
+                    {
                         w.adjoints[j] += seed;
                     }
                 }
                 Op::Gather(a, indices) => {
-                    let start = p.nodes[a.node].start;
+                    let start = adjoint_start::<PLANNED>(p, starts, a.node);
                     for (j, &index) in indices.iter().enumerate() {
-                        w.adjoints[start + index] += w.adjoints[node.start + j];
+                        w.adjoints[start + index] +=
+                            w.adjoints[adjoint_start::<PLANNED>(p, starts, i) + j];
                     }
                 }
                 Op::Matmul {
@@ -501,7 +659,18 @@ impl BoundProgram {
                     if node.shape.elements == 0 {
                         continue;
                     }
-                    let (adjoints, seeds) = w.adjoints.split_at_mut(node.start);
+                    let (adjoints, seeds): (&mut [f64], &[f64]) = if REUSE {
+                        (
+                            &mut w.adjoints,
+                            &seed_buffer.as_deref().expect("reused adjoint seed")
+                                [..node.shape.elements],
+                        )
+                    } else {
+                        let (before, after) = w
+                            .adjoints
+                            .split_at_mut(adjoint_start::<PLANNED>(p, starts, i));
+                        (before, &after[..node.shape.elements])
+                    };
                     kernels::matmul_reverse(
                         (*m, *k, *n),
                         kernels::Pullback {
@@ -509,7 +678,10 @@ impl BoundProgram {
                             r: &w.values[p.nodes[b.node].range()],
                             seeds: &seeds[..node.shape.elements],
                             adjoints,
-                            starts: (p.nodes[a.node].start, p.nodes[b.node].start),
+                            starts: (
+                                adjoint_start::<PLANNED>(p, starts, a.node),
+                                adjoint_start::<PLANNED>(p, starts, b.node),
+                            ),
                             active: (w.differential[a.node], w.differential[b.node]),
                         },
                         *kernel,
@@ -527,29 +699,48 @@ impl BoundProgram {
                     };
                     let selected = if choice == 0 { &c.yes } else { &c.no };
                     let region = w.regions[i].as_mut().expect("condition frame");
-                    region.seed.copy_from_slice(&w.adjoints[node.range()]);
+                    region.seed.copy_from_slice(
+                        &w.adjoints[adjoint_start::<PLANNED>(p, starts, i)
+                            ..adjoint_start::<PLANNED>(p, starts, i) + node.shape.elements],
+                    );
                     selected.reverse(&region.seed, &mut region.frames[choice])?;
                     let mut offset = 0;
                     for arg in &c.args {
-                        for index in p.nodes[arg.node].range() {
-                            w.adjoints[index] += region.frames[choice].gradient[offset];
+                        for j in 0..p.nodes[arg.node].shape.elements {
+                            if w.differential[arg.node] {
+                                w.adjoints[adjoint_start::<PLANNED>(p, starts, arg.node) + j] +=
+                                    region.frames[choice].gradient[offset];
+                            }
                             offset += 1;
                         }
                     }
                 }
                 Op::Scan(s) => {
                     let region = w.regions[i].as_mut().expect("scan frames");
-                    region.seed.copy_from_slice(&w.adjoints[node.range()]);
-                    scan_reverse(s, p, &w.values, &mut w.adjoints, region)?;
+                    region.seed.copy_from_slice(
+                        &w.adjoints[adjoint_start::<PLANNED>(p, starts, i)
+                            ..adjoint_start::<PLANNED>(p, starts, i) + node.shape.elements],
+                    );
+                    scan_reverse(
+                        s,
+                        p,
+                        &w.values,
+                        &mut w.adjoints,
+                        region,
+                        (starts, &w.differential),
+                    )?;
                 }
             }
-        }
-        if alea_math::numeric::first_nonfinite(&w.gradient).is_some()
-            || w.adjoint_ranges.iter().any(|range| {
-                alea_math::numeric::first_nonfinite(&w.adjoints[range.clone()]).is_some()
-            })
-        {
-            return Err(E::Numerical);
+            if REUSE && !matches!(node.op, Op::Alias(_)) {
+                let start = adjoint_start::<PLANNED>(p, starts, i);
+                let seed = &mut w.adjoints[start..start + node.shape.elements];
+                // Admit every historical seed before recycling: clearing a dead
+                // nonfinite intermediate must never turn failure into success.
+                if alea_math::numeric::first_nonfinite(seed).is_some() {
+                    return Err(E::Numerical);
+                }
+                seed.fill(0.);
+            }
         }
         Ok(())
     }
@@ -621,11 +812,12 @@ fn scan_reverse(
     parent: &[f64],
     adjoints: &mut [f64],
     region: &mut RegionWork,
+    layout: (&[usize], &[bool]),
 ) -> Result<(), E> {
     if s.body.plan.execution.is_none() {
-        scan_reverse_with::<false>(s, p, parent, adjoints, region)
+        scan_reverse_with::<false>(s, p, parent, adjoints, region, layout)
     } else {
-        scan_reverse_with::<true>(s, p, parent, adjoints, region)
+        scan_reverse_with::<true>(s, p, parent, adjoints, region, layout)
     }
 }
 #[inline(never)]
@@ -635,6 +827,7 @@ fn scan_reverse_with<const FUSED: bool>(
     parent: &[f64],
     adjoints: &mut [f64],
     region: &mut RegionWork,
+    layout: (&[usize], &[bool]),
 ) -> Result<(), E> {
     if let Some(checkpoint) = region.checkpoint.as_ref() {
         let interval = checkpoint.interval;
@@ -651,17 +844,35 @@ fn scan_reverse_with<const FUSED: bool>(
                 scan_step::<FUSED>(s, p, parent, region, step)?;
             }
             for step in (start..end).rev() {
-                reverse_scan_step(s, p, adjoints, region, step, scan_frame(interval, step))?;
+                reverse_scan_step(
+                    s,
+                    p,
+                    adjoints,
+                    region,
+                    step,
+                    scan_frame(interval, step),
+                    layout,
+                )?;
             }
             end = start;
         }
     } else {
         for step in (0..s.steps).rev() {
-            reverse_scan_step(s, p, adjoints, region, step, step)?;
+            reverse_scan_step(s, p, adjoints, region, step, step, layout)?;
         }
     }
-    for (index, &seed) in p.nodes[s.initial.node].range().zip(&region.seed) {
-        adjoints[index] += seed;
+    if layout.1[s.initial.node] {
+        let base = layout
+            .0
+            .get(s.initial.node)
+            .copied()
+            .unwrap_or(p.nodes[s.initial.node].start);
+        for (g, &seed) in adjoints[base..base + region.seed.len()]
+            .iter_mut()
+            .zip(&region.seed)
+        {
+            *g += seed;
+        }
     }
     Ok(())
 }
@@ -674,19 +885,34 @@ fn reverse_scan_step(
     region: &mut RegionWork,
     step: usize,
     index: usize,
+    layout: (&[usize], &[bool]),
 ) -> Result<(), E> {
     let carry = region.seed.len();
     let frame = &mut region.frames[index];
     s.body.reverse(&region.seed, frame)?;
     region.seed.copy_from_slice(&frame.gradient[..carry]);
-    let start = p.nodes[s.xs.node].start + step * s.row;
-    for j in 0..s.row {
-        adjoints[start + j] += frame.gradient[carry + j];
+    if layout.1[s.xs.node] {
+        let start = layout
+            .0
+            .get(s.xs.node)
+            .copied()
+            .unwrap_or(p.nodes[s.xs.node].start)
+            + step * s.row;
+        for j in 0..s.row {
+            adjoints[start + j] += frame.gradient[carry + j];
+        }
     }
     let mut offset = carry + s.row;
     for arg in &s.captures {
-        for index in p.nodes[arg.node].range() {
-            adjoints[index] += frame.gradient[offset];
+        for j in 0..p.nodes[arg.node].shape.elements {
+            if layout.1[arg.node] {
+                adjoints[layout
+                    .0
+                    .get(arg.node)
+                    .copied()
+                    .unwrap_or(p.nodes[arg.node].start)
+                    + j] += frame.gradient[offset];
+            }
             offset += 1;
         }
     }
@@ -763,7 +989,7 @@ pub(super) fn unary(op: UnaryOp, x: f64) -> f64 {
         UnaryOp::Sqrt => x.sqrt(),
     }
 }
-fn derivative(op: UnaryOp, x: f64, y: f64) -> f64 {
+pub(super) fn derivative(op: UnaryOp, x: f64, y: f64) -> f64 {
     match op {
         UnaryOp::Neg => -1.,
         UnaryOp::Exp => y,
@@ -774,5 +1000,164 @@ fn derivative(op: UnaryOp, x: f64, y: f64) -> f64 {
         UnaryOp::Sin => x.cos(),
         UnaryOp::Cos => -x.sin(),
         UnaryOp::Sqrt => 0.5 / y,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scalar_regions_decline_layouts_larger_than_the_storage_they_save() {
+        for len in [1, 10_000] {
+            let mut b = TensorBuilder::new();
+            let shape = Shape::new(vec![len]).unwrap();
+            let x = b.input("x", shape.clone()).unwrap();
+            let data = b.constant(shape, vec![0.5; len]).unwrap();
+            let out = b.binary(BinaryOp::Add, x, data).unwrap();
+            let bound = b.compile(out).unwrap().bind(&[]).unwrap();
+            let mut workspace = bound.workspace();
+            assert_eq!(workspace.adjoint_plan.is_some(), len > 1);
+            let (mut out, mut gradient) = (vec![0.; len], vec![0.; len]);
+            bound
+                .value_and_vjp(
+                    &vec![0.5; len],
+                    &vec![1.; len],
+                    &mut out,
+                    &mut gradient,
+                    &mut workspace,
+                )
+                .unwrap();
+            assert!(out.iter().all(|&x| x == 1.));
+            assert!(gradient.iter().all(|&x| x == 1.));
+        }
+    }
+
+    #[test]
+    fn lexical_matrix_policy_resolves_once_without_changing_existing_nodes() {
+        for kernel in [
+            MatrixKernel::Compensated,
+            #[cfg(any(feature = "faer", feature = "openblas"))]
+            MatrixKernel::Auto,
+            #[cfg(feature = "faer")]
+            MatrixKernel::Faer,
+            #[cfg(feature = "openblas")]
+            MatrixKernel::Blas,
+        ] {
+            let mut b = TensorBuilder::new();
+            let x = b.input("x", Shape::new(vec![2, 2]).unwrap()).unwrap();
+            let old = b.matmul(x, x).unwrap();
+            let mut b = b.with_matrix_kernel(kernel);
+            let inherited = b.matmul(x, x).unwrap();
+            let explicit = b
+                .matmul_with_kernel(x, x, MatrixKernel::Compensated)
+                .unwrap();
+            for (v, expected) in [
+                (old, MatrixKernel::Compensated),
+                (inherited, kernel.resolved()),
+                (explicit, MatrixKernel::Compensated),
+            ] {
+                let Op::Matmul { kernel, .. } = b.nodes[v.node].op else {
+                    panic!("matrix node")
+                };
+                assert_eq!(kernel, expected);
+            }
+        }
+    }
+
+    #[test]
+    fn backward_live_intervals_reuse_alias_classes_without_changing_scores_or_errors() {
+        let n = 8193;
+        let mut b = TensorBuilder::new();
+        let x = b.input("x", Shape::new(vec![n, 1]).unwrap()).unwrap();
+        let scale = b
+            .constant(Shape::new(vec![1, 1]).unwrap(), vec![0.5])
+            .unwrap();
+        let projected = b.matmul(x, scale).unwrap();
+        let projected = b.reshape(projected, Shape::new(vec![n]).unwrap()).unwrap();
+        let gathered = b
+            .gather(
+                projected,
+                Shape::new(vec![n]).unwrap(),
+                (0..n).map(|i| i / 2).collect(),
+            )
+            .unwrap();
+        let squared = b.binary(BinaryOp::Multiply, gathered, gathered).unwrap();
+        let mut value = b.unary(UnaryOp::Sqrt, squared).unwrap();
+        for _ in 0..64 {
+            value = b.unary(UnaryOp::Tanh, value).unwrap();
+            value = b.reshape(value, Shape::new(vec![n]).unwrap()).unwrap();
+        }
+        let program = b.compile(value).unwrap().bind(&[]).unwrap();
+        assert!(program.plan.execution.is_none());
+        let mut reused = program.workspace();
+        assert!(reused.adjoint_plan.as_ref().unwrap().seed.is_some());
+        let (starts, slots) =
+            super::super::pullback::adjoint_layout(&program.plan, &reused.differential).unwrap();
+        assert!(
+            reused.adjoints.len()
+                + reused
+                    .adjoint_plan
+                    .as_ref()
+                    .unwrap()
+                    .seed
+                    .as_ref()
+                    .unwrap()
+                    .len()
+                < slots / 8
+        );
+        let mut dense = program.workspace();
+        dense.adjoint_plan.as_mut().unwrap().seed = None;
+        dense.adjoint_plan.as_mut().unwrap().starts = starts.into_boxed_slice();
+        dense.adjoints = vec![0.; slots];
+        dense.adjoint_ranges.clear();
+        dense.adjoint_ranges.push(0..slots);
+        let x: Vec<_> = (0..n).map(|i| 0.5 + (i % 29) as f64 / 17.).collect();
+        let seed: Vec<_> = (0..n).map(|i| if i % 7 == 0 { 0. } else { 0.3 }).collect();
+        let (mut out, mut expected, mut score, mut reference) =
+            (vec![0.; n], vec![0.; n], vec![0.; n], vec![0.; n]);
+        program
+            .value_and_vjp(&x, &seed, &mut out, &mut score, &mut reused)
+            .unwrap();
+        program
+            .value_and_vjp(&x, &seed, &mut expected, &mut reference, &mut dense)
+            .unwrap();
+        assert!(
+            out.iter()
+                .zip(expected)
+                .all(|(a, b)| a.to_bits() == b.to_bits())
+        );
+        assert!(
+            score
+                .iter()
+                .zip(reference)
+                .all(|(a, b)| a.to_bits() == b.to_bits())
+        );
+        assert_eq!(
+            allocation_counter::measure(|| {
+                program
+                    .value_and_vjp(&x, &seed, &mut out, &mut score, &mut reused)
+                    .unwrap();
+            })
+            .count_total,
+            0
+        );
+        out.fill(77.);
+        score.fill(88.);
+        assert!(
+            program
+                .value_and_vjp(
+                    &vec![0.; n],
+                    &vec![1.; n],
+                    &mut out,
+                    &mut score,
+                    &mut reused
+                )
+                .is_err()
+        );
+        assert!(out.iter().all(|v| *v == 77.) && score.iter().all(|v| *v == 88.));
+        program
+            .value_and_vjp(&x, &seed, &mut out, &mut score, &mut reused)
+            .unwrap();
     }
 }

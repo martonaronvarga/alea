@@ -1,6 +1,6 @@
 //! Block dispatch and contiguous pullbacks. The default preserves scalar order
 //! and repeated-operand writes; explicit accelerated policies allow reassociation.
-use super::{Binary, BinaryOp, Map, MatrixKernel};
+use super::{Binary, BinaryOp, Map, MatrixKernel, UnaryOp, execute};
 use alea_math::gemm::try_gemm;
 use alea_math::numeric::CompensatedSum;
 
@@ -54,7 +54,10 @@ pub(super) fn matmul_reverse(
     } = work;
     // Preserve skipped derivatives and original interleaving for aliased inputs.
     // Each GEMM writes only its active destination, including existing adjoints.
-    if kernel != MatrixKernel::Compensated && lhs != rhs && seeds.iter().all(|s| *s != 0.) {
+    if kernel != MatrixKernel::Compensated
+        && (!da || !dr || lhs != rhs)
+        && seeds.iter().all(|s| *s != 0.)
+    {
         let left_done = !da
             || try_gemm(
                 kernel,
@@ -94,7 +97,7 @@ pub(super) fn matmul_reverse(
         );
         return;
     }
-    if n == 1 && k != 0 && lhs != rhs {
+    if n == 1 && k != 0 && (!da || !dr || lhs != rhs) {
         for (row, (left, &seed)) in a.chunks_exact(k).zip(seeds).enumerate() {
             if seed == 0. {
                 continue;
@@ -178,6 +181,39 @@ pub(super) struct Pullback<'a> {
     pub starts: (usize, usize),
     pub active: (bool, bool),
 }
+// Distinct inclusive live ranges make alias freedom explicit to the compiler.
+// Admission/seed skipping and derivative arithmetic remain shared with the
+// scalar executor; slice extents are checked once rather than per coordinate.
+pub(super) fn unary_reverse(op: UnaryOp, x: &[f64], y: &[f64], seeds: &[f64], scores: &mut [f64]) {
+    for (((g, &seed), &x), &y) in scores.iter_mut().zip(seeds).zip(x).zip(y) {
+        if seed != 0. {
+            *g += seed * execute::derivative(op, x, y);
+        }
+    }
+}
+
+pub(super) fn unary_reverse_range(
+    op: UnaryOp,
+    x: &[f64],
+    y: &[f64],
+    adjoints: &mut [f64],
+    starts: (usize, usize),
+) {
+    let (input, output) = starts;
+    let n = x.len();
+    let (seeds, scores): (&[f64], &mut [f64]) = if input < output {
+        let (before, after) = adjoints.split_at_mut(output);
+        (&after[..n], &mut before[input..input + n])
+    } else {
+        let (before, after) = adjoints.split_at_mut(input);
+        (&before[output..output + n], &mut after[..n])
+    };
+    unary_reverse(op, x, y, seeds, scores);
+}
+
+// Keep operation/map specialization at both interpreter and tiled call sites.
+// Outlining this shared wrapper adds argument traffic to every scalar scan trip.
+#[inline(always)]
 pub(super) fn reverse(b: &Binary, work: Pullback<'_>) {
     match b.kind {
         BinaryOp::Add => reverse_with(b, work, |_, _| (1., 1.)),
@@ -186,6 +222,65 @@ pub(super) fn reverse(b: &Binary, work: Pullback<'_>) {
         BinaryOp::Divide => reverse_with(b, work, |a, r| (1. / r, -(a / r) / r)),
     }
 }
+// Same derivative expressions and repeated-operand addition order as reverse.
+// Offsets apply to the semantic index maps, not to scalar/broadcast primals.
+pub(super) fn reverse_range(b: &Binary, work: Pullback<'_>, start: usize) {
+    let end = start + work.seeds.len();
+    // Reuse the existing specialized vector loops: matching maps and the
+    // derivative once per element loses the benefit of tiled execution.
+    if matches!(
+        (&b.left, &b.right),
+        (Map::Identity, Map::Identity)
+            | (Map::Identity, Map::Scalar)
+            | (Map::Scalar, Map::Identity)
+    ) {
+        let left = matches!(b.left, Map::Identity);
+        let right = matches!(b.right, Map::Identity);
+        reverse(
+            b,
+            Pullback {
+                a: if left { &work.a[start..end] } else { work.a },
+                r: if right { &work.r[start..end] } else { work.r },
+                seeds: work.seeds,
+                adjoints: work.adjoints,
+                starts: (
+                    work.starts.0 + if left { start } else { 0 },
+                    work.starts.1 + if right { start } else { 0 },
+                ),
+                active: work.active,
+            },
+        );
+        return;
+    }
+    let Pullback {
+        a,
+        r,
+        seeds,
+        adjoints,
+        starts: (lhs, rhs),
+        active: (da, dr),
+    } = work;
+    for (j, &seed) in seeds.iter().enumerate() {
+        if seed == 0. {
+            continue;
+        }
+        let l = b.left.at(start + j);
+        let index = b.right.at(start + j);
+        let (left, right) = match b.kind {
+            BinaryOp::Add => (1., 1.),
+            BinaryOp::Subtract => (1., -1.),
+            BinaryOp::Multiply => (r[index], a[l]),
+            BinaryOp::Divide => (1. / r[index], -(a[l] / r[index]) / r[index]),
+        };
+        if da {
+            adjoints[lhs + l] += seed * left;
+        }
+        if dr {
+            adjoints[rhs + index] += seed * right;
+        }
+    }
+}
+#[inline(always)]
 fn reverse_with(b: &Binary, work: Pullback<'_>, f: impl Fn(f64, f64) -> (f64, f64)) {
     let Pullback {
         a,

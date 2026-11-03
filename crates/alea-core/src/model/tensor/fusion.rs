@@ -173,9 +173,152 @@ fn mapped(
     }
 }
 
+// Reverse tiling is legal only when active adjoint writes are independent
+// across elements. Inactive scalar/broadcast operands may still supply primals.
+// Never tile shared scalar or gather reductions: their addition order matters.
+pub(super) fn reverse_compatible(p: &Plan, group: &Group, active: &[bool]) -> bool {
+    group.maps.clone().all(|i| match &p.nodes[i].op {
+        Op::Unary(_, _) => true,
+        Op::Binary(b) => {
+            (!active[b.a.node] || identity(&b.left)) && (!active[b.b.node] || identity(&b.right))
+        }
+        _ => false,
+    })
+}
+
+pub(super) fn reverse(
+    p: &Plan,
+    group: &Group,
+    values: &[f64],
+    adjoints: &mut [f64],
+    active: &[bool],
+    starts: &[usize],
+) {
+    const TILE: usize = 256;
+    for start in (0..group.elements).step_by(TILE) {
+        let end = (start + TILE).min(group.elements);
+        if let Some(i) = group.reduction.filter(|&i| active[i]) {
+            let Op::Sum(a) = p.nodes[i].op else {
+                unreachable!("compiled reduction")
+            };
+            let seed = adjoints[starts[i]];
+            for g in &mut adjoints[starts[a.node] + start..starts[a.node] + end] {
+                *g += seed;
+            }
+        }
+        for i in group.maps.clone().rev() {
+            if !active[i] {
+                continue;
+            }
+            let node = &p.nodes[i];
+            match &node.op {
+                Op::Unary(op, a) => {
+                    kernels::unary_reverse_range(
+                        *op,
+                        &values[p.nodes[a.node].start + start..p.nodes[a.node].start + end],
+                        &values[node.start + start..node.start + end],
+                        adjoints,
+                        (starts[a.node] + start, starts[i] + start),
+                    );
+                }
+                Op::Binary(b) => {
+                    let (before, after) = adjoints.split_at_mut(starts[i]);
+                    kernels::reverse_range(
+                        b,
+                        kernels::Pullback {
+                            a: &values[p.nodes[b.a.node].range()],
+                            r: &values[p.nodes[b.b.node].range()],
+                            seeds: &after[start..end],
+                            adjoints: before,
+                            starts: (starts[b.a.node], starts[b.b.node]),
+                            active: (active[b.a.node], active[b.b.node]),
+                        },
+                        start,
+                    );
+                }
+                _ => unreachable!("compiled pointwise group"),
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn reverse_tiles_preserve_shared_alias_contributions_and_inactive_broadcasts() {
+        for scalar_parameter in [false, true] {
+            let n = 8193;
+            let mut b = TensorBuilder::new();
+            let x = b.input("x", Shape::new(vec![n]).unwrap()).unwrap();
+            let scale = if scalar_parameter {
+                b.input("scale", Shape::scalar()).unwrap()
+            } else {
+                b.constant(Shape::scalar(), vec![1.25]).unwrap()
+            };
+            let a = b.unary(UnaryOp::Tanh, x).unwrap();
+            let square = b.binary(BinaryOp::Multiply, a, a).unwrap();
+            let shifted = b.binary(BinaryOp::Add, square, a).unwrap();
+            let product = b.binary(BinaryOp::Multiply, shifted, scale).unwrap();
+            let result = b.sum(product).unwrap();
+            let mut program = b.compile(result).unwrap();
+            let fused = program.bind(&[]).unwrap();
+            let mut w = fused.workspace();
+            let schedule = &program.plan.execution.as_ref().unwrap().0;
+            let group = schedule
+                .iter()
+                .find_map(|s| {
+                    if let Step::Fused(g) = s {
+                        Some(g)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap();
+            assert_eq!(
+                reverse_compatible(
+                    &program.plan,
+                    group,
+                    &fused.activity(&vec![true; program.plan.inputs.len()])
+                ),
+                !scalar_parameter
+            );
+            let mut x: Vec<_> = (0..fused.dimension())
+                .map(|i| ((i % 31) as f64 / 17.).sin())
+                .collect();
+            if scalar_parameter {
+                *x.last_mut().unwrap() = 1.25;
+            }
+            let mut out = [0.];
+            let mut g = vec![0.; x.len()];
+            fused
+                .value_and_vjp(&x, &[0.7], &mut out, &mut g, &mut w)
+                .unwrap();
+            assert_eq!(
+                allocation_counter::measure(|| {
+                    fused
+                        .value_and_vjp(&x, &[0.7], &mut out, &mut g, &mut w)
+                        .unwrap();
+                })
+                .count_total,
+                0
+            );
+            drop(fused);
+            Arc::get_mut(&mut program.plan).unwrap().execution = None;
+            let reference = program.bind(&[]).unwrap();
+            let mut expected = [0.];
+            let mut scores = vec![0.; x.len()];
+            reference
+                .value_and_vjp(&x, &[0.7], &mut expected, &mut scores, &mut w)
+                .unwrap();
+            assert_eq!(out.map(f64::to_bits), expected.map(f64::to_bits));
+            assert!(
+                g.iter()
+                    .zip(scores)
+                    .all(|(g, s)| g.to_bits() == s.to_bits())
+            );
+        }
+    }
     #[test]
     fn fused_dags_match_unfused_values_every_score_and_error_admission() {
         for rows in [1, 2, 7, 257, 1025, 4097] {

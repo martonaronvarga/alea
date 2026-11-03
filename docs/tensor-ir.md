@@ -1191,3 +1191,178 @@ body activity and source-compiler tape ownership can outweigh removed tensor
 passes. Preserve arithmetic and failure admission, measure controls at every
 candidate, and report remaining losses rather than call a partial speedup
 general engine parity.
+
+## Backward storage and source residual selection
+
+The native workspace can use a distinct adjoint layout: immutable and inactive
+primal arrays have no adjoint allocation, and reshape aliases share their
+producer's adjoints. If no fused/reused plan is needed and the saved storage does
+not exceed the layout metadata, it retains the original dense adjoints and a
+separately specialized dense reverse path. In particular, tiny scalar scan bodies
+do not allocate an address plan merely to save one or two doubles. Optional
+metadata stays outside hot retained-frame headers. Dense primal storage and
+complete forward admission remain; workspace byte budgets conservatively cover
+either selected representation.
+For unfused regions with at least 1 MiB of active adjoints, the planner computes
+inclusive backward live intervals over alias classes and uses a best-fit arena.
+An output seed and its input destinations must coexist during its VJP. Reused
+storage is cleared only after admitting the retiring seed; binary and matrix
+pullbacks use a preallocated seed buffer when needed. The candidate is declined
+unless arena plus seed scratch is smaller than compact non-reused storage.
+This is bounded adjoint reuse, not global primal-buffer reuse or an optimal
+allocation algorithm. Planning uses ordered free blocks and a lifetime heap,
+with O((V+E) log V) scheduling; fragmentation can decline reuse.
+
+Existing dependency-safe pointwise groups can also run tiled reverse operations.
+Only active identity-indexed edges qualify; active broadcast/gather reductions
+retain the original reverse traversal. Eligibility is cached with workspace
+activity, not rediscovered per element. Reverse-node and operand order within
+each coordinate, zero-seed skipping, all intermediate finite checks and staged
+caller outputs remain. All primal arrays are still materialized. No floating
+reassociation or callback interpretation is introduced by this pass.
+
+The explicit first-order source pullback separately selects its saved residuals
+from the values its VJP rules actually read. Inputs and immutable bindings remain
+borrowed, aliases share their producer, and control predicates/arguments remain
+available for complete selected-child admission. Every forward operation still
+runs and is validated. Root scratch is compacted in place after admission;
+checkpointed scans pack only selected residuals into each segment frame, using
+one shared full-primal replay frame. First-trip and steady-state activity can
+require different residual layouts. This does not reduce the four whole-body
+passes per gradient trip, establish optimal checkpointing, or qualify higher
+derivatives through the explicit reverse program. The original tested compiler
+reverse remains the HVP/third-order route.
+
+For matrix products, `TensorBuilder::with_matrix_kernel` sets the policy for
+subsequent products in that lexical builder. Existing nodes and child regions
+retain their own policies. Optional `MatrixKernel::Auto` resolves once to an
+available provider, preferring sequential Faer when both providers are enabled.
+It is **availability dispatch**, not a fitted shape/cost model. Opting in permits
+provider reassociation; default construction remains compensated, source export
+remains portable compensated code, and BLAS threads/provider scratch remain
+host-owned. Feature availability alone never changes default arithmetic.
+
+### Remote qualification of the adjoint planner
+
+This increment compares production baseline `5b29e2f` with the saved final
+candidate, using the identical updated `kernel_audit.rs` harness in both builds.
+The six new vector/lifetime cases are a harness-only baseline overlay; all
+seventeen prior tensor controls remain. Seven alternating pairs per shape yielded
+322 successful jobs and 161 exact-checksum-compatible pairs, with no failed or
+unstarted jobs. Complete-coordinate, finite-difference, alias and error-recovery
+tests remain separate from checksum-based timing admission.
+
+Measurements ran on **Dusk**, logical CPU 0, Intel i7-7500U, Rust 1.95.0/LLVM
+22.1.2, generic release/fat LTO/one codegen unit and single-thread environment.
+Both AC supplies reported online; the battery reported not charging. The host
+used its existing powersave governor and shared background services, with initial
+load averages about 1.83/1.49/1.61. Clocks, SMT and services were not isolated or
+changed. No own builds, tests, profiles or archive jobs overlapped on Dusk.
+Local correctness builds were separate. Laptop exploratory timings are retained
+but **excluded** from these claims because variable AC/battery policy invalidates
+pooling them with server measurements. All runners now share descriptive host,
+affinity, governor, load and power metadata without changing host policy.
+
+Values below are marginal median microseconds per fused evaluation. Gain is
+paired before/after median [observed range], not the ratio of marginal medians,
+a confidence interval, or a Stan/JAX/ESS comparison.
+
+| Case | Elements/trips | Before µs | After µs | Paired gain [range] |
+|---|---:|---:|---:|---:|
+| tensor | 1,000 | 7.061 | 6.263 | 0.976 [0.813, 1.222] |
+| tensor | 10,000 | 62.858 | 66.084 | 0.951 [0.905, 1.034] |
+| tensor_scalar | 1,000 | 19.315 | 22.580 | 0.895 [0.693, 1.049] |
+| tensor_scalar | 10,000 | 249.439 | 247.872 | 0.961 [0.849, 1.396] |
+| tensor_matmul | 1,000 | 65.641 | 60.982 | 1.073 [0.859, 1.615] |
+| tensor_matmul | 10,000 | 634.877 | 568.145 | 1.194 [0.819, 1.340] |
+| tensor_cond | 1,000 | 10.710 | 10.886 | 0.964 [0.656, 1.003] |
+| tensor_cond | 10,000 | 81.377 | 114.787 | 0.962 [0.575, 0.993] |
+| tensor_scan | 8 | 1.567 | 1.955 | 0.854 [0.600, 1.096] |
+| tensor_scan | 128 | 22.196 | 20.003 | 0.995 [0.816, 1.283] |
+| tensor_scan | 1,025 | 192.750 | 159.852 | 1.043 [0.834, 1.489] |
+| tensor_scan | 10,000 | 1846.482 | 1894.727 | 1.052 [0.927, 1.125] |
+| tensor_scan_checkpoint | 1,025 | 226.743 | 221.654 | 0.968 [0.611, 1.275] |
+| tensor_scan_checkpoint | 10,000 | 2657.989 | 2712.457 | 1.066 [0.787, 1.191] |
+| tensor_dag | 1,000 | 36.665 | 37.002 | 1.003 [0.944, 1.144] |
+| tensor_dag | 10,000 | 410.132 | 396.213 | 1.066 [0.936, 1.094] |
+| tensor_dag | 100,000 | 7692.197 | 7656.597 | 0.958 [0.942, 1.086] |
+| tensor_vector | 1,000 | 868.451 | 840.454 | 1.012 [0.956, 1.134] |
+| tensor_vector | 10,000 | 8900.442 | 9026.827 | 0.952 [0.888, 1.067] |
+| tensor_vector | 100,000 | 91332.242 | 90565.510 | 1.030 [0.907, 1.086] |
+| tensor_reuse | 1,000 | 555.862 | 525.406 | 1.017 [0.864, 1.328] |
+| tensor_reuse | 10,000 | 6008.758 | 5210.081 | 1.144 [1.069, 2.089] |
+| tensor_reuse | 100,000 | 61409.082 | 53621.392 | 1.127 [1.061, 1.588] |
+
+The 100,000-element lifetime control rose from about 16.3 to 18.6 evaluations/s;
+its paired median gain is 1.127 [1.061, 1.588]. The 10,000-element lifetime control
+gained 1.144 [1.069, 2.089]. These are supported fixed-work observations on this
+host, not a general speed advantage. Vector/Tanh and shared-DAG cases mostly
+remain near parity. Negative findings remain: the scalar controls have paired
+medians 0.895 and 0.961, the eight-trip scan 0.854, and the large shared DAG 0.958.
+The 10,000-element branch control is 0.962 with all seven pairs slower.
+This is **not regression-free** and does not qualify an optimal scheduler or
+attribute every changed scalar control to a new algorithm.
+
+Preceding server candidates remain in the evidence. Unconditional metadata gave
+a 0.845 paired median on the 10,000-trip retained scan; boxing alone gave 0.910.
+Storage-cost admission restored that control to 1.024 in its own cohort, but
+left a 0.932 paired median on the 1,025-trip retained scan. These cohorts are not
+pooled. The final specialization candidate reports 1.043 and 1.052 respectively,
+with wide ranges; do not select stronger individual gains from earlier trials.
+
+A separate Dusk Callgrind control (1,025 trips, 100 evaluations, including
+construction and the harness warm evaluation) records 161,637,115 instructions
+before and 171,641,985 with the admitted storage candidate: about 6.2% extra work.
+The shared binary reverse no longer specialized as in the baseline. Forcing
+only its dispatch wrapper inline did **not** fix this (171,710,817 instructions).
+Specializing its shared derivative loop too reduced the final count to
+164,014,369: about 4.5% below that wrapper-only trial, but still 1.5% above the
+baseline. This counterexample is why a favorable noisy wall cohort is not enough
+to attribute a fix. Instrumented timings are excluded from wall results.
+
+Common tiled binary maps now delegate to the existing specialized kernels;
+generic map/operation dispatch per element was rejected. Unary VJPs share
+bounded disjoint-slice loops rather than repeatedly indexing independent primal
+and adjoint layouts. Optional address metadata is selected by storage cost and
+kept outside hot retained-frame headers. Remaining control losses are not hidden.
+
+Memory evidence is deliberately narrower than timing evidence. The forced-reuse
+unit verifies more than eightfold reduction of adjoint arena plus seed scratch
+versus compact non-reused adjoints for its 64-map fixture. Primals remain dense;
+this is not an eightfold whole-model/RSS reduction. The additive source fixture
+retains only its output instead of more than 32 vector-widths of full primals.
+Actual generated-source tests qualify correctness, not a new source-AD latency
+or higher-order memory claim.
+
+Final qualification: 197 core/math release tests with both Faer and BLAS,
+27 actual pinned strict-Enzyme conformance tests, the existing four-chain
+native-law tensor workflow, 46 Python benchmark-protocol tests, backend and
+benchmark Clippy, formatting, API compatibility/maturity and source-link guards.
+No API maturity promotion follows.
+
+Local evidence directory: `integrated-planner-2026-11-03.TneYsi`.
+Final wall journals/manifest are `paired-inline-loop-dusk/`; preceding server
+cohorts are `paired-dusk/`, `paired-boxed-dusk/`, `paired-admission-dusk/` and
+`paired-inline-dusk/`. Baseline executable SHA-256
+is `1d7c402155d42f84e71924ddf063cb1fc02d1a21b9e8e78c8c38ac335133d8a0`;
+final is `984c5b3a057fdcfb4c1b6dac352ab624eb2b33dba2e66e4c67d9de08db45f5b0`.
+The measured source delta is `candidate-inline-loop.patch`, SHA-256
+`96574fa205ab506ec7b4ff9171ca0240b359790a73c05954dbe4a673be9220d5`,
+against the sealed baseline bundle, with identical-harness overlay and exact
+Cubature submodule sources retained. Later report edits do not change these
+measured receipts. Capsules remain local; they are not independently published
+or an offline toolchain distribution.
+
+The final local `measurement-capsule-complete/` seals 124 files (98,048,646
+uncompressed bytes) in three segments, including baseline source/bundle, saved
+binaries, all five server cohorts, source deltas, profiles and validation logs.
+Restoring it with the generic tool and replaying its final journal reproduces
+the saved summary exactly. Its index SHA-256 is
+`e836aa7a566ed7e7e002990e71657c2961f43008beb68e6ec8989fc91135f17f`.
+The separate local `pdb-capsule/` retains the historical PosteriorDB payloads.
+Nothing here asserts public artifact availability or independent reproduction.
+
+Remaining limits include generic primal lifetime planning, profitable automatic
+matrix cost models, broad model/compiler conformance, higher-order checkpoint AD,
+reference-functional agreement and SBC. Availability dispatch, passing tests and
+a smaller arena must not be described as solving these separate obligations.
