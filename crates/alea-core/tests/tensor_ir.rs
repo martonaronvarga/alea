@@ -140,6 +140,8 @@ fn matrix_kernel_policies_preserve_products_vjps_aliases_and_error_recovery() {
     use alea_core::model::tensor::MatrixKernel;
     for kernel in [
         MatrixKernel::Compensated,
+        #[cfg(any(feature = "faer", feature = "openblas"))]
+        MatrixKernel::Auto,
         #[cfg(feature = "faer")]
         MatrixKernel::Faer,
         #[cfg(feature = "openblas")]

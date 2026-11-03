@@ -9,12 +9,31 @@ pub enum MatrixKernel {
     /// Ordered compensated reference arithmetic.
     #[default]
     Compensated,
+    /// Select an available accelerated provider. Prefer sequential Faer when
+    /// both are enabled; this is availability dispatch, not a fitted cost model.
+    /// Explicitly permits the same reassociation as the selected provider.
+    #[cfg(any(feature = "faer", feature = "openblas"))]
+    Auto,
     /// Faer matrix kernels, explicitly sequential.
     #[cfg(feature = "faer")]
     Faer,
     /// LP64 CBLAS GEMM. Thread count belongs to the host BLAS configuration.
     #[cfg(feature = "openblas")]
     Blas,
+}
+impl MatrixKernel {
+    /// Resolves provider availability without global CPU/thread state changes.
+    /// Builders cache this choice in each executable matrix operation.
+    pub fn resolved(self) -> Self {
+        #[cfg(any(feature = "faer", feature = "openblas"))]
+        if self == Self::Auto {
+            #[cfg(feature = "faer")]
+            return Self::Faer;
+            #[cfg(all(feature = "openblas", not(feature = "faer")))]
+            return Self::Blas;
+        }
+        self
+    }
 }
 
 /// Attempts `out = op(a) * op(b)` (or adds the product when `add` is true).
@@ -32,6 +51,7 @@ pub fn try_gemm(
     transpose: (bool, bool),
     add: bool,
 ) -> bool {
+    let kernel = kernel.resolved();
     let (m, k, n) = dimensions;
     if kernel == MatrixKernel::Compensated
         || m.checked_mul(k) != Some(a.len())
@@ -49,6 +69,8 @@ pub fn try_gemm(
     let (ta, tb) = transpose;
     let _ = (ta, tb); // Both optional backends can be disabled.
     match kernel {
+        #[cfg(any(feature = "faer", feature = "openblas"))]
+        MatrixKernel::Auto => unreachable!("resolved matrix provider"),
         MatrixKernel::Compensated => false,
         #[cfg(feature = "faer")]
         MatrixKernel::Faer => {

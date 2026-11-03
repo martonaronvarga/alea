@@ -246,6 +246,7 @@ pub struct TensorBuilder {
     data: Vec<Input>,
     dimension: usize,
     slots: usize,
+    matrix_kernel: MatrixKernel,
 }
 impl Default for TensorBuilder {
     fn default() -> Self {
@@ -272,7 +273,17 @@ impl TensorBuilder {
             data: vec![],
             dimension: 0,
             slots: 0,
+            matrix_kernel: MatrixKernel::Compensated,
         }
+    }
+    /// Sets the execution policy for subsequent `matmul` operations in this
+    /// lexical builder. Existing nodes and child regions retain their policies.
+    /// `Auto` opts into accelerated reduction arithmetic and selects an available
+    /// provider; it does not promise a cost-optimal choice or bound provider
+    /// scratch/thread use. Default construction remains compensated.
+    pub fn with_matrix_kernel(mut self, kernel: MatrixKernel) -> Self {
+        self.matrix_kernel = kernel.resolved();
+        self
     }
     fn node(&self, value: Value) -> Result<&Node, E> {
         if value.owner != self.owner {
@@ -409,7 +420,7 @@ impl TensorBuilder {
     /// # Errors
     /// Rejects incompatible matrix dimensions or foreign values.
     pub fn matmul(&mut self, a: Value, b: Value) -> Result<Value, E> {
-        self.matmul_with_kernel(a, b, MatrixKernel::Compensated)
+        self.matmul_with_kernel(a, b, self.matrix_kernel)
     }
     /// Dense product with an explicit execution policy. Faer/BLAS permit
     /// reassociated reductions in both primal and VJP; they do not promise
@@ -427,6 +438,7 @@ impl TensorBuilder {
         b: Value,
         kernel: MatrixKernel,
     ) -> Result<Value, E> {
+        let kernel = kernel.resolved();
         let lhs = &self.node(a)?.shape;
         let rhs = &self.node(b)?.shape;
         if lhs.axes.len() != 2 || rhs.axes.len() != 2 || lhs.axes[1] != rhs.axes[0] {

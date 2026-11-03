@@ -8426,6 +8426,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::TensorBuilder::with_matrix_kernel(self, kernel: alea_math::gemm::MatrixKernel) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify representative matrix shapes and numerical policies before scheduling or stability promotion; Auto selects availability only, with host-owned provider threading and scratch."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::TensorFactor::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::BatchRule<Self>> where Self: core::marker::Sized",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
@@ -24958,6 +24964,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl alea_math::gemm::MatrixKernel",
+      "profile": "research_component",
+      "promotion_gate": "Qualify representative matrix shapes and numerical policies before scheduling or stability promotion; Auto selects availability only, with host-owned provider threading and scratch."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl alea_math::information::InformationMatrix",
       "profile": "research_component",
       "promotion_gate": "Qualify independent curvature, coordinate conditioning and application regularity before uncertainty promotion."
@@ -26107,6 +26119,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixKernel::Auto",
+      "profile": "research_component",
+      "promotion_gate": "Qualify representative matrix shapes and numerical policies before scheduling or stability promotion; Auto selects availability only, with host-owned provider threading and scratch."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub alea_math::gemm::MatrixKernel::Compensated",
       "profile": "research_component",
       "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
@@ -26945,6 +26963,12 @@
       "item": "pub fn alea_math::gemm::MatrixKernel::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_component",
       "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixKernel::resolved(self) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify representative matrix shapes and numerical policies before scheduling or stability promotion; Auto selects availability only, with host-owned provider threading and scratch."
     },
     {
       "crate": "alea-math",

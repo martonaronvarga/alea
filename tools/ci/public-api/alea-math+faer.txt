@@ -143,8 +143,11 @@ pub fn alea_math::fisher::FisherFitError::fmt(&self, __formatter: &mut core::fmt
 pub fn alea_math::fisher::fit_low_rank(positions: &[f64], scores: &[f64], scales: &[f64], ridge: f64, threshold: f64, max_rank: usize) -> core::result::Result<alea_math::metric::LowRankDiagonalMetric, alea_math::fisher::FisherFitError>
 pub mod alea_math::gemm
 #[non_exhaustive] pub enum alea_math::gemm::MatrixKernel
+pub alea_math::gemm::MatrixKernel::Auto
 pub alea_math::gemm::MatrixKernel::Compensated
 pub alea_math::gemm::MatrixKernel::Faer
+impl alea_math::gemm::MatrixKernel
+pub fn alea_math::gemm::MatrixKernel::resolved(self) -> Self
 impl core::clone::Clone for alea_math::gemm::MatrixKernel
 pub fn alea_math::gemm::MatrixKernel::clone(&self) -> alea_math::gemm::MatrixKernel
 impl core::cmp::Eq for alea_math::gemm::MatrixKernel

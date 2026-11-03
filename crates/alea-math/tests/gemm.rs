@@ -3,6 +3,8 @@ use alea_math::gemm::{MatrixKernel, try_gemm};
 fn kernels() -> Vec<MatrixKernel> {
     vec![
         MatrixKernel::Compensated,
+        #[cfg(any(feature = "faer", feature = "openblas"))]
+        MatrixKernel::Auto,
         #[cfg(feature = "faer")]
         MatrixKernel::Faer,
         #[cfg(feature = "openblas")]

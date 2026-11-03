@@ -130,6 +130,8 @@ pub fn alea_math::exact::strict_cone_direction(columns: usize, inequalities: &[f
 pub mod alea_math::gemm
 #[non_exhaustive] pub enum alea_math::gemm::MatrixKernel
 pub alea_math::gemm::MatrixKernel::Compensated
+impl alea_math::gemm::MatrixKernel
+pub fn alea_math::gemm::MatrixKernel::resolved(self) -> Self
 impl core::clone::Clone for alea_math::gemm::MatrixKernel
 pub fn alea_math::gemm::MatrixKernel::clone(&self) -> alea_math::gemm::MatrixKernel
 impl core::cmp::Eq for alea_math::gemm::MatrixKernel

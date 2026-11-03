@@ -952,6 +952,7 @@ pub fn alea_core::model::tensor::TensorBuilder::reshape(&mut self, value: alea_c
 pub fn alea_core::model::tensor::TensorBuilder::scan(&mut self, initial: alea_core::model::tensor::Value, xs: alea_core::model::tensor::Value, captures: &[alea_core::model::tensor::Value], body: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::TensorBuilder::sum(&mut self, value: alea_core::model::tensor::Value) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::TensorBuilder::unary(&mut self, kind: alea_core::model::tensor::UnaryOp, value: alea_core::model::tensor::Value) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::tensor::TensorBuilder::with_matrix_kernel(self, kernel: alea_math::gemm::MatrixKernel) -> Self
 impl core::default::Default for alea_core::model::tensor::TensorBuilder
 pub fn alea_core::model::tensor::TensorBuilder::default() -> Self
 pub struct alea_core::model::tensor::TensorFactor
