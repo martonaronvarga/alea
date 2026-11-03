@@ -365,7 +365,10 @@ impl BoundProgram {
             )
             .unwrap();
         }
-        writeln!(source,"{reverse}\nif g.iter().chain(a.iter()).any(|v|!v.is_finite()) {{*valid=false;return;}}out.copy_from_slice(&primal[..{output}]);let _=extra;}}").unwrap();
+        // Separate checks preserve admission/order without a Chain iterator's
+        // mixed pointer/integer state. The pinned compiler fails type analysis
+        // when forward-differentiating that state in this rematerialized VJP.
+        writeln!(source,"{reverse}\nif g.iter().any(|v|!v.is_finite()) || a.iter().any(|v|!v.is_finite()) {{*valid=false;return;}}out.copy_from_slice(&primal[..{output}]);let _=extra;}}").unwrap();
         Ok(PullbackSource { source, workspace })
     }
 }

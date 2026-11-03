@@ -60,3 +60,18 @@ Output reports internal evaluation seconds and density/all-coordinate score
 checksums. Preserve saved before/after binaries and alternate repeated runs;
 compilation, startup and model construction are not part of this timer. These
 controls are neither NUTS benchmarks nor ESS/sec measurements.
+
+The higher-order follow-up replaces a differentiated chained finite-check iterator
+with equivalent separate checks, but keeps HVP/third on the original compiler
+reverse. Experimental forward AD of the explicit VJP both miscomputed negative-
+branch higher derivatives in the conformance binary and failed mixed-factor
+preprocessing, despite some standalone probes succeeding. Expanded native-score
+difference/objective/singular-activity tests and a generator routing guard cover
+the shipped fallback. See the [case study](../../docs/tensor-ir.md) for exact
+counterexamples; successful compilation is not higher-order qualification.
+
+Curvature admission also calls the actual value/gradient entry point, not just
+the primal: a zero-direction HVP must not admit a singular score. The regression
+checks typed numerical failures for zero/nonzero directions and valid recovery.
+This replaces primal-only admission and can cost additional reverse work; it
+does not change the sampling gradient path.

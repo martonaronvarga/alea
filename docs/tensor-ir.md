@@ -817,7 +817,8 @@ Actual forward-over-explicit-reverse compilation failed on the pinned compiler:
 first with an unresolved `enzyme_primal_return` global for nested reverse
 helpers, then with an `Illegal updateAnalysis` pointer/integer type conflict for
 the rematerialized program. Reusing native chart pullbacks avoids duplicated
-mathematics, but does not make that compiler failure disappear.
+mathematics, but did not make that compiler failure disappear. The follow-up
+below isolates one type-analysis trigger without qualifying the higher-order path.
 
 Consequently **HVPs and third derivatives retain the original qualified compiler
 reverse**. They are not source-checkpointed. Their values remain covered by the
@@ -832,6 +833,76 @@ exclusion, matrix scores, empty selected errors and recovery. Pure 257-trip
 first-order execution allocates no heap memory. The retained compiler fixture
 also allocates no heap memory on this compiler, so that observation alone does
 not establish a measured peak-memory improvement.
+
+### Higher-order follow-up: compilation is not a correctness gate by itself
+
+The saved LLVM trace localizes the pointer/integer conflict to the final
+`g.iter().chain(a.iter()).any(...)` finite check in a differentiated tensor
+pullback. Enzyme's differentiated `Chain` state has pointer fields, but its
+analysis also encounters bytewise initialization of that state. Replacing the
+check with `g.iter().any(...) || a.iter().any(...)` removes this observed trigger
+in the actual generated checkpoint model. It checks exactly the same values in
+the same order, with the same short-circuit rejection. A tiny iterator-only
+probe already compiles successfully, so this is not evidence that every Rust
+chained iterator fails AD.
+
+This allowed standalone forward-over-explicit-reverse and third-derivative
+executables to compile, including a mixed native Normal prior/positive chart.
+It did **not** qualify those routes. Forcing the explicit checkpoint pullback
+into the full conformance binary exposed two independent failures:
+
+- A zero-trip `log(abs(q[0]))` fixture at `q=[-10,1]` returned Hessian entries
+  `H00=0.11` and `H01=0.1`, instead of the independent values `0.01` and `0`.
+  The three-trip recurrence also returned `H00=0.1183905745088507` instead of
+  `0.011438702851096686`. First-order scores were correct. A standalone
+  zero-trip executable returned correct higher derivatives, so the observed
+  failure depends on compilation context; the underlying cause is not resolved.
+- A larger mixed-factor conformance binary still failed preprocessing with
+  `enzyme_primal_return`, despite its standalone counterpart compiling. Explicit
+  helper inlining did not resolve the mixed-factor failure or the wrong
+  negative-branch derivatives.
+
+Both experimental routings were rejected and preserved as diagnostic artifacts.
+The shipped generator still uses the original compiler reverse for HVPs and
+third derivatives. A generator regression asserts that routing boundary. Expanded
+executed tests compare checkpoint-model Hessians to central differences of the
+independent native analytic scores, and third derivatives to Hessian differences.
+They cover long/vector scans, shared captures, constants, matrices, mixed priors,
+positive charts, and objective Jacobian exclusion. The singular first/steady
+activity fixture additionally has an independent nested-square-root Hessian and
+third derivative, plus zero/nonzero-direction numerical-error checks.
+
+These tests qualify the **shipped mixed implementation**, not higher-order
+checkpointing. No `LooseTypes`, numerical clipping, validation removal, or
+finite-difference implementation was introduced. The
+[Rust compiler's AD flag documentation](https://rustc-dev-guide.rust-lang.org/autodiff/flags.html)
+explicitly warns that relaxed type analysis can produce incorrect derivatives;
+these experiments retained strict type analysis and still required independent
+mathematical checks after compilation. Rust-side custom-derivative/checkpoint
+controls also remain limited in the
+[Enzyme interface](https://enzyme.mit.edu/rust/limitations.html).
+
+The reproduction capsule `source-higher-2026-11-03.MlD5Pv` preserves the pinned
+compiler commands, generated sources, failed LLVM logs, successful standalone
+outputs, rejected routing/inlining overlays on `d0b88fe`, and passing fallback
+tests. This increment makes no latency, peak-memory, sampler, or ESS/sec claim.
+
+The expanded tests also found a separate bug in the shipped fallback: for the
+three-step recurrence `c <- sqrt(c) + g`, starting from constant zero, the value
+at `g=0` is finite but its score is singular. `logp_grad` rejected it while a
+zero-direction HVP returned `Ok(())` and `-0.0`. Checking only primal support
+was insufficient. Merely inspecting the gradient side output of the curvature
+AD call did not fix this counterexample either.
+
+Generated HVP and dense higher-derivative calls now admit the point using the
+same value-and-gradient entry point as sampling, before running curvature AD.
+That replaces their former primal-only admission pass, and rejects a singular
+score even when a zero direction would hide it. The result remains a typed
+`AutodiffError::NonFinite`; positive-gain derivatives and recovery are checked
+separately. This can cost additional reverse work compared with primal-only
+admission. No zero-overhead claim is made, and the first-order sampling path is
+unchanged. Future reuse must preserve this actual first-order admission contract,
+not infer it from a finite curvature result or a discarded AD side output.
 
 ### Source adjoint storage follow-up
 

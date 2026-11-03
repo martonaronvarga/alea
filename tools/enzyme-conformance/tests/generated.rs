@@ -131,6 +131,41 @@ fn check_model<T: PotentialHessianDerivative>(name: &str, target: T) {
 }
 
 #[test]
+fn checkpoint_composition_higher_derivatives_match_native_score_differences() {
+    // Qualify the shipped composition: higher orders deliberately retain the
+    // compiler reverse, NOT forward AD of the explicit checkpoint pullback.
+    check_model("tensor_checkpoint", generated::tensor_checkpoint::target());
+    check_model(
+        "tensor_checkpoint_long",
+        generated::tensor_checkpoint_long::target(),
+    );
+    check_model(
+        "tensor_checkpoint_mixed",
+        generated::tensor_checkpoint_mixed::target(),
+    );
+    check_model(
+        "tensor_checkpoint_matrix",
+        generated::tensor_checkpoint_matrix::target(),
+    );
+    check_model(
+        "tensor_checkpoint_vector",
+        generated::tensor_checkpoint_vector::target(),
+    );
+    check_model(
+        "tensor_checkpoint_routes",
+        generated::tensor_checkpoint_routes::target(),
+    );
+    check_model(
+        "tensor_checkpoint_constant",
+        generated::tensor_checkpoint_constant::target(),
+    );
+    check_model(
+        "tensor_checkpoint_immutable",
+        generated::tensor_checkpoint_immutable::target(),
+    );
+}
+
+#[test]
 fn typed_models_and_every_transform_include_one_jacobian_through_third_order() {
     macro_rules! check { ($($name:ident),* $(,)?) => {$(check_model(stringify!($name), generated::$name::target());)*}; }
     check!(
@@ -347,7 +382,11 @@ fn objective_generated_scores_and_curvature_match_every_chart() {
         correlation3,
         gaussian16,
         selected_likelihood,
-        selected_posterior
+        selected_posterior,
+        tensor_checkpoint_mixed,
+        tensor_checkpoint_matrix,
+        tensor_checkpoint_vector,
+        tensor_checkpoint_constant
     );
 }
 

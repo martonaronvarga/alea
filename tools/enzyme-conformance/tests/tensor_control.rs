@@ -1,6 +1,7 @@
 //! Independent derivatives and directional laws for lazy branches and scans.
 use alea::{
-    autodiff::autodiff::AutodiffError, capability::PotentialHessianDerivative,
+    autodiff::autodiff::AutodiffError,
+    capability::{PotentialHessianDerivative, PotentialHessianVector},
     target::LogDensityGradient,
 };
 use alea_enzyme_conformance::{
@@ -106,10 +107,39 @@ fn source_replay_preserves_first_activity_and_rejects_a_genuine_singular_score()
         let score = 0.5 * (0.5 / gain.sqrt() + 1.) / middle.sqrt() + 1.;
         close(target.logp_grad(&[gain], &mut g).unwrap(), value);
         close(g[0], score);
+        let middle_first = 0.5 / gain.sqrt() + 1.;
+        let middle_second = -0.25 / gain.powf(1.5);
+        let middle_third = 0.375 / gain.powf(2.5);
+        let second = 0.5 * middle_second / middle.sqrt()
+            - 0.25 * middle_first * middle_first / middle.powf(1.5);
+        let third = 0.5 * middle_third / middle.sqrt()
+            - 0.75 * middle_first * middle_second / middle.powf(1.5)
+            + 0.375 * middle_first.powi(3) / middle.powf(2.5);
+        let mut h = [41.];
+        let mut t = [41.];
+        target
+            .potential_hessian_and_derivatives(&[gain], &mut h, &mut t)
+            .unwrap();
+        close(h[0], -second);
+        close(t[0], -third);
     }
     assert!(target.logp_grad(&[0.], &mut g).is_err());
     assert!(target.logp_grad(&[-1.], &mut g).is_err());
+    for value in [0., -1.] {
+        for direction in [0., 1.] {
+            let result = target.potential_hvp(&[value], &[direction], &mut g);
+            assert!(
+                matches!(result, Err(AutodiffError::NonFinite)),
+                "value={value} direction={direction} result={result:?} output={g:?}"
+            );
+        }
+        assert!(matches!(
+            target.potential_hessian_and_derivatives(&[value], &mut g, &mut [41.]),
+            Err(AutodiffError::NonFinite)
+        ));
+    }
     assert!(target.logp_grad(&[0.5], &mut g).is_ok());
+    assert!(target.potential_hvp(&[0.5], &[1.], &mut g).is_ok());
     assert!(g[0].is_finite());
 }
 

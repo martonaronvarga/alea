@@ -122,6 +122,11 @@ and its operations must be supported by the matching Enzyme compiler.
 
 ## Derivative conventions
 
+Curvature requests must pass the same finite value-and-score admission as a
+gradient request. Even a zero-direction product rejects a singular score with a
+numerical error. This stronger admission uses the actual gradient entry point,
+not AD side outputs, and can add reverse work compared with a primal-only check.
+
 The target gradient differentiates the log density. The higher derivative
 capabilities differentiate the potential `U = -logp`. Hessians use row-major
 storage, and the block starting at `k * dimension * dimension` contains the

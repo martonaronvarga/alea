@@ -17,8 +17,10 @@ use alea_core::model::assembly::{AssemblyError, CompiledModel};
 /// pullback, exposed by the generated `SOURCE_CHECKPOINTED` receipt. HVPs and
 /// third derivatives retain the compiler-owned reverse path: they are not
 /// checkpointed. Other factors' compiler tapes are not bounded by the receipt.
-/// HVP/tensor calls also evaluate the scalar primal once for domain admission:
-/// derivatives of a non-finite-return branch cannot establish valid support.
+/// HVP/tensor calls admit the same value and gradient entry point as sampling:
+/// a finite directional result cannot admit an invalid primal or singular score,
+/// including for a zero direction. This replaces primal-only admission and can
+/// cost additional reverse work; AD side outputs are not an admission oracle.
 ///
 /// # Errors
 /// Rejects zero unconstrained dimension and opaque nodes without a Rust primal.
@@ -30,8 +32,9 @@ pub fn enzyme_source(model: &CompiledModel) -> Result<String, AssemblyError> {
 /// Jacobians in the value or any derivative. The model's selected factors are
 /// retained; use explicit statistical selection for likelihood or MAP views.
 /// The returned higher derivatives are of negative objective, as required by
-/// `PotentialHessianDerivative`. Uses the same bounded, allocation-free generated
-/// derivative path as `enzyme_source`.
+/// `PotentialHessianDerivative`. Uses the same explicit stack buffers and
+/// first-order admission as `enzyme_source`; compiler-owned tapes retain the
+/// limitations documented there.
 /// # Errors
 /// Rejects zero free dimension or an opaque factor without a scalar primal.
 pub fn enzyme_objective_source(model: &CompiledModel) -> Result<String, AssemblyError> {
@@ -84,10 +87,9 @@ fn mapped_source_inner(model: &CompiledModel, density: bool) -> Result<String, A
             "#[::std::autodiff::autodiff_reverse(__gradient, Duplicated, Duplicated, Active)]",
             &(source + "\n#[::std::autodiff::autodiff_reverse(__higher_gradient, Duplicated, Duplicated, Active)]"),
         );
-        // The pinned compiler cannot yet forward-differentiate the explicit
-        // rematerialized reverse program reliably. Preserve the qualified
-        // original compiler reverse for HVPs/third derivatives, not a fallback
-        // numerical approximation. Only first-order gradients are checkpointed.
+        // The explicit VJP can now pass forward type analysis, but independent
+        // negative-branch derivatives still fail and mixed-factor compilation
+        // remains context-dependent. Keep the qualified compiler reverse.
         template = template.replace(
             "__gradient(q, g, work, reverse, 1.0)",
             "__higher_gradient(q, g, work, reverse, 1.0)",
@@ -160,6 +162,12 @@ fn __valid(q: &[f64; DIMENSION]) -> bool {
     __VALIDATION__
 }
 
+fn __first_order_valid(q: &[f64; DIMENSION]) -> bool {
+    let mut score = [0.0; DIMENSION];
+    let value = __gradient(q, &mut score, &mut [0.0; __WORKSPACE__], &mut [0.0; __WORKSPACE__], 1.0);
+    value.is_finite() && score.iter().all(|v| v.is_finite())
+}
+
 pub fn __PUBLIC_VALUE__(q: &[f64; DIMENSION]) -> f64 {
     if q.iter().any(|x| !x.is_finite()) || !__valid(q) { f64::NAN } else { __log_density(q) }
 }
@@ -174,16 +182,16 @@ pub fn __PUBLIC_TARGET__() -> impl ::alea::capability::PotentialHessianDerivativ
         },
         |q: &[f64], v: &[f64], out: &mut [f64]| {
             let q = q.try_into().expect("validated position");
-            // A higher derivative can be finite on a NaN-return branch. Check
-            // primal admission explicitly before evaluating the HVP.
-            if !__valid(q) || !__log_density(q).is_finite() { out.fill(f64::NAN); return; }
+            // A zero directional result can hide an undefined gradient, and
+            // AD-produced side outputs need not preserve first-order admission.
+            if !__valid(q) || !__first_order_valid(q) { out.fill(f64::NAN); return; }
             let [work, reverse, tangent, reverse_tangent] = &mut [[0.0; __WORKSPACE__]; 4];
             let value = __hvp(q, v.try_into().expect("validated vector"), &mut [0.0; DIMENSION], out.try_into().expect("validated product"), work, reverse, tangent, reverse_tangent);
             if value.is_finite() { for x in out { *x = -*x; } } else { out.fill(f64::NAN); }
         },
         |q: &[f64], hessian: &mut [f64], third: &mut [f64]| {
             let q = q.try_into().expect("validated position");
-            if !__valid(q) || !__log_density(q).is_finite() { hessian.fill(f64::NAN); third.fill(f64::NAN); return; }
+            if !__valid(q) || !__first_order_valid(q) { hessian.fill(f64::NAN); third.fill(f64::NAN); return; }
             let mut v = [0.0; DIMENSION];
             let mut w = [0.0; DIMENSION];
             let mut h = [0.0; DIMENSION];
