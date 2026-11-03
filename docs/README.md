@@ -14,8 +14,11 @@ fits a normal mean to four observations and explains each part of the program.
 | Run a complete example | [Your first model](getting-started.md) |
 | Declare parameters, priors, and likelihoods | [Models and constraints](modeling.md) |
 | Optimize a likelihood or posterior mode | [Point estimation](modeling.md#maximum-likelihood-and-posterior-modes) |
+| Check logistic/Poisson point fits and estimator existence | [Native GLM workflow](modeling.md#run-a-native-logisticpoisson-point-fit-workflow) |
 | Evaluate many regression observations together | [Batch likelihoods](modeling.md#batch-regression-likelihoods) |
+| Program tensor blocks, conditional regions and data rebinding | [Tensor IR and lowering](tensor-ir.md) |
 | Fit group effects with partial pooling | [Hierarchical models](hierarchical-models.md) |
+| Check Gaussian hierarchical inference and new-group prediction | [Gaussian hierarchy qualification](hierarchical-models.md#qualify-an-unknown-scale-gaussian-hierarchy) |
 | Choose a sampler and configure warmup | [Sampling](sampling.md) |
 | Interpret R-hat, ESS, and warnings | [Diagnostics](diagnostics.md) |
 | Run chains in parallel or save a checkpoint | [Sessions and recovery](sessions.md) |
@@ -26,6 +29,8 @@ fits a normal mean to four observations and explains each part of the program.
 | Work with reaction times and choices | [Wiener models](wiener.md) |
 | Understand Wiener numerical accuracy | [Wiener numerical methods](wiener-numerics.md) |
 | Understand a failed or suspicious fit | [Troubleshooting](troubleshooting.md) |
+| Understand native-model performance and its validation | [Native-kernel case study](native-model-performance.md) |
+| Review kernel optimizations and their numerical contracts | [Kernel optimization](kernel-optimization.md) |
 
 ## How the pieces fit together
 

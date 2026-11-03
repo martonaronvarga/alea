@@ -279,7 +279,14 @@ writing. An I/O error or a callback panic poisons the stream; discard it.
 
 ### CSV and manifest contract
 
-The manifest identifies `alea-analysis`, schema version `2`, kind `sampling`.
+Whole-factor manifests identify `alea-analysis`, schema version `2`, kind
+`sampling`. Explicit native batch-row partitions use version `3`: every
+predictive unit additionally records `batch_rows` with original factor names,
+local row indices and complete factor row counts. The strict reader validates
+complete, nonoverlapping row coverage rather than rejecting repeated batch
+factor names. Version-two output is unchanged; older readers reject version
+three. See [batch predictive partitions](modeling.md) for the explicit grouping
+and conditioning contract. CSV column structure is the same in both versions.
 Its `csv.columns` list is the exact header order:
 
 - `chain`, `phase`, `draw`, `kind`, `error` identify a successful draw or failure.

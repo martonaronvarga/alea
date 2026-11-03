@@ -102,6 +102,15 @@ differentiation; Enzyme differentiates the numerical transform itself.
 ## Supported model operations
 
 The normal and Bernoulli-logit factor helpers provide their scalar Rust primals.
+Native Gaussian, Bernoulli-logit and Poisson-log regression descriptors also emit
+lazy, counted-loop primals; actual third-order conformance checks cover these
+batch paths. `source_capabilities()` reports source availability, not universal
+compiler support. [Tensor/control-flow source](tensor-ir.md) has default executed
+matrix/branch/scan third-order regressions, including the zero-direction check
+that caught a backend defect after compilation was repaired. The exporter keeps
+typed float scratch explicit and supplies an explicit zero tangent for the HVP
+direction. Arbitrary shapes/programs and statistical applications still require
+their own qualification on the matching pinned compiler.
 Custom callbacks need `custom_with_primal` to supply a matching differentiable
 Rust expression. An opaque callback without such a primal returns
 `AssemblyError::MissingPrimal` during export. This includes the Wiener factor.

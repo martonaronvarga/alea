@@ -13,32 +13,23 @@ Here both the population mean and measurement scale are unknown. We use a normal
 prior on the mean and an exponential prior with rate 1 on the scale.
 
 ```rust
-use alea::distributions::modeling::{normal, normal_observation};
+use alea::distributions::modeling::ModelBuilderExt;
 use alea::{
-    model::assembly::{AssemblyError, CompiledModel, ModelBuilder},
+    model::assembly::{AssemblyError, CompiledModel},
     target::LogDensityGradient,
 };
 
 fn model(observations: &[f64]) -> Result<CompiledModel, AssemblyError> {
-    let mut builder = ModelBuilder::new();
-    let mean = builder.real("mean")?;
-    let scale = builder.positive("scale")?;
-
-    let zero = builder.constant(0.0)?;
-    let two = builder.constant(2.0)?;
-    let mean_prior = normal(&mut builder, mean.expr(), zero, two)?;
-    builder.prior("mean prior", mean_prior)?;
-
-    // log Exponential(scale | rate = 1) = -scale for scale > 0.
-    let minus_one = builder.constant(-1.0)?;
-    let scale_prior = builder.multiply(minus_one, scale.expr())?;
-    builder.prior("scale prior", scale_prior)?;
-
-    for (i, &observation) in observations.iter().enumerate() {
-        let likelihood = normal_observation(&mut builder, observation, mean.expr(), &scale)?;
-        builder.likelihood(&format!("observation {i}"), likelihood)?;
+    alea::model! { |builder|
+        parameters { mean: real(), scale: positive() }
+        {
+            builder.normal_prior("mean prior", &mean, 0.0, 2.0)?;
+            // log Exponential(scale | rate = 1) = -scale for scale > 0.
+            let scale_prior = builder.multiply(-1.0, &scale)?;
+            builder.prior("scale prior", scale_prior)?;
+            builder.normal_observations("observations", observations, &mean, &scale)?;
+        }
     }
-    builder.compile()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -69,6 +60,223 @@ in many factors; their derivative contributions accumulate into that parameter.
 Build one compiled model per chain. Its structure is fixed after `compile`, and
 its scratch storage is reused during evaluation. A session's target factory is a
 convenient place to create it.
+
+## Concise syntax, ordinary Rust
+
+`model!` is a small construction macro, not a separate modeling language or AD
+backend. `parameters { mean: real(), scale: positive() }` passes the binding
+names to the existing typed builder methods. The following block is ordinary
+Rust: use loops, conditionals, helper functions and `?`. The macro returns
+`Result<CompiledModel, AssemblyError>` and compiles only after the block succeeds;
+the block's final value must be `()`. It never infers a prior, adds a hidden
+Jacobian, chooses an inference algorithm or runs a sampler. Use the builder
+directly, or `model!(|builder| { ... })`, for explicit/custom declarations.
+
+Arithmetic and Normal/Bernoulli-logit factor constructors accept `f64` literals,
+`Expr`, and borrowed or owned scalar parameter handles. No `.expr()` or
+`constant()` call is needed for those arguments. Use floating literals (`0.0`,
+not a count `0`); discrete events remain typed `bool`/`u64`. An existing expression
+is reused, while each literal inserts an ordinary constant node. To deliberately
+share a constant, bind `let zero = builder.constant(0.0)?;` once. Arguments retain
+builder ownership and their original charts; invalid literals/foreign handles
+fail before the input list adds any nodes.
+
+`ModelBuilderExt` (also in `alea::prelude`) provides named `normal_prior`,
+`normal_likelihood`, `bernoulli_logit_likelihood`, and the three native
+`*_regression_likelihood` methods. Each constructs the existing native factor and
+registers its explicit role. Unknown support/truncation normalizers are not
+inferred: `normal_prior` on a positive event does not add the half-normal `ln(2)`.
+As with other fallible construction sequences, discard an unfinished builder on
+error: helpers can leave unused expressions but never attach a failed named term.
+
+`normal_observations` uses the fused shared-location/scale regression kernel for
+a nonempty observation slice. Its graph size is independent of row count, though
+owned data storage remains linear. It declares one **joint factor**, not per-row
+leave-out units. An explicit native batch rule now provides conditional rows via
+`CompiledModel::batch_likelihood()`, and a lazy source rule emits counted Rust
+loops. Neither route changes the posterior measure or infers marginal leave-out
+units. See [tensor regions and batch lowering](tensor-ir.md).
+
+For regression, named vector declarations are convenient:
+
+```rust
+use alea::{distributions::modeling::ModelBuilderExt, model::assembly::ModelBuilder};
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+let mut builder = ModelBuilder::new();
+let beta = builder.real_vector("beta", &["intercept", "slope"])?;
+for (i, &coefficient) in beta.expressions().iter().enumerate() {
+    builder.normal_prior(&format!("beta prior {i}"), coefficient, 0.0, 2.0)?;
+}
+// Pass beta.expressions() and owned RegressionData to the appropriate
+// *_regression_likelihood method. No intercept column is silently inserted.
+# Ok(()) }
+```
+
+`positive_vector` and `unit_interval_vector` work analogously. Their dimension
+and geometry-block labels default to the vector name; `vector` remains available
+for explicit labels and simplex/matrix/custom charts. Macro declarations accept
+arguments too: `beta: real_vector(&["intercept", "slope"])`. Construction helpers
+do not claim faster evaluation or change batch kernels, mathematical validation,
+factor selection or inference defaults.
+
+## Reuse model functions with scoped names
+
+Use ordinary Rust functions to compose models. A scope qualifies parameter and
+factor names without creating another builder, copying a graph or changing the
+parameter measure:
+
+```rust
+use alea::{
+    distributions::modeling::ModelBuilderExt,
+    model::assembly::{AssemblyError, Expr, ModelBuilder},
+};
+
+fn component(builder: &mut ModelBuilder, observations: &[f64]) -> Result<Expr, AssemblyError> {
+    let mean = builder.real("mean")?;
+    let scale = builder.positive("scale")?;
+    builder.normal_prior("mean prior", mean, 0.0, 2.0)?;
+    let prior = builder.multiply(-1.0, scale)?;
+    builder.prior("scale prior", prior)?;
+    builder.normal_observations("data", observations, mean, &scale)?;
+    Ok(mean.expr())
+}
+
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+let mut builder = ModelBuilder::new();
+let first = builder.with_scope("first", |b| component(b, &[0.2, 0.7]))?;
+let second = builder.with_scope("second", |b| component(b, &[1.0, 1.2]))?;
+let difference = builder.multiply(-1.0, second)?;
+let difference = builder.add(first, difference)?;
+let model = builder.compile()?;
+assert_eq!(model.coordinates()[0].name, "first::mean");
+assert!(model.graph().any(|node| node.expression == difference));
+# Ok(())
+# }
+```
+
+Nested scopes compose (`first::inner::mean`). Scope components must be nonempty
+and cannot contain `::`; existing declarations still reject name collisions.
+Dropping a scope restores its enclosing namespace, including on panic. It does
+not roll back declarations or invalidate escaped handles. Named vector helpers
+also scope their default dimension and geometry-block labels, avoiding accidental
+merging between components. Explicit `vector`/`annotate` metadata stays explicit.
+
+## Inspect mathematical operations and backend support
+
+Native `normal` and `normal_regression` operations retain immutable typed
+descriptors, rather than retaining only executable callbacks. Existing free
+functions, named builder helpers and `model!` all use this same registration path.
+`CompiledModel::graph()` exposes scalar dependencies, constants, factor roots
+(including repeated declarations), current-view activity and optional primitive
+metadata. Inspection is a cold operation: input-handle vectors are allocated;
+captured datasets are borrowed, not copied. The retained analytic evaluator does
+not construct graph snapshots or inspect signatures.
+
+```rust
+use alea::{
+    distributions::modeling::{ModelBuilderExt, regression::NormalRegression},
+    model::assembly::{ArgumentShape, ModelBuilder},
+};
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+let mut builder = ModelBuilder::new();
+let mean = builder.real("mean")?;
+let scale = builder.positive("scale")?;
+builder.normal_observations("data", &[0.2, 0.7], mean, &scale)?;
+let model = builder.compile()?;
+let node = model.graph().find(|node| node.primitive.is_some()).unwrap();
+let metadata = node.primitive.unwrap();
+let regression = metadata.descriptor::<NormalRegression>().unwrap();
+assert_eq!(regression.data().rows(), 2);
+assert_eq!(metadata.signature().arguments[0].shape, ArgumentShape::Vector(1));
+assert_eq!(metadata.signature().probability.as_ref().unwrap().batch, [2]);
+assert!(model.source_capabilities().supports_rust_primal());
+assert!(model.rust_primal()?.contains("for i in 0.."));
+# Ok(())
+# }
+```
+
+Logical argument shape, probability event shape and batch shape are distinct. A
+normal regression has a coefficient-vector argument, scalar scale, scalar events
+with one-dimensional Lebesgue measure, and a row batch. Its typed descriptor
+preserves the original design, responses and offsets. It still lowers to **one
+fused batch kernel**, not one scalar graph per observation. Scalar normals retain
+their existing Rust primal; all three native regression families now have lazy,
+counted-loop source lowering and explicit conditional batch rules.
+`source_capabilities()` reports every missing active callback primal, while actual
+export preserves `MissingPrimal`. Statistical selections retain inactive
+descriptors but do not require their source primals.
+
+For custom mathematical operations, implement `Primitive`: declare logical
+arguments, retain immutable data, provide separate execution-local workspace and
+delegate fused value/local-score evaluation to your implementation. Register with
+`builder.primitive(operation)`. Registration validates argument counts, shape
+overflow, names and handle ownership. Arbitrary existing `custom` callbacks remain
+supported and are reported as opaque; their semantics are never guessed.
+
+The scalar assembly interface is not a generative language. A primitive signature
+is its author's contract, not proof of arbitrary
+callback normalization or posterior propriety. Neither a batch axis nor a native
+distribution descriptor invents a plate, leave-out partition, prior, truncation
+normalizer, predictive generator or higher derivative. A separate
+[tensor/control-flow IR](tensor-ir.md) supports fixed-shape blocks, explicit lazy
+regions, fixed-trip scans and immutable rebinding. Registered primitives can be
+rebound by consuming the compiled model, preserving its topology. Rust `if`/loops
+in ordinary model functions still execute at construction time; staged control
+flow uses explicit IR operations. Jacobian rules and selections are unchanged.
+
+The opt-in `model_semantics` Criterion benchmark compares descriptor registration
+against explicit opaque lowering of the **same native primitive and kernel**,
+separately timing construction and fused evaluation at 1,000 and 10,000 rows:
+
+```bash
+nix develop .#stable --command cargo bench --manifest-path crates/Cargo.toml \
+  -p alea-distributions --bench model_semantics --locked
+```
+
+This measures interface overhead, not a historical before/after speedup or
+statistical efficiency. Correctness/allocation tests run independently of timings;
+no machine-dependent wall-time assertion is a CI correctness gate.
+
+### Local semantic-interface overhead check
+
+On 2026-11-01, three sequential benchmark processes (forward, reverse, forward
+order) on an x86-64 Intel i5-8250U produced the following microsecond timings.
+Each cell is the median of three Criterion run-median estimates, with their
+minimum–maximum in parentheses—not an across-process confidence interval.
+
+| Operation | Rows | Opaque lowering, µs | Semantic registration, µs |
+|---|---:|---:|---:|
+| Construct and destroy | 1,000 | 7.099 (7.079–7.165) | 7.424 (7.094–7.608) |
+| Construct and destroy | 10,000 | 60.520 (59.940–62.566) | 60.708 (60.066–60.745) |
+| Fused value/score | 1,000 | 15.081 (14.984–15.112) | 15.275 (15.000–15.679) |
+| Fused value/score | 10,000 | 150.068 (149.440–150.735) | 150.621 (149.211–151.713) |
+
+Semantic evaluation point estimates are about 1.3% and 0.4% higher, respectively;
+the process ranges overlap. These short laptop measurements do not establish
+zero overhead or a general performance difference. Construction includes data
+validation/preparation, graph/scratch allocation and destruction, but reuses
+already-owned response/design arrays through `Arc`. Evaluation uses the same
+native kernel with two coefficients and constrained sigma=1.1; it excludes
+transforms, priors, inference, process startup and serialization. Both paths
+retain four execution nodes. Independent tests require zero allocations during
+retained evaluation and bit-identical values/scores.
+
+Protocol: lock-pinned stable Rust 1.95.0/LLVM 22.1.2, workspace release profile
+(opt-level 3, fat LTO), no extra `RUSTFLAGS`, one model-evaluation thread, Criterion
+30 samples/case, 0.5-second warmup and 2-second measurement. This was a shared
+desktop with the `powersave` governor, without affinity or frequency control.
+The initial exploratory process is not pooled into the three-process summary.
+Reproduce the named baselines using the benchmark command above, adding
+`-- --noplot --save-baseline semantic-forward-1`; for the middle process set
+`ALEA_SEMANTICS_REVERSE=1` and name it `semantic-reverse-1`, then run forward again
+as `semantic-forward-2`. Criterion's local `estimates.json` files retain the
+run estimates and within-process bootstrap intervals.
+
+Benchmark source SHA-256:
+`3108989662923b5b34d855ee4ea3b37870f09f4612f011a3a852c79042af2a90`.
+This is a checkout-level overhead check, not a sealed historical benchmark,
+Stan comparison, sampler qualification or speed improvement claim. Scalar-heavy
+graphs and multi-chain construction overhead were not measured by this check.
 
 ## Understand the sampling coordinates
 
@@ -358,16 +566,86 @@ linear predictor; Poisson exposure `e > 0` is supplied as `ln(e)`, not `e`. Empt
 data, shape mismatches and nonfinite inputs are rejected rather than dropped.
 Zero columns permit an offset-only likelihood.
 
+Eligible tall Gaussian batches use prepared square-root sufficient statistics.
+This also applies to conditional mixed effects expressed as fixed group-indicator
+columns with deterministic coefficient expressions such as `tau * z_group`;
+latent coordinates and their priors are not integrated out. Poisson batches with
+exactly identical design rows **and offsets** use count sufficient statistics,
+retaining the full log-factorial constants. Distinct predictors retain their
+fused row kernel. Both optimizations retry original rows at numerical limits;
+rebinding refreshes preparation, while pointwise reporting/source keep all rows.
+These paths change floating-point rounding, not the model. See the
+[sufficient-statistics case study](native-model-performance.md#14-applying-the-sufficient-statistics-paper).
+
 The factors retain one graph node per batch regardless of row count; dataset
 storage still grows with the observations. Values, predictors and score reductions
 use compensated summation. Score storage, proportional to the number of
-coefficients, is allocated at construction and reused without evaluation allocations. Captured data cannot currently be
-exported as an Enzyme primal; the analytic scores work on stable Rust.
+coefficients, is allocated at construction and reused without evaluation allocations.
+The analytic scores work on stable Rust. Native descriptors also supply lazy
+counted-loop Rust source rules; those are separate from native SIMD execution
+and do not establish arbitrary-program compiler-derivative support.
 
-Each returned factor is joint over its batch. Choose separate batches when you
-need separately declared pointwise predictive units; attaching observation IDs
-does not split an aggregated factor. Chunked batches produce the same mathematical
+Each returned factor is joint over its batch. Explicit native row rules can be
+partitioned with `PointwiseLikelihood::from_batch(batch, units, rows)` without
+scalarizing the sampling graph. `rows[i]` contains the original `BatchUnit`s
+assigned to `units[i]`; every actual row must occur exactly once. Observation IDs,
+grouping and conditioning remain caller declarations, not marginalization.
+The result works with `AnalysisSpec::from_likelihood`. Batch-row reports emit
+manifest version three with explicit factor/local-row indices and complete row
+counts; whole-factor reports retain version two. The strict Python reader
+validates both formats and rejects missing/overlapping rows, inconsistent counts
+and ambiguous conditioning. Older readers reject version three rather than
+silently interpreting repeated factor names. Chunked batches produce the same mathematical
 likelihood, with ordinary floating-point reduction differences.
+
+### Inspect or diagnose native CPU execution
+
+The existing regression helper calls automatically prepare a fixed CPU plan.
+The typed descriptor's `execution_plan()` reports the requested policy, selected
+f64 lane count, row/column dimensions, four-row tile, additional packed-design
+bytes and broadcast eligibility. Inspect descriptors through `model.graph()` as
+shown above. A lane count is not a measure of SIMD utilization: tails, scalar
+transcendentals and numerical fallbacks can still require scalar work.
+
+For a controlled comparison, select scalar execution explicitly before registering
+the descriptor. This uses the **same fused kernel**, not a second distribution or
+a different posterior:
+
+```rust
+use alea::distributions::modeling::regression::{
+    BernoulliLogitRegression, RegressionData, RegressionExecution,
+};
+use alea::model::assembly::ModelBuilder;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut builder = ModelBuilder::new();
+    let beta = builder.real("beta")?;
+    let data = RegressionData::new(1, vec![1.0; 5], vec![true, false, true, false, true])?;
+    let primitive = BernoulliLogitRegression::new(&[beta.expr()], data)?
+        .with_execution(RegressionExecution::Scalar);
+    assert_eq!(primitive.execution_plan().lanes(), 1);
+    assert_eq!(primitive.execution_plan().workers(), 1);
+    let term = builder.primitive(primitive)?;
+    builder.likelihood("observations", term)?;
+    let model = builder.compile()?;
+    assert_eq!(model.expression_count(), 2);
+    Ok(())
+}
+```
+
+`Auto` selects scalar execution when there is neither a complete four-observation
+tile nor a full coefficient packet for the available SIMD width. This structural
+bypass applies only to widths up to the tile size, preserving wider normal
+fallbacks. `is_scalar_for_shape()` identifies this decision. Otherwise it caches
+Pulp's CPU selection at construction; it does not use fitted timing thresholds,
+autotuning, observation threading or Faer kernel selection.
+`Scalar` is a diagnostic backend, not a strict row-wise reduction policy or a
+cross-ISA bitwise replay guarantee. Both preserve the existing compensated
+formulations, error checks and reusable score buffers. `with_data` preserves the
+requested policy while rebuilding data-dependent packing/broadcast decisions.
+Generated source has its own backend and does not inherit this native CPU plan.
+See [the kernel methodology](kernel-optimization.md#native-regression-execution-plans)
+for separate construction/evaluation benchmarks and the remaining selection gates.
 
 `NamedFit` attaches validated parameter metadata and constrains the final candidate
 without a Jacobian. `estimates()` follows the constrained names in `parameters()`;
@@ -382,7 +660,487 @@ existence. Perfect Gaussian fits, separated binary outcomes and all-zero Poisson
 counts need problem-specific assessment. A small score in such a problem is not
 proof of a finite MLE. No standard errors are inferred from L-BFGS history.
 
+## Export a point-estimation report
+
+With the optional `analysis` feature, `analysis::write_fit` exports a `NamedFit`
+as one UTF-8 JSON document (`alea-fit`, version 1). This is separate from the
+sampling-table format: it has no chain/draw axes, fabricated posterior samples,
+covariance or standard errors. It retains the original objective kind and measure,
+named constrained estimates, free-coordinate position and score, numerical policy,
+work counters, exact termination and both line-search failure reasons. An absent
+candidate remains null; a retained candidate after failure is not a successful fit.
+
+```rust
+use alea::{
+    analysis::{write_fit, Provenance},
+    optimize::NamedFit,
+};
+use std::collections::BTreeMap;
+
+fn export(fit: &NamedFit) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let objective = &fit.result().objective;
+    let provenance = Provenance {
+        model: objective.model.clone(),
+        data: objective.data.clone(),
+        source: objective.source.clone(),
+        method: "L-BFGS".into(),
+        settings: BTreeMap::new(),
+    };
+    let mut bytes = Vec::new();
+    // No assessment was attached: encode explicit JSON null.
+    write_fit(&mut bytes, fit, &provenance, |_| Ok(Default::default()))?;
+    Ok(bytes)
+}
+# fn main() {}
+```
+
+For `NamedFit<A>`, the last argument explicitly converts `&A` to a
+`Result<serde_json::Value, AnalysisError>`. Choose and document the assessment's
+own schema; the writer does not interpret arbitrary evidence or infer its match
+to the fitted model. Separately retained backend error details can be included
+there: `OptimizationResult` preserves the failure classification, not the original
+typed error itself. Model/data/source identities must match the objective's
+declaration; labels and matching dimensions do not verify content digests.
+
+Metadata, counters, stopping evidence and assessment encoding are checked before
+any write. Callback errors or panics leave the stream untouched. I/O or flush
+failure may leave a partial document: discard it, and use an application-owned
+temporary file plus atomic installation when durable replacement is required.
+The report is not a checkpoint and does not reconstruct the chart or optimizer.
+The source-checkout reader `tools/downstream-conformance/python/fit_analysis.py`
+validates versions, dimensions, finite numbers, exact integer counters, duplicate
+or unknown fields and stopping evidence, retaining failed outcomes and assessments.
+It needs only Python's standard library and does not create an ArviZ posterior.
+
+## Check likelihood curvature explicitly
+
+With `faer`, `optimize::information::observed_information` computes numerical
+observed-likelihood covariance for a `NamedFit` meeting its declared score
+tolerance. Supply the same **no-Jacobian likelihood objective** through the
+optional `PotentialHessianVector` capability. Ordinary compiled graph targets do
+not automatically provide HVPs: an analytic provider or generated Enzyme
+**objective** is required. There is no implicit finite-difference fallback, and
+the L-BFGS history is not used as an uncertainty estimate.
+
+```rust
+use alea::{
+    capability::PotentialHessianVector,
+    math::information::InformationOptions,
+    optimize::{NamedFit, information::{observed_information, ObservedInformation,
+                                     ObservedInformationError}},
+};
+
+fn curvature<T: PotentialHessianVector>(
+    objective: &T, fit: &NamedFit,
+) -> Result<ObservedInformation, ObservedInformationError<T::Error>> {
+    // Explicit numerical policy in the supplied free-coordinate units.
+    let policy = InformationOptions {
+        relative_eigenvalue_cutoff: 1e-12,
+        relative_symmetry_tolerance: 64.0 * f64::EPSILON,
+    };
+    observed_information(objective, fit, policy)
+}
+# fn main() {}
+```
+
+The operation replays the candidate's value and score exactly, then uses one
+checked HVP per free coordinate to obtain the negative likelihood Hessian.
+Replay detects many incorrect-objective substitutions but cannot prove that
+arbitrary callbacks or their Hessians describe the declared model. A posterior
+fit, failed search, absent candidate or changed objective rejects explicitly.
+Errors and panics leave the original fit unchanged; no partial covariance is
+returned. No eigenvalue floor, ridge, pseudoinverse or automatic rank truncation
+turns failed curvature into uncertainty.
+
+Both triangles must meet the declared symmetry tolerance relative to the
+matrix's maximum absolute entry, with no absolute unit-dependent floor;
+admitted pairs are averaged (zero tolerance requires equality). Max-absolute
+scaling precedes a sequential Faer symmetric eigensolve. All estimated eigenvalues
+must be positive and their minimum/maximum ratio must exceed the chosen cutoff.
+This is a numerical, unit-dependent full-rank policy, not an exact rank or error
+certificate. Existing Cholesky factorization and triangular solves form covariance;
+the implementation never calls a dense inverse routine.
+
+`free_covariance()` is in the original free coordinates, not the optimizer's
+scaled coordinates. `constrained_covariance().values` is a full row-major matrix
+in constrained parameter metadata order. Its projection is the first-order delta
+calculation `J I_free^-1 Jᵀ`, using the analytic chart Jacobian without a density
+adjustment. A simplex may therefore produce a singular physical covariance with
+more rows than free coordinates. This is not exact nonlinear uncertainty
+propagation. Nonrepresentable division, solve or covariance output rejects;
+the current implementation is not a full-range floating-point enclosure.
+
+A small score and positive information do **not** establish a finite/global MLE,
+regularity, empirical identifiability, confidence-interval coverage or model
+adequacy. At an only approximately stationary point, chart curvature still
+contains score-dependent terms. No intervals, residual-variance correction or
+standard errors are inferred. Keep the original fit, existence/rank evidence and
+statistical assumptions alongside this report; an explicit fit-export assessment
+callback may encode the numerical report without promoting those assumptions.
+
+For supplied analytic information matrices, the lower-level Rust API
+`math::information::InformationMatrix` supports the same checked factorization
+and covariance projection without Enzyme. A generated native Gaussian example
+in `tools/enzyme-conformance/tests/information.rs` verifies unit physical variance
+for an unknown positive location with known unit observation scale, excludes a
+deliberately invalid prior and rejects substitution of the sampling target.
+This is scoped numerical evidence, not a general calibration study.
+
+The native unknown-mean/unknown-scale Gaussian check also compares all HVP entries
+with the analytic Hessian and both covariance matrices with their MLE references.
+It caught an initial entry-relative symmetry rule: cross-curvatures near `2e-8`
+differed by about `2.4e-17` from cancellation, despite each agreeing with the
+analytic value within `3e-16`. The final matrix-scaled rule admits that roundoff,
+while regression tests retain exact-symmetry mode and reject larger asymmetry.
+
+Reference conventions: [Stan's optimization Jacobian policy](https://mc-stan.org/docs/cmdstan-guide/optimize_config.html)
+distinguishes constrained-measure optimization from transformed-density modes;
+the spectral implementation uses [Faer's eigensolver](https://github.com/sarah-quinones/faer-rs),
+with version 0.24.0 pinned by the workspace and generated-curvature test locks.
+
+## Distinguish Gaussian ML scale from residual variance
+
+For independent, homoskedastic Gaussian errors, fixed known offsets, a full-rank
+fixed design with `p` unconstrained coefficient columns, and no weights, priors
+or penalties, the likelihood fit estimates `sigma_ML² = RSS/n`. The intercept,
+when supplied, counts as a coefficient. The residual variance estimate instead
+uses `s² = RSS/(n-p)`; it requires `n > p`. The native fit and Gaussian
+assessment deliberately retain the ML scale. Do not replace it with `s` inside
+the likelihood or relabel it as an unbiased standard deviation.
+
+At the Gaussian MLE the coefficient block of inverse observed information is
+`sigma_ML² (XᵀX)⁻¹`. The usual residual-variance coefficient covariance estimate
+is `s² (XᵀX)⁻¹`, or `n/(n-p)` times that coefficient block. This specific
+correction is **not** a rule for all parameters: in particular, do not multiply
+the joint information variance of `sigma` by the same factor. These distinctions
+follow the [R linear-model summary convention](https://www.stat.ethz.ch/R-manual/R-devel/library/stats/html/summary.lm.html).
+
+The downstream qualification consumer
+`tools/enzyme-conformance/examples/gaussian_uncertainty.rs` exercises this
+distinction using Alea's public native batch normal regression, the existing SVD
+assessment, and generated HVPs of the equivalent scalar-native likelihood.
+It does not implement another distribution, gradient or optimizer. Three dyadic
+fixtures retain nonzero coefficient cross-covariance and known offsets while
+rescaling predictor and response units. Each fixture checks numerical rank two,
+six observations, four residual degrees of freedom, both fitted coefficients,
+ML sigma, same-coordinate batch/generated value and score, the complete joint
+covariance, and the separately corrected coefficient block. All generated HVP
+columns are also checked against central differences of the native batch score
+as a model-level diagnostic, not a derivative fallback. In the base fixture,
+`RSS=12`, `sigma_ML²=2` and `s²=3`; these values must not be interchanged.
+Separate tests retain rank-deficient, perfect-fit and zero-residual-df cases as
+unqualified rather than returning manufactured uncertainty.
+
+The standard-library checker independently solves these two-column fixtures
+using exact `Fraction` arithmetic. Its optional SciPy mode executes
+[LAPACK column-pivoted QR](https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.qr.html)
+and triangular solves, including unpivoting the covariance. Neither Alea's SVD
+coefficient estimate nor this QR reference solves floating-point normal equations.
+From the repository root:
+
+```sh
+nix develop .#autodiff --command cargo test \
+  --manifest-path tools/enzyme-conformance/Cargo.toml --release \
+  --features faer --example gaussian_uncertainty --locked
+# Build the runnable consumer, then use the optional external analysis shell.
+nix develop .#autodiff --command cargo build \
+  --manifest-path tools/enzyme-conformance/Cargo.toml --release \
+  --features faer --example gaussian_uncertainty --locked
+set -o pipefail
+tools/enzyme-conformance/target/release/examples/gaussian_uncertainty | \
+  nix develop .#analysis --command python3 \
+  tools/enzyme-conformance/python/gaussian_uncertainty.py --scipy
+```
+
+The checker requires all three case identities, records input/checker hashes and
+external package versions, and rejects malformed, incomplete or numerically
+inconsistent output. This is a deterministic qualification cohort, not a general
+uncertainty API, random-design study or coverage experiment. It does not qualify
+constrained coefficients, penalized/hierarchical fits, heteroskedasticity,
+correlated errors or arbitrary conditioning. Neither an information matrix nor
+this residual correction supplies a confidence level or a critical-value law;
+The explicit Gaussian interval method below applies only under its stated
+assumptions; broader application qualification remains open. No interval is
+silently inferred from `NamedFit`.
+
+## Request marginal Gaussian coefficient intervals
+
+With `faer`, fixed-design data can explicitly request Student-t coefficient
+intervals. This is a separate least-squares fit, not an interpretation of an
+arbitrary `NamedFit` or a sampling posterior:
+
+```rust
+use alea::distributions::modeling::regression::{
+    RegressionData, diagnostics::GaussianIntervalOptions,
+};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = RegressionData::new(
+        2,
+        vec![1.,-2., 1.,-1., 1.,0., 1.,1., 1.,2., 1.,3.],
+        vec![4.,0.25,2.5,1.75,-2.,0.25],
+    )?;
+    let result = data.gaussian_coefficient_intervals(GaussianIntervalOptions {
+        confidence_level: 0.95,
+        relative_rank_tolerance: 1e-12,
+        relative_residual_tolerance: 1e-12,
+        quantile_relative_tolerance: 1e-8,
+    })?;
+    assert_eq!(result.assessment.least_squares.residual_degrees_of_freedom, 4);
+    assert!((result.residual_variance - 3.).abs() < 1e-12);
+    // ML sigma is still sqrt(RSS/n), not the corrected residual standard error.
+    assert!((result.assessment.scale_candidate.ok_or("missing ML scale")?
+             - 2_f64.sqrt()).abs() < 1e-12);
+    let intercept_interval = result.bounds[0]; // [lower, upper], design-column order
+    assert!(intercept_interval[0] < 1.5 && intercept_interval[1] > 1.5);
+    Ok(())
+}
+```
+
+Calling this method declares independent homoskedastic Gaussian errors, a fixed
+full-column-rank design and fixed known offsets, with unconstrained coefficients
+and no priors, weights or penalties. The code cannot establish those statistical
+assumptions from the stored numbers. The intercept, if present, counts in `p`.
+The result uses `beta_j ± t_(n-p, 1-alpha/2) * SE_j`, consistent with
+[R's Gaussian linear-model intervals](https://www.stat.ethz.ch/R-manual/R-devel/library/stats/html/confint.html).
+These are **marginal**, not simultaneous, intervals; they are not prediction,
+sigma, hierarchical, penalized or asymptotic-Wald intervals.
+
+One sequential thin SVD supplies both coefficients and residual-scaled covariance
+through `math::least_squares::solve_with_residual_covariance`. Residual scaling
+precedes its Gram calculation, avoiding an overflowing unscaled inverse-design
+covariance intermediate. A checked Cholesky on max-absolute-scaled output rejects
+rounded covariance that fails numerical positive definiteness. No floating normal
+equations, inverse routine, ridge, rank-truncated covariance or optimizer history
+is used. The assessment-only API keeps its original truncated-SVD policy; the
+interval path requires full numerical column rank and positive residual df.
+
+The existing pinned Statrs Student-t implementation supplies critical values.
+It evaluates the lower tail `(1-confidence_level)/2`, avoiding an upper-tail
+probability that rounds to one, and checks survival-probability replay under the
+explicit relative tolerance. This check is not an independent quantile accuracy
+certificate. Independent SciPy references test residual df `1,4,9,29` and levels
+`0.90,0.95,0.99`; the downstream QR consumer checks all endpoints for the three
+unit-rescaled fixtures. Near-perfect fits, deficient rank, no coefficients/df,
+invalid policy, failed quantile replay, nonfinite/underflowed covariance or
+residual variance, and endpoints that overflow or collapse to the estimate are
+errors. No partial interval report is returned, and original numerical errors
+remain available through their typed source chain. Representation checks are
+conservative, not a full-range guarantee.
+
+A fixed-seed coverage smoke test uses Alea's native Normal sampler and public
+interval API: `4096` replications for each `(n,p)=(6,1),(12,2),(32,3)`, two levels
+`0.90,0.95`, and all coefficient margins. Its twelve predeclared checks use a
+Hoeffding/union-bound count allowance of about `143.72`, with family error budget
+`0.001`; failed fits stay in the planned denominator and must number zero.
+This familywise **test rule** does not make the returned intervals simultaneous.
+The initial run passes all twelve checks. This is scoped finite-precision/RNG
+evidence, not proof of general numerical coverage, arbitrary conditioning or
+validity after data-dependent model selection. Reproduce it with:
+
+```sh
+nix develop .#stable --command cargo test \
+  --manifest-path tools/downstream-conformance/Cargo.toml \
+  --features faer --test gaussian_intervals --release --locked -- --nocapture
+```
+
+## Run a fixed-effect Gaussian workflow
+
+The public-API consumer
+[`gaussian_workflow.rs`](../tools/downstream-conformance/src/gaussian_workflow.rs)
+connects native batch likelihood fitting, the separate coefficient-interval
+estimator above, new-data point forecasts and point-fit export. It is a small
+fixed-effect example, not qualification of Gaussian hierarchies or all regression
+applications. It adds no distribution, gradient, optimizer or inference API.
+Run its six planned cases through the independent standard-library Python reader:
+
+```sh
+nix develop .#stable --command bash -euo pipefail -c '
+  cargo run --quiet --manifest-path tools/downstream-conformance/Cargo.toml \
+    --features faer --example gaussian_workflow --locked -- all |
+    python3 tools/downstream-conformance/python/gaussian_workflow.py
+'
+```
+
+For a single case, replace `all` with its name and add `--case NAME` to the reader.
+Each output line is an existing standalone `alea-fit` version-1 report. Its caller
+assessment uses `gaussian-workflow` version 1; the generic fit schema is unchanged.
+The fixture contains six observations, an explicit intercept and slope column,
+known offsets and an estimated positive sigma. Native optimization selects the
+likelihood objective without a density Jacobian or priors. Provenance labels
+identify this fixture/version; they are not cryptographic content hashes.
+
+Three results remain deliberately separate:
+
+- The native result retains its termination, counters, last valid candidate and
+  original evaluation-error chain. Small score alone is not an existence,
+  uniqueness or uncertainty certificate.
+- Marginal coefficient intervals belong to a **separate fixed-design OLS fit**
+  under the preceding assumptions. They can remain available after native budget
+  exhaustion, cancellation or initial evaluation failure. They never replace the
+  native candidate or turn its failure into a successful native fit. The ML
+  scale uses `RSS/n`; coefficient covariance uses `RSS/(n-p)`.
+- New-data forecasts are labelled `plug_in_conditional_mean`, not posterior
+  predictions or prediction intervals. This example requires native score
+  termination, admitted OLS intervals and agreement of physical coefficients and
+  ML sigma with the OLS reference under the declared `1e-5*(1+abs(reference))`
+  tolerance. Otherwise all three planned forecast rows remain present with null
+  means. This conservative application policy is not a general forecast API or
+  proof of optimizer convergence.
+
+The planned controls are `qualified`, `budget`, `cancelled`, `initial_transform`,
+`rank_deficient` and `perfect_fit`. In the checked run, both the qualified and
+rank-deficient fits reach score tolerance, but only the qualified fit passes the
+reference/interval policy. Rank deficiency therefore does not silently become
+qualified uncertainty. The perfect-fit likelihood is unbounded as sigma tends
+to zero; the native run retains its last valid candidate and subsequent transform
+boundary error. No scale floor, dropped column, prior or repaired initialization
+is introduced. Error-chain strings are caller evidence, not portable typed-error
+serialization. Do not rely on exact optimizer trajectories for other fixtures.
+
+The reader independently checks the dyadic fixture using exact rational algebra,
+saved SciPy Student-t critical values, physical/free-coordinate alignment,
+normalized likelihood, ML-versus-residual scale, interval endpoints and new-data
+alignment. It rejects missing/duplicate cases, fabricated intervals, suppressed
+failure evidence, posterior relabelling, blank/truncated JSON lines and unqualified
+forecasts. Native integration tests exercise the real producer; Python mutation
+tests exercise malformed reports. A failed write leaves an unusable partial
+report: discard it rather than treating a valid prefix as completed output.
+This downstream correctness gate supplies no new timing, ESS or Stan comparison.
+
+## Run a native logistic/Poisson point-fit workflow
+
+The checkout [GLM workflow](../tools/downstream-conformance/src/glm_workflow.rs)
+connects the public native batch factors, likelihood optimization, named
+finite-attainment/rank evidence, conditional means and `alea-fit` export. It uses
+two independent real coefficients with fixed design/offsets and no priors,
+weights, penalties or coefficient constraints. It does not implement a density,
+gradient, optimizer or sampler. Reproduce all sixteen planned family/case pairs:
+
+```sh
+nix develop .#stable --command bash -euo pipefail -c '
+  cargo run --quiet --manifest-path tools/downstream-conformance/Cargo.toml \
+    --features faer --example glm_workflow --release --locked |
+    python3 tools/downstream-conformance/python/glm_workflow.py
+'
+```
+
+To inspect one pair, append e.g. `-- poisson zero_no_intercept` to the Rust command
+and `--family poisson --case zero_no_intercept` to the reader. Faer supplies the
+existing SVD rank assessment; the likelihoods and optimizer remain Alea's native
+implementations. Each JSON line is a standalone version-1 point-fit report with
+caller `glm-workflow` version-1 evidence, not a new production inference schema.
+
+The ordinary fixture has two groups of four rows with design columns `[1,g]`.
+Logistic responses have one then three successes, with offsets `0.25` and `-0.5`.
+The independent saturated-group solution is
+`beta0=log(1/3)-0.25`, `beta1=2*log(3)+0.75`. Poisson counts sum to four then eight;
+exposures are two then one half, supplied as **log exposures**, not exposures.
+The per-unit fitted rates are therefore `0.5` and `4`, with coefficients
+`beta0=-log(2)`, `beta1=log(8)`. Predicted expected counts include the new row's
+exposure; they are not per-unit rates unless that exposure is one.
+
+Every family runs every control, retaining its numerical outcome:
+
+| Case | Separate application outcome in the checked run |
+|---|---|
+| `qualified` | Score termination, finite maximum, numerical full rank; point forecasts available |
+| `zero_no_intercept` | All-zero responses but finite maximum and full rank; point forecasts available |
+| `budget` | Evaluation budget exhausted; initial candidate retained, forecasts withheld |
+| `cancelled` | No candidate; no invented successful fit |
+| `evaluation_failure` | Original evaluation-error chain, no candidate; forecasts withheld |
+| `rank_deficient` | Finite maximum and small numerical score, but nonidentified coefficients |
+| `boundary` | Small numerical score, yet an exact improving ray proves no finite maximum |
+| `unresolved` | Exact search budget exhausted; existence remains unresolved despite the small score |
+
+The no-intercept control supplies opposing feature rows `[1,0]`, `[-1,0]`,
+`[0,1]`, `[0,-1]`; no column is an intercept. At all-zero responses, both families
+have their finite unique maximum at zero coefficients. This deliberately checks
+that zero outcomes alone do not diagnose a nonexistent estimator. In contrast,
+the boundary fixture retains its intercept and has separated binary responses or
+zero Poisson counts. The native exact-cone result, not the response label or
+optimizer termination, distinguishes these geometries.
+
+The reader checks the full planned cohort, normalized likelihood values,
+independent analytic coefficients, offset orientation, typed responses and three
+aligned new-data rows. Recession directions are exported as exact decimal integer
+strings and independently replayed using rational arithmetic; they never round
+through `f64`. Model-level density/central-difference score tests are separate from
+the optimizer checks. Mutation tests reject fabricated uncertainty, promoted
+failures, false witnesses, changed offsets/policies and missing/duplicate/partial
+reports. Deterministic replay is checked within the same build, not promised
+across versions or CPUs. Evaluation-error strings are caller evidence, not
+portable typed-error serialization; export failures retain their original errors.
+
+Forecast admission requires finite-attainment evidence, full numerical rank under
+the declared `1e-12` cutoff, and native score termination under the `1e-6` policy.
+This is an explicit application policy, not a generic interpretation of an
+arbitrary `NamedFit`. Forecasts are **plug-in conditional means**, not posterior
+draws or prediction intervals. All planned forecast rows remain present with null
+means when admission fails. The original candidate, counters and termination are
+never replaced by the analytic reference or a repaired model.
+
+Uncertainty is explicitly `not_computed`: this workflow supplies no explicit
+likelihood HVP to the checked observed-information API. It does not repurpose
+L-BFGS history as covariance, silently finite-difference a Hessian, or advertise
+Wald coverage. The native batch factors now provide source rules, but this
+workflow still supplies no explicit derivative backend for that next uncertainty
+step. These small point-fit fixtures do not complete general GLM application or
+four-family qualification. No timing, ESS/second or Stan speed claim follows.
+
 ## Check estimator existence separately
+
+### Typed observation maps and reusable data
+
+For supported fixed-design models, describe the affine map, law and reduction
+without choosing a CPU kernel:
+
+```rust
+use alea::{distributions::modeling::regression::RegressionData,
+           model::assembly::ModelBuilder};
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+let mut builder = ModelBuilder::new();
+let beta = builder.real_vector("beta", &["intercept", "slope"])?;
+let data = RegressionData::new(2, vec![1.0, -1.0, 1.0, 1.0], vec![false, true])?;
+let map = data.clone().linear_map(beta.expressions())?.bernoulli_logit()?;
+let likelihood = map.sum_log_prob(&mut builder)?;
+builder.likelihood("responses", likelihood)?;
+let model = builder.compile()?;
+assert_eq!(model.expression_count(), 3); // Two coefficients and one native batch.
+let replacement = data.with_observations(vec![true, false])?;
+assert_eq!(replacement.design(), data.design());
+# Ok(()) }
+```
+
+The typed map retains the existing native descriptor and selects its normal,
+Bernoulli-logit or Poisson-log kernel on reduction. It is not an optimizer that
+recognizes arbitrary scalar/tensor graphs, nor a transformation of Rust closures.
+`plate` still expands scalar factors. No independence or prior is inferred.
+
+Regression clones and `with_observations` share immutable predictor packs once
+prepared. Offsets and dispatch remain per binding; standardized designs get a
+fresh pack. Mutable score storage remains execution-local. Native row rules use
+specialized empty derivative scratch rather than a second coefficient buffer.
+These are ownership/allocation changes, not a measured wall-time speed claim.
+
+### Native GLM curvature
+
+`GlmLikelihood::bernoulli_logit(data)` and `GlmLikelihood::poisson_log(data)`
+provide explicit likelihood targets on real coefficients in design-column order.
+Their value/score calls delegate the existing native batch kernels. Potential
+HVPs compute `Xᵀ W X v`, reusing prepared predictors, compensated scores and CPU
+dispatch. They admit the native value/score first, even for a zero direction;
+overflow/errors never become a plausible zero HVP. Successful retained calls
+reuse scratch; outputs publish only after complete admission.
+
+Fit and call `optimize::information::observed_information` with the **same**
+target. Its exact replay check remains unchanged. The facade-only
+`tools/downstream-conformance/tests/native_verticals.rs` exercises native fitting,
+analytic reference covariance and explicit fit export for both families.
+This standalone capability does not add HVPs to arbitrary composed graphs,
+transformed coefficients, priors or nonlinear predictors. Finite attained MLE,
+rank, regularity and interval coverage require separate qualification; the
+older sixteen-case GLM workflow deliberately retains its uncomputed-uncertainty
+status rather than being relabeled by the new bounded consumer.
 
 Numerical convergence and existence of an estimator answer different questions.
 For example, a separated logistic model can produce a rounded zero score at a

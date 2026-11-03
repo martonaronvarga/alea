@@ -199,3 +199,117 @@ trials neither representation met that tolerance; those six failed searches rema
 recorded and have no qualified fitting-speed ratio. This is posterior-mode timing
 in explicitly declared sampled coordinates, not a NUTS efficiency or cross-engine
 performance comparison. Three repetitions on one host are not a speed guarantee.
+
+## Qualify an unknown-scale Gaussian hierarchy
+
+The checkout example
+[`gaussian_hierarchy`](../tools/downstream-conformance/examples/gaussian_hierarchy.rs)
+connects model assembly, session NUTS, four-chain diagnostics, existing/new-group
+simulation and sampling-artifact export. Its
+[shared consumer module](../tools/downstream-conformance/src/gaussian_hierarchy.rs)
+uses existing public Alea APIs, not handwritten distributions, gradients or NUTS.
+Unlike the [fixed-effect ML workflow](modeling.md#run-a-fixed-effect-gaussian-workflow),
+this is Bayesian inference with an estimated between-group scale:
+
+```text
+mu       ~ Normal(0, 1)
+tau      ~ HalfNormal(0, 1)
+z[g]     ~ Normal(0, 1)
+theta[g]  = mu + tau*z[g]
+y[g, i]  ~ Normal(theta[g], 1)
+```
+
+The two observed groups are `[-1,-0.5,0]` and `[0.5,1,1.5]`. The residual
+standard deviation is fixed at one; `tau` is not fixed. A positive parameter
+transform supplies `tau=exp(q_tau)` and exactly one log-Jacobian term `q_tau`
+in the sampling target. The native Normal prior plus `log(2)` supplies its
+normalized half-normal prior. Model-level tests check the normalized density and
+scores against independent formulas and central differences, separately from
+sampling. This is not joint-random-effects MLE, marginal mixed-model ML or REML.
+
+Reproduce the complete application check with:
+
+```sh
+nix develop .#stable --command bash -euo pipefail -c '
+  cargo run --quiet --manifest-path tools/downstream-conformance/Cargo.toml \
+    --example gaussian_hierarchy --release --locked -- complete |
+    python3 tools/downstream-conformance/python/gaussian_hierarchy.py
+'
+```
+
+Replace `complete` with `cancelled` or `initial_transform` for the empty-chain
+controls. Each retains all four planned chains and their actual status/error
+chains without fabricating posterior summaries. The initial-failure control uses
+`q_tau=-1000`, preserving the original transform-boundary error rather than
+repairing the initialization. Completed valid draws survive any subsequent native
+failure in the producer's artifact; the qualification reader rejects incomplete
+successful-case cohorts instead of selecting only successful chains.
+
+The bundle embeds the existing version-2 sampling manifest and exact UTF-8 CSV
+bytes, with their SHA-256 digest, alongside the session plan, native chain outcomes,
+adapted step sizes and full-retained-window diagnostics. The shared Python reader
+checks the same schema/digest/records from a seekable stream or files. The outer
+`gaussian-hierarchy-workflow` version-1 wrapper is a checkout qualification format,
+not a new production inference/restart format. Provenance labels identify the
+fixture/version; they are not verified source hashes. Preserve the original
+producer output if a later qualification step fails. Partial output is not valid.
+
+### Existing groups are not new groups
+
+An existing-group replication uses its fitted `theta[g]`. A new group requires a
+fresh standard-normal effect at each posterior draw. Two observations from the
+**same** new group share that effect but have independent observation noise; a
+different new group receives another independent effect. This follows the
+distinction between conditional and mixed replication in the
+[Stan guide](https://mc-stan.org/docs/stan-users-guide/posterior-predictive-checks.html#mixed-predictive-replication-for-hierarchical-models).
+These generated quantities are not plug-in ML forecasts. The two exported
+pointwise likelihood units condition on existing fitted effects; the exporter
+does not reinterpret them as integrated new-group predictive densities.
+
+The reader checks this joint behavior, not only predictive means. Conditional on
+one posterior draw, squared differences between same-new-group observations
+have expectation `2`; differences between different-new-group observations have
+expectation `2*(1+tau²)`. Reusing an existing fitted effect, resampling a separate
+effect for every same-group observation, or reusing observation noise changes
+these reference moments. Simulation uses Alea's native Normal sampler and a
+prediction RNG stream separate from inference.
+
+### Independent reference and fixed gates
+
+At a fixed physical `tau`, let `V=tau²+1/3`. After integrating `mu` and both group
+effects, the two group means have covariance `V*I + 11'`. The unnormalized marginal
+posterior weight is
+
+```text
+exp(-0.5 * (tau² + 1.25/V - 0.25/(V*(V+2)))) / sqrt(V*(V+2)), tau >= 0.
+```
+
+Conditional Gaussian algebra gives moments of `mu` and `theta`; the independent
+standard-library Python oracle integrates only physical `tau`, without a log-scale
+Jacobian in that integral. Composite Simpson integration doubles from 6,144 to
+12,288 panels on `[0,12]` and extends to 20,480 panels on `[0,20]`. All 15 normalized
+reference moments must agree within `1e-9`. This is a refinement/domain-extension
+check, not a rigorous integration-error bound or an independent sampler.
+
+The protocol fixes four dispersed initial states, session seed `[83;32]`, 1,000
+warmup and 2,000 retained draws per chain, initial step `0.1`, depth limit `8`,
+diagonal covariance adaptation, target acceptance `0.9`, and no step-size search.
+Prediction seeds are `83001+chain`. Before the first run, the gates were fixed to
+R-hat below `1.05`, bulk/tail/raw-mean ESS above `200` for all 15 observables,
+reference-moment error below six estimated MCSEs, no retained numerical rejections,
+and at most 1% retained divergences and depth saturation. The reader independently
+replays means and MCSEs from every exported draw; native diagnostic implementations
+have separate reference tests. Gates and seeds are not searched after a failure.
+The native session status is reported separately; passing these application gates
+does not overwrite a native diagnostic warning (which may use stricter transition
+gates or other observables).
+
+The checked run retains all 8,000 draws, with zero retained divergences/depth
+saturation, maximum R-hat `1.00193`, minimum bulk/tail ESS about `2367`/`1770`, and
+maximum reference discrepancy `1.62` estimated MCSEs. Debug and release replay are
+checked separately. Finite-chain diagnostics and estimated-MCSE gates are scoped
+evidence, not a coverage guarantee or proof that all posterior modes were found.
+This small, two-group, noncentered, fixed-residual-scale example does not resolve
+the centered-eight-schools stress case, unknown residual-scale hierarchies, general
+group counts/designs or the whole four-family application cohort. It supplies no
+Stan timing comparison, ESS/second claim or production method-maturity promotion.
