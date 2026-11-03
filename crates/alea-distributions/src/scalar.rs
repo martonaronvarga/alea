@@ -20,6 +20,59 @@ pub use links::*;
 pub use ordinal::*;
 
 const LN_TAU: f64 = 1.8378770664093453;
+
+#[inline]
+fn normal_logp(z: f64, scale: f64) -> f64 {
+    -0.5 * z * z - scale.ln() - 0.5 * LN_TAU
+}
+
+#[cfg(test)]
+mod normal_fusion_tests {
+    use super::*;
+    #[test]
+    fn assembled_normal_shares_scores_without_changing_bits_or_error_order() {
+        for mu in [-f64::MAX, -0.2, 0., 1e150, f64::MAX] {
+            for sigma in [
+                f64::from_bits(1),
+                f64::MIN_POSITIVE,
+                1e-154,
+                1.,
+                1e154,
+                f64::MAX,
+            ] {
+                let law = Normal::new(mu, sigma).unwrap();
+                for x in [
+                    f64::NEG_INFINITY,
+                    f64::INFINITY,
+                    f64::NAN,
+                    -f64::MAX,
+                    -1e154,
+                    -0.2,
+                    0.,
+                    1.,
+                    1e154,
+                    f64::MAX,
+                ] {
+                    let expected = (|| {
+                        let v = law.log_prob(&x)?;
+                        let event = law.event_score(x)?;
+                        let mut parameters = [0.; 2];
+                        law.parameter_score(&x, &mut parameters)?;
+                        Ok::<_, E>((v, [event, parameters[0], parameters[1]]))
+                    })();
+                    match (law.log_prob_event_parameter_scores(x), expected) {
+                        (Ok((v, g)), Ok((w, h))) => {
+                            assert_eq!(v.to_bits(), w.to_bits());
+                            assert_eq!(g.map(f64::to_bits), h.map(f64::to_bits));
+                        }
+                        (Err(a), Err(b)) => assert_eq!(a, b),
+                        (a, b) => panic!("mu={mu},sigma={sigma},x={x}: {a:?} != {b:?}"),
+                    }
+                }
+            }
+        }
+    }
+}
 pub(crate) fn positive(x: f64, name: &'static str) -> Result<f64, E> {
     if x.is_finite() && x > 0.0 {
         Ok(x)
@@ -113,7 +166,7 @@ impl Scalar {
         let value = match law {
             Law::Normal => {
                 let z = (x - a) / b;
-                -0.5 * z * z - b.ln() - 0.5 * LN_TAU
+                normal_logp(z, b)
             }
             Law::Student => {
                 if x.is_infinite() {
@@ -308,6 +361,27 @@ continuous!(
     Real,
     "Normalized Normal; parameter score order: location, positive scale."
 );
+impl Normal {
+    /// Native assembly needs all three scores, not two independent evaluations
+    /// of the same score kernel. Keep the existing law and its error ordering.
+    pub(crate) fn log_prob_event_parameter_scores(&self, x: f64) -> Result<(f64, [f64; 3]), E> {
+        if x.is_nan() {
+            return Err(E::Observation);
+        }
+        let z = (x - self.0.a) / self.0.b;
+        let value = checked(normal_logp(z, self.0.b))?;
+        // Match standalone density-then-score error ordering, including infinite
+        // observations. The standardized residual is shared, not recomputed.
+        if !x.is_finite() {
+            return Err(E::Observation);
+        }
+        let gradients = [-z / self.0.b, z / self.0.b, (z * z - 1.) / self.0.b];
+        if gradients.iter().any(|g| !g.is_finite()) {
+            return Err(E::Numerical);
+        }
+        Ok((value, gradients))
+    }
+}
 continuous!(
     StudentT,
     Real,

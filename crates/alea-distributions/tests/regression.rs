@@ -94,6 +94,114 @@ fn evaluate(m: &ComposedObjective<CompiledModel>, q: &[f64]) -> (f64, Vec<f64>) 
     let mut g = vec![0.; q.len()];
     (m.logp_grad(q, &mut g).unwrap(), g)
 }
+
+#[test]
+fn tiled_models_match_single_row_factors_and_finite_differences() {
+    for n in [4, 5, 8, 17] {
+        for p in [0, 1, 3, 8, 9] {
+            for logistic in [false, true] {
+                let build = |chunk: usize| {
+                    let mut b = ModelBuilder::new();
+                    let beta: Vec<_> = (0..p)
+                        .map(|j| b.real(&format!("b{j}")).unwrap().expr())
+                        .collect();
+                    let sigma = b.positive("sigma").unwrap();
+                    let design: Vec<_> = (0..n * p)
+                        .map(|i| if p == 1 { 1. } else { (i as f64 / 7.).sin() })
+                        .collect();
+                    for start in (0..n).step_by(chunk) {
+                        let end = (start + chunk).min(n);
+                        let matrix = design[start * p..end * p].to_vec();
+                        let f = if logistic {
+                            bernoulli_logit_regression(
+                                &mut b,
+                                &beta,
+                                RegressionData::new(
+                                    p,
+                                    matrix,
+                                    (start..end).map(|i| i % 3 == 0).collect(),
+                                )
+                                .unwrap(),
+                            )
+                        } else {
+                            normal_regression(
+                                &mut b,
+                                &beta,
+                                &sigma,
+                                RegressionData::new(
+                                    p,
+                                    matrix,
+                                    (start..end).map(|i| (i as f64).cos()).collect(),
+                                )
+                                .unwrap(),
+                            )
+                        }
+                        .unwrap();
+                        b.likelihood(&format!("rows{start}"), f).unwrap();
+                    }
+                    b.compile()
+                        .unwrap()
+                        .select_likelihood()
+                        .unwrap()
+                        .into_objective()
+                        .unwrap()
+                };
+                let batch = build(n);
+                let rows = build(1);
+                let mut q = vec![0.2; p];
+                q.push(0.1);
+                let (expected, expected_gradient) = evaluate(&batch, &q);
+                let mut gradient = vec![0.; p + 1];
+                let allocations = allocation_counter::measure(|| {
+                    for _ in 0..8 {
+                        assert_eq!(
+                            batch.logp_grad(&q, &mut gradient).unwrap().to_bits(),
+                            expected.to_bits()
+                        );
+                        assert_eq!(gradient, expected_gradient);
+                    }
+                });
+                assert_eq!(allocations.count_total, 0);
+                if p > 0 {
+                    let mut invalid = vec![f64::MAX; p];
+                    invalid.push(0.1);
+                    gradient.fill(17.);
+                    assert!(batch.logp_grad(&invalid, &mut gradient).is_err());
+                    assert!(gradient.iter().all(|x| *x == 17.));
+                    assert_eq!(
+                        batch.logp_grad(&q, &mut gradient).unwrap().to_bits(),
+                        expected.to_bits()
+                    );
+                    assert_eq!(gradient, expected_gradient);
+                }
+                for coordinate in [0.2, -30., 40., -745.] {
+                    let mut q = vec![coordinate; p];
+                    q.push(0.1);
+                    let (v, g) = evaluate(&batch, &q);
+                    let (w, h) = evaluate(&rows, &q);
+                    assert!(
+                        (v - w).abs() < 2e-12 * (1. + v.abs()),
+                        "n={n},p={p},logistic={logistic}"
+                    );
+                    for (a, b) in g.iter().zip(h) {
+                        assert!((a - b).abs() < 2e-12 * (1. + a.abs()));
+                    }
+                    if coordinate == 0.2 {
+                        for j in 0..q.len() {
+                            let mut plus = q.clone();
+                            let mut minus = q.clone();
+                            plus[j] += 1e-5;
+                            minus[j] -= 1e-5;
+                            let fd =
+                                (evaluate(&batch, &plus).0 - evaluate(&batch, &minus).0) / 2e-5;
+                            assert!((g[j] - fd).abs() < 2e-7 * (1. + g[j].abs()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 #[test]
 fn all_families_match_scalar_assembly_chunks_and_independent_finite_differences() {
     for family in 0..3 {

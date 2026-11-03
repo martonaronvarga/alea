@@ -10,6 +10,7 @@ use rand::Rng;
 #[must_use]
 pub struct FiniteMixture<D> {
     weights: Vec<f64>,
+    log_weights: Vec<f64>,
     components: Vec<D>,
     selector: Categorical,
 }
@@ -28,11 +29,63 @@ impl<D: Distribution> FiniteMixture<D> {
             return Err(E::Shape);
         }
         let selector = Categorical::new(weights.clone())?;
+        let log_weights = weights.iter().map(|w| w.ln()).collect();
         Ok(Self {
             weights,
+            log_weights,
             components,
             selector,
         })
+    }
+    fn log_prob_terms(&self, x: &D::Event, terms: &mut [f64; 32]) -> Result<f64, D::Error> {
+        let mut max = f64::NEG_INFINITY;
+        // A bounded stack cache avoids evaluating ordinary small mixtures twice,
+        // without heap allocation, a shared lock, or removing D's Sync property.
+        // Large mixtures retain the exact two-pass reduction, reusing this prefix.
+        for (i, ((w, log_w), d)) in self
+            .weights
+            .iter()
+            .zip(&self.log_weights)
+            .zip(&self.components)
+            .enumerate()
+        {
+            if *w > 0.0 {
+                let logp = d.log_prob(x)?;
+                if logp.is_nan() {
+                    return Err(E::Numerical.into());
+                }
+                let term = log_w + logp;
+                if let Some(slot) = terms.get_mut(i) {
+                    *slot = term;
+                }
+                max = max.max(term);
+            }
+        }
+        if max.is_infinite() {
+            return Ok(max);
+        }
+        let mut sum = 0.0;
+        for (i, ((w, log_w), d)) in self
+            .weights
+            .iter()
+            .zip(&self.log_weights)
+            .zip(&self.components)
+            .enumerate()
+        {
+            if *w > 0.0 {
+                let term = if let Some(term) = terms.get(i) {
+                    *term
+                } else {
+                    let logp = d.log_prob(x)?;
+                    if logp.is_nan() {
+                        return Err(E::Numerical.into());
+                    }
+                    log_w + logp
+                };
+                sum += (term - max).exp();
+            }
+        }
+        Ok(max + sum.ln())
     }
 }
 impl<D: Distribution> Distribution for FiniteMixture<D> {
@@ -53,42 +106,30 @@ impl<D: Distribution> Distribution for FiniteMixture<D> {
         self.components[0].reference_measure()
     }
     fn log_prob(&self, x: &Self::Event) -> Result<f64, D::Error> {
-        let mut max = f64::NEG_INFINITY;
-        for (w, d) in self.weights.iter().zip(&self.components) {
-            if *w > 0.0 {
-                let logp = d.log_prob(x)?;
-                if logp.is_nan() {
-                    return Err(E::Numerical.into());
-                }
-                max = max.max(w.ln() + logp);
-            }
-        }
-        if max.is_infinite() {
-            return Ok(max);
-        }
-        let mut sum = 0.0;
-        for (w, d) in self.weights.iter().zip(&self.components) {
-            if *w > 0.0 {
-                let logp = d.log_prob(x)?;
-                if logp.is_nan() {
-                    return Err(E::Numerical.into());
-                }
-                sum += (w.ln() + logp - max).exp();
-            }
-        }
-        Ok(max + sum.ln())
+        self.log_prob_terms(x, &mut [0.; 32])
     }
 }
 impl<D: ScalarEventScore> ScalarEventScore for FiniteMixture<D> {
     fn event_score(&self, x: f64) -> Result<f64, D::Error> {
-        let logp = self.log_prob(&x)?;
+        let mut terms = [0.; 32];
+        let logp = self.log_prob_terms(&x, &mut terms)?;
         if !logp.is_finite() {
             return Err(E::Numerical.into());
         }
         let mut value = 0.0;
-        for (w, d) in self.weights.iter().zip(&self.components) {
+        for (i, ((w, log_w), d)) in self
+            .weights
+            .iter()
+            .zip(&self.log_weights)
+            .zip(&self.components)
+            .enumerate()
+        {
             if *w > 0.0 {
-                let r = (w.ln() + d.log_prob(&x)? - logp).exp();
+                let term = match terms.get(i) {
+                    Some(term) => *term,
+                    None => log_w + d.log_prob(&x)?,
+                };
+                let r = (term - logp).exp();
                 if r > 0.0 {
                     value += r * d.event_score(x)?;
                 }
@@ -125,7 +166,8 @@ impl<D: ParameterScore> ParameterScore for FiniteMixture<D> {
         if self.weights.contains(&0.0) {
             return Err(E::Observation.into());
         }
-        let logp = self.log_prob(event)?;
+        let mut terms = [0.; 32];
+        let logp = self.log_prob_terms(event, &mut terms)?;
         if !logp.is_finite() {
             return Err(E::Numerical.into());
         }
@@ -134,7 +176,11 @@ impl<D: ParameterScore> ParameterScore for FiniteMixture<D> {
         for (i, (weight, component)) in self.weights.iter().zip(&self.components).enumerate() {
             let n = component.parameter_count();
             if *weight > 0.0 {
-                let responsibility = (weight.ln() + component.log_prob(event)? - logp).exp();
+                let term = match terms.get(i) {
+                    Some(term) => *term,
+                    None => self.log_weights[i] + component.log_prob(event)?,
+                };
+                let responsibility = (term - logp).exp();
                 output[i] = responsibility / weight;
                 if responsibility > 0.0 {
                     component.parameter_score(event, &mut output[offset..offset + n])?;

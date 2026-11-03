@@ -1,6 +1,7 @@
 //! Common probability laws and observation models.
 pub use crate::StandardNormalTarget;
 pub use crate::directional::{Bingham, UniformBall, UniformSphere};
+pub use crate::modeling::ModelBuilderExt;
 pub use crate::multivariate::{
     Categorical, Dirichlet, DirichletMultinomial, InverseWishart, Lkj, LkjCholesky, Multinomial,
     MultivariateNormal, MultivariateStudentT, Wishart,

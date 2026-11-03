@@ -21,6 +21,7 @@ workspace = true
 tracing = { workspace = true, optional = true }
 alea-core.workspace = true
 alea-math.workspace = true
+pulp.workspace = true
 alea-ffi.workspace = true
 rand.workspace = true
 thiserror.workspace = true
@@ -44,4 +45,12 @@ branch-hints = []
 
 [[bench]]
 name = "wiener7"
+harness = false
+
+[[bench]]
+name = "model_semantics"
+harness = false
+
+[[bench]]
+name = "regression_execution"
 harness = false

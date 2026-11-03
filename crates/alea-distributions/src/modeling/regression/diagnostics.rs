@@ -337,7 +337,10 @@ fn coordinate_screen(
 #[cfg(feature = "faer")]
 mod gaussian;
 #[cfg(feature = "faer")]
-pub use gaussian::{GaussianAssessment, GaussianIssue};
+pub use gaussian::{
+    GaussianAssessment, GaussianCoefficientIntervals, GaussianIntervalError,
+    GaussianIntervalOptions, GaussianIssue,
+};
 
 mod assessment;
 pub use assessment::*;

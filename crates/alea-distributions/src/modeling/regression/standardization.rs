@@ -180,6 +180,7 @@ impl<Y> RegressionData<Y> {
                 design: design.into(),
                 observations: Arc::clone(&self.observations),
                 offsets: Arc::clone(&self.offsets),
+                packed: Arc::new(std::sync::OnceLock::new()),
             },
             map: CoefficientStandardization {
                 intercept: intercept_column,

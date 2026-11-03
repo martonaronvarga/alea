@@ -1,13 +1,17 @@
 //! Distribution-backed factors for typed model assembly.
+mod builder;
+mod normal;
 pub mod regression;
 use crate::{
-    scalar::{Bernoulli, Normal},
+    scalar::Bernoulli,
     wiener::{Wiener4, Wiener4Params, WienerObservation, WienerOptions},
 };
 use alea_core::{
-    distribution::{Distribution, ParameterScore, ScalarEventScore},
-    model::assembly::{AssemblyError as E, Expr, ModelBuilder, Parameter, Positive},
+    distribution::{ParameterScore, ScalarEventScore},
+    model::assembly::{AssemblyError as E, Expr, ModelBuilder, Parameter, Positive, ScalarInput},
 };
+pub use builder::ModelBuilderExt;
+pub use normal::NormalFactor;
 fn error(e: impl std::error::Error + Send + Sync + 'static) -> E {
     E::Factor(Box::new(e))
 }
@@ -80,19 +84,12 @@ where
 /// Rejects foreign expressions; runtime parameters are checked by Normal.
 pub fn normal(
     builder: &mut ModelBuilder,
-    event: Expr,
-    location: Expr,
-    scale: Expr,
+    event: impl Into<ScalarInput>,
+    location: impl Into<ScalarInput>,
+    scale: impl Into<ScalarInput>,
 ) -> Result<Expr, E> {
-    builder.custom_with_primal(&[event, location, scale],
-        "if x[2] <= 0.0 { return f64::NAN; }\nlet z = (x[0] - x[1]) / x[2];\n-0.5 * z * z - x[2].ln() - 0.5 * ::std::f64::consts::TAU.ln()",
-        |x, g| {
-        let law = Normal::new(x[1], x[2]).map_err(error)?;
-        let value = law.log_prob(&x[0]).map_err(error)?;
-        g[0] = law.event_score(x[0]).map_err(error)?;
-        law.parameter_score(&x[0], &mut g[1..]).map_err(error)?;
-        Ok(value)
-    })
+    let [event, location, scale] = builder.inputs([event.into(), location.into(), scale.into()])?;
+    builder.primitive(NormalFactor::new(event, location, scale))
 }
 /// Convenience observation with a support-typed positive scale handle.
 /// # Errors
@@ -100,7 +97,7 @@ pub fn normal(
 pub fn normal_observation(
     builder: &mut ModelBuilder,
     event: f64,
-    location: Expr,
+    location: impl Into<ScalarInput>,
     scale: &Parameter<Positive>,
 ) -> Result<Expr, E> {
     let event = builder.constant(event)?;
@@ -110,7 +107,12 @@ pub fn normal_observation(
 /// never continuous model parameters.
 /// # Errors
 /// Rejects a foreign log-odds expression; runtime non-finite logits are errors.
-pub fn bernoulli_logit(builder: &mut ModelBuilder, event: bool, logit: Expr) -> Result<Expr, E> {
+pub fn bernoulli_logit(
+    builder: &mut ModelBuilder,
+    event: bool,
+    logit: impl Into<ScalarInput>,
+) -> Result<Expr, E> {
+    let logit = builder.expression(logit)?;
     let primal = if event {
         "let z = x[0]; if z >= 0.0 { -(-z).exp().ln_1p() } else { z - z.exp().ln_1p() }"
     } else {
