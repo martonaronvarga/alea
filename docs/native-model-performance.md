@@ -47,7 +47,7 @@ repair-only and coefficient-SIMD cohorts.
 
 `TransformError::PrecisionLoss` is defined in
 `crates/alea-core/src/error.rs`. All production cases are in
-`Transform::constrain_impl` (`transform.rs`) and `Transform::factor`
+`Transform::constrain_impl` (`transform/mod.rs`) and `Transform::factor`
 (`transform/matrix.rs`):
 
 | Transformation | Precision-loss condition |
@@ -1378,3 +1378,115 @@ all-target distributions Clippy and scoped formatting. Tests cover N=128/129/
 1,000/10,000, zero columns, scalar/Auto, exact offset/design eligibility, counts
 through 2^53, near-stationary cancellation, underflow/overflow, full normalizers,
 finite differences, transactional failures, allocations and consuming rebinding.
+
+## 15. Checking the November 3 source-level Stan assessment
+
+The assessment's central priority is sound: qualify and accelerate ordinary model
+composition before adding more samplers. Its performance hypotheses are not
+measurements, however, and several inventory statements need correction against
+the checkout. The [tensor follow-up](tensor-ir.md#dependency-safe-fusion-and-first-order-source-replay)
+records the new implementation and its remaining regressions separately.
+
+| Assessment claim | Evidence and correction |
+|---|---|
+| General scalar evaluation is interpreted | True for the native assembly/reverse plans. But `alea-autodiff/src/codegen.rs` and core `assembly/source.rs` already export AOT Rust for the public builder; compiled execution is not wholly absent. It requires source rules and the pinned compiler, not arbitrary Rust closures. |
+| Tensor fusion is missing | Partly superseded: dependency-safe pointwise DAG/reduction schedules now exist, with separate native/AOT selection. Dense intermediates and the original reverse order remain; generic reverse fusion, liveness allocation and tuned GEMM are still gaps. |
+| Numeric safeguards explain the Stan gap | A plausible contributor, not established by source inspection. Our fixed-work experiments demonstrate both useful large-DAG fusion and regressions in unrelated controls. Count evaluations and profile the same density before attributing a sampler wall-time ratio. |
+| Pathfinder should be added | Already present as `adapt::multi_pathfinder`, with bounded L-BFGS paths, ELBO selection, raw-mixture or explicit pathwise PSIS weighting and typed reports. `tests/pathfinder_robust.rs` exercises it. It is an S1 initialization service, not evidence of Stan-equivalent end-user approximate-inference maturity. |
+| Alea has only GPL licensing | Too broad. Six reusable inference crates are `MIT OR Apache-2.0`; the facade, distributions, FFI and CLI are GPL. See the package manifests and [licensing boundary](../LICENSING.md), including the actual linked dependency closure. |
+| No native Laplace/ADVI workflow was verified | Do not equate observed-information covariance or Pathfinder's local Gaussian with a qualified standalone Laplace/ADVI posterior workflow. Those remain distinct evidence/consumer gaps. |
+| Old seven-run wall times describe current performance | Incorrect. They predate the kernel/statistics changes and contain different Gaussian variance models. Current per-evaluation evidence and four-chain evidence are separate records above; neither establishes all-model Stan superiority. |
+| The historical `PrecisionLoss` failure is unverified today | The review did not run it, but section 2 already records the original seed/data excursion, nine row-prefix sizes, the classifier defect and recovery after the fix. `tests/native_numerical.rs` separately keeps transform/initialization errors typed while treating opted-in proposal failures as divergences. This is not blanket recovery for arbitrary backend errors. |
+| Numerical qualification remains a large gap | Correct as a broad production claim. Passing bounded graph/gradient/Enzyme fixtures does not establish arbitrary programs, all architectures, hard-posterior calibration or universal error bounds. |
+
+Stan 2.40 exposes a user-facing multipath Pathfinder workflow, whereas the local
+Alea implementation is explicitly an initialization service; this is a workflow
+and validation comparison, not an absent-algorithm comparison. See
+[CmdStan's Pathfinder configuration](https://mc-stan.org/docs/cmdstan-guide/pathfinder_config.html).
+Likewise, [Stan Math's matrix reverse kernels](https://github.com/stan-dev/math/blob/develop/stan/math/rev/fun/multiply.hpp)
+are a useful lowering reference, not proof that every Stan matrix expression
+becomes an optimally fused kernel. A moving `develop` URL is not a version pin.
+
+### Compiled execution without a new modeling language
+
+Build on the existing Rust exporter rather than introduce a second model API.
+Keep mathematical IR and backend scheduling separate: shapes, alias/index maps,
+chart measure, selected factors, lazy regions and primitive derivative rules
+belong to the former; blocking, dispatch, buffer reuse and source compilation to
+the latter. Lower large native factors as whole kernels; never scalarize a
+regression simply to pass it through a general tape. Opaque callbacks remain
+native or fail source capability admission explicitly.
+
+The next compiler gates are wider semantic-rule coverage and reliable
+higher-order composition, not just generating more Rust. First-order source
+checkpointing now uses explicit tensor VJPs and the existing native chart
+pullbacks. HVPs/third derivatives still use the qualified compiler-owned reverse
+path because differentiating the rematerialized pullback failed actual compiler
+tests. A cache key must include graph/factor selection, shapes, frozen data,
+charts, numerical policy and compiler/target identity. Data rebinding invalidates
+that source specialization; no live target is mutated behind a sampler cache.
+
+### Attribute the performance gap one layer at a time
+
+Use the same saved parameter probes and complete score checks for these pairs:
+
+| Pair | What it isolates |
+|---|---|
+| Direct native factor versus that factor registered in `ModelBuilder` | Factor dispatch, argument copies, chart and scalar reverse overhead |
+| Scalar observation assembly versus typed batch lowering | Per-observation graph/dispatch cost and whether the lowering recovers the existing kernel |
+| Tensor IR versus generated Rust for the same graph | Interpretation, intermediate traffic and compiler lowering; not a new probability law |
+| Value-only versus fused value/gradient, with identical admission | Reverse propagation and gradient-storage cost |
+| Retained versus replayed scan | Memory/work tradeoff, first/steady activity and replay overhead |
+| Fixed probe replay versus complete NUTS | Additional evaluation count, tree/adaptation/output costs and statistical efficiency |
+
+Collect CPU profiles and deterministic instruction counts separately from wall
+cohorts. Record allocation counts, construction and steady-state work; preserve
+controls and failures. Do not label changes in unchanged scalar controls as a
+new scalar algorithm. Do not remove compensation or finite admission to make
+two numerical policies look comparable.
+
+### A PosteriorDB comparison should be a qualified model registry
+
+This is the proposed extension, not a claim that a comprehensive suite was run
+in this increment. [PosteriorDB](https://github.com/stan-dev/posteriordb) associates
+model/data specifications with reference information where available; reference
+draws and their provenance must be checked per posterior, not assumed to exist
+for every entry. See its [database specification](https://github.com/stan-dev/posteriordb/blob/master/doc/DATABASE_CONTENT.md).
+
+Each registered case should pin the PosteriorDB revision, posterior/model/data
+IDs and bytes, notices, Alea commit, CmdStan/Stan Math/stanc and BridgeStan
+revisions, compiler flags, CPU/ISA/thread policy and all seeds. Keep the Alea
+public-builder model, the Stan source and an explicit constrained-coordinate
+mapping together. Start with GLMs, centered/noncentered hierarchies and covariance
+models; mark unsupported dynamical models as unsupported rather than silently
+substitute another posterior.
+
+Before timing, verify parameter ordering, dimensions, normalization constants,
+charts and Jacobians at ordinary, posterior and boundary probes. Compare every
+gradient coordinate with central finite differences and an independent Stan
+evaluation. [BridgeStan's density/gradient interface](https://roualdes.us/bridgestan/latest/languages/julia.html)
+exposes proportional-constant and Jacobian switches; choose them explicitly.
+Different charts require a density/gradient change of variables, not a raw
+comparison of unrelated unconstrained arrays. [CmdStan's gradient diagnostic](https://mc-stan.org/docs/cmdstan-guide/diagnose_config.html)
+is an additional check, not a proof over all support.
+
+Then measure two distinct protocols. Fixed-work replay compares construction,
+value/gradient throughput, allocations and instruction counts without a sampler.
+Repeated four-or-more-chain inference compares wall time, warmup/sample work,
+bulk/tail ESS/sec, rank-normalized split R-hat, energy diagnostics, divergences
+and depth saturation. Compare posterior summaries with reference uncertainty
+and MCSE, not draw-by-draw RNG equality. Use functionals appropriate to the
+posterior; a mean is not a suitable criterion when that moment does not exist.
+[Stan's posterior analysis guide](https://mc-stan.org/docs/reference-manual/analysis.html)
+describes the convergence/ESS distinction.
+
+Separate compilation, startup, construction/preparation, warmup, retained draws
+and serialization. Measure comparable persistence modes or report the CSV versus
+memory asymmetry explicitly. Report repeated-run medians and uncertainty with
+the chain/run as the replication unit; thousands of correlated draws are not
+thousands of timing replicates. Failed, statistically inadmissible and unsupported
+cases stay visible and are excluded from speed rankings, not from the registry.
+
+The acceptance milestone is broad correct composition with competitive measured
+throughput and ESS/sec. It is not a universal speed claim inferred from one
+Gaussian compression, source-code resemblance to Stan, or the presence of an IR.

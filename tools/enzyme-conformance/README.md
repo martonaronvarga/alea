@@ -26,3 +26,11 @@ fixed. The diagnostic-only `tensor-ad` feature has been removed; these checks
 are no longer opt-in. Arbitrary programs and statistical applications
 still require their own qualification. See
 [tensor contracts and limitations](../../docs/tensor-ir.md).
+
+Explicit checkpoint fixtures also exercise first-order segmented source VJPs,
+257-trip replay, mixed native priors/positive charts, matrix scores, empty selected
+errors and first-versus-steady derivative activity. `SOURCE_CHECKPOINTED` reports
+this first-order selection. HVPs/third derivatives retain the original compiler
+reverse: forward AD of the rematerialized reverse failed pinned-compiler tests.
+Do not infer higher-order tape bounds or a peak-memory win from source presence
+or a zero-allocation test; the retained small compiler fixture also allocates zero.

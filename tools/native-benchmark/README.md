@@ -80,6 +80,13 @@ harness and an explicitly archived API-only shim forwarding `checkpointed_scan`
 to retained `scan`; never substitute a new distribution or gradient. See the
 [checkpoint/kernel follow-up](../../docs/tensor-ir.md#checkpointed-scans-and-matrix-vector-kernels).
 
+`--suite tensor-fusion` retains all fourteen checkpoint controls and adds shared
+18-map pointwise DAGs at 1,000/10,000/100,000 elements. It requires identical
+harnesses and exact checksums, not only successful exits. Numerical equivalence
+is tested independently of these timing checksums. Preserve every control,
+regression and failed/missing job; do not rank only eligible fusion cases. See
+[fusion and source replay](../../docs/tensor-ir.md#dependency-safe-fusion-and-first-order-source-replay).
+
 `scripts/kernel_compare.py --suite sufficient-statistics` compares common-
 predictor Poisson batches with distinct-predictor Auto/Scalar controls at 1,000
 and 10,000 observations. Build saved before/after executables with identical

@@ -565,7 +565,8 @@ let end = builder.checkpointed_scan(initial, rows, &captures, body)?;
 ```
 
 This uses the same fixed-shape recurrence, error admission and pathwise VJP.
-It is not a new modeling language or a source-compiler checkpoint directive.
+It is not a new modeling language. The later source-replay increment below adds
+an explicit first-order source lowering; higher-order compiler tapes remain separate.
 [JAX's checkpointing guide](https://docs.jax.dev/en/latest/gradient-checkpointing.html)
 explains why scan bodies need explicit residual-storage policies.
 [Chen et al., 2016](https://arxiv.org/abs/1604.06174) provides the foundational
@@ -712,8 +713,10 @@ diagnostics while its executed tests pass; this does not establish arbitrary
 program/compiler correctness. No remote CI, all-feature/ISA matrix, full tensor
 statistical calibration or new inference/ESS/sec comparison was performed.
 
-General pointwise fusion, tuned multi-column GEMM/BLAS, GPU lowering, automatic
-global CPU scheduling and source-AD checkpoint placement remain unimplemented.
+At this increment, general pointwise fusion, tuned multi-column GEMM/BLAS, GPU
+lowering, automatic global CPU scheduling and source-AD checkpoint placement
+remained unimplemented. The follow-up below addresses pointwise scheduling and
+first-order source replay, not the other compiler/backend gaps.
 [MLIR Linalg](https://mlir.llvm.org/docs/Dialects/Linalg/) is a useful reference
 for dependency/index-map-aware fusion; it is not an Alea backend. This increment
 does not close those gaps or establish Stan/JAX inference or ESS/sec parity.
@@ -743,3 +746,176 @@ does not close those gaps or establish Stan/JAX inference or ESS/sec parity.
 6. Automatic reporting must apply an explicit mathematical decomposition, never
    invent one from names or tensor axes. Conditional rows, global study IDs and
    marginal leave-out units solve different problems.
+
+## Dependency-safe fusion and first-order source replay
+
+The November 3 follow-up separates two mechanisms which must not be conflated.
+
+### Fusion is an execution schedule, not a new density
+
+`model/tensor/fusion.rs::schedule` identifies contiguous, reachable pointwise
+DAGs with equal flat output extents and an optional terminal sum. Unary and
+binary nodes can share operands; external operands retain their static broadcast
+maps. An internal producer must be consumed at the same element index. Gather,
+reshape, matrix operations, constants and structured-region boundaries are
+barriers. Child regions compile their own schedules. This is not arbitrary
+callback analysis, distribution recognition, matrix-chain optimization or GPU/JIT.
+
+The native executor uses cache-sized blocks of 256 elements, restricted to at
+least four maps and 4,096 elements after the unconditional policy regressed the
+small controls. These are a measured conservative envelope on one host, not a
+universal cost model. Generated Rust uses one straight-line element loop per
+eligible group, independently of that native threshold. Both check every intermediate,
+including an overflowing exponential followed by its reciprocal: a finite final
+answer never legitimizes an invalid intermediate. Terminal sums retain original
+element order and compensation. There is no floating-point reassociation.
+
+Dense primal storage and the original reverse-node/operand accumulation order
+are retained. In particular, tiling a broadcast scalar's reverse accumulation
+would change its addition order. This increment does not fuse that reverse
+reduction, perform lifetime compaction, or claim zero intermediates. A smaller
+number of loops is not by itself a performance result.
+
+### Source checkpoints require an explicit reverse program
+
+The pinned Rust/Enzyme frontend has no supported rematerialization directive or
+general custom-VJP registry. See the
+[Rust frontend limitations](https://enzyme.mit.edu/rust/limitations.html) and
+[compiler AD flags](https://rustc-dev-guide.rust-lang.org/autodiff/flags.html).
+Neither outlining a function nor adding `inline(never)` proves that a reverse
+tape has bounded storage. Unsafe type-analysis relaxation is not a remedy.
+
+`tensor/pullback.rs` emits an explicit VJP for the tensor primitives. Its scan
+reverse stores boundary carries and replays segments of approximately sqrt(T)
+trips, retaining their input carries. First-trip and steady-state derivative
+activity are separate. Selected branches, repeated capture/row adjoints,
+zero trips, alias storage and independent failure status remain explicit.
+Nested regions recurse through the same lowering. Source generation freezes
+the binding; rebinding still requires regeneration.
+
+`assembly/source/checkpoint.rs` composes these tensor VJPs with the scalar graph.
+Other factors use their existing scalar source plus compiler reverse; no
+probability laws or analytic distribution scores are reimplemented. Parameter
+charts use the existing native `Transform::pullback` or
+`pullback_composition`, so Jacobians remain present exactly once for densities
+and absent for objectives. Every local factor score is admitted before graph
+propagation, even if its eventual scalar multiplier is zero.
+
+The generated `SOURCE_CHECKPOINTED` constant reports whether this explicit
+first-order path was selected. Its float-arena extent is checked, but is not a
+whole-process memory bound. Original input/output storage and dense tensor
+adjoints remain; opaque source factors can retain compiler-owned tapes. Replay
+also costs computation: the current model gradient can execute five body-primal
+passes per trip (model admission, VJP admission, boundary preparation, segment
+replay and local VJP admission). Nested replay can multiply that cost. This is a
+memory/work tradeoff, not a claimed inference speedup or optimal scheduler.
+
+### The higher-order compiler boundary is still open
+
+Actual forward-over-explicit-reverse compilation failed on the pinned compiler:
+first with an unresolved `enzyme_primal_return` global for nested reverse
+helpers, then with an `Illegal updateAnalysis` pointer/integer type conflict for
+the rematerialized program. Reusing native chart pullbacks avoids duplicated
+mathematics, but does not make that compiler failure disappear.
+
+Consequently **HVPs and third derivatives retain the original qualified compiler
+reverse**. They are not source-checkpointed. Their values remain covered by the
+independent quadratic/recurrence fixtures, including zero directions and both
+branches. Do not describe general higher-order source checkpointing as finished.
+The existing nested-control `freeing without malloc` compiler diagnostics also
+remain visible; passing selected tests is not arbitrary-program qualification.
+
+The source fixtures additionally exercise 257-trip replay, a native Normal prior
+composed with a squared tensor factor and positive chart, objective Jacobian
+exclusion, matrix scores, empty selected errors and recovery. Pure 257-trip
+first-order execution allocates no heap memory. The retained compiler fixture
+also allocates no heap memory on this compiler, so that observation alone does
+not establish a measured peak-memory improvement.
+
+### Fixed-work performance qualification
+
+The final boxed-schedule candidate was compared with the original `07c99a2`
+checkpoint tree (also exactly reproduced by the scoped reconstruction ending
+at `bce2d91`). Both builds use the identical current `kernel_audit.rs` harness;
+the baseline overlay changes only that harness, not a distribution, derivative
+or scan implementation. The new shared-DAG case contains eighteen binary maps.
+All fourteen previous checkpoint controls remain.
+
+Seven alternating-order pairs per shape produced 238 successful jobs and
+119 exact-checksum-compatible pairs, with zero failed or unstarted jobs. Complete
+coordinate/error tests are separate from checksum-based timing admission.
+CPU affinity is logical CPU 2 on a shared x86-64 i5-8250U, one thread, Rust
+1.95.0/LLVM 22.1.2, generic release/fat LTO/one codegen unit. There were no own
+builds, tests, profiles or archive jobs during wall cohorts; clocks/SMT/other
+desktop activity were not isolated. Ranges below are observed paired ranges,
+not confidence intervals. Gain is before/after per pair, so its median is not
+necessarily the ratio of the two marginal medians.
+
+| Case | Elements/trips | Before µs/eval | After µs/eval | Paired gain median [range] |
+|---|---:|---:|---:|---:|
+| tensor | 1,000 | 6.289 | 6.251 | 1.004 [0.989, 1.023] |
+| tensor | 10,000 | 65.165 | 65.149 | 1.001 [0.989, 1.008] |
+| tensor_scalar | 1,000 | 22.118 | 20.339 | 1.094 [1.061, 1.133] |
+| tensor_scalar | 10,000 | 259.515 | 242.215 | 1.072 [1.049, 1.109] |
+| tensor_matmul | 1,000 | 47.114 | 47.336 | 0.994 [0.969, 1.001] |
+| tensor_matmul | 10,000 | 463.241 | 471.913 | 0.983 [0.914, 1.010] |
+| tensor_cond | 1,000 | 6.932 | 6.958 | 0.994 [0.973, 1.002] |
+| tensor_cond | 10,000 | 77.155 | 77.608 | 0.999 [0.987, 1.004] |
+| tensor_scan | 8 | 1.375 | 1.416 | 0.974 [0.941, 0.988] |
+| tensor_scan | 128 | 18.664 | 18.861 | 0.992 [0.950, 1.022] |
+| tensor_scan | 1,025 | 147.537 | 148.810 | 0.992 [0.968, 1.005] |
+| tensor_scan | 10,000 | 2173.226 | 2312.253 | 0.960 [0.915, 0.965] |
+| tensor_scan_checkpoint | 1,025 | 149.029 | 150.922 | 0.997 [0.965, 1.016] |
+| tensor_scan_checkpoint | 10,000 | 2226.093 | 2223.557 | 1.009 [0.996, 1.033] |
+| tensor_dag | 1,000 | 37.685 | 38.166 | 0.986 [0.969, 0.996] |
+| tensor_dag | 10,000 | 427.869 | 402.571 | 1.078 [1.039, 1.101] |
+| tensor_dag | 100,000 | 8455.446 | 6742.074 | 1.259 [1.230, 1.274] |
+
+Large-DAG throughput rose from about 118 to 148 fused value/gradient evaluations
+per second at 100,000 elements. At 10,000 it rose from about 2,337 to 2,484.
+This is an approximately 26% and 8% paired-median gain, not a Stan/JAX or ESS/sec
+result. Construction is separate: the 100,000-element DAG increased from
+1.599 to 1.735 ms, and the 10,000-trip retained scan from 6.621 to 6.680 ms.
+Dense workspace did not shrink.
+
+Do not omit the losses: the retained 10,000-trip scan's paired median is 0.960
+(about 4.2% greater latency), the eight-trip scan 0.974, the small DAG 0.986,
+and the large matvec 0.983. The unchanged scalar controls improve in this cohort,
+but no scalar algorithm changed; code layout/host variation is not an attributed
+optimization. This is not a regression-free or universally optimal planner.
+
+Callgrind on ten 100,000-element evaluations, including construction and the
+harness warm evaluation, records instructions increasing from 348,017,558 to
+361,487,285, while simulated D1 misses fall from 23,326,689 to 16,529,745.
+Last-level misses are essentially unchanged. This supports a cache-locality
+explanation rather than fewer arithmetic operations; simulated misses are not
+hardware-counter measurements or proof of a particular real cache's behavior.
+Instrumented timings are excluded from the wall cohort.
+
+The first unconditional candidate is retained as a rejected experiment: its
+large DAG won about 27%, but small scan/control latency regressed roughly 5–12%.
+Restricting native groups recovered short pointwise controls; selecting the
+interpreter once outside scan trips and boxing optional schedule metadata
+reduced, but did not eliminate, unrelated regressions. The intermediate
+selective, dispatch and plain-interpreter cohorts are retained too. Do not
+choose their stronger individual gains over the final whole-cohort numbers.
+
+Evidence capsule: `fusion-source-2026-11-03.t8QwOJ` under the maintainer's external
+`alea-inference-evidence` directory. It retains saved executables, manifests,
+all raw jobs/pair decisions/summaries, compiler failures, profiles and source
+archives. Final wall evidence is `paired-boxed/`, executable SHA-256
+`b01efb1b459c47f03b42e55ed1e4a9d1b71331ab4a85f3d5642aaaf963e25aad`;
+before is `200d272b000a2b03fbce9a90c144a408baefd565197f9f127f90bfeb26facf5d`.
+The measured candidate archive is
+`1252ed4fc185c6cdc131a81b37300df874a2c52b2a0c1aa89589cdfaef01f079`;
+baseline-plus-identical-harness archive is
+`f9cbeb81e41736aea738997e49a704b724df5306ac9eadfc501ed00be7208fbc`.
+These are local evidence identifiers, not a claim of independently published
+or freshly rerun Stan inference results.
+
+The engineering lesson is to qualify the abstraction boundary, not just the
+winning kernel. Shared optional metadata, iterator bounds, dispatch frequency,
+body activity and source-compiler tape ownership can outweigh removed tensor
+passes. Preserve arithmetic and failure admission, measure controls at every
+candidate, and report remaining losses rather than call a partial speedup
+general engine parity.
