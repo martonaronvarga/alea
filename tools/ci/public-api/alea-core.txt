@@ -837,6 +837,7 @@ pub fn alea_core::model::prediction::Predictions<T>::fmt(&self, f: &mut core::fm
 pub fn alea_core::model::prediction::posterior_predict<'a, T, E, R, F>(layout: &alea_core::transform::ParameterLayout, draws: impl core::iter::traits::collect::IntoIterator<Item = &'a [f64]>, rng: &mut R, generate: F) -> core::result::Result<alea_core::model::prediction::Predictions<T>, alea_core::model::prediction::PredictionError<E>> where E: core::error::Error + 'static, R: rand_core::Rng + ?core::marker::Sized, F: core::ops::function::FnMut(&[f64], &mut R) -> core::result::Result<T, E>
 pub fn alea_core::model::prediction::prior_predict<T, E, R, F>(count: usize, rng: &mut R, generate: F) -> core::result::Result<alea_core::model::prediction::Predictions<T>, E> where R: rand_core::Rng + ?core::marker::Sized, F: core::ops::function::FnMut(&mut R) -> core::result::Result<T, E>
 pub mod alea_core::model::tensor
+pub use alea_core::model::tensor::MatrixKernel
 #[non_exhaustive] pub enum alea_core::model::tensor::BinaryOp
 pub alea_core::model::tensor::BinaryOp::Add
 pub alea_core::model::tensor::BinaryOp::Divide
@@ -945,6 +946,7 @@ pub fn alea_core::model::tensor::TensorBuilder::data(&mut self, name: &str, shap
 pub fn alea_core::model::tensor::TensorBuilder::gather(&mut self, value: alea_core::model::tensor::Value, shape: alea_core::model::tensor::Shape, indices: alloc::vec::Vec<usize>) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::TensorBuilder::input(&mut self, name: &str, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::TensorBuilder::matmul(&mut self, a: alea_core::model::tensor::Value, b: alea_core::model::tensor::Value) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::tensor::TensorBuilder::matmul_with_kernel(&mut self, a: alea_core::model::tensor::Value, b: alea_core::model::tensor::Value, kernel: alea_math::gemm::MatrixKernel) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::TensorBuilder::new() -> Self
 pub fn alea_core::model::tensor::TensorBuilder::reshape(&mut self, value: alea_core::model::tensor::Value, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::TensorBuilder::scan(&mut self, initial: alea_core::model::tensor::Value, xs: alea_core::model::tensor::Value, captures: &[alea_core::model::tensor::Value], body: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>

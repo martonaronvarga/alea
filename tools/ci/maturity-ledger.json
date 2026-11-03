@@ -556,6 +556,12 @@
       "summary": "Analytic Fisher metric formulas in their declared families."
     },
     {
+      "path": "crates/alea-math/src/gemm.rs",
+      "profile": "research_component",
+      "summary": "Checked optional row-major Faer and LP64 BLAS GEMM adapters, sequential Faer and explicit accumulation/transposes.",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
       "path": "crates/alea-math/src/information.rs",
       "profile": "research_component",
       "summary": "Explicit full-rank information factorization and covariance projection with unit-dependent symmetry and conditioning checks, no statistical calibration claim.",
@@ -1380,6 +1386,20 @@
       "profile": "research_utility",
       "summary": "Nightly gradient-check CLI support.",
       "promotion_gate": "Graduate with the underlying autodiff feature and CLI workflow."
+    },
+    {
+      "crate": "alea-core",
+      "feature": "faer",
+      "profile": "research_component",
+      "summary": "Opt-in tensor matrix backend; default matrix arithmetic remains compensated.",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-core",
+      "feature": "openblas",
+      "profile": "research_component",
+      "summary": "Opt-in tensor matrix backend; default matrix arithmetic remains compensated.",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
     },
     {
       "crate": "alea-core",
@@ -8370,6 +8390,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::TensorBuilder::matmul_with_kernel(&mut self, a: alea_core::model::tensor::Value, b: alea_core::model::tensor::Value, kernel: alea_math::gemm::MatrixKernel) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::TensorBuilder::new() -> Self",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
@@ -9739,6 +9765,12 @@
       "item": "pub type alea_core::transport::FrozenTransportTarget<'_, T>::Error = alea_core::transport::FrozenTransportError<<T as alea_core::target::TargetSpace>::Error>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub use alea_core::model::tensor::MatrixKernel",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
     },
     {
       "crate": "alea-distributions",
@@ -24899,6 +24931,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "#[non_exhaustive] pub enum alea_math::gemm::MatrixKernel",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-math",
       "item": "#[non_exhaustive] pub enum alea_math::metric::MetricError",
       "profile": "validated_component_reference"
     },
@@ -25089,6 +25127,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::gemm::MatrixKernel",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::clone::Clone for alea_math::information::InformationMatrix",
       "profile": "research_component",
       "promotion_gate": "Qualify independent curvature, coordinate conditioning and application regularity before uncertainty promotion."
@@ -25209,6 +25253,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::cmp::Eq for alea_math::gemm::MatrixKernel",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::cmp::Eq for alea_math::interpolation::InterpolationError",
       "profile": "validated_component_reference"
     },
@@ -25262,6 +25312,12 @@
       "item": "impl core::cmp::PartialEq for alea_math::exact::ExactDotError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::PartialEq for alea_math::gemm::MatrixKernel",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
     },
     {
       "crate": "alea-math",
@@ -25364,6 +25420,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::default::Default for alea_math::gemm::MatrixKernel",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::default::Default for alea_math::numeric::CompensatedSum",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -25461,6 +25523,12 @@
       "crate": "alea-math",
       "item": "impl core::fmt::Debug for alea_math::fisher::FisherFitError",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::gemm::MatrixKernel",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
     },
     {
       "crate": "alea-math",
@@ -25671,6 +25739,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::gemm::MatrixKernel",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::marker::Copy for alea_math::information::InformationOptions",
       "profile": "research_component",
       "promotion_gate": "Qualify independent curvature, coordinate conditioning and application regularity before uncertainty promotion."
@@ -25741,6 +25815,12 @@
       "item": "impl core::marker::StructuralPartialEq for alea_math::exact::ExactDotError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixKernel",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
     },
     {
       "crate": "alea-math",
@@ -26024,6 +26104,18 @@
       "crate": "alea-math",
       "item": "pub alea_math::fisher::FisherFitError::Shape",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixKernel::Compensated",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixKernel::Faer",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
     },
     {
       "crate": "alea-math",
@@ -26829,6 +26921,36 @@
       "crate": "alea-math",
       "item": "pub fn alea_math::fisher::fit_low_rank(positions: &[f64], scores: &[f64], scales: &[f64], ridge: f64, threshold: f64, max_rank: usize) -> core::result::Result<alea_math::metric::LowRankDiagonalMetric, alea_math::fisher::FisherFitError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixKernel::clone(&self) -> alea_math::gemm::MatrixKernel",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixKernel::default() -> alea_math::gemm::MatrixKernel",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixKernel::eq(&self, other: &alea_math::gemm::MatrixKernel) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixKernel::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::try_gemm(kernel: alea_math::gemm::MatrixKernel, a: &[f64], b: &[f64], out: &mut [f64], dimensions: (usize, usize, usize), transpose: (bool, bool), add: bool) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
     },
     {
       "crate": "alea-math",
@@ -27960,6 +28082,12 @@
       "crate": "alea-math",
       "item": "pub mod alea_math::fisher",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub mod alea_math::gemm",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
     },
     {
       "crate": "alea-math",

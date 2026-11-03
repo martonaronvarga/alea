@@ -1,4 +1,5 @@
-//! Aligned storage, Euclidean metrics and numerical primitives. No model or FFI dependency.
+//! Aligned storage, Euclidean metrics and numerical primitives. No model dependency;
+//! optional BLAS FFI is isolated behind checked adapters.
 #![cfg_attr(
     all(
         feature = "simd",
@@ -11,6 +12,7 @@ pub mod buffer;
 pub mod exact;
 #[cfg(feature = "faer")]
 pub mod fisher;
+pub mod gemm;
 #[cfg(feature = "faer")]
 pub mod information;
 pub mod interpolation;

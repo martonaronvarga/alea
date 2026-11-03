@@ -1,6 +1,7 @@
-//! Block dispatch and contiguous pullbacks. Keep scalar accumulation order and
-//! repeated-operand writes: reassociation would change reproducible trajectories.
-use super::{Binary, BinaryOp, Map};
+//! Block dispatch and contiguous pullbacks. The default preserves scalar order
+//! and repeated-operand writes; explicit accelerated policies allow reassociation.
+use super::{Binary, BinaryOp, Map, MatrixKernel};
+use alea_math::gemm::try_gemm;
 use alea_math::numeric::CompensatedSum;
 
 // Keep matrix-sized loop bodies out of the shared pointwise/control interpreter.
@@ -11,7 +12,11 @@ pub(super) fn matmul_forward(
     b: &[f64],
     out: &mut [f64],
     (m, k, n): (usize, usize, usize),
+    kernel: MatrixKernel,
 ) {
+    if try_gemm(kernel, a, b, out, (m, k, n), (false, false), false) {
+        return;
+    }
     if n == 1 && k != 0 {
         for (left, out) in a.chunks_exact(k).zip(out) {
             let mut sum = CompensatedSum::default();
@@ -34,7 +39,11 @@ pub(super) fn matmul_forward(
 }
 
 #[inline(never)]
-pub(super) fn matmul_reverse((m, k, n): (usize, usize, usize), work: Pullback<'_>) {
+pub(super) fn matmul_reverse(
+    (m, k, n): (usize, usize, usize),
+    work: Pullback<'_>,
+    kernel: MatrixKernel,
+) {
     let Pullback {
         a,
         r,
@@ -43,6 +52,48 @@ pub(super) fn matmul_reverse((m, k, n): (usize, usize, usize), work: Pullback<'_
         starts: (lhs, rhs),
         active: (da, dr),
     } = work;
+    // Preserve skipped derivatives and original interleaving for aliased inputs.
+    // Each GEMM writes only its active destination, including existing adjoints.
+    if kernel != MatrixKernel::Compensated && lhs != rhs && seeds.iter().all(|s| *s != 0.) {
+        let left_done = !da
+            || try_gemm(
+                kernel,
+                seeds,
+                r,
+                &mut adjoints[lhs..lhs + a.len()],
+                (m, n, k),
+                (false, true),
+                true,
+            );
+        let right_done = !dr
+            || try_gemm(
+                kernel,
+                a,
+                seeds,
+                &mut adjoints[rhs..rhs + r.len()],
+                (k, m, n),
+                (true, false),
+                true,
+            );
+        // Unsupported backend dimensions decline before writes. Do not repeat a
+        // destination that was already accumulated by a successful GEMM.
+        if left_done && right_done {
+            return;
+        }
+        matmul_reverse(
+            (m, k, n),
+            Pullback {
+                a,
+                r,
+                seeds,
+                adjoints,
+                starts: (lhs, rhs),
+                active: (da && !left_done, dr && !right_done),
+            },
+            MatrixKernel::Compensated,
+        );
+        return;
+    }
     if n == 1 && k != 0 && lhs != rhs {
         for (row, (left, &seed)) in a.chunks_exact(k).zip(seeds).enumerate() {
             if seed == 0. {

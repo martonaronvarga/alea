@@ -18,6 +18,7 @@ mod fusion;
 mod kernels;
 mod pullback;
 mod source;
+pub use alea_math::gemm::MatrixKernel;
 pub use execute::TensorWorkspace;
 
 static NEXT: AtomicU64 = AtomicU64::new(1);
@@ -183,6 +184,7 @@ enum Op {
         m: usize,
         k: usize,
         n: usize,
+        kernel: MatrixKernel,
     },
     Cond(Box<Cond>),
     Scan(Box<Scan>),
@@ -407,13 +409,41 @@ impl TensorBuilder {
     /// # Errors
     /// Rejects incompatible matrix dimensions or foreign values.
     pub fn matmul(&mut self, a: Value, b: Value) -> Result<Value, E> {
+        self.matmul_with_kernel(a, b, MatrixKernel::Compensated)
+    }
+    /// Dense product with an explicit execution policy. Faer/BLAS permit
+    /// reassociated reductions in both primal and VJP; they do not promise
+    /// compensated accuracy or identical trajectories. The default `matmul`
+    /// remains compensated. Source export uses the portable compensated
+    /// implementation, not external library calls. Shared-storage reverse
+    /// operands and zero seeds retain the scalar pullback.
+    /// Workspace budgets cover Alea-owned buffers, not external provider packing
+    /// or thread-local scratch. BLAS thread count must be configured by the host.
+    /// # Errors
+    /// Rejects incompatible matrix dimensions or foreign values.
+    pub fn matmul_with_kernel(
+        &mut self,
+        a: Value,
+        b: Value,
+        kernel: MatrixKernel,
+    ) -> Result<Value, E> {
         let lhs = &self.node(a)?.shape;
         let rhs = &self.node(b)?.shape;
         if lhs.axes.len() != 2 || rhs.axes.len() != 2 || lhs.axes[1] != rhs.axes[0] {
             return Err(E::Shape);
         }
         let (m, k, n) = (lhs.axes[0], lhs.axes[1], rhs.axes[1]);
-        self.push(Shape::new(vec![m, n])?, Op::Matmul { a, b, m, k, n })
+        self.push(
+            Shape::new(vec![m, n])?,
+            Op::Matmul {
+                a,
+                b,
+                m,
+                k,
+                n,
+                kernel,
+            },
+        )
     }
     fn arguments(&self, region: &BoundProgram, args: &[Value]) -> Result<(), E> {
         if args.len() != region.plan.inputs.len() {

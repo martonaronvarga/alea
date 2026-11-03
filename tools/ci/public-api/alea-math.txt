@@ -127,6 +127,21 @@ impl core::fmt::Debug for alea_math::exact::IntegerDirection
 pub fn alea_math::exact::IntegerDirection::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn alea_math::exact::dot_sign(left: &[f64], right: &[f64]) -> core::result::Result<core::cmp::Ordering, alea_math::exact::ExactDotError>
 pub fn alea_math::exact::strict_cone_direction(columns: usize, inequalities: &[f64], equalities: &[f64], options: alea_math::exact::ConeSearchOptions) -> core::result::Result<alea_math::exact::ConeSearch, alea_math::exact::ExactDotError>
+pub mod alea_math::gemm
+#[non_exhaustive] pub enum alea_math::gemm::MatrixKernel
+pub alea_math::gemm::MatrixKernel::Compensated
+impl core::clone::Clone for alea_math::gemm::MatrixKernel
+pub fn alea_math::gemm::MatrixKernel::clone(&self) -> alea_math::gemm::MatrixKernel
+impl core::cmp::Eq for alea_math::gemm::MatrixKernel
+impl core::cmp::PartialEq for alea_math::gemm::MatrixKernel
+pub fn alea_math::gemm::MatrixKernel::eq(&self, other: &alea_math::gemm::MatrixKernel) -> bool
+impl core::default::Default for alea_math::gemm::MatrixKernel
+pub fn alea_math::gemm::MatrixKernel::default() -> alea_math::gemm::MatrixKernel
+impl core::fmt::Debug for alea_math::gemm::MatrixKernel
+pub fn alea_math::gemm::MatrixKernel::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::gemm::MatrixKernel
+impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixKernel
+pub fn alea_math::gemm::try_gemm(kernel: alea_math::gemm::MatrixKernel, a: &[f64], b: &[f64], out: &mut [f64], dimensions: (usize, usize, usize), transpose: (bool, bool), add: bool) -> bool
 pub mod alea_math::interpolation
 pub enum alea_math::interpolation::InterpolationError
 pub alea_math::interpolation::InterpolationError::Knots

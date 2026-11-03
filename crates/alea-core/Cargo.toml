@@ -40,4 +40,6 @@ name = "tensor_tape"
 harness = false
 
 [features]
+faer = ["alea-math/faer"]
+openblas = ["alea-math/openblas"]
 tracing = ["dep:tracing", "alea-math/tracing"]

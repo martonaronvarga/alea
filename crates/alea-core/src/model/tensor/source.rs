@@ -127,7 +127,7 @@ impl BoundProgram {
                 Op::Gather(a, indices) => {
                     writeln!(source,"{{ let indices: [usize; {len}] = {indices:?}; for j in 0..{len} {{n{i}[j]=n{}[indices[j]];}} }}",a.node).unwrap();
                 }
-                Op::Matmul { a, b, m, k, n } => {
+                Op::Matmul { a, b, m, k, n, .. } => {
                     if *k == 0 {
                         writeln!(source, "n{i}.fill(0.0);").unwrap();
                         continue;

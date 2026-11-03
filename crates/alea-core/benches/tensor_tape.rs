@@ -3,7 +3,7 @@
 use alea_core::model::{
     ConstrainedModel,
     assembly::{CompiledModel, ModelBuilder},
-    tensor::{BinaryOp as B, BoundProgram, Shape, TensorBuilder, TensorFactor},
+    tensor::{BinaryOp as B, BoundProgram, MatrixKernel, Shape, TensorBuilder, TensorFactor},
 };
 use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use std::time::Duration;
@@ -42,6 +42,55 @@ fn assembled(n: usize, block: bool) -> CompiledModel {
     };
     b.potential("objective", result).unwrap();
     b.compile().unwrap()
+}
+fn matrix_kernels(c: &mut Criterion) {
+    for n in [8, 64, 128] {
+        let mut group = c.benchmark_group(format!("tensor_gemm/{n}"));
+        let x: Vec<_> = (0..2 * n * n)
+            .map(|i| ((i % 31) as f64 - 15.) / 32.)
+            .collect();
+        let seed = vec![0.5; n * n];
+        let mut reference: Option<(Vec<f64>, Vec<f64>)> = None;
+        for kernel in [
+            MatrixKernel::Compensated,
+            #[cfg(feature = "faer")]
+            MatrixKernel::Faer,
+            #[cfg(feature = "openblas")]
+            MatrixKernel::Blas,
+        ] {
+            let mut b = TensorBuilder::new();
+            let a = b.input("a", Shape::new(vec![n, n]).unwrap()).unwrap();
+            let r = b.input("r", Shape::new(vec![n, n]).unwrap()).unwrap();
+            let out = b.matmul_with_kernel(a, r, kernel).unwrap();
+            let p = b.compile(out).unwrap().bind(&[]).unwrap();
+            let mut w = p.workspace();
+            let mut out = vec![0.; n * n];
+            let mut g = vec![0.; x.len()];
+            p.value_and_vjp(&x, &seed, &mut out, &mut g, &mut w)
+                .unwrap();
+            if let Some((values, scores)) = &reference {
+                for (got, want) in out.iter().zip(values).chain(g.iter().zip(scores)) {
+                    assert!((got - want).abs() < 1e-10);
+                }
+            } else {
+                reference = Some((out.clone(), g.clone()));
+            }
+            group.bench_function(format!("{kernel:?}"), |b| {
+                b.iter(|| {
+                    p.value_and_vjp(
+                        black_box(&x),
+                        black_box(&seed),
+                        black_box(&mut out),
+                        black_box(&mut g),
+                        &mut w,
+                    )
+                    .unwrap();
+                    black_box(&out);
+                })
+            });
+        }
+        group.finish();
+    }
 }
 fn benchmark(c: &mut Criterion) {
     for n in [1_000, 10_000] {
@@ -94,5 +143,5 @@ fn benchmark(c: &mut Criterion) {
         group.finish();
     }
 }
-criterion_group! {name=benches; config=Criterion::default().sample_size(30).warm_up_time(Duration::from_millis(500)).measurement_time(Duration::from_secs(2)); targets=benchmark}
+criterion_group! {name=benches; config=Criterion::default().sample_size(30).warm_up_time(Duration::from_millis(500)).measurement_time(Duration::from_secs(2)); targets=benchmark,matrix_kernels}
 criterion_main!(benches);

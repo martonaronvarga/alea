@@ -92,8 +92,90 @@ tensor outputs use `BoundProgram::evaluate` / `value_and_vjp` directly.
 Broadcast maps are specialized at construction. If output element j reads input
 element m(j), its pullback accumulates `input_bar[m(j)] += output_bar[j] * local_score`.
 Matrix products use the usual `A_bar += C_bar B^T` and `B_bar += A^T C_bar`
-pullbacks, without materializing a Jacobian. Current matrix execution is a
-compensated reference kernel, **not** tuned BLAS, batched GEMM or a GPU kernel.
+pullbacks, without materializing a Jacobian. The default matrix execution is an
+ordered compensated reference kernel. Explicit accelerated kernels are available
+as described below; this is not batched GEMM or a GPU backend.
+
+### Explicit Faer and BLAS matrix kernels
+
+Enable `alea/faer` or `alea/openblas` (direct core users: `alea-core/faer` or
+`alea-core/openblas`), then select a kernel on the matrix operation:
+
+```rust,ignore
+use alea::model::tensor::MatrixKernel;
+let product = builder.matmul_with_kernel(a, b, MatrixKernel::Faer)?;
+// MatrixKernel::Blas selects LP64 CBLAS instead.
+```
+
+The choice is retained with the fixed-shape matrix node. Forward execution uses
+GEMM and reverse execution uses the two transposed GEMMs above, accumulating into
+existing active adjoints without transpose copies. Faer uses `Par::Seq`; BLAS
+uses the provider's thread policy. Configure `OPENBLAS_NUM_THREADS=1` when running
+parallel chains unless a deliberate global CPU budget says otherwise. Neither
+adapter changes a process-global thread setting. Exact row-major lengths and
+LP64 dimension conversions are checked before foreign calls. Unsupported BLAS
+dimensions decline to the reference implementation before writes.
+
+This policy **explicitly allows different floating-point reduction orders** in
+values and derivatives. It does not promise compensated accuracy, bitwise replay
+across providers/CPUs, or identical NUTS trajectories. Enabling a Cargo feature
+alone never changes `matmul`'s default. Shared-storage reverse operands and any
+zero seed retain the ordered scalar pullback, preserving interleaved aliases and
+skipped derivatives. Empty inner dimensions produce zero without calling BLAS;
+ordinary nonfinite admission, typed failures and caller-output staging remain.
+The safe adapter lives in `alea-math::gemm`; core remains free of unsafe code.
+
+Workspace budgets count Alea-owned storage, **not** provider packing buffers,
+thread-local allocations or thread stacks. Source export deliberately lowers the
+same mathematical operation to portable compensated loops, not opaque external
+calls: source/native accelerated execution need not agree bitwise. These kernels
+are opt-in research components, not an automatic cost model or a new source-AD
+capability.
+
+Reference contracts: [Faer matrix multiplication](https://docs.rs/faer/0.24.0/faer/linalg/matmul/fn.matmul.html)
+and [BLAS DGEMM](https://netlib.org/lapack/explore-html/dd/d09/group__gemm_ga1e899f8453bcbfde78e91a86a2dab984.html).
+`alea-core`'s `tensor_gemm` Criterion group compares compensated/Faer/BLAS
+value-and-VJP execution on identical inputs, validates values and both scores
+before timing, and reuses workspaces. It excludes construction and does not
+measure ESS/sec, source AD, Stan or JAX.
+
+```sh
+nix develop .#blas --command env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 cargo bench --manifest-path crates/Cargo.toml -p alea-core --features faer,openblas --bench tensor_tape -- tensor_gemm
+```
+
+November 3 microbenchmark qualification: same-revision policy comparison, three
+separate process runs, 20 Criterion samples each, 0.3 s warmup / 0.7 s requested
+measurement per case. Saved release binary, fat LTO, rustc 1.97 nightly
+`7af3402cd`, LLVM 22.1.2, Faer 0.24.0 and LP64 OpenBLAS 0.3.31; i5-8250U x86-64,
+CPU 2 affinity, one BLAS thread. No builds/profiles/archive compression overlapped
+timing. Shared desktop, unisolated SMT sibling and variable frequency remain
+limitations. Each case multiplies two square parameter matrices and computes
+both input VJPs with a dense nonzero seed; validation precedes timing.
+
+Times below are **microseconds**, median of three per-process median estimates;
+brackets show their observed range, not confidence intervals:
+
+| Matrix order | Compensated reference | Faer | BLAS |
+| --- | ---: | ---: | ---: |
+| 8 | 6.480 [6.375, 6.493] | 1.029 [1.029, 1.045] | 1.381 [1.371, 1.396] |
+| 64 | 3,184 [3,089, 3,231] | 100.3 [98.5, 103.3] | 109.0 [106.3, 170.0] |
+| 128 | 35,774 [34,462, 36,646] | 715.6 [697.1, 721.2] | 659.6 [655.6, 667.1] |
+
+This is not a before/after commit comparison or equal-accuracy speedup claim:
+external GEMM changes reduction arithmetic as well as using optimized kernels.
+It does not establish default-path parity, general tensor speedups, source-AD
+performance or ESS/sec. The BLAS 64-order variation is retained, not discarded.
+No automatic selection thresholds are inferred from these three shapes.
+Reproduce the short cohort from the built benchmark executable with
+`--bench tensor_gemm --warm-up-time 0.3 --measurement-time 0.7 --sample-size 20 --noplot --save-baseline gemm-1`
+(repeat with distinct baseline names under the same affinity/thread settings).
+Raw Criterion samples, estimates, all three process logs and the executed binary
+are retained in the external `tensor-gemm-2026-11-03.saxTKU` evidence capsule.
+Full release core/math tests and doctests with both backends passed (192 tests),
+as did both-crate all-target Clippy with warnings denied. Additional default-only
+checks retain the ordered matvec bit tests. Fractional rectangular fixtures,
+central finite differences, immutable rebinding, existing adjoints, aliases,
+zero seeds, empty dimensions and overflow/output-staging recovery are covered.
 
 ## Structured conditional and loop semantics
 
@@ -218,7 +300,7 @@ nix develop .#autodiff --command cargo test --manifest-path tools/enzyme-conform
 ```
 
 No dynamic shapes, multi-dtype tracing, general graph rewrite optimizer, GPU/JIT,
-BLAS dispatch or generative site language is claimed. The small tensor/native-law
+automatic BLAS scheduling or generative site language is claimed. The small tensor/native-law
 workflow qualified below is not arbitrary-model qualification. The next optimization must follow a measured bottleneck,
 not remove numerical checks to make a compiler or timing look better.
 

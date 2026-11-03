@@ -382,7 +382,14 @@ impl BoundProgram {
                         *out = before[start + index];
                     }
                 }
-                Op::Matmul { a, b, m, k, n } => {
+                Op::Matmul {
+                    a,
+                    b,
+                    m,
+                    k,
+                    n,
+                    kernel,
+                } => {
                     if node.shape.elements == 0 {
                         continue;
                     }
@@ -392,6 +399,7 @@ impl BoundProgram {
                         &before[p.nodes[b.node].range()],
                         &mut after[..node.shape.elements],
                         (*m, *k, *n),
+                        *kernel,
                     );
                 }
                 Op::Cond(c) => {
@@ -482,7 +490,14 @@ impl BoundProgram {
                         w.adjoints[start + index] += w.adjoints[node.start + j];
                     }
                 }
-                Op::Matmul { a, b, m, k, n } => {
+                Op::Matmul {
+                    a,
+                    b,
+                    m,
+                    k,
+                    n,
+                    kernel,
+                } => {
                     if node.shape.elements == 0 {
                         continue;
                     }
@@ -497,6 +512,7 @@ impl BoundProgram {
                             starts: (p.nodes[a.node].start, p.nodes[b.node].start),
                             active: (w.differential[a.node], w.differential[b.node]),
                         },
+                        *kernel,
                     );
                 }
                 Op::Cond(c) => {

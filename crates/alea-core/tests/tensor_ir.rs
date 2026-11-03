@@ -134,6 +134,109 @@ fn matrix_block_vjp_matches_finite_differences_and_exact_product() {
     assert_eq!(out, [4., 5., 10., 11.]);
     check_vjp(&program, &x, &[0.5, -0.2, 0.3, 1.]);
 }
+
+#[test]
+fn matrix_kernel_policies_preserve_products_vjps_aliases_and_error_recovery() {
+    use alea_core::model::tensor::MatrixKernel;
+    for kernel in [
+        MatrixKernel::Compensated,
+        #[cfg(feature = "faer")]
+        MatrixKernel::Faer,
+        #[cfg(feature = "openblas")]
+        MatrixKernel::Blas,
+    ] {
+        let mut b = TensorBuilder::new();
+        let a = b.input("a", shape(&[2, 3])).unwrap();
+        let r = b.data("r", shape(&[3, 2])).unwrap();
+        let out = b.matmul_with_kernel(a, r, kernel).unwrap();
+        // A direct path contributes existing adjoints before matrix reversal.
+        let extra = b.sum(a).unwrap();
+        let sum = b.sum(out).unwrap();
+        let total = b.binary(B::Add, extra, sum).unwrap();
+        let p = b
+            .compile(total)
+            .unwrap()
+            .bind(&[("r", &[1., 2., 3., 4., 5., 6.])])
+            .unwrap();
+        check_vjp(&p, &[1., 2., 3., 4., 5., 6.], &[1.]);
+        let changed = p.rebind("r", &[2., 1., 4., 3., 6., 5.]).unwrap();
+        check_vjp(&changed, &[1., 2., 3., 4., 5., 6.], &[1.]);
+        let mut out = [77.];
+        let mut g = [88.; 6];
+        let mut w = p.workspace();
+        assert!(
+            p.value_and_vjp(&[f64::MAX; 6], &[1.], &mut out, &mut g, &mut w)
+                .is_err()
+        );
+        assert_eq!(out, [77.]);
+        assert_eq!(g, [88.; 6]);
+        p.value_and_vjp(&[1.; 6], &[1.], &mut out, &mut g, &mut w)
+            .unwrap();
+        assert_eq!(g, [4., 8., 12., 4., 8., 12.]);
+
+        for shared in [false, true] {
+            let mut b = TensorBuilder::new();
+            let a = b.input("a", shape(&[2, 2])).unwrap();
+            let r = if shared {
+                b.reshape(a, shape(&[2, 2])).unwrap()
+            } else {
+                b.input("r", shape(&[2, 2])).unwrap()
+            };
+            let out = b.matmul_with_kernel(a, r, kernel).unwrap();
+            let p = b.compile(out).unwrap().bind(&[]).unwrap();
+            let x = if shared {
+                vec![1., 2., 3., 4.]
+            } else {
+                vec![1., 2., 3., 4., 5., 6., 7., 8.]
+            };
+            check_vjp(&p, &x, &[1., 2., 3., 4.]);
+            check_vjp(&p, &x, &[0., 1., 0., 2.]);
+        }
+    }
+}
+
+#[test]
+fn matrix_kernel_rectangular_and_empty_products_match_reference() {
+    use alea_core::model::tensor::MatrixKernel;
+    for (m, k, n) in [
+        (17, 33, 19),
+        (65, 9, 1),
+        (1, 11, 7),
+        (3, 0, 4),
+        (0, 3, 2),
+        (2, 3, 0),
+    ] {
+        let x: Vec<_> = (0..m * k + k * n)
+            .map(|i| ((i % 29) as f64 - 14.).sin() / 3.)
+            .collect();
+        let seed: Vec<_> = (0..m * n).map(|i| (i % 7 + 1) as f64 / 13.).collect();
+        let mut reference: Option<(Vec<f64>, Vec<f64>)> = None;
+        for kernel in [
+            MatrixKernel::Compensated,
+            #[cfg(feature = "faer")]
+            MatrixKernel::Faer,
+            #[cfg(feature = "openblas")]
+            MatrixKernel::Blas,
+        ] {
+            let mut b = TensorBuilder::new();
+            let a = b.input("a", shape(&[m, k])).unwrap();
+            let r = b.input("r", shape(&[k, n])).unwrap();
+            let out = b.matmul_with_kernel(a, r, kernel).unwrap();
+            let p = b.compile(out).unwrap().bind(&[]).unwrap();
+            let mut out = vec![0.; m * n];
+            let mut g = vec![0.; x.len()];
+            p.value_and_vjp(&x, &seed, &mut out, &mut g, &mut p.workspace())
+                .unwrap();
+            if let Some((values, scores)) = &reference {
+                for (got, want) in out.iter().zip(values).chain(g.iter().zip(scores)) {
+                    assert!((got - want).abs() < 1e-11);
+                }
+            } else {
+                reference = Some((out, g));
+            }
+        }
+    }
+}
 #[test]
 fn matrix_vector_specialization_preserves_ordered_compensated_bits_and_aliases() {
     use alea_math::numeric::CompensatedSum;

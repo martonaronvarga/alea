@@ -141,6 +141,22 @@ pub fn alea_math::fisher::FisherFitError::fmt(&self, f: &mut core::fmt::Formatte
 impl core::fmt::Display for alea_math::fisher::FisherFitError
 pub fn alea_math::fisher::FisherFitError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn alea_math::fisher::fit_low_rank(positions: &[f64], scores: &[f64], scales: &[f64], ridge: f64, threshold: f64, max_rank: usize) -> core::result::Result<alea_math::metric::LowRankDiagonalMetric, alea_math::fisher::FisherFitError>
+pub mod alea_math::gemm
+#[non_exhaustive] pub enum alea_math::gemm::MatrixKernel
+pub alea_math::gemm::MatrixKernel::Compensated
+pub alea_math::gemm::MatrixKernel::Faer
+impl core::clone::Clone for alea_math::gemm::MatrixKernel
+pub fn alea_math::gemm::MatrixKernel::clone(&self) -> alea_math::gemm::MatrixKernel
+impl core::cmp::Eq for alea_math::gemm::MatrixKernel
+impl core::cmp::PartialEq for alea_math::gemm::MatrixKernel
+pub fn alea_math::gemm::MatrixKernel::eq(&self, other: &alea_math::gemm::MatrixKernel) -> bool
+impl core::default::Default for alea_math::gemm::MatrixKernel
+pub fn alea_math::gemm::MatrixKernel::default() -> alea_math::gemm::MatrixKernel
+impl core::fmt::Debug for alea_math::gemm::MatrixKernel
+pub fn alea_math::gemm::MatrixKernel::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::gemm::MatrixKernel
+impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixKernel
+pub fn alea_math::gemm::try_gemm(kernel: alea_math::gemm::MatrixKernel, a: &[f64], b: &[f64], out: &mut [f64], dimensions: (usize, usize, usize), transpose: (bool, bool), add: bool) -> bool
 pub mod alea_math::information
 pub enum alea_math::information::InformationError
 pub alea_math::information::InformationError::Asymmetric

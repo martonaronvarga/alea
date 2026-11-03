@@ -20,6 +20,7 @@ POLICY = {
     "parameter_names": True,
 }
 FEATURE_VARIANTS = {
+    "alea-core+faer": {"package": "alea-core", "features": ["alea-core/faer"], "same_as": "alea-core"},
     "alea-core+tracing": {"package": "alea-core", "features": ["alea-core/tracing"], "same_as": "alea-core"},
     "alea-math+tracing": {"package": "alea-math", "features": ["alea-math/tracing"], "same_as": "alea-math"},
     "alea-mcmc+tracing": {"package": "alea-mcmc", "features": ["alea-mcmc/tracing"], "same_as": "alea-mcmc"},

@@ -209,6 +209,7 @@ impl BoundProgram {
                     m,
                     k,
                     n,
+                    ..
                 } => {
                     if len == 0 {
                         continue;
