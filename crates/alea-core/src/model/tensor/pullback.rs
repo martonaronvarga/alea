@@ -35,6 +35,15 @@ fn adjoint_layout(p: &Plan, active: &[bool]) -> Result<(Vec<usize>, usize), E> {
     }
     Ok((offsets, slots))
 }
+// Balance boundary carries against segment inputs AND materialized body primals.
+// Widen before multiplication: T*C may overflow usize even when the selected
+// checkpoint layout is addressable. This is a storage heuristic, not Revolve.
+fn replay_interval(steps: usize, carry: usize, primal: usize) -> usize {
+    debug_assert!(steps > 0);
+    let per_step = (carry as u128 + primal as u128).max(1);
+    let square = steps as u128 * carry as u128 / per_step;
+    usize::try_from(square.isqrt()).map_or(steps, |k| k.clamp(1, steps))
+}
 impl BoundProgram {
     pub(crate) fn has_source_checkpoints(&self) -> bool {
         self.plan.nodes.iter().enumerate().any(|(i, n)| {
@@ -277,22 +286,24 @@ impl BoundProgram {
                         format!("{name}_steady{i}")
                     };
                     let body = s.body.pullback_with_activity(&one, &first)?;
-                    let mut work = body.workspace;
+                    let primal = s.body.plan.source_slots;
+                    let mut work = body.workspace - primal;
                     source.push_str(&body.source);
                     if first != steady {
                         let other = s.body.pullback_with_activity(&later, &steady)?;
-                        work = work.max(other.workspace);
+                        work = work.max(other.workspace - primal);
                         source.push_str(&other.source);
                     }
-                    let interval = s.steps.isqrt().max(1);
+                    let interval = replay_interval(s.steps, len, primal);
                     let checkpoints = mul(s.steps.div_ceil(interval), len)?;
                     let states = mul(interval, len)?;
+                    let primals = mul(interval, primal)?;
                     extra = extra.max(add(
                         add(mul(s.body.dimension(), 2)?, mul(len, 2)?)?,
-                        add(work, add(checkpoints, states)?)?,
+                        add(work.max(primal), add(checkpoints, add(states, primals)?)?)?,
                     )?);
                     child_buffers(&mut reverse, s.body.dimension(), len);
-                    writeln!(reverse,"let (checkpoints,child)=child.split_at_mut({checkpoints}); let (states,child)=child.split_at_mut({states});").unwrap();
+                    writeln!(reverse,"let (checkpoints,child)=child.split_at_mut({checkpoints}); let (states,child)=child.split_at_mut({states});let (primals,child)=child.split_at_mut({primals});").unwrap();
                     pack_values(&mut reverse, "args", 0, &[s.initial], p, &offsets);
                     pack_values(&mut reverse, "args", len + s.row, &s.captures, p, &offsets);
                     writeln!(reverse,"for step in 0..{} {{if step%{interval}==0 {{let at=step/{interval}*{len}; checkpoints[at..at+{len}].copy_from_slice(&args[..{len}]);}}",s.steps).unwrap();
@@ -300,9 +311,9 @@ impl BoundProgram {
                     writeln!(reverse,"{one}_primal(args,result,child,valid); if !*valid {{return;}} args[..{len}].copy_from_slice(result); }}").unwrap();
                     writeln!(reverse,"seeds.copy_from_slice(&a[{base}..{}]);let mut end={}_usize;while end!=0 {{let start=(end-1)/{interval}*{interval};let at=start/{interval}*{len};args[..{len}].copy_from_slice(&checkpoints[at..at+{len}]);for step in start..end {{ let at=(step-start)*{len}; states[at..at+{len}].copy_from_slice(&args[..{len}]);",base+len,s.steps).unwrap();
                     pack_row(&mut reverse, s, p, &offsets, len);
-                    writeln!(reverse,"{one}_primal(args,result,child,valid);if !*valid{{return;}}args[..{len}].copy_from_slice(result);}} for step in (start..end).rev() {{let at=(step-start)*{len};args[..{len}].copy_from_slice(&states[at..at+{len}]);").unwrap();
+                    writeln!(reverse,"let at=(step-start)*{primal};let frame=&mut primals[at..at+{primal}];let(result,work)=frame.split_at_mut({len});{one}_primal(args,result,work,valid);if !*valid{{return;}}args[..{len}].copy_from_slice(result);}} for step in (start..end).rev() {{let at=(step-start)*{len};args[..{len}].copy_from_slice(&states[at..at+{len}]);").unwrap();
                     pack_row(&mut reverse, s, p, &offsets, len);
-                    writeln!(reverse,"if step==0 {{{one}(args,seeds,result,scores,child,valid);}} else {{{later}(args,seeds,result,scores,child,valid);}}if !*valid{{return;}}seeds.copy_from_slice(&scores[..{len}]);").unwrap();
+                    writeln!(reverse,"let at=(step-start)*{primal};let frame=&primals[at..at+{primal}];if step==0 {{{one}_prepared(args,seeds,result,scores,frame,child,valid);}} else {{{later}_prepared(args,seeds,result,scores,frame,child,valid);}}if !*valid{{return;}}seeds.copy_from_slice(&scores[..{len}]);").unwrap();
                     if active[s.xs.node] {
                         writeln!(
                             reverse,
@@ -327,7 +338,7 @@ impl BoundProgram {
         }
         let workspace = add(add(p.source_slots, adjoint_slots)?, extra)?;
         let output = self.output_shape().elements;
-        writeln!(source,"#[allow(clippy::too_many_arguments,clippy::needless_range_loop)]\nfn {name}(x:&[f64],seed:&[f64],out:&mut[f64],g:&mut[f64],scratch:&mut[f64],valid:&mut bool) {{let (primal,rest)=scratch.split_at_mut({});let (a,extra)=rest.split_at_mut({});a.fill(0.0);g.fill(0.0);{{let (result,work)=primal.split_at_mut({output});{name}_primal(x,result,work,valid);}}if !*valid || seed.iter().any(|s|!s.is_finite()) {{*valid=false;return;}}",p.source_slots,adjoint_slots).unwrap();
+        writeln!(source,"#[allow(clippy::too_many_arguments,clippy::needless_range_loop)]\nfn {name}(x:&[f64],seed:&[f64],out:&mut[f64],g:&mut[f64],scratch:&mut[f64],valid:&mut bool) {{g.fill(0.0);let (primal,rest)=scratch.split_at_mut({});{{let (result,work)=primal.split_at_mut({output});{name}_primal(x,result,work,valid);}}if !*valid {{return;}}{name}_prepared(x,seed,out,g,primal,rest,valid);}}\n#[allow(clippy::too_many_arguments,clippy::needless_range_loop)]\nfn {name}_prepared(x:&[f64],seed:&[f64],out:&mut[f64],g:&mut[f64],primal:&[f64],scratch:&mut[f64],valid:&mut bool) {{let _=x;let (a,extra)=scratch.split_at_mut({});a.fill(0.0);g.fill(0.0);if !*valid || seed.iter().any(|s|!s.is_finite()) {{*valid=false;return;}}",p.source_slots,adjoint_slots).unwrap();
         for (i, n) in p.nodes.iter().enumerate() {
             if !p.active[i] {
                 continue;
@@ -433,6 +444,21 @@ fn accumulate(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn replay_segments_account_for_body_primals_without_integer_overflow() {
+        assert_eq!(replay_interval(257, 1, 3), 8);
+        assert_eq!(replay_interval(257, 1, 1024), 1);
+        assert_eq!(replay_interval(257, 0, 0), 1);
+        assert_eq!(replay_interval(1, 1, 1), 1);
+        for steps in [1, 3, 17, 257, usize::MAX] {
+            for carry in [0, 1, 1024, usize::MAX] {
+                for primal in [0, 1, 1024, usize::MAX] {
+                    assert!((1..=steps).contains(&replay_interval(steps, carry, primal)));
+                }
+            }
+        }
+    }
 
     #[test]
     fn source_adjoints_exclude_immutable_ranges_and_share_aliases() {

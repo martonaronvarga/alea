@@ -329,7 +329,7 @@ fn copy(source: &mut String, dst: &str, src: &str, len: usize) {
     } else if len != 0 {
         writeln!(
             source,
-            "for (a,b) in {dst}.iter_mut().zip({src}.iter()) {{ *a=*b; }}"
+            "for (a,b) in {dst}.iter_mut().zip({src}.iter()) {{ *a = *b; }}"
         )
         .unwrap();
     }

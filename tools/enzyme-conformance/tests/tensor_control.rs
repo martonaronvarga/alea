@@ -138,6 +138,40 @@ fn compact_source_adjoints_preserve_aliases_and_immutable_singular_primals() {
     }
 }
 
+#[test]
+fn source_segment_primals_preserve_vector_carries_and_partial_segments() {
+    use alea_enzyme_conformance::tensor_checkpoint_vector as model;
+    for q in [[0.2_f64, -0.4, 0.7], [1., 2., -0.3], [0., 0., 0.]] {
+        let mut value = [q[0], q[1]];
+        let mut initial = [1.; 2];
+        let mut gain = [0.; 2];
+        for _ in 0..65 {
+            for j in 0..2 {
+                let next = (value[j] * q[2] + 0.1).tanh();
+                let local = 1. - next * next;
+                gain[j] = local * (value[j] + q[2] * gain[j]);
+                initial[j] *= local * q[2];
+                value[j] = next;
+            }
+        }
+        let mut g = [41.; 3];
+        close(
+            model::target().logp_grad(&q, &mut g).unwrap(),
+            value[0] + value[1],
+        );
+        let expected = [initial[0], initial[1], gain[0] + gain[1]];
+        for j in 0..3 {
+            close(g[j], expected[j]);
+            let mut lo = q;
+            let mut hi = q;
+            lo[j] -= 1e-6;
+            hi[j] += 1e-6;
+            let fd = (model::log_density(&hi) - model::log_density(&lo)) / 2e-6;
+            assert!((g[j] - fd).abs() < 2e-8 * (1. + g[j].abs()));
+        }
+    }
+}
+
 #[track_caller]
 fn close(actual: f64, expected: f64) {
     assert!(

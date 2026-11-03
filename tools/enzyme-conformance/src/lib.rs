@@ -51,6 +51,7 @@ generated!(
     tensor_checkpoint_immutable,
     tensor_checkpoint_constant,
     tensor_checkpoint_routes,
+    tensor_checkpoint_vector,
     tensor_empty,
     tensor_checkpoint_empty,
     tensor_zero_scan

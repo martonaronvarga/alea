@@ -805,9 +805,10 @@ The generated `SOURCE_CHECKPOINTED` constant reports whether this explicit
 first-order path was selected. Its float-arena extent is checked, but is not a
 whole-process memory bound. Original input/output storage and dense active tensor
 adjoints remain; opaque source factors can retain compiler-owned tapes. Replay
-also costs computation: the current model gradient can execute five body-primal
+also costs computation: the initial implementation executed five body-primal
 passes per trip (model admission, VJP admission, boundary preparation, segment
-replay and local VJP admission). Nested replay can multiply that cost. This is a
+replay and local VJP admission). Segment-primal reuse below removes the last of
+these passes; nested replay can still multiply the cost. This is a
 memory/work tradeoff, not a claimed inference speedup or optimal scheduler.
 
 ### The higher-order compiler boundary is still open
@@ -860,7 +861,95 @@ finite differences, including repeated capture aliases following an inactive
 capture in the body argument list.
 The existing long-scan, first/steady activity, matrix, mixed-prior/chart and
 higher-order tests remain the independent composition controls. The higher-order
-compiler boundary and five-pass replay cost above are not resolved by compaction.
+compiler boundary and replay cost above are not resolved by compaction.
+
+### Reuse validated segment primals instead of evaluating them twice
+
+The next source-level profile exposed a redundant pass: segment reconstruction
+evaluated the body primal, discarded its intermediate arrays, then immediately
+evaluated the same body again inside its local VJP. The new source lowering
+separates the normal, validating pullback wrapper from a private prepared reverse
+helper. Segment reconstruction retains the body's validated materialized primals;
+reverse consumes those exact primals with the matching restored carry, row and
+captures. It never uses a prepared helper after a failed primal. Seed and local
+score validation still run, and first/steady activity and reverse accumulation
+order are unchanged. General callbacks do not acquire this capability.
+
+For a scan with T trips, C carry doubles and B source-primal doubles per body,
+the segment storage term is now approximately
+`ceil(T/K)*C + K*(C+B)`. Source lowering selects the integer heuristic
+`K = clamp(floor(sqrt(T*C/(C+B))), 1, T)`, with widened integer arithmetic and
+checked arena extents. This accounts for body primals, unlike simply choosing
+`sqrt(T)`. It is not an optimal checkpoint scheduler or a promise that the new
+scratch arena is smaller than the previous carry-only replay arena: retaining
+more primals trades storage for less recomputation. Active intermediate lifetimes
+are still not compacted.
+
+At this scan level the model gradient now needs four rather than five complete
+body-primal passes per trip. Model admission, VJP admission and boundary
+preparation remain separate. Nested scans and branch pullbacks can add further
+recomputation; HVP/third derivatives still use the original compiler reverse.
+This increment does not resolve higher-order source checkpointing.
+
+This follows the general saved-residual/recomputation distinction described in
+the [JAX checkpointing guide](https://docs.jax.dev/en/latest/gradient-checkpointing.html):
+checkpoint placement and the residuals retained for reverse must be considered
+together. It is not an implementation of JAX's optimizer or a new AD algorithm.
+
+Correctness controls include a 65-trip nonlinear two-element carry, non-divisible
+segments, independent recurrence derivatives, all-coordinate finite differences,
+first/steady singular-score admission, repeated captures, active rows, zero-trip
+and empty-result errors, and the existing matrix/mixed-prior/chart checks. The
+new vector fixture also exposed ambiguous generated assignment formatting; the
+emitter now writes `*a = *b` rather than `*a=*b`, without suppressing the lint.
+
+Seven alternating pairs per case (84 successful fresh processes, 42 exact
+density/all-coordinate-checksum-compatible pairs) compared saved release binaries.
+The timer covers only the fixed-work evaluation/checksum loop, not compilation,
+process startup, construction, warmup or serialization. These are deterministic
+target evaluations, not sampling or ESS/sec results:
+
+| Source case | Before µs/evaluation | After µs/evaluation | Median paired gain [min, max] |
+|---|---:|---:|---:|
+| Checkpoint, 3 trips | 0.395 | 0.348 | 1.136 [1.124, 1.176] |
+| Checkpoint, 257 trips | 17.425 | 16.090 | 1.095 [1.034, 1.102] |
+| Retained compiler reverse, 257 trips | 7.351 | 7.598 | 0.970 [0.961, 0.975] |
+| Checkpoint + native prior/positive chart | 0.432 | 0.385 | 1.124 [1.087, 1.176] |
+| Matrix + zero-trip checkpoint | 0.176 | 0.173 | 1.015 [0.992, 1.357] |
+| Active rows/shared captures, 3 trips | 0.568 | 0.511 | 1.112 [1.105, 1.249] |
+
+The uninstrumented cohort ran on CPU 2 of the same shared i5-8250U host, one
+evaluation thread, variable clocks and unisolated SMT. No own builds, profilers or
+other benchmark jobs overlapped it. The ranges are observed pair ranges, not
+confidence intervals. All failures/pending jobs and stdout/stderr are retained
+by the runner; there were no failed or unstarted jobs in this cohort.
+
+Separate Callgrind runs of the 257-trip checkpoint case, 10,000 timed calls plus
+64 untimed calls/startup, report 1,884,479,892 -> 1,641,293,351 instructions
+(about 12.9% fewer). Instrumented times are excluded from the table. The retained
+control instead has essentially identical work: 500,698,531 -> 500,698,412
+instructions. Its 3,903-byte generated reverse function has the same 728
+relocation-normalized instructions, checked switch targets and sampled constant
+prefixes; its address/alignment changes. That rules out increased instruction
+work in this hot function as the explanation for the observed timing loss, but
+does not establish a hardware cache/front-end cause. The approximately 3% retained
+control regression remains disclosed; this is not a regression-free result.
+
+The retained compiler reverse is still faster than explicit checkpoint replay on
+this small-body example. Checkpointing is a bounded-storage/work tradeoff, not an
+automatic speed optimization. No peak-RSS reduction, universal shape gain,
+higher-order checkpoint bound, native interpreter improvement or Stan/JAX
+performance comparison follows from this cohort.
+
+Reproduction capsule: `source-replay-2026-11-03.gIaEsR`, with source overlays on
+`d5f31ba`, the executable `examples/source_checkpoint.rs`, pinned compiler
+`4429659e4`/LLVM 22.1.7, fat LTO, raw paired outcomes, instruction profiles and the
+relocation comparison. Before binary SHA-256:
+`315c5fb6b87ca115c1017aa27cf0fa3757b150d30a9df1cf673fac513aae239f`;
+after: `5ddd3d4c356069b1400193dc41a3ab14ab1b760b8334d53f099247bc058b5781`.
+The before/after measured source-overlay archive hashes are respectively
+`3997c5702f81c4b5881fb75e1a5b5cf2f85f10cb9c27d848798706a312bea85b` and
+`67dee1f2d9e9af0dbd880825872fc9ce88a7eb2c4d96933003e88eec39d19287`.
 
 ### Fixed-work performance qualification
 

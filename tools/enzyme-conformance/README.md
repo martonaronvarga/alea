@@ -40,3 +40,23 @@ reshape aliases. Additional executed fixtures check immutable `sqrt(0)` values,
 parameter-independent checkpoint outputs, alias finite differences and overflow
 recovery. This is not liveness compaction of active intermediates or higher-order
 checkpointing; declared scratch reductions are distinct from measured peak RSS.
+
+Segment replay now retains validated body primals for its prepared reverse,
+avoiding a second body evaluation per replayed trip. Byte-weighted segment sizing
+accounts for that retained storage. A nonlinear vector-carry fixture checks
+partial segments analytically and by finite differences. The remaining model/VJP
+admission and boundary passes, and higher-order compiler limits, still apply.
+
+The fixed-work control executable accepts a case and evaluation count:
+
+```console
+nix develop .#autodiff --command env CARGO_TARGET_DIR=target/enzyme-integration \
+  cargo run --release --locked --manifest-path tools/enzyme-conformance/Cargo.toml \
+  --example source_checkpoint -- long 20000
+```
+
+Cases are `checkpoint`, `long`, `retained`, `mixed`, `matrix`, and `routes`.
+Output reports internal evaluation seconds and density/all-coordinate score
+checksums. Preserve saved before/after binaries and alternate repeated runs;
+compilation, startup and model construction are not part of this timer. These
+controls are neither NUTS benchmarks nor ESS/sec measurements.

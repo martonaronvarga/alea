@@ -322,6 +322,33 @@ fn tensor_checkpoint_immutable_policy(variable: bool) -> Result<CompiledModel, A
     b.potential("objective", term)?;
     b.compile()
 }
+pub fn tensor_checkpoint_vector() -> Result<CompiledModel, AssemblyError> {
+    use alea::model::tensor::*;
+    let mut body = TensorBuilder::new();
+    let carry = body.input("carry", Shape::new(vec![2])?)?;
+    let row = body.input("row", Shape::scalar())?;
+    let gain = body.input("gain", Shape::scalar())?;
+    let scaled = body.binary(BinaryOp::Multiply, carry, gain)?;
+    let shifted = body.binary(BinaryOp::Add, scaled, row)?;
+    let next = body.unary(UnaryOp::Tanh, shifted)?;
+    let body = body.compile(next)?.bind(&[])?;
+    let mut t = TensorBuilder::new();
+    let initial = t.input("initial", Shape::new(vec![2])?)?;
+    let gain = t.input("gain", Shape::scalar())?;
+    let rows = t.constant(Shape::new(vec![65])?, vec![0.1; 65])?;
+    let result = t.checkpointed_scan(initial, rows, &[gain], body)?;
+    let result = t.sum(result)?;
+    let binding = t.compile(result)?.bind(&[])?;
+    let mut b = ModelBuilder::new();
+    let q = [
+        b.real("a")?.expr(),
+        b.real("b")?.expr(),
+        b.real("gain")?.expr(),
+    ];
+    let term = b.primitive(TensorFactor::new(binding, &q)?)?;
+    b.potential("objective", term)?;
+    b.compile()
+}
 pub fn tensor_checkpoint_routes() -> Result<CompiledModel, AssemblyError> {
     use alea::model::tensor::*;
     let mut body = TensorBuilder::new();
@@ -472,6 +499,7 @@ pub fn all() -> Result<Vec<(&'static str, CompiledModel)>, AssemblyError> {
         ("tensor_checkpoint_activity", tensor_checkpoint_activity()?),
         ("tensor_checkpoint_constant", tensor_checkpoint_constant()?),
         ("tensor_checkpoint_routes", tensor_checkpoint_routes()?),
+        ("tensor_checkpoint_vector", tensor_checkpoint_vector()?),
         (
             "tensor_checkpoint_immutable",
             tensor_checkpoint_immutable()?,
