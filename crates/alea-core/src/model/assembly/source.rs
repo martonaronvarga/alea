@@ -3,6 +3,27 @@ use super::{AssemblyError, CompiledModel, Op};
 use std::fmt::Write;
 
 impl CompiledModel {
+    pub(super) fn has_primal(&self, node: usize) -> bool {
+        self.generated_primals
+            .binary_search_by_key(&node, |(i, _)| *i)
+            .is_ok()
+            || self
+                .primals
+                .binary_search_by_key(&node, |(i, _)| *i)
+                .is_ok()
+    }
+    pub(super) fn primal_source(&self, node: usize) -> Option<std::borrow::Cow<'_, str>> {
+        self.generated_primals
+            .binary_search_by_key(&node, |(i, _)| *i)
+            .ok()
+            .map(|i| std::borrow::Cow::Owned((self.generated_primals[i].1)()))
+            .or_else(|| {
+                self.primals
+                    .binary_search_by_key(&node, |(i, _)| *i)
+                    .ok()
+                    .map(|i| std::borrow::Cow::Borrowed(self.primals[i].1))
+            })
+    }
     /// Emits the body of an unconstrained Rust scalar log-density function.
     ///
     /// The caller supplies `q: &[f64; layout().unconstrained_dimension()]` and a
@@ -19,7 +40,7 @@ impl CompiledModel {
     /// Returns [`AssemblyError::MissingPrimal`] for any active opaque node without an
     /// explicit Rust primal. There is no analytic or finite-difference fallback.
     pub fn rust_primal(&self) -> Result<String, AssemblyError> {
-        self.rust_mapped_primal(true)
+        self.rust_local_primal(true)
     }
 
     /// Emits the scalar composed objective f(T(q)), with no log-Jacobian code.
@@ -27,11 +48,38 @@ impl CompiledModel {
     /// # Errors
     /// Rejects opaque nodes without an explicit primal, as `rust_primal` does.
     pub fn rust_objective_primal(&self) -> Result<String, AssemblyError> {
+        self.rust_local_primal(false)
+    }
+
+    fn rust_local_primal(&self, density: bool) -> Result<String, AssemblyError> {
+        let (body, workspace) = self.rust_mapped_primal(density)?;
+        Ok(format!("let mut scratch = [0.0_f64; {workspace}];\n{body}"))
+    }
+
+    /// Emits a log-density body and its mutable `f64` scratch element count.
+    /// The caller supplies `q` as for `rust_primal`, plus
+    /// `scratch: &mut [f64; count]`. Scratch is overwritten before use; its input
+    /// values are not model data. Compiler AD must mark this argument duplicated,
+    /// with a zero-initialized shadow. Keeping storage explicitly typed avoids
+    /// nested AD mistaking local byte-initialized buffers for integer data.
+    /// # Errors
+    /// Rejects missing primals or overflowing combined scratch storage.
+    pub fn rust_primal_with_workspace(&self) -> Result<(String, usize), AssemblyError> {
+        self.rust_mapped_primal(true)
+    }
+
+    /// Workspace-explicit equivalent of `rust_objective_primal`, without a
+    /// transform Jacobian. Uses the same scratch contract as
+    /// `rust_primal_with_workspace`.
+    /// # Errors
+    /// Rejects missing primals or overflowing combined scratch storage.
+    pub fn rust_objective_primal_with_workspace(&self) -> Result<(String, usize), AssemblyError> {
         self.rust_mapped_primal(false)
     }
 
-    fn rust_mapped_primal(&self, density: bool) -> Result<String, AssemblyError> {
+    fn rust_mapped_primal(&self, density: bool) -> Result<(String, usize), AssemblyError> {
         let mut source = String::new();
+        let mut workspace = 0_usize;
         if density {
             source.push_str("let mut jacobian = 0.0_f64;\n");
         }
@@ -54,23 +102,31 @@ impl CompiledModel {
                 Op::Exp(a) => format!("n{a}.exp()"),
                 Op::Log(a) => format!("n{a}.ln()"),
                 Op::Factor { inputs, .. } => {
-                    let index = self
-                        .primals
-                        .binary_search_by_key(&i, |&(node, _)| node)
-                        .map_err(|_| AssemblyError::MissingPrimal { node: i })?;
-                    let primal = self.primals[index].1;
-                    writeln!(
-                        source,
-                        "fn factor{i}(x: &[f64; {}]) -> f64 {{ {primal} }}",
-                        inputs.len()
+                    let primal = self
+                        .primal_source(i)
+                        .ok_or(AssemblyError::MissingPrimal { node: i })?;
+                    let size = self
+                        .primitives
+                        .binary_search_by_key(&i, |(node, _)| *node)
+                        .ok()
+                        .map_or(0, |j| self.primitives[j].1.source_workspace);
+                    let start = workspace;
+                    let arguments = inputs.len();
+                    let size = size.checked_add(arguments).ok_or(AssemblyError::Shape)?;
+                    workspace = workspace
+                        .checked_add(size)
+                        .filter(|n| *n <= isize::MAX as usize / size_of::<f64>())
+                        .ok_or(AssemblyError::Shape)?;
+                    writeln!(source,
+                        "fn factor{i}(x: &[f64; {}], scratch: &mut [f64]) -> f64 {{ let _ = &scratch; {primal} }}",
+                        inputs.len()).unwrap();
+                    for (argument, node) in inputs.iter().enumerate() {
+                        let offset = start + argument;
+                        writeln!(source, "scratch[{offset}]=n{node};").unwrap();
+                    }
+                    format!(
+                        "{{ let (args, work)=scratch[{start}..{workspace}].split_at_mut({arguments}); factor{i}((&*args).try_into().expect(\"fixed arguments\"), work) }}"
                     )
-                    .unwrap();
-                    let inputs = inputs
-                        .iter()
-                        .map(|j| format!("n{j}"))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    format!("factor{i}(&[{inputs}])")
                 }
             };
             writeln!(
@@ -88,7 +144,7 @@ impl CompiledModel {
         } else {
             "total\n"
         });
-        Ok(source)
+        Ok((source, workspace))
     }
 
     /// Emits a boolean function body for cold/opaque numerical admission checks.

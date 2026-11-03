@@ -63,12 +63,16 @@ impl ModelBuilder {
         role: FactorRole,
     ) -> Result<(), AssemblyError> {
         let node = self.index(factor)?;
-        if name.is_empty() || self.factor_metadata.iter().any(|f| f.name() == Some(name)) {
+        if name.is_empty() {
+            return Err(AssemblyError::Name);
+        }
+        let name = self.qualified_name(name);
+        if self.factor_metadata.iter().any(|f| f.name() == Some(&name)) {
             return Err(AssemblyError::Name);
         }
         self.factors.push(node);
         self.factor_metadata.push(FactorMetadata {
-            name: Some(name.into()),
+            name: Some(name),
             role,
         });
         Ok(())

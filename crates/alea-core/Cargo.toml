@@ -35,5 +35,9 @@ criterion.workspace = true
 name = "transforms"
 harness = false
 
+[[bench]]
+name = "tensor_tape"
+harness = false
+
 [features]
 tracing = ["dep:tracing", "alea-math/tracing"]

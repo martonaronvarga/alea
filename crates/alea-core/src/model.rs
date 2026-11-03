@@ -7,6 +7,7 @@ use alea_math::buffer::OwnedBuffer;
 pub mod assembly;
 pub mod prediction;
 mod primitive;
+pub mod tensor;
 pub use primitive::{OpaquePrimitive, PrimitiveError, PrimitiveModel};
 
 use crate::{
@@ -22,6 +23,11 @@ use thiserror::Error;
 pub trait ConstrainedModel {
     type Error: Error + 'static;
     fn dimension(&self) -> usize;
+    /// Classifies explicit numerical representability failures only. Backend and
+    /// structural errors remain fatal by default; evaluation preserves all errors.
+    fn is_numerical_error(&self, _error: &Self::Error) -> bool {
+        false
+    }
     fn logp_grad(&self, parameters: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error>;
 }
 
@@ -73,6 +79,9 @@ impl<M: ConstrainedModel> crate::target::TargetSpace for ModelView<'_, M> {
     }
 }
 impl<M: ConstrainedModel> LogDensityGradient for ModelView<'_, M> {
+    fn is_numerical_error(&self, error: &Self::Error) -> bool {
+        self.0.is_numerical_error(error)
+    }
     fn logp_grad(&self, x: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         self.0.logp_grad(x, g)
     }
@@ -94,6 +103,7 @@ pub struct TransformedTarget<M> {
     model: M,
     layout: ParameterLayout,
     workspace: RefCell<Workspace>,
+    identity: bool,
 }
 impl<M: ConstrainedModel> TransformedTarget<M> {
     pub fn new(model: M, layout: ParameterLayout) -> Result<Self, ModelError<M::Error>> {
@@ -108,6 +118,10 @@ impl<M: ConstrainedModel> TransformedTarget<M> {
         };
         Ok(Self {
             model,
+            identity: layout
+                .blocks()
+                .iter()
+                .all(|b| b.transform().domain() == crate::transform::TransformDomain::Real),
             layout,
             workspace: RefCell::new(workspace),
         })
@@ -130,6 +144,23 @@ impl<M: ConstrainedModel> crate::target::TargetSpace for TransformedTarget<M> {
     }
 }
 impl<M: ConstrainedModel> LogDensityGradient for TransformedTarget<M> {
+    fn is_numerical_error(&self, error: &Self::Error) -> bool {
+        match error {
+            ModelError::Transform(error) => matches!(
+                error,
+                TransformError::PrecisionLoss { .. }
+                    | TransformError::NonFiniteOutput { .. }
+                    | TransformError::NonFiniteJacobian
+            ),
+            ModelError::Evaluation(EvaluationError::Model(error)) => {
+                self.model.is_numerical_error(error)
+            }
+            ModelError::Evaluation(
+                EvaluationError::NonFiniteLogDensity | EvaluationError::NonFiniteGradient { .. },
+            ) => true,
+            _ => false,
+        }
+    }
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
         self.evaluate_mapped::<true>(q, g)
     }
@@ -156,6 +187,16 @@ impl<M: ConstrainedModel> TransformedTarget<M> {
             gradient,
             scratch,
         } = &mut *workspace;
+        if self.identity {
+            // Preserve transform input errors (including their global index),
+            // checked model evaluation, reentrancy and transactional outputs.
+            // An identity layout needs neither a parameter copy nor a pullback.
+            crate::transform::finite(q)?;
+            let logp = target::evaluate(&ModelView(&self.model), q, constrained_gradient)
+                .map_err(ModelError::Evaluation)?;
+            g.copy_from_slice(constrained_gradient);
+            return Ok(if DENSITY { logp + 0.0 } else { logp });
+        }
         let jac = if DENSITY {
             self.layout.constrain(q, parameters, scratch)?
         } else {
@@ -215,6 +256,9 @@ impl<M: ConstrainedModel> TargetSpace for ComposedObjective<M> {
     }
 }
 impl<M: ConstrainedModel> LogDensityGradient for ComposedObjective<M> {
+    fn is_numerical_error(&self, error: &Self::Error) -> bool {
+        self.coordinates.is_numerical_error(error)
+    }
     fn logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         self.coordinates.evaluate_mapped::<false>(q, gradient)
     }
@@ -257,6 +301,20 @@ impl<A: ConstrainedModel, B: ConstrainedModel> SumModel<A, B> {
 }
 impl<A: ConstrainedModel, B: ConstrainedModel> ConstrainedModel for SumModel<A, B> {
     type Error = SumModelError<A::Error, B::Error>;
+    fn is_numerical_error(&self, error: &Self::Error) -> bool {
+        match error {
+            SumModelError::First(EvaluationError::Model(e)) => self.first.is_numerical_error(e),
+            SumModelError::Second(EvaluationError::Model(e)) => self.second.is_numerical_error(e),
+            SumModelError::NonFinite
+            | SumModelError::First(
+                EvaluationError::NonFiniteLogDensity | EvaluationError::NonFiniteGradient { .. },
+            )
+            | SumModelError::Second(
+                EvaluationError::NonFiniteLogDensity | EvaluationError::NonFiniteGradient { .. },
+            ) => true,
+            _ => false,
+        }
+    }
     fn dimension(&self) -> usize {
         self.dimension
     }

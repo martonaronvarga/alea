@@ -30,6 +30,16 @@ pub trait TargetSpace {
 /// [`evaluate`] checks dimensions, finite inputs, and complete finite outputs.
 /// The raw method is available to adapters; callers must honor its dimensions.
 pub trait LogDensityGradient: TargetSpace {
+    /// Whether an evaluation error denotes an unrepresentable numerical proposal.
+    ///
+    /// Defaults to false: arbitrary backend, domain and structural errors remain
+    /// fatal. Implementations may opt in only for explicit numerical failures at
+    /// a finite position. Checked evaluation and initialization still return the
+    /// original typed error; trajectory integrators may report a divergence.
+    fn is_numerical_error(&self, _error: &Self::Error) -> bool {
+        false
+    }
+
     /// Writes the full gradient and returns the log density in one evaluation.
     ///
     /// # Errors

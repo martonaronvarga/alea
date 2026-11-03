@@ -106,6 +106,7 @@ dependencies = [
  "libm",
  "once_cell",
  "pprof",
+ "pulp",
  "rand 0.10.1",
  "spec_math",
  "statrs",

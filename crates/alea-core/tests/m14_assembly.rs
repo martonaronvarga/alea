@@ -212,11 +212,12 @@ fn correlation_and_dirichlet_priors_pull_back_through_their_declared_measure() {
 #[path = "../../../tools/downstream-conformance/src/modeling.rs"]
 mod downstream;
 #[test]
-fn all_three_downstream_models_evaluate_without_allocations() {
+fn all_downstream_models_evaluate_without_allocations() {
     use alea_distributions::wiener::{Boundary, WienerObservation};
     use downstream::Observation;
     let models = [
         downstream::regression(&[(-1.0, -0.2), (0.0, 0.4), (1.0, 1.3)]),
+        downstream::hierarchy_counts(&[(2, 3), (1, 4)]),
         downstream::hierarchy(&[Observation::Logistic {
             group: 0,
             event: true,

@@ -99,6 +99,14 @@ impl<T: LogDensityGradient + ?Sized> crate::target::TargetSpace for FrozenTransp
     }
 }
 impl<T: LogDensityGradient + ?Sized> LogDensityGradient for FrozenTransportTarget<'_, T> {
+    fn is_numerical_error(&self, error: &Self::Error) -> bool {
+        match error {
+            FrozenTransportError::Evaluation(EvaluationError::Model(e)) => {
+                self.target.is_numerical_error(e)
+            }
+            _ => false,
+        }
+    }
     fn logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> Result<f64, Self::Error> {
         if position.len() != self.dimension()
             || gradient.len() != self.dimension()

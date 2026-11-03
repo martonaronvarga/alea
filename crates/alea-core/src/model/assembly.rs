@@ -14,11 +14,26 @@ use std::{
     },
 };
 
+mod batch;
 mod factors;
+mod inputs;
 mod pointwise;
+mod primitives;
+mod rebinding;
+mod reverse;
+mod scope;
 mod source;
+pub use batch::{BatchLikelihood, BatchUnit};
 pub use factors::{FactorMetadata, FactorRole};
+pub use inputs::ScalarInput;
 pub use pointwise::{PointwiseError, PointwiseLikelihood, PredictiveUnit};
+pub use primitives::{
+    ArgumentShape, BatchEvaluator, BatchRule, GraphNode, OperationKind, Primitive,
+    PrimitiveArgument, PrimitiveMetadata, PrimitiveSignature, ProbabilitySemantics,
+    SourceCapabilities,
+};
+pub use rebinding::RebindError;
+pub use scope::ModelScope;
 
 static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 /// Unconstrained real scalar parameter marker.
@@ -158,6 +173,9 @@ pub enum AssemblyError {
     /// A custom node has no Rust primal available for ahead-of-time compilation.
     #[error("model node {node} has no Rust primal for source generation")]
     MissingPrimal { node: usize },
+    /// A likelihood root has no explicitly supplied pointwise rule.
+    #[error("model node {node} has no batch pointwise lowering")]
+    MissingPointwise { node: usize },
     #[error(transparent)]
     Transform(#[from] TransformError),
 }
@@ -190,6 +208,11 @@ pub struct ModelBuilder {
     callbacks: Vec<Box<Callback>>,
     // Cold metadata stays out of the retained operation-tape stride.
     primals: Vec<(usize, &'static str)>,
+    generated_primals: Vec<(usize, Box<SourceCallback>)>,
+    batch_rules: Vec<(usize, usize, Box<BatchCallback>)>,
+    // Semantic descriptors are cold; never increase the hot Op stride.
+    primitives: Vec<(usize, PrimitiveMetadata)>,
+    namespace: String,
 }
 impl Default for ModelBuilder {
     fn default() -> Self {
@@ -226,6 +249,10 @@ impl ModelBuilder {
             max_inputs: 0,
             callbacks: Vec::new(),
             primals: Vec::new(),
+            generated_primals: Vec::new(),
+            batch_rules: Vec::new(),
+            primitives: Vec::new(),
+            namespace: String::new(),
         }
     }
     fn push(&mut self, op: Op) -> Expr {
@@ -248,13 +275,17 @@ impl ModelBuilder {
         name: &str,
         transform: Transform,
     ) -> Result<Parameter<S>, AssemblyError> {
-        if name.is_empty() || self.coordinates.iter().any(|x| x.name == name) {
+        if name.is_empty() {
+            return Err(AssemblyError::Name);
+        }
+        let name = self.qualified_name(name);
+        if self.coordinates.iter().any(|x| x.name == name) {
             return Err(AssemblyError::Name);
         }
         let slot = self.coordinates.len();
         self.transforms.push(transform);
         self.coordinates.push(Coordinate {
-            name: name.into(),
+            name,
             dimension: None,
             coordinate: None,
             block: None,
@@ -300,6 +331,7 @@ impl ModelBuilder {
         {
             return Err(AssemblyError::Shape);
         }
+        let name = self.qualified_name(name);
         let names: Vec<_> = labels
             .iter()
             .map(|label| format!("{name}[{label}]"))
@@ -354,31 +386,39 @@ impl ModelBuilder {
         }
         Ok(self.push(Op::Constant(x)))
     }
+    /// Adds literals, expressions or scalar parameter handles.
     /// # Errors
-    /// Rejects foreign handles.
-    pub fn add(&mut self, a: Expr, b: Expr) -> Result<Expr, AssemblyError> {
-        let a = self.index(a)?;
-        let b = self.index(b)?;
-        Ok(self.push(Op::Add(a, b)))
+    /// Rejects foreign handles/nonfinite literals before mutation.
+    pub fn add(
+        &mut self,
+        a: impl Into<ScalarInput>,
+        b: impl Into<ScalarInput>,
+    ) -> Result<Expr, AssemblyError> {
+        let [a, b] = self.inputs([a.into(), b.into()])?;
+        Ok(self.push(Op::Add(a.node, b.node)))
+    }
+    /// Multiplies literals, expressions or scalar parameter handles.
+    /// # Errors
+    /// Rejects foreign handles/nonfinite literals before mutation.
+    pub fn multiply(
+        &mut self,
+        a: impl Into<ScalarInput>,
+        b: impl Into<ScalarInput>,
+    ) -> Result<Expr, AssemblyError> {
+        let [a, b] = self.inputs([a.into(), b.into()])?;
+        Ok(self.push(Op::Multiply(a.node, b.node)))
     }
     /// # Errors
-    /// Rejects foreign handles.
-    pub fn multiply(&mut self, a: Expr, b: Expr) -> Result<Expr, AssemblyError> {
-        let a = self.index(a)?;
-        let b = self.index(b)?;
-        Ok(self.push(Op::Multiply(a, b)))
+    /// Rejects foreign handles/nonfinite literals. Runtime overflow is a typed evaluation failure.
+    pub fn exp(&mut self, a: impl Into<ScalarInput>) -> Result<Expr, AssemblyError> {
+        let a = self.expression(a)?;
+        Ok(self.push(Op::Exp(a.node)))
     }
     /// # Errors
-    /// Rejects foreign handles. Runtime overflow is a typed evaluation failure.
-    pub fn exp(&mut self, a: Expr) -> Result<Expr, AssemblyError> {
-        let a = self.index(a)?;
-        Ok(self.push(Op::Exp(a)))
-    }
-    /// # Errors
-    /// Rejects foreign handles. Runtime non-positive input is an evaluation error.
-    pub fn log(&mut self, a: Expr) -> Result<Expr, AssemblyError> {
-        let a = self.index(a)?;
-        Ok(self.push(Op::Log(a)))
+    /// Rejects foreign handles/nonfinite literals. Runtime non-positive input is an evaluation error.
+    pub fn log(&mut self, a: impl Into<ScalarInput>) -> Result<Expr, AssemblyError> {
+        let a = self.expression(a)?;
+        Ok(self.push(Op::Log(a.node)))
     }
     /// Fuses `offset + sum(coefficients[i] * inputs[i])` into one native node.
     /// Product residuals and addition residuals are accumulated before the final
@@ -526,6 +566,9 @@ impl ModelBuilder {
     /// # Errors
     /// Rejects foreign handles.
     pub fn sum(&mut self, values: &[Expr]) -> Result<Expr, AssemblyError> {
+        for &value in values {
+            self.index(value)?;
+        }
         let mut total = self.constant(0.0)?;
         for x in values {
             total = self.add(total, *x)?;
@@ -557,8 +600,10 @@ impl ModelBuilder {
             return Err(AssemblyError::Empty);
         }
         let layout = ParameterLayout::new(self.transforms)?;
+        let reverse = reverse::Plan::new(&self.nodes);
         let workspace = RefCell::new(PlanWorkspace {
             callbacks: self.callbacks,
+            batch_rules: self.batch_rules,
             values: vec![0.0; self.nodes.len()],
             adjoints: vec![0.0; self.nodes.len()],
             locals: vec![0.0; self.local_count],
@@ -566,7 +611,9 @@ impl ModelBuilder {
             gradient: vec![0.0; layout.constrained_dimension()],
         });
         Ok(CompiledModel {
+            owner: self.owner,
             nodes: self.nodes,
+            reverse,
             factors: self.factors,
             factor_metadata: self.factor_metadata,
             active_nodes: None,
@@ -576,11 +623,14 @@ impl ModelBuilder {
             layout,
             workspace,
             primals: self.primals,
+            generated_primals: self.generated_primals,
+            primitives: self.primitives,
         })
     }
 }
 struct PlanWorkspace {
     callbacks: Vec<Box<Callback>>,
+    batch_rules: Vec<(usize, usize, Box<BatchCallback>)>,
     values: Vec<f64>,
     adjoints: Vec<f64>,
     locals: Vec<f64>,
@@ -590,7 +640,9 @@ struct PlanWorkspace {
 /// Fixed analytic reverse plan with chain-local scratch and named layout metadata.
 #[must_use = "a compiled model must be evaluated or lowered to a target"]
 pub struct CompiledModel {
+    owner: u64,
     nodes: Vec<Op>,
+    reverse: reverse::Plan,
     active_nodes: Option<Vec<bool>>,
     active_factors: Option<Vec<usize>>,
     selection: factors::Selection,
@@ -600,7 +652,11 @@ pub struct CompiledModel {
     layout: ParameterLayout,
     workspace: RefCell<PlanWorkspace>,
     primals: Vec<(usize, &'static str)>,
+    generated_primals: Vec<(usize, Box<SourceCallback>)>,
+    primitives: Vec<(usize, PrimitiveMetadata)>,
 }
+type BatchCallback = dyn FnMut(&[f64], &mut [f64]) -> Result<(), AssemblyError> + Send + Sync;
+type SourceCallback = dyn Fn() -> String + Send + Sync;
 impl CompiledModel {
     /// Number of scalar expressions, including opaque batch nodes.
     /// Captured dataset bytes are not counted as expressions.
@@ -634,6 +690,16 @@ impl CompiledModel {
 }
 impl ConstrainedModel for CompiledModel {
     type Error = AssemblyError;
+    fn is_numerical_error(&self, error: &Self::Error) -> bool {
+        match error {
+            AssemblyError::Numerical => true,
+            AssemblyError::Factor(source) => matches!(
+                source.downcast_ref::<crate::distribution::DistributionError>(),
+                Some(crate::distribution::DistributionError::Numerical)
+            ),
+            _ => false,
+        }
+    }
     fn dimension(&self) -> usize {
         self.layout.constrained_dimension()
     }
@@ -676,31 +742,13 @@ impl CompiledModel {
             total.add(values[*i]);
             adjoints[*i] += 1.0;
         }
-        for (i, op) in self.nodes.iter().enumerate().rev() {
-            if FILTERED && !self.active_nodes.as_ref().expect("selected graph")[i] {
-                continue;
-            }
-            let a = adjoints[i];
-            match op {
-                Op::Parameter(s) => gradient[*s] += a,
-                Op::Constant(_) => {}
-                Op::Add(x, y) => {
-                    adjoints[*x] += a;
-                    adjoints[*y] += a;
-                }
-                Op::Multiply(x, y) => {
-                    adjoints[*x] += a * values[*y];
-                    adjoints[*y] += a * values[*x];
-                }
-                Op::Exp(x) => adjoints[*x] += a * values[i],
-                Op::Log(x) => adjoints[*x] += a / values[*x],
-                Op::Factor { inputs, start, .. } => {
-                    for (j, x) in inputs.iter().enumerate() {
-                        adjoints[*x] += a * locals[start + j];
-                    }
-                }
-            }
-        }
+        self.reverse.apply::<FILTERED>(
+            values,
+            adjoints,
+            locals,
+            gradient,
+            self.active_nodes.as_deref(),
+        );
         let total = total.total();
         if !total.is_finite() || gradient.iter().any(|x| !x.is_finite()) {
             return Err(AssemblyError::Numerical);

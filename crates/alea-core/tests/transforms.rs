@@ -208,7 +208,7 @@ fn layout_counts_shapes_and_zero_dimension_blocks() {
 }
 
 #[test]
-fn rejects_invalid_shapes_domains_nonfinite_and_precision_collapse() {
+fn rejects_invalid_shapes_domains_and_nonfinite_inputs() {
     assert!(Transform::identity(usize::MAX).is_err());
     assert!(Transform::covariance(usize::MAX).is_err());
     assert!(Transform::simplex(0).is_err());
@@ -221,19 +221,6 @@ fn rejects_invalid_shapes_domains_nonfinite_and_precision_collapse() {
         (1.0, 1.0f64.next_up()),
     ] {
         assert!(Transform::interval(1, a, b).is_err());
-    }
-    for (transform, q) in [
-        (Transform::positive(1).unwrap(), vec![-1000.0]),
-        (Transform::lower(1, 1.0).unwrap(), vec![-100.0]),
-        (Transform::interval(1, 0.0, 1.0).unwrap(), vec![100.0]),
-        (Transform::ordered(2).unwrap(), vec![1e20, 0.0]),
-        (Transform::simplex(2).unwrap(), vec![1000.0]),
-        (Transform::unit_vector(2).unwrap(), vec![1e300]),
-        (Transform::correlation(2).unwrap(), vec![100.0]),
-    ] {
-        let mut x = vec![0.0; transform.constrained_dimension()];
-        let mut s = vec![0.0; transform.scratch_dimension()];
-        assert!(transform.constrain(&q, &mut x, &mut s).is_err());
     }
     for (t, _, _) in cases(2) {
         let mut x = vec![123.0; t.constrained_dimension()];
@@ -256,6 +243,63 @@ fn rejects_invalid_shapes_domains_nonfinite_and_precision_collapse() {
         c.unconstrain(&[1.0, 0.0, 0.1, 1.0], &mut [0.0; 3], &mut [0.0; 8])
             .is_err()
     );
+}
+
+fn collapsed_coordinates() -> [(Transform, Vec<f64>); 7] {
+    [
+        (Transform::positive(1).unwrap(), vec![-1000.0]),
+        (Transform::lower(1, 1.0).unwrap(), vec![-100.0]),
+        (Transform::interval(1, 0.0, 1.0).unwrap(), vec![100.0]),
+        (Transform::ordered(2).unwrap(), vec![1e20, 0.0]),
+        (Transform::simplex(2).unwrap(), vec![1000.0]),
+        (Transform::unit_vector(2).unwrap(), vec![1e300]),
+        (Transform::correlation(2).unwrap(), vec![100.0]),
+    ]
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "underflow/saturation boundaries run explicitly with deterministic floats"
+)]
+fn rejects_precision_collapse_with_deterministic_transcendentals() {
+    // Miri's default exp/tanh perturbation may move a rounded boundary back
+    // inside the domain. The exact native expectations remain unchanged.
+    for (transform, q) in collapsed_coordinates() {
+        let mut x = vec![0.0; transform.constrained_dimension()];
+        let mut s = vec![0.0; transform.scratch_dimension()];
+        assert!(
+            transform.constrain(&q, &mut x, &mut s).is_err(),
+            "{transform:?}: {q:?}"
+        );
+    }
+}
+
+#[test]
+fn extreme_charts_never_admit_invalid_support_with_perturbed_transcendentals() {
+    for (i, (transform, q)) in collapsed_coordinates().into_iter().enumerate() {
+        let mut x = vec![0.; transform.constrained_dimension()];
+        let mut scratch = vec![0.; transform.scratch_dimension()];
+        if transform.constrain(&q, &mut x, &mut scratch).is_ok() {
+            assert!(x.iter().all(|v| v.is_finite()));
+            match i {
+                0 => assert!(x[0] > 0.),
+                1 => assert!(x[0] > 1.),
+                2 => assert!(x[0] > 0. && x[0] < 1.),
+                3 => assert!(x[1] > x[0]),
+                4 => {
+                    assert!(x.iter().all(|v| *v > 0.));
+                    close(x.iter().sum(), 1., 1e-12);
+                }
+                5 => {
+                    assert!(x[1] < 1.);
+                    close(x.iter().map(|v| v * v).sum(), 1., 1e-12);
+                }
+                6 => assert!(x[1].abs() < 1.),
+                _ => unreachable!(),
+            }
+        }
+    }
 }
 
 #[test]

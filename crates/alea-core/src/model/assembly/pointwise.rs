@@ -1,5 +1,5 @@
 //! Explicit predictive partitions over the declared likelihood factors.
-use super::{AssemblyError, CompiledModel, FactorRole};
+use super::{AssemblyError, BatchLikelihood, BatchUnit, CompiledModel, FactorRole};
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
@@ -66,17 +66,33 @@ struct Workspace {
     parameters: Vec<f64>,
     scratch: Vec<f64>,
     units: Vec<f64>,
+    rows: Vec<f64>,
+}
+
+enum Model {
+    Factors(CompiledModel),
+    Batch(BatchLikelihood),
+}
+impl std::ops::Deref for Model {
+    type Target = CompiledModel;
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Factors(model) => model,
+            Self::Batch(batch) => batch.model(),
+        }
+    }
 }
 
 /// Allocation-free pointwise likelihood reporting in free parameter coordinates.
 ///
 /// Owns one model and local scratch. Excludes priors, potentials and transform
-/// Jacobians. Each declared likelihood factor must be assigned exactly once;
-/// joint factors are never split into invented observation-level values. The
+/// Jacobians. Whole-factor reports assign each likelihood factor exactly once;
+/// batch-backed reports partition only explicitly supplied native row rules.
+/// Joint opaque factors are never split into invented observation-level values. The
 /// original graph remains recoverable for posterior evaluation or sampling.
 #[must_use]
 pub struct PointwiseLikelihood {
-    model: CompiledModel,
+    model: Model,
     units: Vec<PredictiveUnit>,
     nodes: Vec<Vec<usize>>,
     workspace: RefCell<Workspace>,
@@ -159,9 +175,94 @@ impl PointwiseLikelihood {
             parameters: vec![0.; model.layout.constrained_dimension()],
             scratch: vec![0.; model.layout.scratch_dimension()],
             units: vec![0.; units.len()],
+            rows: Vec::new(),
         });
         Ok(Self {
-            model,
+            model: Model::Factors(model),
+            units,
+            nodes,
+            workspace,
+        })
+    }
+
+    /// Partitions explicitly lowered conditional batch rows into predictive units.
+    /// `rows[i]` identifies the rows summed for `units[i]`. Every batch row must
+    /// occur exactly once; factor labels must agree with the assigned rows.
+    /// Observation IDs and conditioning remain caller declarations, not inferred
+    /// independence or marginalization. The native sampling graph is unchanged.
+    /// # Errors
+    /// Rejects incomplete/overlapping rows, unknown factors and invalid metadata.
+    pub fn from_batch(
+        batch: BatchLikelihood,
+        units: Vec<PredictiveUnit>,
+        rows: Vec<Vec<BatchUnit>>,
+    ) -> Result<Self, PointwiseError> {
+        if rows.len() != units.len() || units.is_empty() {
+            return Err(AssemblyError::Shape.into());
+        }
+        let mut assigned = HashSet::new();
+        let mut names = HashSet::new();
+        let mut observations = HashSet::new();
+        let mut nodes = Vec::with_capacity(units.len());
+        let lookup: HashMap<_, _> = batch
+            .units()
+            .iter()
+            .enumerate()
+            .map(|(i, row)| ((row.factor.as_str(), row.row), i))
+            .collect();
+        for (unit, (spec, rows)) in units.iter().zip(rows).enumerate() {
+            let invalid = |reason| PointwiseError::Unit { unit, reason };
+            if spec.name.is_empty()
+                || !names.insert(spec.name.as_str())
+                || spec.observations.is_empty()
+                || rows.is_empty()
+            {
+                return Err(invalid("empty or duplicate unit, observations or rows"));
+            }
+            let mut variables = HashSet::new();
+            for name in spec.conditioned_on.iter().chain(&spec.integrated_out) {
+                if name.is_empty() || !variables.insert(name.as_str()) {
+                    return Err(invalid(
+                        "empty, duplicate or contradictory conditioning variable",
+                    ));
+                }
+            }
+            for observation in &spec.observations {
+                if observation.is_empty() || !observations.insert(observation.as_str()) {
+                    return Err(PointwiseError::Observation {
+                        observation: observation.clone(),
+                    });
+                }
+            }
+            let expected: HashSet<_> = spec.factors.iter().map(String::as_str).collect();
+            let actual: HashSet<_> = rows.iter().map(|row| row.factor.as_str()).collect();
+            if expected.len() != spec.factors.len() || expected != actual {
+                return Err(invalid("factor labels do not match assigned batch rows"));
+            }
+            let mut indices = Vec::with_capacity(rows.len());
+            for row in &rows {
+                let Some(&index) = lookup.get(&(row.factor.as_str(), row.row)) else {
+                    return Err(invalid("unknown batch row"));
+                };
+                if !assigned.insert(index) {
+                    return Err(invalid("batch row assigned more than once"));
+                }
+                indices.push(index);
+            }
+            indices.sort_unstable();
+            nodes.push(indices);
+        }
+        if assigned.len() != batch.units().len() {
+            return Err(AssemblyError::Shape.into());
+        }
+        let workspace = RefCell::new(Workspace {
+            parameters: Vec::new(),
+            scratch: Vec::new(),
+            units: vec![0.; units.len()],
+            rows: vec![0.; batch.units().len()],
+        });
+        Ok(Self {
+            model: Model::Batch(batch),
             units,
             nodes,
             workspace,
@@ -172,6 +273,20 @@ impl PointwiseLikelihood {
     pub fn units(&self) -> &[PredictiveUnit] {
         &self.units
     }
+    /// Cold, explicit row partition for a batch-backed report. Whole-factor
+    /// reports return `None`. Rows retain their original factor/local indices;
+    /// this supplies provenance for exporters without inventing independent units.
+    pub fn batch_rows(&self) -> Option<Vec<Vec<BatchUnit>>> {
+        match &self.model {
+            Model::Factors(_) => None,
+            Model::Batch(batch) => Some(
+                self.nodes
+                    .iter()
+                    .map(|indices| indices.iter().map(|&i| batch.units()[i].clone()).collect())
+                    .collect(),
+            ),
+        }
+    }
 
     /// The original graph, with its likelihood selection active.
     pub fn model(&self) -> &CompiledModel {
@@ -180,7 +295,10 @@ impl PointwiseLikelihood {
 
     /// Recovers the owned graph; excluded factors remain available for selection.
     pub fn into_model(self) -> CompiledModel {
-        self.model
+        match self.model {
+            Model::Factors(model) => model,
+            Model::Batch(batch) => batch.into_model(),
+        }
     }
 
     /// Evaluates each unit and returns the complete likelihood in declaration order.
@@ -211,7 +329,23 @@ impl PointwiseLikelihood {
             parameters,
             scratch,
             units,
+            rows,
         } = &mut *workspace;
+        if let Model::Batch(batch) = &self.model {
+            let total = batch.evaluate(q, rows)?;
+            for (out, indices) in units.iter_mut().zip(&self.nodes) {
+                let mut sum = alea_math::numeric::CompensatedSum::default();
+                for &index in indices {
+                    sum.add(rows[index]);
+                }
+                *out = sum.total();
+            }
+            if units.iter().any(|x| !x.is_finite()) {
+                return Err(AssemblyError::Numerical.into());
+            }
+            output.copy_from_slice(units);
+            return Ok(total);
+        }
         self.model
             .layout
             .constrain_values(q, parameters, scratch)
