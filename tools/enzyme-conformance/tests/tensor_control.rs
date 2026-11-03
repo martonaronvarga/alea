@@ -113,12 +113,67 @@ fn source_replay_preserves_first_activity_and_rejects_a_genuine_singular_score()
     assert!(g[0].is_finite());
 }
 
+#[test]
+fn compact_source_adjoints_preserve_aliases_and_immutable_singular_primals() {
+    use alea_enzyme_conformance::tensor_checkpoint_immutable as model;
+    const {
+        assert!(model::SOURCE_CHECKPOINTED);
+    }
+    let target = model::target();
+    let mut g = [41.];
+    for gain in [-2., 0., 0.5, 3.] {
+        close(target.logp_grad(&[gain], &mut g).unwrap(), 6. * gain);
+        close(g[0], 6.);
+        let fd = (model::log_density(&[gain + 1e-6]) - model::log_density(&[gain - 1e-6])) / 2e-6;
+        assert!((g[0] - fd).abs() < 2e-8);
+    }
+    // Compacting derivative storage does not bypass overflow admission.
+    assert!(target.logp_grad(&[1e308], &mut g).is_err());
+    assert!(target.logp_grad(&[0.5], &mut g).is_ok());
+    close(g[0], 6.);
+    let constant = alea_enzyme_conformance::tensor_checkpoint_constant::target();
+    for gain in [-2., 0., 1e308] {
+        close(constant.logp_grad(&[gain], &mut g).unwrap(), 6.);
+        close(g[0], 0.);
+    }
+}
+
 #[track_caller]
 fn close(actual: f64, expected: f64) {
     assert!(
         (actual - expected).abs() < 2e-11 * (1. + expected.abs()),
         "{actual} != {expected}"
     );
+}
+
+#[test]
+fn compact_source_scan_routes_rows_and_shared_captures_in_operand_order() {
+    use alea_enzyme_conformance::tensor_checkpoint_routes as model;
+    let target = model::target();
+    for q in [
+        [0.2, 0.1, -0.4, 0.5, 0.7],
+        [-1., 2., 0., -0.5, -0.8],
+        [1., 2., 3., 4., 0.],
+    ] {
+        let b = q[4];
+        let (mut value, mut db) = (q[0], 0.);
+        for row in &q[1..4] {
+            db = db * b + value + row;
+            value = value * b + row * b + 0.25;
+        }
+        let expected = [b * b * b, b * b * b, b * b, b, db];
+        let mut g = [41.; 5];
+        close(target.logp_grad(&q, &mut g).unwrap(), value);
+        for j in 0..5 {
+            close(g[j], expected[j]);
+            let mut lo = q;
+            let mut hi = q;
+            lo[j] -= 1e-6;
+            hi[j] += 1e-6;
+            let fd = (model::log_density(&hi) - model::log_density(&lo)) / 2e-6;
+            assert!((g[j] - fd).abs() < 2e-8 * (1. + g[j].abs()));
+        }
+    }
 }
 
 // Closed form of three steps c <- c*b + row, followed by log(abs(c)).

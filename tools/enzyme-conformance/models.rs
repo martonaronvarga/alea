@@ -292,6 +292,65 @@ pub fn tensor_checkpoint_activity() -> Result<CompiledModel, AssemblyError> {
     b.potential("objective", term)?;
     b.compile()
 }
+pub fn tensor_checkpoint_immutable() -> Result<CompiledModel, AssemblyError> {
+    tensor_checkpoint_immutable_policy(true)
+}
+pub fn tensor_checkpoint_constant() -> Result<CompiledModel, AssemblyError> {
+    tensor_checkpoint_immutable_policy(false)
+}
+fn tensor_checkpoint_immutable_policy(variable: bool) -> Result<CompiledModel, AssemblyError> {
+    use alea::model::tensor::*;
+    let mut t = TensorBuilder::new();
+    let gain = t.input("gain", Shape::scalar())?;
+    let alias = t.reshape(gain, Shape::new(vec![1])?)?;
+    let data = t.data("data", Shape::new(vec![4])?)?;
+    // sqrt(0) has a finite primal but a singular derivative. Immutable data
+    // must never acquire that derivative during the source pullback.
+    let roots = t.unary(UnaryOp::Sqrt, data)?;
+    let sum = t.sum(roots)?;
+    let scalar = if variable {
+        let product = t.binary(BinaryOp::Multiply, alias, sum)?;
+        t.sum(product)?
+    } else {
+        sum
+    };
+    let result = checkpoint_identity(&mut t, scalar)?;
+    let binding = t.compile(result)?.bind(&[("data", &[0., 1., 4., 9.])])?;
+    let mut b = ModelBuilder::new();
+    let gain = b.real("gain")?.expr();
+    let term = b.primitive(TensorFactor::new(binding, &[gain])?)?;
+    b.potential("objective", term)?;
+    b.compile()
+}
+pub fn tensor_checkpoint_routes() -> Result<CompiledModel, AssemblyError> {
+    use alea::model::tensor::*;
+    let mut body = TensorBuilder::new();
+    let carry = body.input("carry", Shape::scalar())?;
+    let row = body.input("row", Shape::scalar())?;
+    let bias = body.input("bias", Shape::scalar())?;
+    let gain = body.input("gain", Shape::scalar())?;
+    let other = body.input("other", Shape::scalar())?;
+    let carry = body.binary(BinaryOp::Multiply, carry, gain)?;
+    let row = body.binary(BinaryOp::Multiply, row, other)?;
+    let next = body.binary(BinaryOp::Add, carry, row)?;
+    let next = body.binary(BinaryOp::Add, next, bias)?;
+    let body = body.compile(next)?.bind(&[])?;
+    let mut t = TensorBuilder::new();
+    let initial = t.input("initial", Shape::scalar())?;
+    let rows = t.input("rows", Shape::new(vec![3])?)?;
+    let gain = t.input("gain", Shape::scalar())?;
+    let alias = t.reshape(gain, Shape::scalar())?;
+    let bias = t.constant(Shape::scalar(), vec![0.25])?;
+    let result = t.checkpointed_scan(initial, rows, &[bias, gain, alias], body)?;
+    let binding = t.compile(result)?.bind(&[])?;
+    let mut b = ModelBuilder::new();
+    let q: Vec<_> = (0..5)
+        .map(|i| b.real(&format!("q{i}")).map(|v| v.expr()))
+        .collect::<Result<_, _>>()?;
+    let term = b.primitive(TensorFactor::new(binding, &q)?)?;
+    b.potential("objective", term)?;
+    b.compile()
+}
 fn tensor_control_steps(
     steps: usize,
     checkpoint: bool,
@@ -411,6 +470,12 @@ pub fn all() -> Result<Vec<(&'static str, CompiledModel)>, AssemblyError> {
         ("tensor_retained_long", tensor_retained_long()?),
         ("tensor_checkpoint_mixed", tensor_checkpoint_mixed()?),
         ("tensor_checkpoint_activity", tensor_checkpoint_activity()?),
+        ("tensor_checkpoint_constant", tensor_checkpoint_constant()?),
+        ("tensor_checkpoint_routes", tensor_checkpoint_routes()?),
+        (
+            "tensor_checkpoint_immutable",
+            tensor_checkpoint_immutable()?,
+        ),
         ("tensor_empty", tensor_empty()?),
         ("tensor_checkpoint_empty", tensor_checkpoint_empty()?),
         ("tensor_zero_scan", tensor_zero_scan()?),

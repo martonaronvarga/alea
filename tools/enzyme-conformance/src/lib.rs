@@ -48,6 +48,9 @@ generated!(
     tensor_retained_long,
     tensor_checkpoint_mixed,
     tensor_checkpoint_activity,
+    tensor_checkpoint_immutable,
+    tensor_checkpoint_constant,
+    tensor_checkpoint_routes,
     tensor_empty,
     tensor_checkpoint_empty,
     tensor_zero_scan

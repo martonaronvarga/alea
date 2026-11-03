@@ -803,7 +803,7 @@ propagation, even if its eventual scalar multiplier is zero.
 
 The generated `SOURCE_CHECKPOINTED` constant reports whether this explicit
 first-order path was selected. Its float-arena extent is checked, but is not a
-whole-process memory bound. Original input/output storage and dense tensor
+whole-process memory bound. Original input/output storage and dense active tensor
 adjoints remain; opaque source factors can retain compiler-owned tapes. Replay
 also costs computation: the current model gradient can execute five body-primal
 passes per trip (model admission, VJP admission, boundary preparation, segment
@@ -831,6 +831,36 @@ exclusion, matrix scores, empty selected errors and recovery. Pure 257-trip
 first-order execution allocates no heap memory. The retained compiler fixture
 also allocates no heap memory on this compiler, so that observation alone does
 not establish a measured peak-memory improvement.
+
+### Source adjoint storage follow-up
+
+The explicit first-order source pullback now assigns compact ranges only to
+derivative-active nodes. Immutable bindings, constants and inactive intermediate
+results have no adjoint range. Reshape aliases share their
+producer's range. Conditional argument and scan row/capture/initial propagation
+skip inactive destinations without changing the order of active additions.
+Primal storage and every selected arithmetic/domain check are unchanged; a
+constant result still evaluates its primal and validates its seed.
+
+An exact layout regression covers zero, one, 257 and 10,000 immutable elements.
+For `gain * sum(data)` with a reshape alias, the isolated tensor pullback's
+scratch requirement is five doubles regardless of data length, rather than
+`N + 6` doubles with the former dense adjoint arena. At N=10,000 this is 40
+versus 80,048 bytes of declared scratch, excluding inputs, embedded data, caller
+buffers and compiler temporaries. This is a checked storage calculation, **not
+a measured peak-RSS or latency speedup**. Dense active intermediates still need
+adjoints, and the enclosing source model takes the maximum of its other scratch
+requirements, so this ratio must not be extrapolated to whole models.
+
+Executed compiler fixtures check alias gradients against finite differences,
+`sqrt(0)` on immutable data without spurious singular derivatives, entirely
+parameter-independent checkpoint results, overflow rejection and recovery.
+An active-row recurrence checks every coordinate analytically and by central
+finite differences, including repeated capture aliases following an inactive
+capture in the body argument list.
+The existing long-scan, first/steady activity, matrix, mixed-prior/chart and
+higher-order tests remain the independent composition controls. The higher-order
+compiler boundary and five-pass replay cost above are not resolved by compaction.
 
 ### Fixed-work performance qualification
 

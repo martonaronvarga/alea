@@ -17,6 +17,24 @@ fn mul(a: usize, b: usize) -> Result<usize, E> {
         .filter(|&v| v <= isize::MAX as usize / size_of::<f64>())
         .ok_or(E::Shape)
 }
+// Primal slots include immutable bindings and constants; their adjoints do not
+// exist. Aliases share their producer's range, exactly as in the semantic plan.
+fn adjoint_layout(p: &Plan, active: &[bool]) -> Result<(Vec<usize>, usize), E> {
+    let mut offsets = vec![0; p.nodes.len()];
+    let mut slots = 0;
+    for (i, n) in p.nodes.iter().enumerate() {
+        if !p.active[i] || !active[i] {
+            continue;
+        }
+        if let Op::Alias(v) = n.op {
+            offsets[i] = offsets[v.node];
+        } else {
+            offsets[i] = slots;
+            slots = add(slots, n.shape.elements)?;
+        }
+    }
+    Ok((offsets, slots))
+}
 impl BoundProgram {
     pub(crate) fn has_source_checkpoints(&self) -> bool {
         self.plan.nodes.iter().enumerate().any(|(i, n)| {
@@ -62,6 +80,7 @@ impl BoundProgram {
     fn pullback_with_activity(&self, name: &str, inputs: &[bool]) -> Result<PullbackSource, E> {
         let p = &self.plan;
         let active = self.activity(inputs);
+        let (adjoints, adjoint_slots) = adjoint_layout(p, &active)?;
         let mut offsets = vec![0; p.nodes.len()];
         let mut cursor = self.output_shape().elements;
         for (i, n) in p.nodes.iter().enumerate() {
@@ -98,7 +117,7 @@ impl BoundProgram {
             if !p.active[i] || !active[i] {
                 continue;
             }
-            let base = n.start;
+            let base = adjoints[i];
             let len = n.shape.elements;
             match &n.op {
                 Op::Input(j) => {
@@ -131,7 +150,7 @@ impl BoundProgram {
                         UnaryOp::Cos => format!("-({x}).sin()"),
                         UnaryOp::Sqrt => format!("0.5/({y})"),
                     };
-                    writeln!(reverse,"for j in 0..{len} {{ let s=a[{base}+j]; let d={derivative}; if s!=0.0 || d.is_finite() {{ a[{}+j]+=s*d; }} }}",p.nodes[v.node].start).unwrap();
+                    writeln!(reverse,"for j in 0..{len} {{ let s=a[{base}+j]; let d={derivative}; if s!=0.0 || d.is_finite() {{ a[{}+j]+=s*d; }} }}",adjoints[v.node]).unwrap();
                 }
                 Op::Binary(b) => {
                     let l = map_source(&b.left);
@@ -149,7 +168,7 @@ impl BoundProgram {
                         writeln!(
                             reverse,
                             "{{let d={dl};if s!=0.0 || d.is_finite() {{a[{}+{l}]+=s*d;}}}}",
-                            p.nodes[b.a.node].start
+                            adjoints[b.a.node]
                         )
                         .unwrap();
                     }
@@ -157,7 +176,7 @@ impl BoundProgram {
                         writeln!(
                             reverse,
                             "{{let d={dr};if s!=0.0 || d.is_finite() {{a[{}+{r}]+=s*d;}}}}",
-                            p.nodes[b.b.node].start
+                            adjoints[b.b.node]
                         )
                         .unwrap();
                     }
@@ -166,13 +185,13 @@ impl BoundProgram {
                 Op::Sum(v) => writeln!(
                     reverse,
                     "for j in 0..{} {{ a[{}+j]+=a[{base}]; }}",
-                    p.nodes[v.node].shape.elements, p.nodes[v.node].start
+                    p.nodes[v.node].shape.elements, adjoints[v.node]
                 )
                 .unwrap(),
                 Op::Gather(v, indices) => writeln!(
                     reverse,
                     "let indices:[usize;{len}]={indices:?};for (j,k) in indices.into_iter().enumerate() {{a[{}+k]+=a[{base}+j];}}",
-                    p.nodes[v.node].start
+                    adjoints[v.node]
                 )
                 .unwrap(),
                 Op::Matmul {
@@ -190,7 +209,7 @@ impl BoundProgram {
                         writeln!(
                             reverse,
                             "a[{}+row*{k}+j]+=s*({});",
-                            p.nodes[l.node].start,
+                            adjoints[l.node],
                             value(*r, &format!("j*{n}+col"))
                         )
                         .unwrap();
@@ -199,7 +218,7 @@ impl BoundProgram {
                         writeln!(
                             reverse,
                             "a[{}+j*{n}+col]+=s*({});",
-                            p.nodes[r.node].start,
+                            adjoints[r.node],
                             value(*l, &format!("row*{k}+j"))
                         )
                         .unwrap();
@@ -234,13 +253,13 @@ impl BoundProgram {
                         Comparison::GreaterEqual => ">=",
                     };
                     writeln!(reverse,"if {} {cmp} {} {{ {name}_yes{i}(args,seeds,result,scores,child,valid); }} else {{ {name}_no{i}(args,seeds,result,scores,child,valid); }} if !*valid {{ return; }}",value(c.lhs,"0"),value(c.rhs,"0")).unwrap();
-                    accumulate(&mut reverse, &c.args, p, 0, "scores");
+                    accumulate(&mut reverse, &c.args, p, &active, &adjoints, 0, "scores");
                     reverse.push_str("}\n");
                 }
                 Op::Scan(s) if s.steps == 0 => writeln!(
                     reverse,
                     "for j in 0..{len} {{a[{}+j]+=a[{base}+j];}}",
-                    p.nodes[s.initial.node].start
+                    adjoints[s.initial.node]
                 )
                 .unwrap(),
                 Op::Scan(s) => {
@@ -284,25 +303,31 @@ impl BoundProgram {
                     writeln!(reverse,"{one}_primal(args,result,child,valid);if !*valid{{return;}}args[..{len}].copy_from_slice(result);}} for step in (start..end).rev() {{let at=(step-start)*{len};args[..{len}].copy_from_slice(&states[at..at+{len}]);").unwrap();
                     pack_row(&mut reverse, s, p, &offsets, len);
                     writeln!(reverse,"if step==0 {{{one}(args,seeds,result,scores,child,valid);}} else {{{later}(args,seeds,result,scores,child,valid);}}if !*valid{{return;}}seeds.copy_from_slice(&scores[..{len}]);").unwrap();
-                    writeln!(
-                        reverse,
-                        "for j in 0..{} {{a[{}+step*{}+j]+=scores[{len}+j];}}",
-                        s.row, p.nodes[s.xs.node].start, s.row
-                    )
-                    .unwrap();
-                    accumulate(&mut reverse, &s.captures, p, len + s.row, "scores");
-                    writeln!(
-                        reverse,
-                        "}}end=start;}}for j in 0..{len} {{a[{}+j]+=seeds[j];}} }}",
-                        p.nodes[s.initial.node].start
-                    )
-                    .unwrap();
+                    if active[s.xs.node] {
+                        writeln!(
+                            reverse,
+                            "for j in 0..{} {{a[{}+step*{}+j]+=scores[{len}+j];}}",
+                            s.row, adjoints[s.xs.node], s.row
+                        )
+                        .unwrap();
+                    }
+                    accumulate(&mut reverse, &s.captures, p, &active, &adjoints, len + s.row, "scores");
+                    reverse.push_str("}end=start;}");
+                    if active[s.initial.node] {
+                        writeln!(
+                            reverse,
+                            "for j in 0..{len} {{a[{}+j]+=seeds[j];}}",
+                            adjoints[s.initial.node]
+                        )
+                        .unwrap();
+                    }
+                    reverse.push_str("}\n");
                 }
             }
         }
-        let workspace = add(add(p.source_slots, p.slots)?, extra)?;
+        let workspace = add(add(p.source_slots, adjoint_slots)?, extra)?;
         let output = self.output_shape().elements;
-        writeln!(source,"#[allow(clippy::too_many_arguments,clippy::needless_range_loop)]\nfn {name}(x:&[f64],seed:&[f64],out:&mut[f64],g:&mut[f64],scratch:&mut[f64],valid:&mut bool) {{let (primal,rest)=scratch.split_at_mut({});let (a,extra)=rest.split_at_mut({});a.fill(0.0);g.fill(0.0);{{let (result,work)=primal.split_at_mut({output});{name}_primal(x,result,work,valid);}}if !*valid || seed.iter().any(|s|!s.is_finite()) {{*valid=false;return;}}",p.source_slots,p.slots).unwrap();
+        writeln!(source,"#[allow(clippy::too_many_arguments,clippy::needless_range_loop)]\nfn {name}(x:&[f64],seed:&[f64],out:&mut[f64],g:&mut[f64],scratch:&mut[f64],valid:&mut bool) {{let (primal,rest)=scratch.split_at_mut({});let (a,extra)=rest.split_at_mut({});a.fill(0.0);g.fill(0.0);{{let (result,work)=primal.split_at_mut({output});{name}_primal(x,result,work,valid);}}if !*valid || seed.iter().any(|s|!s.is_finite()) {{*valid=false;return;}}",p.source_slots,adjoint_slots).unwrap();
         for (i, n) in p.nodes.iter().enumerate() {
             if !p.active[i] {
                 continue;
@@ -320,7 +345,16 @@ impl BoundProgram {
                 _ => {}
             }
         }
-        writeln!(source,"a[{}..{}].copy_from_slice(seed);{reverse}\nif g.iter().chain(a.iter()).any(|v|!v.is_finite()) {{*valid=false;return;}}out.copy_from_slice(&primal[..{output}]);let _=extra;}}",p.nodes[p.output.node].start,p.nodes[p.output.node].range().end).unwrap();
+        if active[p.output.node] {
+            let start = adjoints[p.output.node];
+            writeln!(
+                source,
+                "a[{start}..{}].copy_from_slice(seed);",
+                start + output
+            )
+            .unwrap();
+        }
+        writeln!(source,"{reverse}\nif g.iter().chain(a.iter()).any(|v|!v.is_finite()) {{*valid=false;return;}}out.copy_from_slice(&primal[..{output}]);let _=extra;}}").unwrap();
         Ok(PullbackSource { source, workspace })
     }
 }
@@ -373,15 +407,64 @@ fn pack_row(s: &mut String, scan: &Scan, p: &Plan, slots: &[usize], carry: usize
     )
     .unwrap();
 }
-fn accumulate(s: &mut String, args: &[Value], p: &Plan, mut offset: usize, from: &str) {
+fn accumulate(
+    s: &mut String,
+    args: &[Value],
+    p: &Plan,
+    active: &[bool],
+    adjoints: &[usize],
+    mut offset: usize,
+    from: &str,
+) {
     for v in args {
         let n = &p.nodes[v.node];
-        writeln!(
-            s,
-            "for j in 0..{} {{a[{}+j]+={from}[{offset}+j];}}",
-            n.shape.elements, n.start
-        )
-        .unwrap();
+        if active[v.node] {
+            writeln!(
+                s,
+                "for j in 0..{} {{a[{}+j]+={from}[{offset}+j];}}",
+                n.shape.elements, adjoints[v.node]
+            )
+            .unwrap();
+        }
         offset += n.shape.elements;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn source_adjoints_exclude_immutable_ranges_and_share_aliases() {
+        for len in [0, 1, 257, 10_000] {
+            let mut b = TensorBuilder::new();
+            let x = b.input("x", Shape::scalar()).unwrap();
+            let alias = b.reshape(x, Shape::new(vec![1]).unwrap()).unwrap();
+            let data = b.data("data", Shape::new(vec![len]).unwrap()).unwrap();
+            let sum = b.sum(data).unwrap();
+            let out = b.binary(BinaryOp::Multiply, alias, sum).unwrap();
+            let program = b.compile(out).unwrap();
+            let values = vec![1.; len];
+            let binding = program.bind(&[("data", &values)]).unwrap();
+            let active = binding.activity(&[true]);
+            let (offsets, slots) = adjoint_layout(&binding.plan, &active).unwrap();
+            assert_eq!(slots, 2); // one input plus one product; alias shares input
+            assert_eq!(offsets[x.node], offsets[alias.node]);
+            assert!(!active[data.node]);
+            let source = binding.pullback_source("test").unwrap();
+            // No control-flow scratch: primal storage plus exactly two scores.
+            assert_eq!(source.workspace, binding.plan.source_slots + 2);
+            println!(
+                "immutable elements={len}: dense scratch={} doubles; compact scratch={} doubles",
+                binding.plan.source_slots + binding.plan.slots,
+                source.workspace
+            );
+
+            let inactive = binding
+                .pullback_with_activity("inactive", &[false])
+                .unwrap();
+            assert_eq!(inactive.workspace, binding.plan.source_slots);
+            assert!(!inactive.source.contains("copy_from_slice(seed)"));
+        }
     }
 }

@@ -34,3 +34,9 @@ this first-order selection. HVPs/third derivatives retain the original compiler
 reverse: forward AD of the rematerialized reverse failed pinned-compiler tests.
 Do not infer higher-order tape bounds or a peak-memory win from source presence
 or a zero-allocation test; the retained small compiler fixture also allocates zero.
+
+First-order source adjoint storage excludes inactive/immutable ranges and shares
+reshape aliases. Additional executed fixtures check immutable `sqrt(0)` values,
+parameter-independent checkpoint outputs, alias finite differences and overflow
+recovery. This is not liveness compaction of active intermediates or higher-order
+checkpointing; declared scratch reductions are distinct from measured peak RSS.
