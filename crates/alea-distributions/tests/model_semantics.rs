@@ -11,6 +11,308 @@ use alea_distributions::modeling::{
     regression::{NormalRegression, RegressionData, normal_regression},
 };
 
+// R0.3a: one definition, recovered between views, rather than independently
+// rebuilding targets that could accidentally have different constants/priors.
+mod query_chart_reporting {
+    use super::*;
+    use alea_core::model::assembly::{CompiledModel, PointwiseLikelihood, PredictiveUnit};
+    use alea_distributions::modeling::bernoulli_logit;
+
+    #[derive(Clone, Copy)]
+    enum View {
+        Prior,
+        Likelihood,
+        Posterior,
+        General,
+    }
+    impl View {
+        fn select(self, model: CompiledModel) -> CompiledModel {
+            match self {
+                Self::Prior => model.select_prior().unwrap(),
+                Self::Likelihood => model.select_likelihood().unwrap(),
+                Self::Posterior => model.select_posterior().unwrap(),
+                Self::General => model.select_all(),
+            }
+        }
+    }
+
+    fn definition(potential: bool) -> CompiledModel {
+        let mut b = ModelBuilder::new();
+        let beta = b.real("beta").unwrap();
+        let amplitude = b.positive("amplitude").unwrap();
+        let sigma = b.positive("sigma").unwrap();
+        let square = b.multiply(amplitude, amplitude).unwrap();
+        for (i, (x, y, event)) in [(-0.7, 0.2, true), (1.3, -1.1, false)]
+            .into_iter()
+            .enumerate()
+        {
+            let x = b.constant(x).unwrap();
+            let effect = b.multiply(square, x).unwrap();
+            let eta = b.add(beta, effect).unwrap();
+            let n = normal(&mut b, y, eta, sigma).unwrap();
+            let l = bernoulli_logit(&mut b, event, eta).unwrap();
+            b.likelihood(&format!("n{i}"), n).unwrap();
+            b.likelihood(&format!("l{i}"), l).unwrap();
+            if i == 0 {
+                // A second observation with the same value/predictor shares the
+                // entire factor node, but its density must still be counted.
+                b.likelihood("replica", n).unwrap();
+            }
+        }
+        let prior = normal(&mut b, beta, 0., 2.).unwrap();
+        b.prior("beta prior", prior).unwrap();
+        for (name, value) in [
+            ("amplitude prior", amplitude.expr()),
+            ("scale prior", sigma.expr()),
+        ] {
+            let prior = normal(&mut b, value, 0., 1.).unwrap();
+            let two = b.constant(2_f64.ln()).unwrap();
+            let prior = b.add(prior, two).unwrap();
+            b.prior(name, prior).unwrap();
+        }
+        if potential {
+            let weight = b.constant(-0.3).unwrap();
+            let penalty = b.multiply(weight, square).unwrap();
+            b.potential("regularizer, not a prior", penalty).unwrap();
+        }
+        b.compile().unwrap()
+    }
+
+    // Independent full densities and analytic gradients in free coordinates.
+    // Neither Alea's laws, chart helpers nor evaluator supply this oracle.
+    fn reference(q: [f64; 3], view: View, density: bool, potential: bool) -> (f64, [f64; 3]) {
+        let [beta, log_a, log_s] = q;
+        let a2 = (2. * log_a).exp();
+        let s2 = (2. * log_s).exp();
+        let c = 0.5 * std::f64::consts::TAU.ln();
+        let mut lp = 0.;
+        let mut g = [0.; 3];
+        if !matches!(view, View::Prior) {
+            // likelihood or full sum
+            for (i, (x, y, event)) in [(-0.7, 0.2, true), (1.3, -1.1, false)]
+                .into_iter()
+                .enumerate()
+            {
+                let eta = beta + a2 * x;
+                let residual = y - eta;
+                let copies = if i == 0 { 2. } else { 1. };
+                lp += copies * (-c - log_s - residual * residual / (2. * s2));
+                let sign = if event { 1. } else { -1. };
+                // Direct log-sigmoid of the observed sign: no eta-softplus
+                // cancellation, independent of the production link kernel.
+                lp -= (1. + (-sign * eta).exp()).ln();
+                let score = copies * residual / s2 + sign / (1. + (sign * eta).exp());
+                g[0] += score;
+                g[1] += score * 2. * a2 * x;
+                g[2] += copies * (-1. + residual * residual / s2);
+            }
+        }
+        if !matches!(view, View::Likelihood) {
+            // prior or full sum
+            lp += -beta * beta / 8. - 2_f64.ln() - c - 0.5 * a2 - c + 2_f64.ln() - 0.5 * s2 - c
+                + 2_f64.ln();
+            g[0] -= beta / 4.;
+            g[1] -= a2;
+            g[2] -= s2;
+        }
+        if potential {
+            lp -= 0.3 * a2;
+            g[1] -= 0.6 * a2;
+        }
+        if density {
+            lp += log_a + log_s;
+            g[1] += 1.;
+            g[2] += 1.;
+        }
+        (lp, g)
+    }
+
+    fn close(a: f64, b: f64) {
+        assert!((a - b).abs() < 2e-11 * (1. + b.abs()), "{a} != {b}");
+    }
+
+    #[test]
+    fn one_definition_preserves_full_constants_and_exactly_one_chart_for_every_view() {
+        let mut model = definition(false);
+        let states = [[0.2, -0.4, 0.3], [-1.1, 0.5, -0.6], [2., -1., 0.8]];
+        for view in [
+            View::Prior,
+            View::Likelihood,
+            View::Posterior,
+            View::General,
+        ] {
+            model = view.select(model);
+            assert_eq!(model.factors().len(), 8);
+            assert_eq!(model.coordinates().len(), 3);
+            let objective = model.into_objective().unwrap();
+            for q in states {
+                let (lp, g) = reference(q, view, false, false);
+                let mut actual = [99.; 3];
+                close(objective.logp_grad(&q, &mut actual).unwrap(), lp);
+                for (a, b) in actual.into_iter().zip(g) {
+                    close(a, b);
+                }
+            }
+            let target = objective.into_model().into_target().unwrap();
+            for q in states {
+                let (lp, g) = reference(q, view, true, false);
+                let mut actual = [99.; 3];
+                close(target.logp_grad(&q, &mut actual).unwrap(), lp);
+                for k in 0..3 {
+                    close(actual[k], g[k]);
+                    for h in [1e-4, 1e-5, 1e-6] {
+                        let mut plus = q;
+                        let mut minus = q;
+                        plus[k] += h;
+                        minus[k] -= h;
+                        let fd = (reference(plus, view, true, false).0
+                            - reference(minus, view, true, false).0)
+                            / (2. * h);
+                        assert!((actual[k] - fd).abs() < 1e-6 * (1. + fd.abs()));
+                    }
+                }
+            }
+            model = target.into_model();
+        }
+        let unit = |name: &str, factors: &[&str], observations: &[&str]| PredictiveUnit {
+            name: name.into(),
+            factors: factors.iter().map(|s| (*s).into()).collect(),
+            observations: observations.iter().map(|s| (*s).into()).collect(),
+            conditioned_on: vec!["beta".into(), "amplitude".into(), "sigma".into()],
+            integrated_out: vec![],
+        };
+        let pointwise = PointwiseLikelihood::new(
+            model,
+            vec![
+                unit("group B", &["l1", "n1"], &["binary1", "continuous1"]),
+                unit(
+                    "group A",
+                    &["replica", "l0", "n0"],
+                    &["replicate0", "binary0", "continuous0"],
+                ),
+            ],
+        )
+        .unwrap();
+        for q in states {
+            let mut out = [99.; 2];
+            close(
+                pointwise.evaluate(&q, &mut out).unwrap(),
+                reference(q, View::Likelihood, false, false).0,
+            );
+            let eta = q[0] + 1.3 * (2. * q[1]).exp();
+            let group_b = -0.5 * std::f64::consts::TAU.ln()
+                - q[2]
+                - (-1.1 - eta).powi(2) / (2. * (2. * q[2]).exp())
+                - (1. + eta.exp()).ln();
+            close(out[0], group_b);
+            close(
+                out[1],
+                reference(q, View::Likelihood, false, false).0 - group_b,
+            );
+        }
+        assert_eq!(pointwise.units()[0].name, "group B");
+        assert!(
+            pointwise
+                .units()
+                .iter()
+                .all(|u| u.integrated_out.is_empty())
+        );
+        let restored = pointwise
+            .into_model()
+            .select_posterior()
+            .unwrap()
+            .into_target()
+            .unwrap();
+        close(
+            restored.logp_grad(&states[0], &mut [0.; 3]).unwrap(),
+            reference(states[0], View::Posterior, true, false).0,
+        );
+    }
+
+    #[test]
+    fn custom_potential_stays_a_general_target_not_an_implied_posterior() {
+        assert!(matches!(
+            definition(true).select_posterior(),
+            Err(AssemblyError::PosteriorPotential { index: 8 })
+        ));
+        let mut model = definition(true);
+        let q = [0.2, -0.4, 0.3];
+        for view in [View::Prior, View::Likelihood, View::General] {
+            model = view.select(model);
+            let target = model.into_target().unwrap();
+            let (lp, g) = reference(q, view, true, matches!(view, View::General));
+            let mut actual = [99.; 3];
+            close(target.logp_grad(&q, &mut actual).unwrap(), lp);
+            for (a, b) in actual.into_iter().zip(g) {
+                close(a, b);
+            }
+            model = target.into_model();
+        }
+    }
+}
+
+#[test]
+fn generic_observation_uses_the_fused_parameter_only_entry_once() {
+    use alea_core::distribution::{Distribution, DistributionError, ParameterScore};
+    use alea_distributions::{modeling::observation, scalar::BernoulliLogit};
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+    struct Counted {
+        law: BernoulliLogit,
+        calls: Arc<AtomicUsize>,
+    }
+    impl Distribution for Counted {
+        type Event = bool;
+        type Error = DistributionError;
+        fn event_shape(&self) -> EventShape {
+            self.law.event_shape()
+        }
+        fn support(&self) -> Support {
+            self.law.support()
+        }
+        fn reference_measure(&self) -> ReferenceMeasure {
+            self.law.reference_measure()
+        }
+        fn log_prob(&self, x: &bool) -> Result<f64, Self::Error> {
+            self.calls.fetch_add(100, Ordering::Relaxed);
+            self.law.log_prob(x)
+        }
+    }
+    impl ParameterScore for Counted {
+        fn parameter_count(&self) -> usize {
+            1
+        }
+        fn parameter_score(&self, x: &bool, g: &mut [f64]) -> Result<(), Self::Error> {
+            self.calls.fetch_add(100, Ordering::Relaxed);
+            self.law.parameter_score(x, g)
+        }
+        fn log_prob_parameter_score(&self, x: &bool, g: &mut [f64]) -> Result<f64, Self::Error> {
+            self.calls.fetch_add(1, Ordering::Relaxed);
+            self.law.log_prob_parameter_score(x, g)
+        }
+    }
+    let calls = Arc::new(AtomicUsize::new(0));
+    let count = Arc::clone(&calls);
+    let mut b = ModelBuilder::new();
+    let eta = b.real("eta").unwrap().expr();
+    let f = observation(&mut b, true, &[eta], move |x| {
+        Ok(Counted {
+            law: BernoulliLogit::new(x[0])?,
+            calls: Arc::clone(&count),
+        })
+    })
+    .unwrap();
+    b.likelihood("response", f).unwrap();
+    let model = b.compile().unwrap();
+    let mut g = [0.];
+    let lp = model.logp_grad(&[0.], &mut g).unwrap();
+    assert_eq!(lp, -2_f64.ln());
+    assert_eq!(g, [0.5]);
+    assert_eq!(calls.load(Ordering::Relaxed), 1);
+}
+
 #[test]
 fn shared_normal_preparation_matches_scalar_callbacks_and_preserves_first_failure() {
     fn model(shared: bool) -> alea_core::model::assembly::CompiledModel {

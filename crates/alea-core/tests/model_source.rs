@@ -2,19 +2,35 @@ use alea_core::model::assembly::{AssemblyError, ModelBuilder};
 
 #[test]
 fn source_rejects_opaque_nodes_without_silently_using_their_vjp() {
+    use alea_core::target::LogDensityGradient;
     let mut b = ModelBuilder::new();
     let x = b.real("x").unwrap().expr();
     let f = b
         .custom(&[x], |x, g| {
-            g[0] = 1.0;
-            Ok(x[0])
+            g[0] = 2. * x[0];
+            Ok(x[0] * x[0])
         })
         .unwrap();
     b.factor(f).unwrap();
+    let model = b.compile().unwrap();
+    assert_eq!(model.source_capabilities().missing_primals, [f]);
+    assert!(!model.source_capabilities().supports_rust_primal());
     assert!(matches!(
-        b.compile().unwrap().rust_primal(),
+        model.rust_primal(),
         Err(AssemblyError::MissingPrimal { .. })
     ));
+    assert!(matches!(
+        model.rust_objective_primal(),
+        Err(AssemblyError::MissingPrimal { .. })
+    ));
+    let native = model.into_target().unwrap();
+    let mut g = [99.];
+    assert_eq!(native.logp_grad(&[3.], &mut g).unwrap(), 9.);
+    assert_eq!(g, [6.]);
+    assert!(native.logp_grad(&[f64::NAN], &mut g).is_err());
+    assert_eq!(g, [6.]);
+    assert_eq!(native.logp_grad(&[-2.], &mut g).unwrap(), 4.);
+    assert_eq!(g, [-4.]);
 }
 
 #[test]

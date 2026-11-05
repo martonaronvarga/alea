@@ -144,6 +144,27 @@ pub trait ParameterScore: Distribution {
     /// Returns shape, boundary or numerical errors; output is scratch on failure.
     fn parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> Result<(), Self::Error>;
 
+    /// Evaluates the log probability and parameter score together for any event
+    /// type, including discrete events. Implementations may reuse native fused
+    /// kernels. This does not create a derivative of the event.
+    ///
+    /// # Errors
+    /// Rejects the score shape first, then preserves density and parameter-score
+    /// errors in that order. Output is scratch on failure; support-zero and
+    /// boundary-score behavior remain those of the underlying law.
+    fn log_prob_parameter_score(
+        &self,
+        event: &Self::Event,
+        output: &mut [f64],
+    ) -> Result<f64, Self::Error> {
+        if output.len() != self.parameter_count() {
+            return Err(DistributionError::Shape.into());
+        }
+        let value = self.log_prob(event)?;
+        self.parameter_score(event, output)?;
+        Ok(value)
+    }
+
     /// Evaluates a scalar density and both kinds of score together.
     /// Parameter scores use the same order as [`Self::parameter_score`]. The
     /// returned pair is `(log_probability, event_score)`; output is scratch on
@@ -284,5 +305,36 @@ mod combined_score_tests {
             (-2., 3.)
         );
         assert_eq!(score, [4.]);
+    }
+    #[test]
+    fn parameter_only_fused_default_is_dyn_compatible_and_does_not_request_event_scores() {
+        let law = ExternalLaw {
+            fail: Cell::new(0),
+            visits: RefCell::new(Vec::new()),
+        };
+        let erased: &dyn ParameterScore<Event = f64, Error = DistributionError> = &law;
+        assert!(matches!(
+            erased.log_prob_parameter_score(&0., &mut []),
+            Err(DistributionError::Shape)
+        ));
+        assert!(law.visits.borrow().is_empty());
+        for stage in [1, 3] {
+            law.fail.set(stage);
+            law.visits.borrow_mut().clear();
+            assert!(matches!(
+                erased.log_prob_parameter_score(&0., &mut [17.]),
+                Err(DistributionError::Numerical)
+            ));
+            assert_eq!(
+                *law.visits.borrow(),
+                if stage == 1 { vec![1] } else { vec![1, 3] }
+            );
+        }
+        law.fail.set(2);
+        law.visits.borrow_mut().clear();
+        let mut g = [17.];
+        assert_eq!(erased.log_prob_parameter_score(&0., &mut g).unwrap(), -2.);
+        assert_eq!(g, [4.]);
+        assert_eq!(*law.visits.borrow(), [1, 3]);
     }
 }

@@ -84,10 +84,67 @@ def cargo_bench_inventory(root):
         compiled_ad_manifest='tools/enzyme-conformance/Cargo.toml')
 
 
+def cargo_route_receipts(path):
+    """Read explicit planning/preflight receipts, never infer routes from features.
+
+    Pure C/L requests that the current exporter cannot honor remain unsupported.
+    Hybrid curvature resolves to original compiler reverse with its separate
+    first-order admission route; it is not checkpointed higher differentiation.
+    """
+    rows = {}
+    prefix = 'ALEA_BASELINE_ROUTE_V1\t'
+    if not path.is_file():
+        return []
+    for line in path.read_text().splitlines():
+        if not line.startswith('ALEA_BASELINE_ROUTE_'):
+            continue
+        if not line.startswith(prefix):
+            raise ValueError('unknown baseline route receipt version')
+        parts = line[len(prefix):].split('\t')
+        if len(parts) != 10:
+            raise ValueError('malformed baseline route receipt')
+        fixture, requested, resolved, order, arithmetic, provider, admission, checkpoint, status, reason = parts
+        if (not re.fullmatch(r'[A-Za-z0-9_]+', fixture)
+                or requested not in {'N','C','L','H'} or resolved not in {'N','C','L','H','none'}
+                or order not in {'value','first','hvp','third'}
+                or arithmetic != 'fixture-default' or provider != 'rust'
+                or admission not in {'N','C','L','H','none'} or checkpoint not in {'true','false'}
+                or status not in {'supported','unsupported','failed','not-run'} or not reason.strip()):
+            raise ValueError('invalid baseline route axes/status/reason')
+        if ((requested == 'N' and (admission != 'N' or checkpoint != 'false'))
+                or (requested != 'N' and admission == 'N')
+                or (checkpoint == 'true' and order != 'value' and admission != 'H')
+                or (order == 'first' and (resolved != admission or admission == 'none'))
+                or (requested != 'N' and order == 'value' and (resolved not in {'C','L'} or admission != 'none'))
+                or (requested != 'N' and order in {'hvp','third'} and admission == 'none')
+                or (requested == 'N' and order == 'value' and resolved != 'N')
+                or (requested != 'N' and order in {'hvp','third'} and resolved not in {'C','L'})
+                or (requested == 'N' and order in {'hvp','third'} and (resolved != 'none' or status != 'unsupported'))
+                or (status in {'supported','failed'} and requested != admission)):
+            raise ValueError('contradictory baseline route or derivative order')
+        row = dict(fixture=fixture, requested_route=requested, resolved_route=resolved,
+            order=order, arithmetic=arithmetic, provider=provider,
+            query='density/current-factor-selection', constants='full',
+            requested_arithmetic='fixture-default', resolved_arithmetic=arithmetic,
+            requested_provider='fixture-default', resolved_provider=provider,
+            first_order_admission_route=admission, source_checkpoint_flag=checkpoint == 'true',
+            higher_order_checkpointed=False, status=status, reason=reason,
+            evidence_scope='planning-or-untimed-preflight', source=str(path))
+        key = fixture, requested, order
+        if key in rows:
+            previous = rows[key]
+            axes = set(row) - {'status','reason'}
+            if (previous['status'] != 'not-run' or status not in {'supported','failed'}
+                    or any(previous[k] != row[k] for k in axes)):
+                raise ValueError('conflicting baseline route receipts')
+        rows[key] = row
+    return list(rows.values())
+
+
 def cargo_bench_report(root):
     """Read Criterion's existing estimates/samples; no second timing engine."""
     root=Path(root)
-    cells=[];rows=[]
+    cells=[];rows=[];routes=[]
     def number(value,positive=False):
         if type(value) not in (float,int) or not math.isfinite(value) or (value<=0 if positive else value<0):
             raise ValueError('invalid Criterion numeric estimate/sample')
@@ -97,6 +154,9 @@ def cargo_bench_report(root):
         features=(cell/'features.txt').read_text().strip()
         status='build-failed' if (cell/'BUILD_FAILED').exists() else ('run-failed' if (cell/'RUN_FAILED').exists() else ('finished' if (cell/'run.log').exists() else 'not-run'))
         cells.append(dict(cell=cell.name,features=features,status=status))
+        receipts = cargo_route_receipts(cell/'run.log')
+        cells[-1]['route_inventory_status'] = 'recorded' if receipts else 'not-recorded'
+        routes.extend(dict(cell=cell.name, **receipt) for receipt in receipts)
         for path in sorted((cell/'criterion').rglob('new/estimates.json')):
             location=path.parent
             estimates=json.loads(path.read_text())
@@ -132,7 +192,8 @@ def cargo_bench_report(root):
             comparisons.append(dict(case=case,reference=a['cell'],candidate=b['cell'],
                 reference_over_candidate=a['nanoseconds_per_iteration']/b['nanoseconds_per_iteration']))
     return dict(schema_version=1,scope='sequential feature-cell ratios of Criterion medians, not paired estimates, cross-source qualification or ESS/sec',
-        cells=cells,measurements=rows,comparisons=comparisons)
+        cells=cells,measurements=rows,comparisons=comparisons,route_inventory=routes,
+        route_inventory_scope='planning and untimed preflight only; supported requires an explicit execution receipt; legacy logs are not-recorded; fixture-default arithmetic is not equal-accuracy certification; current compiled benchmark still requires PotentialHessianDerivative')
 
 
 def allocation_affinity(plan):

@@ -487,11 +487,20 @@ so the density is expressed in the sampler's coordinates. For example, a positiv
 scale contributes `log(sigma)` to that sampling density. That term changes an
 optimization objective and must not be added for MLE in the original parameters.
 
+`select_prior()` retains only declared priors; it does not turn potentials into
+priors or integrate out likelihood-only parameters. Convert it with
+`into_objective()` to evaluate the prior function, or explicitly with
+`into_target()` for the density in the full retained sampler coordinates.
+The latter includes all declared chart Jacobians, even for coordinates absent
+from the selected sum; a prior-only selection is not automatically a proper
+joint distribution on those coordinates.
+
 `select_posterior()` retains likelihoods and priors. Convert that view with
 `into_objective()` to evaluate a mode objective in the declared parameter measure,
-or with `into_target()` for sampling. Unclassified `factor` terms cause both
-statistical selections to fail. An arbitrary `potential` is deliberately excluded
-from a likelihood view and rejected by a posterior selection. Generic objectives
+or with `into_target()` for sampling. Unclassified `factor` terms cause all
+statistical selections (likelihood, prior and posterior) to fail. An arbitrary
+`potential` is deliberately excluded from likelihood and prior views and rejected
+by a posterior selection. Generic objectives
 and sampling targets can still evaluate the complete sum with `select_all()`.
 These declarations state your interpretation; they do not prove normalization or
 posterior propriety.

@@ -164,6 +164,15 @@ have only fixed integer parameters. UniformSphere and UniformBall have
 no continuous distribution parameters. Multivariate and directional scores have
 explicit coordinate conventions in their type documentation.
 
+`ParameterScore::log_prob_parameter_score` returns a density or mass and its
+parameter scores together for the law's existing event type, including bool or
+integer events. Its default checks score shape, evaluates the density, then
+requests parameter scores. Normal and Bernoulli-logit reuse their native fused
+kernels. `modeling::observation` uses this entry point. It does not request a
+continuous event derivative; `log_prob_event_parameter_score` remains the
+separate interface for continuous event derivatives. Raw score buffers are
+scratch on error, and model adapters retain their checked output staging.
+
 General CDF, quantile, and truncation interfaces are not provided for this entire
 catalogue. The Wiener module has its own boundary-specific CDF and interval
 methods. A normalized density and an RNG do not imply a censoring likelihood is

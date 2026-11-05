@@ -7,6 +7,64 @@ use std::f64::consts::PI;
 fn close(a: f64, b: f64, t: f64) {
     assert!((a - b).abs() <= t * (1.0 + b.abs()), "{a} != {b}");
 }
+#[test]
+fn fused_observation_scores_preserve_native_laws_tails_and_parameter_only_admission() {
+    use alea_core::distribution::DistributionError as E;
+    for (mu, sigma, x) in [
+        (0., 1., 0.),
+        (2., 0.01, -0.5),
+        (-3., 1e100, 2e99),
+        (0., 1e-150, 0.),
+    ] {
+        let law = Normal::new(mu, sigma).unwrap();
+        let mut g = [17.; 2];
+        let mut separate = [0.; 2];
+        let value = law.log_prob_parameter_score(&x, &mut g).unwrap();
+        close(value, law.log_prob(&x).unwrap(), 2e-14);
+        law.parameter_score(&x, &mut separate).unwrap();
+        for j in 0..2 {
+            close(g[j], separate[j], 2e-14);
+        }
+        assert!(matches!(
+            law.log_prob_parameter_score(&f64::NAN, &mut []),
+            Err(E::Shape)
+        ));
+        assert!(matches!(
+            law.log_prob_parameter_score(&f64::NAN, &mut g),
+            Err(E::Observation)
+        ));
+    }
+    for eta in [-f64::MAX, -1000., -50., -1., 0., 1., 50., 1000., f64::MAX] {
+        let law = BernoulliLogit::new(eta).unwrap();
+        for y in [false, true] {
+            let mut g = [17.];
+            let mut separate = [0.];
+            let value = law.log_prob_parameter_score(&y, &mut g).unwrap();
+            close(value, law.log_prob(&y).unwrap(), 2e-14);
+            law.parameter_score(&y, &mut separate).unwrap();
+            close(g[0], separate[0], 2e-14);
+            assert!(g[0].is_finite() && value.is_finite());
+            assert!(matches!(
+                law.log_prob_parameter_score(&y, &mut []),
+                Err(E::Shape)
+            ));
+        }
+    }
+    // Parameter-only AD must not accidentally require a continuous event score.
+    let law = Beta::new(2., 2.).unwrap();
+    let x = f64::from_bits(1);
+    let mut g = [0.; 2];
+    assert!(
+        law.log_prob_parameter_score(&x, &mut g)
+            .unwrap()
+            .is_finite()
+    );
+    assert!(g.iter().all(|g| g.is_finite()));
+    assert!(matches!(
+        law.log_prob_event_parameter_score(x, &mut g),
+        Err(E::Numerical)
+    ));
+}
 fn scores<D: ScalarEventScore + ParameterScore>(
     law: D,
     p: &[f64],

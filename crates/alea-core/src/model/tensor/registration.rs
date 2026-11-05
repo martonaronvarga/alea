@@ -3,6 +3,7 @@
 //! R0.4 decides whether/how these boundaries become production interfaces.
 use super::*;
 mod lifecycle;
+mod observations;
 
 // Use the existing non-recycled tensor identity space, never allocation addresses.
 fn identity() -> u64 {
@@ -1010,6 +1011,79 @@ mod tests {
         model.potential("deterministic", root).unwrap();
         assert!(matches!(
             model.compile().unwrap().rust_primal_with_workspace(),
+            Err(E::MissingPrimal { .. })
+        ));
+    }
+
+    #[test]
+    fn lazy_native_regions_skip_unchosen_opaque_failures_and_recover_from_selected_errors_and_unwind()
+     {
+        let mode = Arc::new(AtomicUsize::new(1));
+        let calls = Arc::new(AtomicUsize::new(0));
+        let mut branch = TensorBuilder::new();
+        let x = branch.input("x", Shape::scalar()).unwrap();
+        let flag = Arc::clone(&mode);
+        let count = Arc::clone(&calls);
+        let out = branch
+            .register(
+                Signature {
+                    inputs: vec![ty(DType::Real, Shape::scalar())],
+                    output: ty(DType::Real, Shape::scalar()),
+                    scratch: 0,
+                },
+                &[x],
+                || {
+                    let mut k = identity();
+                    k.forward = Box::new(move |x, out, _| {
+                        count.fetch_add(1, Ordering::Relaxed);
+                        match flag.load(Ordering::Relaxed) {
+                            1 => return Err(E::Name),
+                            2 => panic!("selected opaque region"),
+                            _ => {}
+                        }
+                        out.copy_from_slice(x.real(0)?);
+                        Ok(())
+                    });
+                    Ok(k)
+                },
+            )
+            .unwrap();
+        let yes = branch.compile(out).unwrap().bind(&[]).unwrap();
+        let mut branch = TensorBuilder::new();
+        let x = branch.input("x", Shape::scalar()).unwrap();
+        let no = branch.compile(x).unwrap().bind(&[]).unwrap();
+        let mut b = TensorBuilder::new();
+        let x = b.input("x", Shape::scalar()).unwrap();
+        let zero = b.constant(Shape::scalar(), vec![0.]).unwrap();
+        let out = b.cond(x, zero, Comparison::Greater, &[x], yes, no).unwrap();
+        let p = b.compile(out).unwrap().bind(&[]).unwrap();
+        let mut w = p.workspace();
+        for failure in [1, 2] {
+            for seed in [0., 1.] {
+                mode.store(failure, Ordering::Relaxed);
+                let (mut out, mut g) = ([91.], [92.]);
+                let before = calls.load(Ordering::Relaxed);
+                p.value_and_vjp(&[-2.], &[seed], &mut out, &mut g, &mut w)
+                    .unwrap();
+                assert_eq!((out, g), ([-2.], [seed]));
+                assert_eq!(calls.load(Ordering::Relaxed), before);
+                let failed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    p.value_and_vjp(&[2.], &[seed], &mut out, &mut g, &mut w)
+                }));
+                if failure == 1 {
+                    assert!(matches!(failed, Ok(Err(E::Name))));
+                } else {
+                    assert!(failed.is_err());
+                }
+                assert_eq!((out, g), ([-2.], [seed]));
+                mode.store(0, Ordering::Relaxed);
+                p.value_and_vjp(&[3.], &[seed], &mut out, &mut g, &mut w)
+                    .unwrap();
+                assert_eq!((out, g), ([3.], [seed]));
+            }
+        }
+        assert!(matches!(
+            p.pullback_source("native_only"),
             Err(E::MissingPrimal { .. })
         ));
     }

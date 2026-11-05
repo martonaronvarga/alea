@@ -69,7 +69,7 @@ impl BoundProgram {
     }
 }
 impl TensorProgram {
-    fn native_target(&self, data: &[(&str, &[f64])]) -> Result<OwnedTarget, E> {
+    pub(super) fn native_target(&self, data: &[(&str, &[f64])]) -> Result<OwnedTarget, E> {
         self.bind(data)?.compile_native().into_target()
     }
 }
@@ -148,7 +148,7 @@ impl Executable {
 // Only this convenience adapter uses interior mutability for today's &self
 // target trait. Executable evaluation receives exclusive scratch. No Sync bound
 // is added to TargetSpace/LogDensityGradient or to other user targets.
-struct OwnedTarget {
+pub(super) struct OwnedTarget {
     executable: Executable,
     context: RefCell<Context>,
 }

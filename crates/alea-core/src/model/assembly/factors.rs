@@ -82,6 +82,7 @@ impl ModelBuilder {
 pub(super) enum Selection {
     All,
     Likelihood,
+    Prior,
     Posterior,
 }
 impl Selection {
@@ -89,6 +90,7 @@ impl Selection {
         match self {
             Self::All | Self::Posterior => true,
             Self::Likelihood => role == FactorRole::Likelihood,
+            Self::Prior => role == FactorRole::Prior,
         }
     }
 }
@@ -127,7 +129,21 @@ impl CompiledModel {
     /// # Errors
     /// Rejects unclassified terms or a selection with no likelihood factors.
     pub fn select_likelihood(self) -> Result<Self, AssemblyError> {
-        self.select(false)
+        self.select(Selection::Likelihood)
+    }
+
+    /// Keeps only explicitly declared prior factors, without guessing the meaning
+    /// of unclassified terms or potentials. Preserves all declarations and
+    /// coordinates, including coordinates not constrained by the selected prior.
+    ///
+    /// Use `into_objective` for the prior function composed with the charts, or
+    /// explicitly `into_target` for its density in sampler coordinates. Only the
+    /// latter adds the chart Jacobian. This does not prove normalization or
+    /// propriety, and does not marginalize likelihood-only parameters.
+    /// # Errors
+    /// Rejects unclassified terms or a selection with no prior factors.
+    pub fn select_prior(self) -> Result<Self, AssemblyError> {
+        self.select(Selection::Prior)
     }
 
     /// Keeps the declared likelihood and prior factors. Arbitrary potentials and
@@ -137,23 +153,18 @@ impl CompiledModel {
     /// # Errors
     /// Rejects unclassified factors, arbitrary potentials or an empty sum.
     pub fn select_posterior(self) -> Result<Self, AssemblyError> {
-        self.select(true)
+        self.select(Selection::Posterior)
     }
 
-    fn select(mut self, posterior: bool) -> Result<Self, AssemblyError> {
+    fn select(mut self, selection: Selection) -> Result<Self, AssemblyError> {
         for (index, factor) in self.factor_metadata.iter().enumerate() {
             if factor.role == FactorRole::Unclassified {
                 return Err(AssemblyError::UnclassifiedFactor { index });
             }
-            if posterior && factor.role == FactorRole::Potential {
+            if matches!(selection, Selection::Posterior) && factor.role == FactorRole::Potential {
                 return Err(AssemblyError::PosteriorPotential { index });
             }
         }
-        let selection = if posterior {
-            Selection::Posterior
-        } else {
-            Selection::Likelihood
-        };
         let factors: Vec<_> = self
             .factors
             .iter()

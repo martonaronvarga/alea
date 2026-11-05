@@ -377,6 +377,19 @@ macro_rules! continuous {
                 let (_, v, n) = self.0.scores(*x)?;
                 score(out, &v[..n])
             }
+            fn log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> Result<f64, E> {
+                if out.len() != self.parameter_count() {
+                    return Err(E::Shape);
+                }
+                if self.0.law == Law::Normal {
+                    let (value, scores) = Normal(self.0).log_prob_event_parameter_scores(*x)?;
+                    out.copy_from_slice(&scores[1..]);
+                    return Ok(value);
+                }
+                let value = self.0.logp(*x)?;
+                self.parameter_score(x, out)?;
+                Ok(value)
+            }
             fn log_prob_event_parameter_score(
                 &self,
                 x: f64,

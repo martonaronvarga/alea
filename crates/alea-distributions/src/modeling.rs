@@ -91,9 +91,8 @@ where
         if law.parameter_count() != g.len() {
             return Err(error(alea_core::distribution::DistributionError::Shape));
         }
-        let value = law.log_prob(event.borrow()).map_err(error)?;
-        law.parameter_score(event.borrow(), g).map_err(error)?;
-        Ok(value)
+        law.log_prob_parameter_score(event.borrow(), g)
+            .map_err(error)
     })
 }
 /// Normalized Normal log density node, with event/location/scale reverse scores.

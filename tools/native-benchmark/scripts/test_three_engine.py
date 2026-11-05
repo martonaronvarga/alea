@@ -63,6 +63,51 @@ class ThreeEngineTests(unittest.TestCase):
         self.assertTrue(inventory['gaps']) # Never turn package presence into 100% coverage.
         self.assertTrue(all((bench.REPO/t['path']).is_file() for p in packages.values() for t in p['targets']))
 
+    def test_route_inventory_separates_planning_execution_and_higher_order_admission(self):
+        def receipt(requested, resolved, order, admission, checkpoint, status, reason='explicit reason'):
+            return '\t'.join(['ALEA_BASELINE_ROUTE_V1','fixture',requested,resolved,order,
+                              'fixture-default','rust',admission,checkpoint,status,reason]) + '\n'
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cell=root/'cell-0';cell.mkdir()
+            (cell/'features.txt').write_text('simd,faer')
+            log=cell/'run.log'
+            planned=receipt('H','H','first','H','true','not-run')
+            log.write_text(planned + receipt('H','H','first','H','true','supported')
+                + receipt('H','L','hvp','H','true','not-run')
+                + receipt('L','H','first','H','true','unsupported')
+                + receipt('N','none','third','N','false','unsupported')
+                + receipt('H','L','value','none','true','not-run'))
+            report=bench.cargo_bench_report(root)
+            self.assertEqual(report['cells'][0]['route_inventory_status'],'recorded')
+            routes=report['route_inventory']
+            self.assertEqual(len(routes),5)
+            self.assertEqual(routes[0]['status'],'supported')
+            self.assertEqual(routes[1]['resolved_route'],'L')
+            self.assertEqual(routes[1]['first_order_admission_route'],'H')
+            self.assertFalse(routes[1]['higher_order_checkpointed'])
+            self.assertEqual(routes[2]['status'],'unsupported')
+            self.assertEqual(routes[2]['resolved_route'],'H') # Never relabel hybrid as pure L.
+            self.assertEqual(routes[4]['first_order_admission_route'],'none') # Primal-only export.
+            log.write_text(planned + receipt('H','H','first','H','true','failed'))
+            (cell/'RUN_FAILED').touch()
+            report=bench.cargo_bench_report(root)
+            self.assertEqual(report['cells'][0]['status'],'run-failed')
+            self.assertEqual(report['route_inventory'][0]['status'],'failed')
+            log.write_text('old log without route receipts')
+            report=bench.cargo_bench_report(root)
+            self.assertEqual(report['route_inventory'],[])
+            self.assertEqual(report['cells'][0]['route_inventory_status'],'not-recorded')
+            for bad in [planned + planned,
+                        receipt('H','H','hvp','H','true','supported'),
+                        receipt('C','H','first','H','true','supported'),
+                        planned.replace('fixture-default','standard'),
+                        planned.replace('\trust\t','\tfaer\t'),
+                        receipt('H','H','first','H','true','not-run',''),
+                        planned.replace('V1','V2'),planned.replace('not-run','guessed')]:
+                log.write_text(bad)
+                with self.subTest(bad=bad),self.assertRaises(ValueError):
+                    bench.cargo_bench_report(root)
+
     def test_scheduler_affinity_uses_allocated_cpu_ids_and_checks_thread_budget(self):
         with patch.object(bench.os,'sched_getaffinity',return_value={8,10,12}):
             self.assertEqual(bench.allocation_affinity({}),( [8],1))

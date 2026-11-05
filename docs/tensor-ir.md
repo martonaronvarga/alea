@@ -92,6 +92,32 @@ In particular, a tensor-valued predictor cannot currently be passed directly to
 the scalar-expression-based native `NormalBatch`. Tensor execution and native
 batch-likelihood support do not yet imply automatic composition between them.
 
+### Numerical admission is part of the execution contract
+
+Only the selected conditional branch executes. Conversely, every reachable
+forward intermediate must be finite: `exp(-exp(x))` is rejected when its inner
+exponential overflows, even though unchecked arithmetic could finish at zero.
+A zero reverse seed does not bypass this forward admission. Failed evaluation
+and pullbacks preserve caller outputs and the workspace remains reusable.
+
+Derivative admission is deliberately not uniform across interfaces. Native
+built-in tensor pullbacks skip zero seeds and inactive data operands; for example,
+`sqrt(0)` can have a finite value and a zero-seeded VJP, but its active unit-seeded
+VJP fails. Opaque supplied local scores are admitted independently of downstream
+weights, including zero. Retained and checkpoint-replayed scans preserve those
+distinctions. An unselected scalar assembly plan also admits unattached scalar
+nodes; explicit statistical selection prunes them. This differs from tensor
+root reachability and is not silently changed by these tests.
+
+The existing `tensor_ir`, `tensor_checkpoint`, `factor_roles`, `model_source` and
+private registration tests cover these boundaries, error/unwind recovery, repeated
+gather accumulation and tolerant VJP seed linearity with independent derivatives.
+Native first order remains usable when source is unavailable. It does not confer
+a generic JVP, HVP or third-derivative capability; the native target's unsupported
+curvature traits have compile-fail tests. No native JVP/VJP dot-product identity
+is claimed where there is no JVP implementation. These checks do not qualify
+generated Enzyme derivatives or establish a performance improvement.
+
 Broadcast maps are specialized at construction. If output element j reads input
 element m(j), its pullback accumulates `input_bar[m(j)] += output_bar[j] * local_score`.
 Regular broadcasts retain O(rank) index descriptors, not one integer per output

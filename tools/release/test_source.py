@@ -3,6 +3,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -79,6 +80,59 @@ class SourceTests(unittest.TestCase):
         for target in [b'missing.md', b'../.agent/secret', b'modeling%20notes.md']:
             with self.subTest(target=target), self.assertRaisesRegex(ValueError,'omitted files'):
                 check_source_links(dict(contents, **{'docs/README.md': b'[bad]('+target+b')'}))
+
+    def test_untracked_feature_runner_survives_real_ignore_policy_and_git_free_help(self):
+        repository = Path(__file__).resolve().parents[2]
+        ignore = (repository / '.gitignore').read_bytes()
+        (self.root / '.gitignore').write_bytes(ignore)
+        runner = self.root / 'tools/bench-features.sh'
+        original = repository / 'tools/bench-features.sh'
+        runner.write_bytes(original.read_bytes())
+        runner.chmod(original.stat().st_mode & 0o777)
+        doc = self.root / 'docs/README.md'
+        doc.parent.mkdir()
+        doc.write_text('[feature runner](../tools/bench-features.sh)\n')
+        # Unlike a force-added file, an ordinary new source file must be
+        # discoverable under the checkout's REAL ignore rules before staging.
+        self.assertEqual(subprocess.check_output(
+            ['git', 'ls-files', '--cached', '--', 'tools/bench-features.sh'],
+            cwd=self.root), b'')
+        self.assertIn(runner, source_files(self.root))
+
+        # Reproduce the old ignored/untracked failure. Checkout existence alone
+        # cannot satisfy the archive's documentation/runner closure.
+        (self.root / '.gitignore').write_bytes(ignore + b'\n/tools/*.sh\n')
+        self.assertNotIn(runner, source_files(self.root))
+        omitted = self.root / 'omitted.tar.gz'
+        with self.assertRaisesRegex(ValueError, 'omitted files'):
+            archive(self.root, omitted)
+        self.assertFalse(omitted.exists())
+        (self.root / '.gitignore').write_bytes(ignore)
+
+        output = self.root / 'source.tar.gz'
+        archive(self.root, output)
+        verify_archive(output)
+        with tarfile.open(output) as tar:
+            tar.extractall(self.root, filter='data')
+        unpacked = self.root / 'alea'
+        restored = unpacked / 'tools/bench-features.sh'
+        self.assertFalse((unpacked / '.git').exists())
+        self.assertIn(restored, source_files(unpacked))
+        self.assertEqual(restored.read_bytes(), original.read_bytes())
+        self.assertEqual(restored.stat().st_mode & 0o111, 0o111)
+        bash = shutil.which('bash')
+        self.assertIsNotNone(bash)
+        # --help must work before invoking Cargo, building, or admitting timings.
+        result = subprocess.run([bash, str(restored), '--help'], cwd=unpacked,
+                                env={'PATH': ''}, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Usage: tools/bench-features.sh', result.stdout)
+        self.assertIn('Slurm compute allocation', result.stdout)
+        denied = subprocess.run([bash, str(restored)], cwd=unpacked,
+                                env={'PATH': ''}, capture_output=True, text=True)
+        self.assertEqual(denied.returncode, 2, denied.stderr)
+        self.assertIn('Timing requires a Slurm compute node', denied.stderr)
+        self.assertFalse((unpacked / 'target').exists())
 
     def test_archive_rejects_broken_links_and_git_free_recheck_uses_exact_manifest(self):
         doc = self.root/'docs/README.md'

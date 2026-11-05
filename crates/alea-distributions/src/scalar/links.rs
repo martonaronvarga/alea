@@ -41,6 +41,14 @@ impl ParameterScore for BernoulliLogit {
     fn parameter_count(&self) -> usize {
         1
     }
+    fn log_prob_parameter_score(&self, x: &bool, out: &mut [f64]) -> Result<f64, E> {
+        if out.len() != 1 {
+            return Err(E::Shape);
+        }
+        let (value, gradient) = Bernoulli::logit_log_prob_score(self.logit, *x)?;
+        out[0] = gradient;
+        Ok(value)
+    }
     fn parameter_score(&self, x: &bool, out: &mut [f64]) -> Result<(), E> {
         score(
             out,

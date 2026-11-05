@@ -100,3 +100,58 @@ fn segment_replay_preserves_lazy_branch_paths_row_gradients_zero_trips_and_reuse
         }
     }
 }
+
+#[test]
+fn retained_and_replayed_scans_preserve_finite_primal_singular_vjp_admission_and_recovery() {
+    for steps in [1, 65, 1025] {
+        for checkpointed in [false, true] {
+            let mut body = TensorBuilder::new();
+            let carry = body.input("carry", Shape::scalar()).unwrap();
+            let row = body.input("row", Shape::scalar()).unwrap();
+            let root = body.unary(UnaryOp::Sqrt, carry).unwrap();
+            let mut next = body.binary(BinaryOp::Add, root, row).unwrap();
+            // Keep enough retained body state to exercise actual segmented
+            // replay, not just a checkpoint request declined for a small tape.
+            for _ in 0..16 {
+                next = body.unary(UnaryOp::Neg, next).unwrap();
+            }
+            let body = body.compile(next).unwrap().bind(&[]).unwrap();
+            let retained = steps * body.workspace_bytes();
+            let mut b = TensorBuilder::new();
+            let initial = b.input("initial", Shape::scalar()).unwrap();
+            let rows = b.constant(shape(&[steps]), vec![0.; steps]).unwrap();
+            let result = if checkpointed {
+                b.checkpointed_scan(initial, rows, &[], body).unwrap()
+            } else {
+                b.scan(initial, rows, &[], body).unwrap()
+            };
+            let p = b.compile(result).unwrap().bind(&[]).unwrap();
+            if checkpointed && steps == 1025 {
+                assert!(p.workspace_bytes() < retained / 2);
+            }
+            let mut w = p.workspace();
+            let (mut out, mut g) = ([91.], [92.]);
+            p.evaluate(&[0.], &mut out, &mut w).unwrap();
+            assert_eq!(out, [0.]);
+            p.value_and_vjp(&[0.], &[0.], &mut out, &mut g, &mut w)
+                .unwrap();
+            assert_eq!((out, g), ([0.], [0.]));
+            out[0] = 91.;
+            g[0] = 92.;
+            assert!(matches!(
+                p.value_and_vjp(&[0.], &[1.], &mut out, &mut g, &mut w),
+                Err(alea_core::model::assembly::AssemblyError::Numerical)
+            ));
+            assert_eq!((out, g), ([91.], [92.]));
+            p.value_and_vjp(&[4.], &[1.], &mut out, &mut g, &mut w)
+                .unwrap();
+            let (mut value, mut gradient) = (4_f64, 1_f64);
+            for _ in 0..steps {
+                value = value.sqrt();
+                gradient *= 0.5 / value;
+            }
+            assert_eq!(out, [value]);
+            assert!((g[0] - gradient).abs() <= 1e-13 * gradient.abs());
+        }
+    }
+}

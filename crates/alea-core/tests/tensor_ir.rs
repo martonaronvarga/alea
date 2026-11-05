@@ -455,6 +455,94 @@ fn condition_is_lazy_in_both_passes_and_failures_do_not_publish_or_poison_recove
     check_vjp(&program, &[-2.], &[1.]);
     assert!(program.rust_function().contains("else {no"));
 }
+
+#[test]
+fn selected_intermediate_overflow_cannot_be_hidden_by_a_finite_final_expression_or_zero_seed() {
+    let mut b = TensorBuilder::new();
+    let x = b.input("x", Shape::scalar()).unwrap();
+    let huge = b.unary(U::Exp, x).unwrap();
+    let negative = b.unary(U::Neg, huge).unwrap();
+    let result = b.unary(U::Exp, negative).unwrap();
+    let p = b.compile(result).unwrap().bind(&[]).unwrap();
+    let mut w = p.workspace();
+    for seed in [0., 1.] {
+        let (mut out, mut g) = ([91.], [92.]);
+        // Unchecked arithmetic would misleadingly end at exp(-infinity) = 0.
+        assert!(matches!(
+            p.evaluate(&[1000.], &mut out, &mut w),
+            Err(E::Numerical)
+        ));
+        assert!(matches!(
+            p.value_and_vjp(&[1000.], &[seed], &mut out, &mut g, &mut w),
+            Err(E::Numerical)
+        ));
+        assert_eq!((out, g), ([91.], [92.]));
+        p.value_and_vjp(&[0.], &[seed], &mut out, &mut g, &mut w)
+            .unwrap();
+        assert_eq!(out, [(-1_f64).exp()]);
+        assert_eq!(g, [-seed * (-1_f64).exp()]);
+    }
+}
+
+#[test]
+fn repeated_gathers_obey_seed_linearity_without_differentiating_inactive_singular_data() {
+    let mut b = TensorBuilder::new();
+    let x = b.input("x", shape(&[3])).unwrap();
+    let gathered = b.gather(x, shape(&[4]), vec![2, 0, 2, 1]).unwrap();
+    let square = b.binary(B::Multiply, gathered, gathered).unwrap();
+    let data = b.data("fixed", shape(&[4])).unwrap();
+    let root = b.unary(U::Sqrt, data).unwrap();
+    let out = b.binary(B::Add, square, root).unwrap();
+    let p = b
+        .compile(out)
+        .unwrap()
+        .bind(&[("fixed", &[0.; 4])])
+        .unwrap();
+    let mut w = p.workspace();
+    let x = [0.7, -1.2, 2.3];
+    let u = [0., -0.7, 1.3, 0.2];
+    let v = [0.4, 0.2, -0.3, 0.];
+    let combined = std::array::from_fn::<_, 4, _>(|i| -0.6 * u[i] + 1.7 * v[i]);
+    let mut gradients = [[0.; 3]; 3];
+    for (seed, gradient) in [u, v, combined].iter().zip(&mut gradients) {
+        let mut out = [99.; 4];
+        p.value_and_vjp(&x, seed, &mut out, gradient, &mut w)
+            .unwrap();
+        assert_eq!(out, [x[2] * x[2], x[0] * x[0], x[2] * x[2], x[1] * x[1]]);
+        let expected = [
+            2. * x[0] * seed[1],
+            2. * x[1] * seed[3],
+            2. * x[2] * (seed[0] + seed[2]),
+        ];
+        for (actual, expected) in gradient.iter().zip(expected) {
+            assert!((actual - expected).abs() < 2e-14 * (1. + expected.abs()));
+        }
+        check_vjp(&p, &x, seed);
+    }
+    for ((u, v), combined) in gradients[0].iter().zip(&gradients[1]).zip(&gradients[2]) {
+        let expected = -0.6 * u + 1.7 * v;
+        assert!((combined - expected).abs() < 2e-14 * (1. + expected.abs()));
+    }
+    // Native built-in VJPs skip a zero seed at a singular point; an opaque
+    // supplied local score must instead be admitted even with a zero seed.
+    let mut b = TensorBuilder::new();
+    let x = b.input("x", Shape::scalar()).unwrap();
+    let root = b.unary(U::Sqrt, x).unwrap();
+    let p = b.compile(root).unwrap().bind(&[]).unwrap();
+    let mut w = p.workspace();
+    let (mut out, mut g) = ([91.], [92.]);
+    p.value_and_vjp(&[0.], &[0.], &mut out, &mut g, &mut w)
+        .unwrap();
+    assert_eq!((out, g), ([0.], [0.]));
+    assert!(matches!(
+        p.value_and_vjp(&[0.], &[1.], &mut out, &mut g, &mut w),
+        Err(E::Numerical)
+    ));
+    assert_eq!((out, g), ([0.], [0.]));
+    p.value_and_vjp(&[4.], &[1.], &mut out, &mut g, &mut w)
+        .unwrap();
+    assert_eq!((out, g), ([2.], [0.25]));
+}
 fn recurrence(steps: usize) -> alea_core::model::tensor::BoundProgram {
     let mut body = TensorBuilder::new();
     let c = body.input("carry", shape(&[2])).unwrap();

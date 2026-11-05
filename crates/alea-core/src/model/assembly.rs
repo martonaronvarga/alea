@@ -690,7 +690,8 @@ impl CompiledModel {
     }
     /// Composes the active factor sum with its parameter charts without density
     /// Jacobians. This does not change the statistical selection: use
-    /// `select_likelihood` or `select_posterior` explicitly when appropriate.
+    /// `select_likelihood`, `select_prior` or `select_posterior` explicitly when
+    /// appropriate.
     /// # Errors
     /// Rejects a model/layout dimension mismatch.
     pub fn into_objective(
@@ -700,6 +701,35 @@ impl CompiledModel {
         super::ComposedObjective::new(self, layout)
     }
     /// Applies the single Jacobian boundary for all declared coordinates.
+    ///
+    /// The native target provides fused first-order evaluation, not automatic
+    /// curvature capabilities. Even a smooth graph with analytic local scores
+    /// does not acquire a Hessian-vector implementation:
+    ///
+    /// ```compile_fail,E0277
+    /// use alea_core::{capability::PotentialHessianVector, model::assembly::ModelBuilder};
+    /// let mut b = ModelBuilder::new();
+    /// let x = b.real("x").unwrap().expr();
+    /// let square = b.multiply(x, x).unwrap();
+    /// b.factor(square).unwrap();
+    /// let native = b.compile().unwrap().into_target().unwrap();
+    /// fn needs_hvp(_: &impl PotentialHessianVector) {}
+    /// needs_hvp(&native);
+    /// ```
+    ///
+    /// Nor does it provide a potential Hessian and third derivatives. Request
+    /// those only from a separately qualified backend implementing the trait:
+    ///
+    /// ```compile_fail,E0277
+    /// use alea_core::{capability::PotentialHessianDerivative, model::assembly::ModelBuilder};
+    /// let mut b = ModelBuilder::new();
+    /// let x = b.real("x").unwrap().expr();
+    /// let square = b.multiply(x, x).unwrap();
+    /// b.factor(square).unwrap();
+    /// let native = b.compile().unwrap().into_target().unwrap();
+    /// fn needs_third(_: &impl PotentialHessianDerivative) {}
+    /// needs_third(&native);
+    /// ```
     /// # Errors
     /// Returns a model/layout dimension error.
     pub fn into_target(self) -> Result<TransformedTarget<Self>, super::ModelError<AssemblyError>> {

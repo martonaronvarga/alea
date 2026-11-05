@@ -274,6 +274,7 @@ pub fn alea_core::distribution::Distribution::reference_measure(&self) -> alea_c
 pub fn alea_core::distribution::Distribution::support(&self) -> alea_core::distribution::Support
 pub trait alea_core::distribution::ParameterScore: alea_core::distribution::Distribution
 pub fn alea_core::distribution::ParameterScore::log_prob_event_parameter_score(&self, event: f64, output: &mut [f64]) -> core::result::Result<(f64, f64), Self::Error> where Self: alea_core::distribution::ScalarEventScore + core::marker::Sized
+pub fn alea_core::distribution::ParameterScore::log_prob_parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> core::result::Result<f64, Self::Error>
 pub fn alea_core::distribution::ParameterScore::parameter_count(&self) -> usize
 pub fn alea_core::distribution::ParameterScore::parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> core::result::Result<(), Self::Error>
 pub trait alea_core::distribution::Sample: alea_core::distribution::Distribution
@@ -526,6 +527,7 @@ pub fn alea_core::model::assembly::CompiledModel::factors(&self) -> &[alea_core:
 pub fn alea_core::model::assembly::CompiledModel::select_all(self) -> Self
 pub fn alea_core::model::assembly::CompiledModel::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::CompiledModel::select_prior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::selected_factors(&self) -> impl core::iter::traits::iterator::Iterator<Item = &alea_core::model::assembly::FactorMetadata>
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::graph(&self) -> impl core::iter::traits::iterator::Iterator<Item = alea_core::model::assembly::GraphNode<'_>>
@@ -1223,6 +1225,7 @@ pub fn alea_core::model::assembly::CompiledModel::factors(&self) -> &[alea_core:
 pub fn alea_core::model::assembly::CompiledModel::select_all(self) -> Self
 pub fn alea_core::model::assembly::CompiledModel::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::CompiledModel::select_prior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::selected_factors(&self) -> impl core::iter::traits::iterator::Iterator<Item = &alea_core::model::assembly::FactorMetadata>
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::graph(&self) -> impl core::iter::traits::iterator::Iterator<Item = alea_core::model::assembly::GraphNode<'_>>

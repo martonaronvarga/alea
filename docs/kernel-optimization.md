@@ -824,6 +824,9 @@ or an explicit matching CPU/thread budget for threaded comparisons. The generic
 [feature script](../tools/bench-features.sh) builds every selected cell first,
 then runs cells sequentially with distinct Criterion directories and preserved
 build/run failures. It refuses local/login timings.
+From the repository root, `tools/bench-features.sh --help` lists options without
+requiring Cargo or starting a build. The same executable entry point is included
+in source-only distributions; no separate benchmark runner installation is needed.
 The measurement child is pinned to the first `N` allowed CPUs for the requested
 thread budget; compilation retains the complete allocation. Both masks are
 recorded, without changing governor or machine-wide thread settings.
@@ -876,6 +879,58 @@ cargo test --manifest-path crates/Cargo.toml --workspace --benches -- --test
 # Build only (does not execute a benchmark):
 cargo bench --manifest-path crates/Cargo.toml --workspace --benches --no-run
 ```
+
+### Baseline routes: inspect execution, not feature names
+
+The existing Enzyme `native_compiled` benchmark emits versioned
+`ALEA_BASELINE_ROUTE_V1` planning/preflight receipts. It inventories `models::all()`
+without another fixture registry. `cargo-report` reads these from each cell's
+`run.log` into `route_inventory`, including requested/resolved route, derivative
+order, first-order admission route, arithmetic/provider labels, checkpoint flag,
+status and reason. Older logs remain `not-recorded`; Cargo features never supply
+missing execution evidence. Failed build/run cells remain in the report even
+when no fixture receipt was reached.
+
+| Label | Current baseline meaning |
+| --- | --- |
+| N | Stable native analytic/tensor execution, not absence of differentiation |
+| C | Scalar/direct Rust-source compiler reverse without a trusted first-order override; the polynomial is the current control |
+| L | Tensor-generated primal plus compiler reverse, without the explicit first-order override |
+| H | Existing hybrid/trusted first-order composition, including explicit tensor replay when flagged |
+
+The current generator selects its first-order route model-wide; it cannot force
+a pure C/L baseline for a fixture that selects H. Such requests are recorded as
+`unsupported`, not silently renamed. Planning alone is `not-run`. A `supported`
+receipt means the benchmark actually executed that untimed preflight; independent
+answers and broader invalid-state qualification are still separate conformance
+tests, not inferred from metadata. Duplicate/conflicting or malformed receipts
+are errors rather than an opportunity to merge incompatible runs.
+
+For example, vector Normal uses H first order and C for curvature, with H
+first-order admission. A checkpointed tensor uses H first order and L for
+curvature, again with H admission. A retained tensor normally uses L throughout.
+The checkpoint flag describes the generated first-order path; it does **not**
+mean checkpointed HVPs/third derivatives or a compiler-memory bound. Primal-only
+source exports use the original C/L primal, not the first-order pullback; their
+admission route is `none`. Value-only comparisons remain `not-run` because this
+benchmark does not isolate their cost. The generic native model has no curvature
+trait, even when a separate specialized target elsewhere provides one.
+
+`fixture-default` arithmetic preserves each fixture's existing scalar f64 and
+compensated kernels; it is not an equal-accuracy certificate. These fixtures use
+Rust kernels, not explicitly selected Faer/BLAS calls. Provider feature availability
+alone does not change that receipt. Requested/resolved policy fields describe
+this bounded default inventory, not a completed backend/provider powerset.
+
+Use the existing feature script in the pinned autodiff environment with `--smoke`
+and `--manifest tools/enzyme-conformance/Cargo.toml --bench native_compiled` for
+untimed preflight, then the same `cargo-report` action above. Metadata inspection
+is cold work outside Criterion iteration closures. The benchmark **still requires
+`PotentialHessianDerivative` even for its first-order comparisons**; inventorying
+that limitation does not fix it or establish a first-order-only compiler API.
+Matrix/mixed fixtures not selected by this benchmark retain `not-run` receipts,
+even if separately exercised by existing conformance tests. No throughput or
+speedup follows from an untimed route inventory.
 
 Criterion validates fixtures before measurement. `iter_batched` excludes declared
 setup and output destruction for consuming phases; `iter_batched_ref` also keeps

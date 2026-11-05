@@ -891,6 +891,7 @@ pub fn alea_distributions::scalar::BernoulliLogit::log_prob(&self, x: &bool) -> 
 pub fn alea_distributions::scalar::BernoulliLogit::reference_measure(&self) -> alea_core::distribution::ReferenceMeasure
 pub fn alea_distributions::scalar::BernoulliLogit::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::BernoulliLogit
+pub fn alea_distributions::scalar::BernoulliLogit::log_prob_parameter_score(&self, x: &bool, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::BernoulliLogit::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::BernoulliLogit::parameter_score(&self, x: &bool, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::BernoulliLogit
@@ -916,6 +917,7 @@ pub fn alea_distributions::scalar::Beta::reference_measure(&self) -> alea_core::
 pub fn alea_distributions::scalar::Beta::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Beta
 pub fn alea_distributions::scalar::Beta::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Beta::log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::Beta::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::Beta::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::Beta
@@ -1266,6 +1268,7 @@ pub fn alea_distributions::scalar::Exponential::reference_measure(&self) -> alea
 pub fn alea_distributions::scalar::Exponential::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Exponential
 pub fn alea_distributions::scalar::Exponential::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Exponential::log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::Exponential::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::Exponential::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::Exponential
@@ -1347,6 +1350,7 @@ pub fn alea_distributions::scalar::Gamma::reference_measure(&self) -> alea_core:
 pub fn alea_distributions::scalar::Gamma::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Gamma
 pub fn alea_distributions::scalar::Gamma::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Gamma::log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::Gamma::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::Gamma::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::Gamma
@@ -1763,6 +1767,7 @@ pub fn alea_distributions::scalar::LogNormal::reference_measure(&self) -> alea_c
 pub fn alea_distributions::scalar::LogNormal::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::LogNormal
 pub fn alea_distributions::scalar::LogNormal::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::LogNormal::log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::LogNormal::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::LogNormal::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::LogNormal
@@ -1927,6 +1932,7 @@ pub fn alea_distributions::scalar::Normal::reference_measure(&self) -> alea_core
 pub fn alea_distributions::scalar::Normal::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Normal
 pub fn alea_distributions::scalar::Normal::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Normal::log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::Normal::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::Normal::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::Normal
@@ -2279,6 +2285,7 @@ pub fn alea_distributions::scalar::StudentT::reference_measure(&self) -> alea_co
 pub fn alea_distributions::scalar::StudentT::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::StudentT
 pub fn alea_distributions::scalar::StudentT::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::StudentT::log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::StudentT::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::StudentT::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::StudentT
@@ -2915,6 +2922,7 @@ pub fn alea_distributions::scalar::BernoulliLogit::log_prob(&self, x: &bool) -> 
 pub fn alea_distributions::scalar::BernoulliLogit::reference_measure(&self) -> alea_core::distribution::ReferenceMeasure
 pub fn alea_distributions::scalar::BernoulliLogit::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::BernoulliLogit
+pub fn alea_distributions::scalar::BernoulliLogit::log_prob_parameter_score(&self, x: &bool, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::BernoulliLogit::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::BernoulliLogit::parameter_score(&self, x: &bool, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::BernoulliLogit
@@ -2940,6 +2948,7 @@ pub fn alea_distributions::scalar::Beta::reference_measure(&self) -> alea_core::
 pub fn alea_distributions::scalar::Beta::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Beta
 pub fn alea_distributions::scalar::Beta::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Beta::log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::Beta::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::Beta::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::Beta
@@ -3193,6 +3202,7 @@ pub fn alea_distributions::scalar::Exponential::reference_measure(&self) -> alea
 pub fn alea_distributions::scalar::Exponential::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Exponential
 pub fn alea_distributions::scalar::Exponential::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Exponential::log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::Exponential::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::Exponential::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::Exponential
@@ -3274,6 +3284,7 @@ pub fn alea_distributions::scalar::Gamma::reference_measure(&self) -> alea_core:
 pub fn alea_distributions::scalar::Gamma::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Gamma
 pub fn alea_distributions::scalar::Gamma::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Gamma::log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::Gamma::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::Gamma::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::Gamma
@@ -3617,6 +3628,7 @@ pub fn alea_distributions::scalar::LogNormal::reference_measure(&self) -> alea_c
 pub fn alea_distributions::scalar::LogNormal::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::LogNormal
 pub fn alea_distributions::scalar::LogNormal::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::LogNormal::log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::LogNormal::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::LogNormal::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::LogNormal
@@ -3719,6 +3731,7 @@ pub fn alea_distributions::scalar::Normal::reference_measure(&self) -> alea_core
 pub fn alea_distributions::scalar::Normal::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::Normal
 pub fn alea_distributions::scalar::Normal::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::Normal::log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::Normal::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::Normal::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::Normal
@@ -4052,6 +4065,7 @@ pub fn alea_distributions::scalar::StudentT::reference_measure(&self) -> alea_co
 pub fn alea_distributions::scalar::StudentT::support(&self) -> alea_core::distribution::Support
 impl alea_core::distribution::ParameterScore for alea_distributions::scalar::StudentT
 pub fn alea_distributions::scalar::StudentT::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>
+pub fn alea_distributions::scalar::StudentT::log_prob_parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<f64, alea_core::distribution::DistributionError>
 pub fn alea_distributions::scalar::StudentT::parameter_count(&self) -> usize
 pub fn alea_distributions::scalar::StudentT::parameter_score(&self, x: &f64, out: &mut [f64]) -> core::result::Result<(), alea_core::distribution::DistributionError>
 impl alea_core::distribution::Sample for alea_distributions::scalar::StudentT

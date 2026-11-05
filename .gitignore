@@ -64,6 +64,8 @@ tools/stan-reference/stantest
 
 /tools/*.py
 /tools/*.sh
+# Public source-checkout benchmark entry point; no force-add is required.
+!/tools/bench-features.sh
 /tools/release/observe.py
 /tools/release/examples/probe.rs
 
