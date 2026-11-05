@@ -23,6 +23,27 @@ impl CompiledModel {
         &self,
         density: bool,
     ) -> Result<Option<(String, usize)>, AssemblyError> {
+        Ok(self
+            .rust_composed_gradient(density, false)?
+            .map(|(source, workspace, _)| (source, workspace)))
+    }
+
+    /// Emits a first-order composition of trusted primitive score rules and
+    /// tensor replay. The final flag reports actual tensor checkpointing, not
+    /// merely the presence of an analytic primitive. Higher AD uses the primal.
+    /// # Errors
+    /// Preserves missing-primal and checked workspace overflow errors.
+    pub fn rust_first_order_gradient(
+        &self,
+        density: bool,
+    ) -> Result<Option<(String, usize, bool)>, AssemblyError> {
+        self.rust_composed_gradient(density, true)
+    }
+    fn rust_composed_gradient(
+        &self,
+        density: bool,
+        primitive_rules: bool,
+    ) -> Result<Option<(String, usize, bool)>, AssemblyError> {
         let tensor = |i| {
             self.primitives
                 .binary_search_by_key(&i, |(node, _)| *node)
@@ -30,9 +51,20 @@ impl CompiledModel {
                 .and_then(|j| self.primitives[j].1.descriptor::<TensorFactor>())
         };
         let retained = |i: usize| self.active_nodes.as_ref().is_none_or(|a| a[i]);
-        if !(0..self.nodes.len())
-            .any(|i| retained(i) && tensor(i).is_some_and(|t| t.binding().has_source_checkpoints()))
-        {
+        let checkpointed = (0..self.nodes.len()).any(|i| {
+            retained(i) && tensor(i).is_some_and(|t| t.binding().has_source_checkpoints())
+        });
+        let native = |i| {
+            if primitive_rules {
+                self.primitives
+                    .binary_search_by_key(&i, |(node, _)| *node)
+                    .ok()
+                    .and_then(|j| self.primitives[j].1.source_gradient.as_ref())
+            } else {
+                None
+            }
+        };
+        if !checkpointed && !(0..self.nodes.len()).any(|i| retained(i) && native(i).is_some()) {
             return Ok(None);
         }
         let c = self.layout.constrained_dimension();
@@ -57,6 +89,7 @@ impl CompiledModel {
         let mut forward = String::new();
         let mut reverse = String::new();
         let mut temporary = 0;
+        let mut local_count = 0;
         for (i, op) in self.nodes.iter().enumerate() {
             if !retained(i) {
                 continue;
@@ -78,6 +111,24 @@ impl CompiledModel {
                         .ok()
                         .map_or(0, |j| self.primitives[j].1.source_workspace);
                     let d = inputs.len();
+                    if let Some(rule) = native(i) {
+                        let first = local_count;
+                        local_count = extent(local_count, d)?;
+                        temporary = temporary.max(extent(d, size)?);
+                        writeln!(source,"fn __native{i}(x:&[f64],g:&mut[f64],scratch:&mut[f64])->f64 {{let _=&scratch;{}}}",rule()).unwrap();
+                        let pack = inputs
+                            .iter()
+                            .enumerate()
+                            .map(|(j, node)| format!("args[{j}]=n[{node}];"))
+                            .collect::<String>();
+                        writeln!(forward,"n[{i}]={{let(args,work)=temporary.split_at_mut({d});{pack}let scores=&mut locals[{first}..{local_count}];scores.fill(f64::NAN);let value=__native{i}(args,scores,&mut work[..{size}]);if !value.is_finite() || scores.iter().any(|s|!s.is_finite()) {{g.fill(f64::NAN);return f64::NAN;}}value}};").unwrap();
+                        let mut r = String::new();
+                        for (j, node) in inputs.iter().enumerate() {
+                            writeln!(r, "a[{node}]+=a[{i}]*locals[{}];", first + j).unwrap();
+                        }
+                        reverse.insert_str(0, &r);
+                        continue;
+                    }
                     let pullback = tensor(i)
                         .map(|t| t.binding().pullback_source(&format!("__tensor{i}")))
                         .transpose()
@@ -123,7 +174,7 @@ impl CompiledModel {
             };
             writeln!(
                 forward,
-                "n[{i}]={expression};if !n[{i}].is_finite() {{g.fill(f64::NAN);return f64::NAN;}}"
+                "n[{i}] = {expression};if !n[{i}].is_finite() {{g.fill(f64::NAN);return f64::NAN;}}"
             )
             .unwrap();
             let r = match op {
@@ -141,8 +192,11 @@ impl CompiledModel {
         }
         let nodes = self.nodes.len();
         temporary = temporary.max(self.layout.scratch_dimension());
-        let workspace = extent(extent(nodes, nodes)?, extent(extent(c, c)?, temporary)?)?;
-        writeln!(source,"pub(super) fn __gradient(q:&[f64;DIMENSION],g:&mut[f64;DIMENSION],work:&mut[f64;__WORKSPACE__],shadow:&mut[f64;__WORKSPACE__],seed:f64)->f64 {{work.fill(0.0);shadow.fill(0.0);g.fill(0.0);let(n,rest)=work.split_at_mut({nodes});let(a,rest)=rest.split_at_mut({nodes});let(x,rest)=rest.split_at_mut({c});let(gc,temporary)=rest.split_at_mut({c});let jacobian=__coordinates(q,x);if !jacobian.is_finite() {{g.fill(f64::NAN);return f64::NAN;}}{forward}\nlet mut total=0.0_f64;").unwrap();
+        let workspace = extent(
+            extent(nodes, nodes)?,
+            extent(extent(c, c)?, extent(local_count, temporary)?)?,
+        )?;
+        writeln!(source,"pub(super) fn __gradient(q:&[f64;DIMENSION],g:&mut[f64;DIMENSION],work:&mut[f64;__WORKSPACE__],shadow:&mut[f64;__WORKSPACE__],seed:f64)->f64 {{work.fill(0.0);shadow.fill(0.0);g.fill(0.0);let(n,rest)=work.split_at_mut({nodes});let(a,rest)=rest.split_at_mut({nodes});let(x,rest)=rest.split_at_mut({c});let(gc,rest)=rest.split_at_mut({c});let(locals,temporary)=rest.split_at_mut({local_count});let jacobian=__coordinates(q,x);if !jacobian.is_finite() {{g.fill(f64::NAN);return f64::NAN;}}{forward}\nlet mut total=0.0_f64;").unwrap();
         for i in self.retained_factors() {
             writeln!(source, "total+=n[{i}];a[{i}]+=1.0;").unwrap();
         }
@@ -160,7 +214,7 @@ impl CompiledModel {
             };
             writeln!(source,"if {}.{method}(&q[{}..{}],&gc[{}..{}],&mut g[{}..{}],temporary).is_err() {{g.fill(f64::NAN);return f64::NAN;}}",b.transform().rust_constructor(),qr.start,qr.end,cr.start,cr.end,qr.start,qr.end).unwrap();
         }
-        source.push_str("for v in &mut *g {*v*=seed;}if g.iter().any(|v|!v.is_finite()) {g.fill(f64::NAN);return f64::NAN;}total}\n");
-        Ok(Some((source, workspace)))
+        source.push_str("let _=&locals;for v in &mut *g {*v*=seed;}if g.iter().any(|v|!v.is_finite()) {g.fill(f64::NAN);return f64::NAN;}total}\n");
+        Ok(Some((source, workspace, checkpointed)))
     }
 }

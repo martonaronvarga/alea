@@ -17,6 +17,9 @@ categories = ["science", "mathematics"]
 [lints]
 workspace = true
 
+[lib]
+bench = false
+
 [dependencies]
 tracing = { workspace = true, optional = true }
 pulp.workspace = true

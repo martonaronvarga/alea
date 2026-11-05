@@ -6,6 +6,9 @@ publish = false
 
 [workspace]
 
+[lib]
+bench = false
+
 [dependencies]
 alea = { path = "../../crates/alea", features = ["std-autodiff", "distributions"] }
 
@@ -13,15 +16,21 @@ alea = { path = "../../crates/alea", features = ["std-autodiff", "distributions"
 alea = { path = "../../crates/alea", features = ["autodiff", "distributions"] }
 
 [dev-dependencies]
+criterion = "0.5"
 rand = "=0.10.1"
 allocation-counter = "=0.8.1"
 
 [features]
 faer = ["alea/faer"]
+simd = ["alea/simd"]
 
 [[example]]
 name = "gaussian_uncertainty"
 required-features = ["faer"]
+
+[[bench]]
+name = "native_compiled"
+harness = false
 
 [profile.release]
 lto = "fat"

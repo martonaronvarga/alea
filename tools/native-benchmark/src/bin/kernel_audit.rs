@@ -22,6 +22,30 @@ use alea::{
 };
 use std::{error::Error, hint::black_box, time::Instant};
 
+fn normal_factors(
+    b: &mut ModelBuilder,
+    size: usize,
+    vector: bool,
+) -> Result<(), alea::model::assembly::AssemblyError> {
+    let location = b.constant(0.2)?;
+    let scale = b.constant(1.3)?;
+    let mut events = Vec::with_capacity(if vector { size } else { 0 });
+    for i in 0..size {
+        let q = b.real(&format!("q{i}"))?.expr();
+        if vector {
+            events.push(q);
+        } else {
+            let factor = modeling::normal(b, q, location, scale)?;
+            b.prior(&format!("p{i}"), factor)?;
+        }
+    }
+    if vector {
+        let factor = modeling::normal_batch(b, &events, &[location], &[scale])?;
+        b.prior("batch", factor)?;
+    }
+    Ok(())
+}
+
 fn target_work<T: LogDensityGradient>(
     target: T,
     size: usize,
@@ -56,6 +80,64 @@ fn main() -> Result<(), Box<dyn Error>> {
     let construction = Instant::now();
     let construction_seconds;
     let (seconds, checksum) = match case.as_str() {
+        "gemm" | "gemm_faer" | "gemm_blas" => {
+            use alea::model::tensor::{MatrixKernel, Shape, TensorBuilder};
+            let requested = std::env::var("ALEA_MATRIX_KERNEL").unwrap_or_else(|_| case.clone());
+            let kernel = match requested.as_str() {
+                "gemm" | "compensated" => MatrixKernel::Compensated,
+                #[cfg(feature = "faer")]
+                "gemm_faer" | "faer" => MatrixKernel::Faer,
+                #[cfg(feature = "openblas")]
+                "gemm_blas" | "blas" => MatrixKernel::Blas,
+                _ => return Err("requested matrix provider was not compiled".into()),
+            };
+            let count = size.checked_mul(size).ok_or("matrix extent overflow")?;
+            let mut b = TensorBuilder::new();
+            let a = b.input("a", Shape::new(vec![size, size])?)?;
+            let r = b.input("r", Shape::new(vec![size, size])?)?;
+            let result = b.matmul_with_kernel(a, r, kernel)?;
+            let program = b.compile(result)?.bind(&[])?;
+            let mut w = program.workspace();
+            let x: Vec<_> = (0..2 * count)
+                .map(|i| ((i % 31) as f64 - 15.) / 32.)
+                .collect();
+            let seed = vec![0.5; count];
+            let mut out = vec![0.; count];
+            let mut g = vec![0.; 2 * count];
+            program.value_and_vjp(&x, &seed, &mut out, &mut g, &mut w)?;
+            // Full-coordinate admission against the existing compensated IR,
+            // outside timing. These dyadic controls are not an accuracy theorem.
+            let mut reference = TensorBuilder::new();
+            let a = reference.input("a", Shape::new(vec![size, size])?)?;
+            let r = reference.input("r", Shape::new(vec![size, size])?)?;
+            let result = reference.matmul(a, r)?;
+            let reference = reference.compile(result)?.bind(&[])?;
+            let mut values = vec![0.; count];
+            let mut scores = vec![0.; 2 * count];
+            reference.value_and_vjp(
+                &x,
+                &seed,
+                &mut values,
+                &mut scores,
+                &mut reference.workspace(),
+            )?;
+            if out
+                .iter()
+                .chain(&g)
+                .zip(values.iter().chain(&scores))
+                .any(|(a, b)| (a - b).abs() > 1e-10 * (1. + b.abs()))
+            {
+                return Err("matrix value or complete VJP differs from reference".into());
+            }
+            construction_seconds = construction.elapsed().as_secs_f64();
+            let start = Instant::now();
+            let mut checksum = 0.;
+            for _ in 0..calls {
+                program.value_and_vjp(black_box(&x), &seed, &mut out, &mut g, &mut w)?;
+                checksum += black_box(out.iter().sum::<f64>()) + black_box(g.iter().sum::<f64>());
+            }
+            (start.elapsed().as_secs_f64(), checksum)
+        }
         "tensor_vector" | "tensor_reuse" => {
             use alea::model::tensor::{BinaryOp, Shape, TensorBuilder, UnaryOp};
             let mut b = TensorBuilder::new();
@@ -268,13 +350,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 b.likelihood("mixture", factor)?;
             } else {
                 dimension = size;
-                let location = b.constant(0.2)?;
-                let scale = b.constant(1.3)?;
-                for i in 0..size {
-                    let q = b.real(&format!("q{i}"))?.expr();
-                    let factor = modeling::normal(&mut b, q, location, scale)?;
-                    b.prior(&format!("p{i}"), factor)?;
-                }
+                let vector = std::env::var("ALEA_NORMAL_BATCH").is_ok_and(|v| v == "1");
+                normal_factors(&mut b, size, vector)?;
             }
             let target = b.compile()?.into_target()?;
             construction_seconds = construction.elapsed().as_secs_f64();
@@ -356,4 +433,32 @@ fn main() -> Result<(), Box<dyn Error>> {
         serde_json::json!({"case":case,"size":size,"calls":calls,"construction_seconds":construction_seconds,"seconds":seconds,"checksum":checksum})
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn normal_representation_controls_preserve_exact_work_receipts_without_timing() {
+        for n in [1, 3, 4, 5, 128, 1025] {
+            let targets = [false, true].map(|vector| {
+                let mut b = ModelBuilder::new();
+                normal_factors(&mut b, n, vector).unwrap();
+                b.compile().unwrap().into_target().unwrap()
+            });
+            let mut a = vec![0.; n];
+            let mut b = a.clone();
+            let mut q = vec![0.01; n];
+            for i in 0..10 {
+                q[0] = i as f64 * 0.01;
+                let va = targets[0].logp_grad(&q, &mut a).unwrap();
+                let vb = targets[1].logp_grad(&q, &mut b).unwrap();
+                assert_eq!(va.to_bits(), vb.to_bits());
+                assert_eq!(
+                    a.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+                    b.iter().map(|v| v.to_bits()).collect::<Vec<_>>()
+                );
+            }
+        }
+    }
 }

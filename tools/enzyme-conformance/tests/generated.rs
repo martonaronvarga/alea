@@ -172,6 +172,11 @@ fn typed_models_and_every_transform_include_one_jacobian_through_third_order() {
         native_normal_batch,
         native_logit_batch,
         native_poisson_batch,
+        native_normal_large,
+        native_logit_large,
+        native_poisson_large,
+        normal_vector,
+        normal_vector_observed,
         regression,
         logistic,
         interval,
@@ -230,9 +235,118 @@ fn native_batch_source_matches_tail_and_scale_admission_without_clipping() {
 }
 
 #[test]
+fn native_first_order_caches_are_thread_local_reusable_and_transactional() {
+    fn check<T: LogDensityGradient>(target: T, q: &[f64]) {
+        let mut g = vec![0.; q.len()];
+        let expected = target.logp_grad(q, &mut g).unwrap(); // initialize this thread
+        let expected_g = g.clone();
+        let allocations = allocation_counter::measure(|| {
+            for _ in 0..16 {
+                assert_eq!(
+                    target.logp_grad(q, &mut g).unwrap().to_bits(),
+                    expected.to_bits()
+                );
+                assert_eq!(g, expected_g);
+            }
+        });
+        assert_eq!(allocations.count_total, 0);
+        let mut bad = q.to_vec();
+        bad[0] = f64::MAX;
+        // Low-level derivative outputs are scratch on failure. Transactional
+        // publication belongs to PointState, not the raw Enzyme adapter.
+        let mut point = alea::target::PointState::new(
+            &target,
+            alea::math::buffer::OwnedBuffer::from_fn(q.len(), |i| q[i]),
+        )
+        .unwrap();
+        if point
+            .try_update(&bad, &mut alea::target::EvaluationWorkspace::new(q.len()))
+            .is_err()
+        {
+            assert_eq!(point.position(), q);
+            assert_eq!(point.gradient(), expected_g);
+        }
+        assert_eq!(
+            target.logp_grad(q, &mut g).unwrap().to_bits(),
+            expected.to_bits()
+        );
+        assert_eq!(g, expected_g);
+    }
+    const {
+        assert!(generated::native_logit_batch::SOURCE_EXPLICIT_FIRST_ORDER);
+        assert!(!generated::native_logit_batch::SOURCE_CHECKPOINTED);
+    }
+    // New threads initialize independently, then reuse the frozen descriptor and
+    // scratch; no process-global mutable native workspace is shared.
+    let handles: Vec<_> = (0..4)
+        .map(|_| {
+            std::thread::spawn(|| {
+                check(generated::native_normal_batch::target(), &[0.3, -0.4, 0.]);
+                check(generated::native_logit_batch::target(), &[0.3, -0.4]);
+                check(generated::native_poisson_batch::target(), &[0.3, -0.4]);
+            })
+        })
+        .collect();
+    for handle in handles {
+        handle.join().unwrap();
+    }
+}
+
+#[test]
 fn tensor_regions_match_native_scores_and_finite_difference_curvature() {
     check_model("tensor_matrix", generated::tensor_matrix::target());
+    check_model("tensor_broadcast", generated::tensor_broadcast::target());
+    check_model(
+        "tensor_checkpoint_broadcast",
+        generated::tensor_checkpoint_broadcast::target(),
+    );
     check_model("tensor_control", generated::tensor_control::target());
+}
+
+#[test]
+fn broadcast_aliases_have_independent_quartic_derivatives_on_both_source_routes() {
+    assert!(!generated::tensor_broadcast::SOURCE_CHECKPOINTED);
+    assert!(generated::tensor_checkpoint_broadcast::SOURCE_CHECKPOINTED);
+    fn check(target: impl PotentialHessianDerivative) {
+        for [a, b] in [[0., 0.], [0.25, -0.5], [-1., 2.]] {
+            let norm = a * a + b * b;
+            let mut g = [41.; 2];
+            close(
+                target.logp_grad(&[a, b], &mut g).unwrap(),
+                -0.5 * norm * norm,
+                1e-12,
+            );
+            close(g[0], -2. * a * norm, 1e-12);
+            close(g[1], -2. * b * norm, 1e-12);
+            let mut h = [41.; 4];
+            let mut third = [41.; 8];
+            target
+                .potential_hessian_and_derivatives(&[a, b], &mut h, &mut third)
+                .unwrap();
+            for (actual, expected) in h.into_iter().zip([
+                2. * norm + 4. * a * a,
+                4. * a * b,
+                4. * a * b,
+                2. * norm + 4. * b * b,
+            ]) {
+                close(actual, expected, 1e-12);
+            }
+            for (actual, expected) in third.into_iter().zip([
+                12. * a,
+                4. * b,
+                4. * b,
+                4. * a,
+                4. * b,
+                4. * a,
+                4. * a,
+                12. * b,
+            ]) {
+                close(actual, expected, 1e-12);
+            }
+        }
+    }
+    check(generated::tensor_broadcast::target());
+    check(generated::tensor_checkpoint_broadcast::target());
 }
 
 #[test]

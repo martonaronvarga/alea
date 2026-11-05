@@ -438,6 +438,38 @@ generic factor APIs and generated primal mathematics remain unchanged. Tests
 compare bits and typed errors against the previous sequence over extreme events,
 locations and scales, including infinities and the smallest positive subnormal.
 
+### Generic scalar score requests and shared preparation
+
+The provided `ParameterScore::log_prob_event_parameter_score` hook extends the
+same principle to other continuous factors. Its default delegates density, event
+score and parameter score in that order, so downstream laws require no new
+implementation. Built-in scalar families specialize it to compute their complete
+score vector once. Jet-based families retain the original density-only primal;
+combining Jet<0> and Jet<5> arithmetic is a separate numerical change, not assumed
+safe here. A Cauchy regression test counts two derivative calls through the old
+separate requests and one through the combined request, and checks failure and
+recovery behavior. This is a work-count result, not a measured wall-time gain.
+
+Native scalar Normal factors additionally declare a pure preparation of their
+scale's logarithm. Compilation groups identical source expressions (or bitwise
+identical constants) by primitive type and preparation function. Each model's
+workspace caches that scalar by input bits. Original factor evaluation order,
+local score checks, compensated factor sums and reverse edges remain unchanged;
+there is no cross-factor reduction reassociation or speculative callback
+execution. Rebinding rebuilds the plan. This shares normalization, but does not
+automatically turn arbitrary scalar plates into SIMD regression batches.
+
+The ignored `regression_stage_profile` fixture in the existing kernel test module
+isolates the actual packed predictor, exponential, log1p and compensated score
+operations. Set `ALEA_PROFILE_STAGE` to `predictors`, `exp`, `exp_signed`, `log1p`
+or `scores`; `ALEA_PROFILE_SCALAR=1` selects its scalar control. Row, column and
+repetition-work sizes use `ALEA_PROFILE_ROWS`, `ALEA_PROFILE_COLUMNS` and
+`ALEA_PROFILE_CALLS`. Run it in release mode on an allocated remote benchmark
+node only. It compiles the stage choice outside the inner work loop and emits
+dimensions, seconds and a checksum. These isolated controls are not additive
+percentages of fused evaluation time: validate conclusions with the existing
+whole-kernel runner and CPU profiler before changing production mathematics.
+
 ## Qualification and measurements
 
 The fixed-work runner `tools/native-benchmark/src/bin/kernel_audit.rs` calls public
@@ -734,3 +766,329 @@ Earlier native/Stan cohorts and their sealed source are not overwritten.
    an explicit tested accuracy statement and scalar tails, not an inherited
    correctness claim from a paper. Do not trade away compensation or error
    propagation for an attractive timing.
+
+## Native `cargo bench` stage suite
+
+The workspace is in `crates/`: run `cargo bench` there, or use
+`cargo bench --manifest-path crates/Cargo.toml --workspace --benches` from the
+checkout root. These are native Criterion benchmarks, not ports of likelihoods
+or samplers. Library test harnesses are disabled for `cargo bench`, so Criterion
+filters and baseline arguments do not accidentally go to libtest.
+The shared cold Criterion configuration namespaces output by package and target,
+so identical operation names in different executables cannot overwrite results.
+This changes the result-directory layout; retain old baselines rather than
+moving them into the new namespace and pretending they share an identity.
+
+The source review found missing runtime, scalar-score, source-emission and FFI
+boundaries, combined setup/evaluation scopes, and a handwritten logistic HMC
+fixture. The HMC fixture now uses the public native Normal priors and
+Bernoulli-logit regression. Its old timing identity is **not comparable** across
+this fixture change; start a new baseline.
+
+| Owning crate / target | Distinct native measurement scopes |
+|---|---|
+| math / `storage`, `primitives`, `quasi_newton` | Allocation/drop versus reusable storage; compensated reduction, finite scans, norms, transcendentals, metric velocity/energy, cached RNG fill, exact dot sign, rank-zero affine actions, interpolation, Cholesky, allocating/reused L-BFGS action |
+| core / `transforms` | Chart constrain, chart pullback, complete transformed target |
+| core / `model_pipeline` | Registration/drop, compile, target conversion, rebind, conditional rows, constrained/unconstrained fused evaluation; native/checked density-gradient boundaries and transactional point update |
+| core / `tensor_tape` | Scalar graph, direct tensor VJP, assembled tensor factor, explicit compensated/Faer/BLAS GEMM policies |
+| distributions / `scalar_scores` | Ten scalar families, Normal mixtures, multivariate Normal, sphere; separate density/event/parameter calls versus combined scalar scores, constructor versus retained vector law |
+| distributions / `regression_execution`, `model_semantics`, `wiener7` | Native Normal/logit/Poisson preparation versus evaluation, scalar/Auto policy, semantic/opaque registration, Wiener quadrature |
+| autodiff / `derivatives` | Rust source emission and finite-difference diagnostic; neither is compiler execution time |
+| mcmc / `hmc`, `rwmh`, `warmup` | HMC/RWMH transitions; NUTS initialize/drop, fixed-state transition, evolving transitions; adaptation/update/metric-fit scopes; shared fixed-state harness for GHMC, DRGHMC, MAMS, explicitly approximate MCLMC, WALNUTS, Atlas, ChEES and analytic/Hessian-free force-gradient HMC |
+| runtime / `workflow` | Session configuration, initialize+one draw, warmup+one draw, retained collection/discard, owned-record clone, bounded enqueue/dequeue, complete L-BFGS fit, modern diagnostics |
+| runtime / `workflow` with `analysis` | Memory-only CSV header setup, one-row encode/hash/buffering, final flush/manifest after 128 prepared rows |
+| Enzyme conformance / `native_compiled` | Same native/generated models, full value/gradient, generated HVP and Hessian/third derivative; pure compiler-AD polynomial control, native-backed source rules, retained/checkpointed scan controls and explicit route receipts |
+
+Coverage is **not complete**. The existing runner's `cargo-inventory` action
+enumerates every workspace source module and its reviewed benchmark associations:
+
+```sh
+python3 tools/native-benchmark/scripts/three_engine.py cargo-inventory \
+  --output target/cargo-bench-inventory.json
+```
+
+An association is a workflow link, not proof that all functions are independently
+timed. Unmapped implementations remain explicit `gap` entries. Declaration/test
+modules and the re-export facade/trait-only SMC crate do not get invented work.
+Remaining gaps include manifold/split/batched sampler paths, general prediction
+and transport workflows, some specialized linear algebra and source adapters.
+Private logistic/Poisson stage profiling remains in the existing ignored kernel
+fixture; these internals are not exposed as new public APIs just for Criterion.
+CPU provider features do not imply every operation uses that provider.
+
+### Running and comparing
+
+All actual timings belong on an allocated ELTE HPC **compute** node. Use the
+existing Slurm submission helper; request one CPU for single-thread comparisons,
+or an explicit matching CPU/thread budget for threaded comparisons. The generic
+[feature script](../tools/bench-features.sh) builds every selected cell first,
+then runs cells sequentially with distinct Criterion directories and preserved
+build/run failures. It refuses local/login timings.
+The measurement child is pinned to the first `N` allowed CPUs for the requested
+thread budget; compilation retains the complete allocation. Both masks are
+recorded, without changing governor or machine-wide thread settings.
+Example inside an allocation:
+
+```sh
+tools/bench-features.sh --crate alea-distributions --bench scalar_scores \
+  --output /scratch/alea/scalar-comparison --feature-set '' --feature-set faer \
+  -- --sample-size 30 --warm-up-time 0.5 --measurement-time 2
+```
+
+For the whole workspace omit `--crate`/`--bench`. Select the pinned nightly
+externally before requesting SIMD, branch hints or compiler AD. For actual
+compiled derivatives, use the **same script** with
+`--manifest tools/enzyme-conformance/Cargo.toml --bench native_compiled` in the
+pinned autodiff environment, including its autodiff/bitcode flags and fat LTO.
+This is a separate Cargo workspace and is not silently qualified by a facade
+feature flag. `--threads N` sets library budgets; it does not make sequential
+Faer kernels threaded.
+
+For before/after comparisons use Criterion's `--save-baseline`/`--baseline`
+directly in the same stable remote environment, with the same feature/compiler
+flags and unchanged fixture. Feature-cell runs are sequential exploratory
+comparisons, **not** alternating cross-version pairs. Rotate/reverse cell order
+and repeat before ranking close results. Use the existing paired native/Stan
+runner for full posterior comparisons and diagnostic-qualified ESS/sec.
+
+For a feature run, the existing runner also consumes Criterion's raw estimates
+and samples directly, including median confidence intervals, sample/iteration
+counts, feature labels, per-cell failure status and all same-case ratios:
+
+```sh
+python3 tools/native-benchmark/scripts/three_engine.py cargo-report \
+  --output /scratch/alea/scalar-comparison
+# Writes /scratch/alea/scalar-comparison/summary.json; no additional measurements.
+```
+
+These are ratios of medians from sequential cells, not paired confidence
+intervals. Throughput units must match. No overall "fastest Alea" is inferred
+by pooling different operations or experimental/exact samplers. Sampler
+initialization receipts expose their actual transitions; fixed transition
+timings exclude the prepared chain/RNG, while initialization includes seed setup.
+Approximate MCLMC remains explicitly biased; timing it is not qualification of
+its stationary distribution or comparative ESS/sec.
+
+Local/CI correctness-only smoke execution is explicitly untimed:
+
+```sh
+cargo test --manifest-path crates/Cargo.toml --workspace --benches -- --test
+# Build only (does not execute a benchmark):
+cargo bench --manifest-path crates/Cargo.toml --workspace --benches --no-run
+```
+
+Criterion validates fixtures before measurement. `iter_batched` excludes declared
+setup and output destruction for consuming phases; `iter_batched_ref` also keeps
+the NUTS chain/RNG destruction outside fixed-transition timing. IDs containing
+`drop` deliberately include destruction. Reused evaluations exclude model/data
+construction, buffers, compilation and serialization. NUTS fixed-state receipts
+report real gradient calls, leapfrog steps and depth in a separate instrumented
+pass using the existing counter helper; the timed target has no counter/clock.
+Evolving transitions are not a fixed number of gradients. The scalar law and
+gradient fixtures check numerical agreement before comparing implementations.
+
+These costs must not be subtracted or summed to manufacture a sampler-overhead
+estimate: separate microbenchmarks have different cache/residency conditions.
+`warmup80_sample1` includes the required retained tail. CSV measurements use
+memory buffers, not disk durability. Sampling phases still include their named
+initialization/monitoring boundaries. Process startup, compilation, disk I/O,
+four-chain diagnostics and ESS/sec remain separate end-to-end measurements in
+the existing native/Stan suite. Allocation correctness tests and perf/Callgrind
+profiles are separate passes, never overlapping timed runs on the same host.
+
+### Why construction and evaluation must remain separate
+
+The completed Atlasz `normal-batching` control is a concrete negative result.
+Seven alternating same-binary scalar/vector pairs on `cn18-31` (KVM, one pinned
+CPU, nightly 2026-06-23) passed the existing exact work-receipt gate. These are
+independent **free-event Normal factors with fixed location/scale**, not Gaussian
+regression or a shared-mean inference benchmark. Evaluation includes the same
+value/gradient checksum consumption in both variants.
+
+| Free events | Scalar evaluation µs/call | Batch evaluation µs/call | Median paired scalar/batch [observed range] |
+|---:|---:|---:|---:|
+| 3 | 0.1440 | 0.1883 | 0.762 [0.750–0.836] |
+| 4 | 0.1789 | 0.2257 | 0.792 [0.788–0.796] |
+| 5 | 0.2211 | 0.2823 | 0.783 [0.765–0.785] |
+| 128 | 5.180 | 5.257 | 0.957 [0.919–1.039] |
+| 4096 | 192.481 | 192.239 | 1.002 [0.874–1.028] |
+
+Construction medians for 4096 events were 45.373 ms scalar versus 21.231 ms
+batch; for 128, 0.250 ms versus 0.113 ms. Thus reduced graph construction does
+**not** establish faster retained evaluation. The small-batch regression is not
+hidden or used to justify an unmeasured dispatcher threshold. These results do
+not rank posterior sampling or the separate fixed-observation/vector-location
+path. No inference or ESS claim follows.
+
+Raw records, numerical admission, binary/source receipts and summary remain in
+`/users/usumusu/alea-score-increment-20261103/normal-batching` on Atlasz, job
+2776558, independently of the newer Criterion study. The ranges are observed
+seven-pair ranges, not confidence intervals or a fresh measurement of later
+changes. This is the confound the new phase scopes are designed to expose.
+
+## Logistic and funnel: profile the representation actually executed
+
+The November 4 investigation compared the existing native targets with the
+CmdStan 2.40 / Stan Math 5.4 full-posterior evaluator. Logistic uses
+`bernoulli_logit_glm_lpmf` as its primary reference and the ordinary vectorized
+form as a separate control. Funnel uses one scalar Normal prior and a vectorized
+Normal conditional. Both include the same priors and complete gradients.
+
+With explicit maintainer authorization, local diagnostic profiles used `perf`
+7.2.10, user-space cycles at 997 Hz, DWARF stacks, a pinned CPU and release/native
+CPU binaries on an i5-8250U. These are **not Atlasz timings**, confidence intervals
+or ESS measurements. No lost samples were reported. The representative local
+instruction counts were:
+
+| Evaluation | Stable Alea | Pinned nightly + autodiff flag | Stan |
+|---|---:|---:|---:|
+| Logistic 1k | 170,481 | 295,050 | 73,687 |
+| Logistic 10k | 1,666,708 | 2,909,479 | 723,755 |
+| Funnel, eight latents | 4,907 | 5,118 | 2,810 |
+
+Approximately 98% of logistic cycle samples were inside the fused evaluator;
+graph-dispatch work was not the primary bottleneck. Annotated assembly identified
+retained fixed-array iterator loops in polynomial evaluation and four-row score
+updates, plus temporary arrays and spills. The nightly evaluator reserved 1,368
+stack bytes versus stable's 776. This establishes a code-generation difference,
+not that Enzyme itself caused it: compiler/stdlib/flag controls must be separated.
+Compensated predictors and scores also perform more arithmetic than Stan's
+ordinary Eigen reductions; the implementations have different rounding policies.
+
+The candidate explicitly expands the fixed seven polynomial and four score-row
+steps without changing arithmetic order, compensation, tail handling or failure
+fallbacks. An initial local counter pass reduced nightly logistic instructions
+from approximately 295k to 254k (1k) and 2.909m to 2.497m (10k). These are binary
+diagnostics, **not an admitted wall-time speedup**. Atlasz before/after comparisons
+and stable/other-family controls remain required before accepting a speed claim.
+
+After the final fixed-map cleanup, the existing runner's new `profile` command
+completed six matched local diagnostic variants (100,000 logistic1k evaluations
+each; all stat/record/report exits zero). Instructions/evaluation were:
+
+| Saved configuration | Instructions/evaluation |
+|---|---:|
+| Before stable | 170,480 |
+| After stable | 168,268 |
+| Before nightly, autodiff flag enabled | 295,049 |
+| After nightly, autodiff flag enabled | 208,275 |
+| After nightly, autodiff flag absent | 168,158 |
+| Stan fused GLM | 73,907 |
+
+The same-flag nightly candidate executes about 29.4% fewer instructions; stable
+saves about 1.3%. On the same candidate source, enabling the compiler AD flag
+adds about 23.9% instructions even though the target uses native analytic
+derivatives. This isolates a flag-dependent code-generation cost, not the cost
+of executing an Enzyme-generated gradient or a particular compiler pass. These
+are single diagnostic counter passes, not seven-run wall-time estimates.
+
+The suite previously injected `-Zautodiff=Enable` into every nightly build. It
+now enables that flag per Enzyme feature cell only when the user has not supplied
+an explicit AD flag. Explicit `RUSTFLAGS`/encoded flag controls are preserved,
+and actual per-cell flags remain recorded. This prevents native cells from being
+silently charged for an unnecessary compiler mode. It does not rewrite or
+retroactively improve any historical measurement.
+
+Funnel has a different bottleneck: about 51–57% of cycle samples landed in model
+evaluation and 20–21% in the Normal preparation callback frame, which includes
+its arithmetic. These percentages must not be described as pure dispatch cost.
+Shared log-scale preparation already existed. The candidate retains that cache,
+checks a shared dynamic input once per forward evaluation, uses fixed-size scalar
+argument packets and groups reverse operands without changing their order or
+alias multiplicity. Normal event/location scores share one sign-symmetric
+division. The initial funnel instruction reduction was below 1%; no substantial
+funnel speedup is established, and small-batch promotion remains disabled.
+
+### Reuse the existing tools
+
+`three_engine.py profile --matrix-plan PLAN --output OUTPUT --cases logistic
+--evaluations 100000` profiles saved binaries, retaining counters, sample data,
+reports and failures. It requires a compute allocation; `--local-profile` is an
+explicit diagnostic-only exception. `--perf-command 'sudo -n /path/to/perf'`
+supports installations requiring privileges for DWARF sampling without changing
+system-wide perf policy. Instrumented execution times are never speed rankings.
+
+Historical evaluation loops vary only coordinate zero. Optional whitespace state
+banks now vary all coordinates, including nonzero funnel latents. Use
+`ALEA_BENCH_STATE_DIR=DIR` with the existing data generator, then
+`matrix-plan --state-bank-dir DIR`. Matrix banks contain ten finite complete
+states so the existing ten-evaluation work receipts remain valid. Loading is
+construction work; copying each state is timed in both engines. Banks are included
+in existing input identity/replay checks; historical defaults are unchanged.
+
+The Stan builder now uses a study-local `CMDSTAN_MAIN` driver. Make otherwise
+reuses `main.o` when compiler flags change, potentially mixing Eigen alignment
+ABIs with native-CPU model objects. The historical Atlasz sampling aborts are
+retained as failures; a consistently rebuilt reference must pass before producing
+new comparative ESS/sec results. This build isolation does not retrospectively
+validate failed runs or prove their precise allocator failure mechanism.
+
+## Compensated versus conventional f64 regression arithmetic
+
+Native `NormalRegression`, `BernoulliLogitRegression`, and
+`PoissonLogRegression` support an explicit per-descriptor
+`with_arithmetic(RegressionArithmetic::Standard)` option. The default remains
+`Compensated`. This is a runtime construction choice, not a Cargo feature that
+could unexpectedly change another dependency's arithmetic through feature
+unification. `with_execution` independently selects native automatic SIMD or
+scalar execution; rebinding preserves both policies.
+
+Standard specializes the existing fused row kernels: predictor products and
+sums, lane likelihood/scale reductions, and coefficient-score accumulation use
+ordinary f64 arithmetic. It does not enable compiler fast-math, introduce tail
+cutoffs, change exp/log approximations, drop validation, clip parameters, or
+change sampler arithmetic. It allocates no evaluation buffers. Existing Gaussian
+square-root compression and common-predictor Poisson sufficient statistics remain
+unchanged, including their compensated preparation/evaluation. Thus a compressed
+Gaussian control is not a measurement of uncompensated observation scans.
+
+This policy is not an accuracy-equivalent default replacement. Two executable
+counterexamples in `tests/regression_execution.rs` use exact binary64 inputs:
+
+- A predictor `1e16 + 1 - 1e16` becomes 0 instead of 1. For five positive logistic
+  observations, log likelihood changes from approximately -1.5663 to -3.4657.
+- At beta=0, predictors and likelihoods can agree while the coefficient score
+  `1e16 + 1 - 1e16` becomes 0 instead of 1. Checking density alone misses this.
+
+Regular-shape comparisons cover zero columns, scalar/SIMD tails, N=1 through
+10,000, finite differences, deterministic repeated evaluation, zero allocations,
+nonfinite/support/shape errors, rebinding and transactional recovery. Agreement
+on these fixtures is empirical, not a uniform error bound or posterior-efficiency
+qualification. Pointwise reporting retains the reference row arithmetic, as it
+already does for compressed likelihoods. Source AD export rejects Standard
+descriptors explicitly; it must not silently substitute a compensated primal or
+claim qualification for generated higher derivatives.
+
+The untimed stable correctness smoke completed all 72 policy/family/shape
+combinations (ten probe states each). On that local test build, the largest
+absolute differences from the compensated reference were approximately
+1.74e-10 in log density and 5.19e-11 in a score coordinate. Compressed Gaussian
+controls were identical because their algorithm was unchanged. These are
+fixture-specific numerical observations, **not local timing results**, uniform
+accuracy bounds, or evidence of unchanged NUTS efficiency.
+
+Reuse the existing benchmark target on an allocated **remote compute node**:
+
+```sh
+ALEA_REGRESSION_ARITHMETIC=1 cargo bench --manifest-path crates/Cargo.toml \
+  -p alea-distributions --bench regression_execution
+```
+
+The `regression_arithmetic` groups compare the same executable/kernel formulas
+under both policies, at N=3/1,000/10,000 and p=1/8/32/65. The p=65 Gaussian case
+is outside compression's supported width and measures the actual row kernel
+without disabling a production optimization. Construction and validation
+are outside timing. Ten all-coordinate probe states report maximum absolute
+density/score differences against the compensated reference before measurement.
+`ALEA_REGRESSION_PLAN_REVERSE=1` reverses policy order for alternating repetitions.
+Criterion retains per-policy estimates; retain every repetition rather than
+pooling samples across policies. Use the existing CPU-plan campaign separately
+for construction/scalar-dispatch controls. No wall-time speedup is established
+until the remote campaign completes; no change to defaults is justified by the
+cancellation counterexamples or by a fast result on ordinary fixtures alone.
+
+Tensor `MatrixKernel::Faer` and `MatrixKernel::Blas` already explicitly permit
+uncompensated library reductions. The new regression option is a native SIMD
+arithmetic ablation, **not** automatic regression lowering into either provider.
+Comparing library GEMV/layout/threading costs is a distinct experiment; enabling
+those Cargo features alone still does not change native regression providers.

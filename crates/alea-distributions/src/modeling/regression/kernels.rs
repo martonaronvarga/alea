@@ -58,6 +58,7 @@ impl Design {
     }
 
     pub(super) fn set_execution(&mut self, execution: super::RegressionExecution) {
+        let arithmetic = self.plan.arithmetic();
         self.plan = super::RegressionPlan::new(
             execution,
             self.plan.rows(),
@@ -65,6 +66,44 @@ impl Design {
             self.plan.packed_design_bytes(),
             self.broadcast,
         );
+        self.plan.arithmetic = arithmetic;
+    }
+
+    #[inline(always)]
+    fn predictors_policy<S: pulp::Simd, const STANDARD: bool>(
+        &self,
+        simd: S,
+        tile: usize,
+        beta: &[f64],
+        offsets: &[f64],
+    ) -> [f64; TILE] {
+        if !STANDARD {
+            return self.predictors(simd, tile, beta, offsets);
+        }
+        if self.broadcast {
+            return [beta[0] + 0.; TILE];
+        }
+        let mut result = [0.; TILE];
+        let columns = &self.tiles[tile * self.columns..][..self.columns];
+        let (out, tail) = S::as_mut_simd_f64s(&mut result);
+        let (offsets, ot) = S::as_simd_f64s(offsets);
+        for (packet, (out, offset)) in out.iter_mut().zip(offsets).enumerate() {
+            let mut sum = *offset;
+            for (column, &b) in columns.iter().zip(beta) {
+                sum = simd.add_f64s(
+                    sum,
+                    simd.mul_f64s(S::as_simd_f64s(column).0[packet], simd.splat_f64s(b)),
+                );
+            }
+            *out = sum;
+        }
+        for (i, (out, offset)) in tail.iter_mut().zip(ot).enumerate() {
+            *out = columns
+                .iter()
+                .zip(beta)
+                .fold(*offset, |sum, (column, &b)| sum + column[i] * b);
+        }
+        result
     }
 
     #[inline(always)]
@@ -150,6 +189,27 @@ pub(super) struct LaneSum<S: pulp::Simd> {
 }
 impl<S: pulp::Simd> LaneSum<S> {
     #[inline(always)]
+    fn add_policy<const STANDARD: bool>(&mut self, simd: S, value: S::f64s) {
+        if STANDARD {
+            self.sum = simd.add_f64s(self.sum, value);
+        } else {
+            self.add(simd, value);
+        }
+    }
+    #[inline(always)]
+    fn finish_policy<const STANDARD: bool>(&self, total: &mut Sum<STANDARD>) {
+        for &x in pulp::bytemuck::cast_slice::<S::f64s, f64>(std::slice::from_ref(&self.sum)) {
+            total.add(x);
+        }
+        if !STANDARD {
+            for &x in
+                pulp::bytemuck::cast_slice::<S::f64s, f64>(std::slice::from_ref(&self.correction))
+            {
+                total.add(x);
+            }
+        }
+    }
+    #[inline(always)]
     fn add_twosum(&mut self, simd: S, value: S::f64s) {
         let next = simd.add_f64s(self.sum, value);
         let virtual_value = simd.sub_f64s(next, self.sum);
@@ -183,6 +243,7 @@ impl<S: pulp::Simd> LaneSum<S> {
     fn value(&self, simd: S) -> S::f64s {
         simd.add_f64s(self.sum, self.correction)
     }
+    #[cfg(test)]
     #[inline(always)]
     fn finish(&self, total: &mut CompensatedSum) {
         // Add heads AND residuals separately, not rounded lane totals. This
@@ -193,6 +254,50 @@ impl<S: pulp::Simd> LaneSum<S> {
         for &x in pulp::bytemuck::cast_slice::<S::f64s, f64>(std::slice::from_ref(&self.correction))
         {
             total.add(x);
+        }
+    }
+}
+
+// Compile-time policy removes compensation work from Standard specializations;
+// selecting a policy occurs once per evaluation, not per observation.
+#[derive(Default)]
+pub(super) struct Sum<const STANDARD: bool> {
+    plain: f64,
+    compensated: CompensatedSum,
+}
+impl<const STANDARD: bool> Sum<STANDARD> {
+    #[inline(always)]
+    pub(super) fn add(&mut self, x: f64) {
+        if STANDARD {
+            self.plain += x;
+        } else {
+            self.compensated.add(x);
+        }
+    }
+    #[inline(always)]
+    pub(super) fn add_product(&mut self, x: f64, y: f64) {
+        if STANDARD {
+            self.plain += x * y;
+        } else {
+            self.compensated.add_product(x, y);
+        }
+    }
+    #[inline(always)]
+    pub(super) fn total(&self) -> f64 {
+        if STANDARD {
+            self.plain
+        } else {
+            self.compensated.total()
+        }
+    }
+    #[inline(always)]
+    pub(super) fn into_compensated(self) -> CompensatedSum {
+        if STANDARD {
+            let mut sum = CompensatedSum::default();
+            sum.add(self.plain);
+            sum
+        } else {
+            self.compensated
         }
     }
 }
@@ -256,9 +361,16 @@ fn exp_packet<S: pulp::Simd, const POSITIVE: bool>(simd: S, x: &[f64; TILE]) -> 
     let (scale, st) = S::as_simd_f64s(&scales);
     for ((out, r), scale) in out_packets.iter_mut().zip(r).zip(scale) {
         let mut p = simd.splat_f64s(1. / 5_040.);
-        for c in [1. / 720., 1. / 120., 1. / 24., 1. / 6., 0.5, 1., 1.] {
-            p = simd.mul_add_f64s(p, *r, simd.splat_f64s(c));
-        }
+        // These seven operations are deliberately explicit. The pinned nightly
+        // retained an IntoIter loop and spilled its coefficients in this hot
+        // kernel. Preserve exactly the original Horner/FMA order.
+        p = simd.mul_add_f64s(p, *r, simd.splat_f64s(1. / 720.));
+        p = simd.mul_add_f64s(p, *r, simd.splat_f64s(1. / 120.));
+        p = simd.mul_add_f64s(p, *r, simd.splat_f64s(1. / 24.));
+        p = simd.mul_add_f64s(p, *r, simd.splat_f64s(1. / 6.));
+        p = simd.mul_add_f64s(p, *r, simd.splat_f64s(0.5));
+        p = simd.mul_add_f64s(p, *r, simd.splat_f64s(1.));
+        p = simd.mul_add_f64s(p, *r, simd.splat_f64s(1.));
         *out = simd.mul_f64s(p, *scale);
     }
     for ((out, r), scale) in out_tail.iter_mut().zip(rt).zip(st) {
@@ -321,7 +433,7 @@ fn log1p_unit<S: pulp::Simd>(simd: S, x: &[f64; TILE]) -> [f64; TILE] {
 
 impl NormalEval<'_> {
     #[inline(always)]
-    pub(super) fn batch<S: pulp::Simd, const BROADCAST: bool>(
+    pub(super) fn batch<S: pulp::Simd, const BROADCAST: bool, const STANDARD: bool>(
         self,
         simd: S,
         inverse: f64,
@@ -339,9 +451,9 @@ impl NormalEval<'_> {
         let mut quadratic = LaneSum::new(simd);
         let mut sigma = LaneSum::new(simd);
         let mut mean = LaneSum::new(simd);
-        let mut total = CompensatedSum::default();
-        let mut sigma_score = CompensatedSum::default();
-        let mut mean_score = CompensatedSum::default();
+        let mut total = Sum::<STANDARD>::default();
+        let mut sigma_score = Sum::<STANDARD>::default();
+        let mut mean_score = Sum::<STANDARD>::default();
         scores.reset();
         let (observations, tail) = data.observations.as_chunks::<TILE>();
         let (offsets, _) = data.offsets.as_chunks::<TILE>();
@@ -349,7 +461,7 @@ impl NormalEval<'_> {
             let eta = if BROADCAST {
                 [x[0] + 0.; TILE]
             } else {
-                design.predictors(simd, tile, &x[..p], offset)
+                design.predictors_policy::<S, STANDARD>(simd, tile, &x[..p], offset)
             };
             let mut residual = [0.; TILE];
             let (residuals, _) = S::as_mut_simd_f64s(&mut residual);
@@ -358,39 +470,39 @@ impl NormalEval<'_> {
             let inv = simd.splat_f64s(inverse);
             for ((out, y), eta) in residuals.iter_mut().zip(y).zip(eta) {
                 let z = simd.mul_f64s(simd.sub_f64s(*y, *eta), inv);
-                quadratic.add(
+                quadratic.add_policy::<STANDARD>(
                     simd,
                     simd.mul_f64s(simd.mul_f64s(simd.splat_f64s(-0.5), z), z),
                 );
-                sigma.add(
+                sigma.add_policy::<STANDARD>(
                     simd,
                     simd.mul_f64s(simd.sub_f64s(simd.mul_f64s(z, z), simd.splat_f64s(1.)), inv),
                 );
                 *out = simd.mul_f64s(z, inv);
                 if BROADCAST {
-                    mean.add(simd, *out);
+                    mean.add_policy::<STANDARD>(simd, *out);
                 }
             }
             if !BROADCAST && p != 0 {
                 let start = tile * TILE * p;
-                scores.add_tile(
+                scores.add_tile_policy::<S, STANDARD>(
                     simd,
                     std::array::from_fn(|r| &data.design[start + r * p..start + (r + 1) * p]),
                     &residual,
                 );
             }
         }
-        quadratic.finish(&mut total);
-        sigma.finish(&mut sigma_score);
+        quadratic.finish_policy(&mut total);
+        sigma.finish_policy(&mut sigma_score);
         if BROADCAST {
-            mean.finish(&mut mean_score);
+            mean.finish_policy(&mut mean_score);
         }
         for (r, &y) in tail.iter().enumerate() {
             let i = observations.len() * TILE + r;
             let eta = if BROADCAST {
                 x[0] + 0.
             } else {
-                data.linear_predictor(i, &x[..p])
+                data.predictor_with_arithmetic::<STANDARD>(i, &x[..p])
             };
             let z = (y - eta) * inverse;
             total.add(-0.5 * z * z);
@@ -399,7 +511,7 @@ impl NormalEval<'_> {
             if BROADCAST {
                 mean_score.add(r);
             } else {
-                scores.add_scaled(simd, &data.design[i * p..(i + 1) * p], r);
+                scores.add_scaled_policy::<S, STANDARD>(simd, &data.design[i * p..(i + 1) * p], r);
             }
         }
         total.add_product(normalizer, data.rows() as f64);
@@ -410,7 +522,7 @@ impl NormalEval<'_> {
         // Lane-wise partials can overflow before cancellation between lanes.
         // Retry the original ordered/divided calculation, not a clipped answer.
         if sigma_score.total().is_finite()
-            && let Ok(value) = scores.finish(total, &mut g[..p])
+            && let Ok(value) = scores.finish(total.into_compensated(), &mut g[..p])
         {
             g[p] = sigma_score.total();
             return Ok(value);
@@ -423,13 +535,13 @@ impl NormalEval<'_> {
             g,
             scores,
         }
-        .evaluate::<S, false, BROADCAST>(simd, inverse)
+        .evaluate::<S, false, BROADCAST, STANDARD>(simd, inverse)
     }
 }
 
 impl LogitEval<'_> {
     #[inline(always)]
-    pub(super) fn batch<S: pulp::Simd>(self, simd: S) -> Result<f64, E> {
+    pub(super) fn batch<S: pulp::Simd, const STANDARD: bool>(self, simd: S) -> Result<f64, E> {
         let Self {
             data,
             design,
@@ -437,20 +549,26 @@ impl LogitEval<'_> {
             g,
             scores,
         } = self;
-        let mut total = CompensatedSum::default();
+        let mut total = Sum::<STANDARD>::default();
         let mut likelihood = LaneSum::new(simd);
         scores.reset();
         let (ys, tail) = data.observations.as_chunks::<TILE>();
         let (offsets, _) = data.offsets.as_chunks::<TILE>();
         for (tile, (ys, offset)) in ys.iter().zip(offsets).enumerate() {
-            let eta = design.predictors(simd, tile, x, offset);
+            let eta = design.predictors_policy::<S, STANDARD>(simd, tile, x, offset);
             if eta.iter().any(|e| !e.is_finite()) {
                 return Err(E::Numerical);
             }
-            let e = exp_negative(simd, &eta.map(|v| -v.abs()));
+            let negative_abs = [-eta[0].abs(), -eta[1].abs(), -eta[2].abs(), -eta[3].abs()];
+            let e = exp_negative(simd, &negative_abs);
             let logs = log1p_unit(simd, &e);
             let mut residuals = [0.; TILE];
-            let signs = ys.map(|y| if y { -1. } else { 1. });
+            let signs = [
+                if ys[0] { -1. } else { 1. },
+                if ys[1] { -1. } else { 1. },
+                if ys[2] { -1. } else { 1. },
+                if ys[3] { -1. } else { 1. },
+            ];
             let (es, _) = S::as_simd_f64s(&e);
             let (etas, _) = S::as_simd_f64s(&eta);
             let (logs, _) = S::as_simd_f64s(&logs);
@@ -459,7 +577,7 @@ impl LogitEval<'_> {
             for ((((r, e), eta), log), sign) in rs.iter_mut().zip(es).zip(etas).zip(logs).zip(signs)
             {
                 let z = simd.mul_f64s(*eta, *sign);
-                likelihood.add(
+                likelihood.add_policy::<STANDARD>(
                     simd,
                     simd.neg_f64s(simd.add_f64s(simd.max_f64s(z, simd.splat_f64s(0.)), *log)),
                 );
@@ -484,35 +602,35 @@ impl LogitEval<'_> {
             }
             let p = data.columns;
             let start = tile * TILE * p;
-            scores.add_tile(
+            scores.add_tile_policy::<S, STANDARD>(
                 simd,
                 std::array::from_fn(|r| &data.design[start + r * p..start + (r + 1) * p]),
                 &residuals,
             );
         }
-        likelihood.finish(&mut total);
+        likelihood.finish_policy(&mut total);
         for (r, &y) in tail.iter().enumerate() {
             let i = ys.len() * TILE + r;
-            let eta = data.linear_predictor(i, x);
+            let eta = data.predictor_with_arithmetic::<STANDARD>(i, x);
             if !eta.is_finite() {
                 return Err(E::Numerical);
             }
             let (value, residual) =
                 super::Bernoulli::logit_log_prob_score(eta, y).map_err(super::error)?;
             total.add(value);
-            scores.add_scaled(
+            scores.add_scaled_policy::<S, STANDARD>(
                 simd,
                 &data.design[i * data.columns..(i + 1) * data.columns],
                 residual,
             );
         }
-        scores.finish(total, g)
+        scores.finish(total.into_compensated(), g)
     }
 }
 
 impl PoissonEval<'_> {
     #[inline(always)]
-    pub(super) fn batch<S: pulp::Simd>(self, simd: S) -> Result<f64, E> {
+    pub(super) fn batch<S: pulp::Simd, const STANDARD: bool>(self, simd: S) -> Result<f64, E> {
         let Self {
             data,
             design,
@@ -522,12 +640,12 @@ impl PoissonEval<'_> {
             scores,
         } = self;
         scores.reset();
-        let mut total = CompensatedSum::default();
+        let mut total = Sum::<STANDARD>::default();
         let mut likelihood = LaneSum::new(simd);
         let (ys, tail) = data.observations.as_chunks::<TILE>();
         let (offsets, _) = data.offsets.as_chunks::<TILE>();
         for (tile, (ys, offset)) in ys.iter().zip(offsets).enumerate() {
-            let eta = design.predictors(simd, tile, x, offset);
+            let eta = design.predictors_policy::<S, STANDARD>(simd, tile, x, offset);
             if eta.iter().any(|v| !v.is_finite()) {
                 return Err(E::Numerical);
             }
@@ -545,7 +663,7 @@ impl PoissonEval<'_> {
             for ((((r, eta), rate), count), constant) in
                 rs.iter_mut().zip(es).zip(rates).zip(counts).zip(constants)
             {
-                likelihood.add(
+                likelihood.add_policy::<STANDARD>(
                     simd,
                     simd.sub_f64s(simd.sub_f64s(simd.mul_f64s(*count, *eta), *rate), *constant),
                 );
@@ -563,28 +681,28 @@ impl PoissonEval<'_> {
             }
             let p = data.columns;
             let start = tile * TILE * p;
-            scores.add_tile(
+            scores.add_tile_policy::<S, STANDARD>(
                 simd,
                 std::array::from_fn(|r| &data.design[start + r * p..start + (r + 1) * p]),
                 &residuals,
             );
         }
-        likelihood.finish(&mut total);
+        likelihood.finish_policy(&mut total);
         for (r, &y) in tail.iter().enumerate() {
             let i = ys.len() * TILE + r;
-            let eta = data.linear_predictor(i, x);
+            let eta = data.predictor_with_arithmetic::<STANDARD>(i, x);
             let rate = eta.exp();
             if !eta.is_finite() || !rate.is_finite() {
                 return Err(E::Numerical);
             }
             total.add(y as f64 * eta - rate - normalizers[i]);
-            scores.add_scaled(
+            scores.add_scaled_policy::<S, STANDARD>(
                 simd,
                 &data.design[i * data.columns..(i + 1) * data.columns],
                 y as f64 - rate,
             );
         }
-        scores.finish(total, g)
+        scores.finish(total.into_compensated(), g)
     }
 }
 
@@ -867,6 +985,128 @@ mod tests {
         fn with_simd<S: pulp::Simd>(self, simd: S) -> Self::Output {
             self.0.predictors(simd, self.1, self.2, self.3)
         }
+    }
+
+    /// Isolated work controls, not additive percentages of a fused evaluation.
+    /// Run only on an allocated benchmark host; never part of correctness CI.
+    #[test]
+    #[ignore = "release profiling on an allocated remote compute node only"]
+    fn regression_stage_profile() {
+        use std::{hint::black_box, time::Instant};
+        fn setting(name: &str, fallback: usize) -> usize {
+            std::env::var(name).map_or(fallback, |v| v.parse().expect("positive integer"))
+        }
+        struct Work<'a> {
+            stage: &'a str,
+            data: &'a RegressionData<bool>,
+            design: &'a Design,
+            beta: &'a [f64],
+            scores: &'a mut super::super::Scores,
+            calls: usize,
+        }
+        impl pulp::WithSimd for Work<'_> {
+            type Output = f64;
+            fn with_simd<S: pulp::Simd>(self, simd: S) -> f64 {
+                match self.stage {
+                    "predictors" => self.run::<S, 0>(simd),
+                    "exp" => self.run::<S, 1>(simd),
+                    "log1p" => self.run::<S, 2>(simd),
+                    "scores" => self.run::<S, 3>(simd),
+                    "exp_signed" => self.run::<S, 4>(simd),
+                    _ => panic!("unknown regression profile stage"),
+                }
+            }
+        }
+        impl Work<'_> {
+            fn run<S: pulp::Simd, const STAGE: usize>(self, simd: S) -> f64 {
+                let mut checksum = 0.;
+                let p = self.data.columns();
+                for _ in 0..self.calls {
+                    if STAGE == 3 {
+                        self.scores.reset();
+                    }
+                    for tile in 0..self.data.rows() / TILE {
+                        let input = black_box([-0.25, -1., -4., -16.]);
+                        match STAGE {
+                            0 => {
+                                checksum += black_box(self.design.predictors(
+                                    simd,
+                                    tile,
+                                    black_box(self.beta),
+                                    black_box(&[0.; TILE]),
+                                ))[0]
+                            }
+                            1 => checksum += black_box(exp_negative(simd, &input))[0],
+                            2 => {
+                                checksum +=
+                                    black_box(log1p_unit(simd, &black_box([0.25, 0.5, 0.75, 1.])))
+                                        [0]
+                            }
+                            3 => {
+                                let first = tile * TILE * p;
+                                self.scores.add_tile(
+                                    simd,
+                                    std::array::from_fn(|r| {
+                                        black_box(
+                                            &self.data.design()[first + r * p..first + (r + 1) * p],
+                                        )
+                                    }),
+                                    &input,
+                                );
+                                black_box(&self.scores);
+                            }
+                            4 => {
+                                checksum += black_box(exp_packet::<S, true>(
+                                    simd,
+                                    &black_box([-4., -0.25, 1., 16.]),
+                                ))[0]
+                            }
+                            _ => unreachable!(),
+                        }
+                    }
+                    if STAGE == 3 {
+                        checksum += black_box(self.scores.sums[0]);
+                    }
+                }
+                black_box(checksum)
+            }
+        }
+        let rows = setting("ALEA_PROFILE_ROWS", 10_000);
+        let p = setting("ALEA_PROFILE_COLUMNS", 8);
+        let calls = setting("ALEA_PROFILE_CALLS", 1_000);
+        assert!(rows > 0 && rows.is_multiple_of(TILE) && p > 0 && calls > 0);
+        let stage = std::env::var("ALEA_PROFILE_STAGE").unwrap_or_else(|_| "predictors".into());
+        let scalar = std::env::var("ALEA_PROFILE_SCALAR").is_ok_and(|v| v == "1");
+        let data = RegressionData::new(
+            p,
+            (0..rows.checked_mul(p).unwrap())
+                .map(|i| ((i % 31) as f64 - 15.) / 32.)
+                .collect(),
+            vec![false; rows],
+        )
+        .unwrap();
+        let design = Design::new(&data).unwrap();
+        let beta = vec![0.25; p];
+        let mut scores = super::super::Scores::new(p);
+        let start = Instant::now();
+        let work = Work {
+            stage: &stage,
+            data: &data,
+            design: &design,
+            beta: &beta,
+            scores: &mut scores,
+            calls,
+        };
+        let checksum = if scalar {
+            pulp::WithSimd::with_simd(work, pulp::Scalar)
+        } else {
+            pulp::Arch::new().dispatch(work)
+        };
+        let seconds = start.elapsed().as_secs_f64();
+        assert!(checksum.is_finite());
+        println!(
+            "{{\"stage\":\"{stage}\",\"scalar\":{scalar},\"rows\":{rows},\"columns\":{p},\"calls\":{calls},\"seconds\":{seconds},\"checksum\":{checksum}}}"
+        );
     }
 
     #[test]

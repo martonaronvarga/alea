@@ -74,6 +74,21 @@ pub(super) fn workspace_bytes(p: &Plan) -> Result<usize, E> {
     bytes = add(bytes, p.nodes.len())?; // Cached reverse schedule eligibility.
     bytes = add(bytes, mul(p.nodes.len(), size_of::<Range<usize>>())?)?;
     bytes = add(bytes, mul(p.data.len(), size_of::<Arc<[f64]>>())?)?;
+    #[cfg(test)]
+    {
+        bytes = add(
+            bytes,
+            mul(p.nodes.len(), size_of::<Option<registration::Work>>())?,
+        )?;
+        for (i, node) in p.nodes.iter().enumerate() {
+            if p.active[i]
+                && let Op::Prototype(op) = &node.op
+                && let registration::Operation::Native(call) = &**op
+            {
+                bytes = add(bytes, mul(call.workspace_elements()?, size_of::<f64>())?)?;
+            }
+        }
+    }
     for (index, node) in p.nodes.iter().enumerate() {
         if !p.active[index] {
             continue;
@@ -139,8 +154,40 @@ pub struct TensorWorkspace {
     // the old snapshot is dropped. Arc identity remains valid until refreshed.
     data: Vec<Arc<[f64]>>,
     regions: Vec<Option<RegionWork>>,
+    #[cfg(test)]
+    prototype: Vec<Option<registration::Work>>,
 }
 impl BoundProgram {
+    // R0.2b's checked lifecycle owns identity/epoch validation. These private
+    // hooks reuse precisely this executor, admission and staging, not a second
+    // value/VJP implementation. They are absent from production builds.
+    #[cfg(test)]
+    pub(super) fn prepare_point(&self, x: &[f64], w: &mut TensorWorkspace) -> Result<(), E> {
+        self.validate(x, w)?;
+        self.execute_forward(x, w)
+    }
+    #[cfg(test)]
+    pub(super) fn pullback_point(
+        &self,
+        seed: &[f64],
+        out: &mut [f64],
+        g: &mut [f64],
+        w: &mut TensorWorkspace,
+    ) -> Result<(), E> {
+        if out.len() != self.output_shape().elements
+            || seed.len() != out.len()
+            || g.len() != self.dimension()
+        {
+            return Err(E::Shape);
+        }
+        if seed.iter().any(|v| !v.is_finite()) {
+            return Err(E::Numerical);
+        }
+        self.reverse(seed, w)?;
+        out.copy_from_slice(&w.values[self.plan.nodes[self.plan.output.node].range()]);
+        g.copy_from_slice(&w.gradient);
+        Ok(())
+    }
     /// Native per-execution workspace estimate. This is a tensor-target budget,
     /// separate from session sampler/storage limits and immutable bindings.
     pub fn workspace_bytes(&self) -> usize {
@@ -312,6 +359,19 @@ impl BoundProgram {
             adjoint_ranges,
             data: self.data.clone(),
             regions,
+            #[cfg(test)]
+            prototype: p
+                .nodes
+                .iter()
+                .enumerate()
+                .map(|(i, n)| match &n.op {
+                    Op::Prototype(op) if p.active[i] => match &**op {
+                        registration::Operation::Native(call) => Some(call.workspace()),
+                        registration::Operation::Data(_) => None,
+                    },
+                    _ => None,
+                })
+                .collect(),
         }
     }
     fn validate(&self, x: &[f64], w: &TensorWorkspace) -> Result<(), E> {
@@ -403,6 +463,17 @@ impl BoundProgram {
                 continue;
             }
             match &node.op {
+                #[cfg(test)]
+                Op::Prototype(op) => match &**op {
+                    registration::Operation::Data(_) => continue,
+                    registration::Operation::Native(call) => call.forward(
+                        &p.nodes,
+                        node,
+                        &mut w.values,
+                        w.prototype[i].as_mut().expect("registered block workspace"),
+                        self.preparation(i),
+                    )?,
+                },
                 Op::Input(input) => {
                     let input = &p.inputs[*input];
                     w.values[node.range()]
@@ -584,6 +655,32 @@ impl BoundProgram {
                     .copy_from_slice(&w.adjoints[start..start + node.shape.elements]);
             }
             match &node.op {
+                #[cfg(test)]
+                Op::Prototype(op) => match &**op {
+                    registration::Operation::Data(_) => {}
+                    registration::Operation::Native(call) => {
+                        let base = adjoint_start::<PLANNED>(p, starts, i);
+                        let work = w.prototype[i].as_mut().expect("registered block workspace");
+                        call.reverse(
+                            &p.nodes,
+                            &w.values,
+                            &w.adjoints[base..base + node.shape.elements],
+                            &w.values[node.range()],
+                            work,
+                            self.preparation(i),
+                        )?;
+                        call.accumulate(work, |input, scores| {
+                            if w.differential[input.node] {
+                                let base = adjoint_start::<PLANNED>(p, starts, input.node);
+                                for (adjoint, &score) in
+                                    w.adjoints[base..base + scores.len()].iter_mut().zip(scores)
+                                {
+                                    *adjoint += score;
+                                }
+                            }
+                        });
+                    }
+                },
                 Op::Input(input) => {
                     let input = &p.inputs[*input];
                     w.gradient[input.start..input.start + input.shape.elements].copy_from_slice(

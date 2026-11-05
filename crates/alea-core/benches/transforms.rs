@@ -25,6 +25,35 @@ fn transforms(c: &mut Criterion) {
         ),
         ("correlation_8", Transform::correlation(8).unwrap()),
     ] {
+        // Native chart stages, isolated from target/model arithmetic.
+        let q0 = vec![0.1; transform.unconstrained_dimension()];
+        let mut x = vec![0.; transform.constrained_dimension()];
+        let mut work = vec![0.; transform.scratch_dimension()];
+        let gx = vec![0.2; x.len()];
+        let mut gq = vec![0.; q0.len()];
+        transform.constrain(&q0, &mut x, &mut work).unwrap();
+        group.bench_function(format!("constrain/{name}"), |b| {
+            b.iter(|| {
+                black_box(
+                    transform
+                        .constrain(black_box(&q0), black_box(&mut x), &mut work)
+                        .unwrap(),
+                )
+            })
+        });
+        group.bench_function(format!("pullback/{name}"), |b| {
+            b.iter(|| {
+                transform
+                    .pullback(
+                        black_box(&q0),
+                        black_box(&gx),
+                        black_box(&mut gq),
+                        &mut work,
+                    )
+                    .unwrap();
+                black_box(&gq);
+            })
+        });
         let model = AnalyticModel::new(
             transform.constrained_dimension(),
             |q: &[f64], g: &mut [f64]| {
@@ -48,5 +77,7 @@ fn transforms(c: &mut Criterion) {
     }
     group.finish();
 }
-criterion_group!(benches, transforms);
+criterion_group! {name=benches; config=benchmark_support::criterion(); targets=transforms}
+#[path = "../../benches/support.rs"]
+mod benchmark_support;
 criterion_main!(benches);

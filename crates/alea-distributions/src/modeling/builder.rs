@@ -67,6 +67,21 @@ pub trait ModelBuilderExt {
         scale: &Parameter<Positive>,
     ) -> Result<(), AssemblyError>;
 
+    /// A Normal observation map with vector locations and/or scales. Each input
+    /// slice has length one or the observation count. Lowers directly to the
+    /// native broadcast/SIMD primitive, not individual scalar graph callbacks.
+    /// Conditional rows remain available through explicit batch reporting.
+    /// # Errors
+    /// Rejects incompatible/empty/nonfinite data, foreign handles and bad names;
+    /// retains all scalar score admission even for fixed observations.
+    fn normal_vector_likelihood(
+        &mut self,
+        name: &str,
+        observations: &[f64],
+        locations: &[Expr],
+        scales: &[Expr],
+    ) -> Result<(), AssemblyError>;
+
     /// Attaches the existing fused Normal regression likelihood; no priors,
     /// intercept, standardization or pointwise units are inferred.
     /// # Errors
@@ -142,6 +157,17 @@ impl ModelBuilderExt for ModelBuilder {
             .map_err(super::error)?;
         let location = self.expression(location)?;
         self.normal_regression_likelihood(name, &[location], scale, data)
+    }
+    fn normal_vector_likelihood(
+        &mut self,
+        name: &str,
+        observations: &[f64],
+        locations: &[Expr],
+        scales: &[Expr],
+    ) -> Result<(), AssemblyError> {
+        let primitive = super::NormalBatch::observed(observations.to_vec(), locations, scales)?;
+        let factor = self.primitive(primitive)?;
+        self.likelihood(name, factor)
     }
     fn normal_regression_likelihood(
         &mut self,

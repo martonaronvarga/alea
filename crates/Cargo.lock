@@ -61,6 +61,7 @@ dependencies = [
  "alea-distributions",
  "alea-math",
  "allocation-counter",
+ "criterion",
  "thiserror 2.0.18",
  "tracing",
 ]
@@ -120,6 +121,7 @@ version = "0.1.1"
 dependencies = [
  "allocation-counter",
  "cc",
+ "criterion",
  "thiserror 2.0.18",
  "tracing",
 ]
@@ -173,6 +175,7 @@ dependencies = [
  "allocation-counter",
  "arc-swap",
  "chacha20",
+ "criterion",
  "rand 0.10.1",
  "rayon",
  "rustfft",

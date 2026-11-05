@@ -9,6 +9,25 @@ Use this path when you need compiled automatic derivatives and can use the pinne
 nightly toolchain. Ordinary analytic models do not need Enzyme. The
 [modeling guide](modeling.md) is a simpler place to start.
 
+Built-in scalar/vector Normal and native Gaussian/logit/Poisson regression primitives provide
+trusted first-order score rules. Source export composes those scores with the
+graph and chart pullbacks instead of asking Enzyme to differentiate their scalar
+reference loops. Regression rules call the existing native kernels, including
+their execution policy, sufficient statistics and numerical fallbacks; they do
+not contain a second probability implementation. Every local score is checked
+before reverse propagation, even for a constant argument.
+
+Generated `SOURCE_EXPLICIT_FIRST_ORDER` reports this composition, while
+`SOURCE_CHECKPOINTED` specifically reports segmented tensor replay. Neither
+qualifies higher-order differentiation of a native score rule: HVPs and third
+derivatives still differentiate the original scalar primal with Enzyme.
+Frozen native batch descriptors and mutable workspaces are initialized once per
+calling thread and retained in function-local thread storage. First-use heap
+allocation and that cache's memory are **not** included in the fixed source
+float-arena count. Steady-state evaluation reuses the cache. Changing data
+requires regenerating the module, as with other source-specialized constants.
+No measured speedup follows merely from selecting this lowering.
+
 ## A complete small project
 
 Create these three files in an application directory. The model is a

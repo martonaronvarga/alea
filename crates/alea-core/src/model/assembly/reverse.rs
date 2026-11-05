@@ -7,7 +7,7 @@ enum Edge {
     Add(usize, usize),
     Multiply(usize, usize, usize),
     Log(usize, usize),
-    Local(usize, usize, usize),
+    Local(usize, Box<[(usize, usize)]>),
 }
 
 pub(super) struct Plan(Vec<Edge>);
@@ -55,10 +55,14 @@ impl Plan {
                     }
                 }
                 Op::Factor { inputs, start, .. } => {
-                    for (j, &out) in inputs.iter().enumerate() {
-                        if dynamic[out] {
-                            edges.push(Edge::Local(i, out, start + j));
-                        }
+                    let destinations: Box<[_]> = inputs
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, out)| dynamic[**out])
+                        .map(|(j, &out)| (out, start + j))
+                        .collect();
+                    if !destinations.is_empty() {
+                        edges.push(Edge::Local(i, destinations));
                     }
                 }
             }
@@ -78,17 +82,42 @@ impl Plan {
             | Edge::Add(node, _)
             | Edge::Multiply(node, _, _)
             | Edge::Log(node, _)
-            | Edge::Local(node, _, _)) = edge;
+            | Edge::Local(node, _)) = edge;
             if FILTERED && !active.expect("selected graph")[*node] {
                 continue;
             }
             let a = adjoints[*node];
-            match *edge {
-                Edge::Parameter(_, slot) => gradient[slot] += a,
-                Edge::Add(_, out) => adjoints[out] += a,
-                Edge::Multiply(_, out, other) => adjoints[out] += a * values[other],
-                Edge::Log(_, out) => adjoints[out] += a / values[out],
-                Edge::Local(_, out, local) => adjoints[out] += a * locals[local],
+            match edge {
+                Edge::Parameter(_, slot) => gradient[*slot] += a,
+                Edge::Add(_, out) => adjoints[*out] += a,
+                Edge::Multiply(_, out, other) => adjoints[*out] += a * values[*other],
+                Edge::Log(_, out) => adjoints[*out] += a / values[*out],
+                Edge::Local(_, destinations) => {
+                    let mut add = |&(out, local): &(usize, usize)| {
+                        adjoints[out] += a * locals[local];
+                    };
+                    // Each factor's active operands stay in their original
+                    // order, including aliases. Admit the source node once.
+                    match destinations.as_ref() {
+                        [x] => add(x),
+                        [x, y] => {
+                            add(x);
+                            add(y);
+                        }
+                        [x, y, z] => {
+                            add(x);
+                            add(y);
+                            add(z);
+                        }
+                        [x, y, z, w] => {
+                            add(x);
+                            add(y);
+                            add(z);
+                            add(w);
+                        }
+                        many => many.iter().for_each(add),
+                    }
+                }
             }
         }
     }

@@ -22,6 +22,223 @@ fn close(a: f64, b: f64, tolerance: f64) {
         "{a} != {b} (tolerance {tolerance})"
     );
 }
+
+#[test]
+fn standard_arithmetic_is_opt_in_and_cancellation_is_not_accuracy_equivalent() {
+    for execution in [RegressionExecution::Auto, RegressionExecution::Scalar] {
+        let mut b = ModelBuilder::new();
+        let beta: Vec<_> = (0..3)
+            .map(|j| b.real(&format!("b{j}")).unwrap().expr())
+            .collect();
+        // Exact predictor is 1: all inputs and products are exactly representable.
+        // Ordinary ordered addition loses the middle term, not a tail of a law.
+        let data = RegressionData::new(3, [1e16, 1., -1e16].repeat(5), vec![true; 5]).unwrap();
+        let reference = BernoulliLogitRegression::new(&beta, data.clone())
+            .unwrap()
+            .with_execution(execution);
+        let standard = BernoulliLogitRegression::new(&beta, data)
+            .unwrap()
+            .with_arithmetic(RegressionArithmetic::Standard)
+            .with_execution(execution);
+        assert_eq!(
+            reference.execution_plan().arithmetic(),
+            RegressionArithmetic::Compensated
+        );
+        assert_eq!(
+            standard.execution_plan().arithmetic(),
+            RegressionArithmetic::Standard
+        );
+        let mut rg = [0.; 3];
+        let mut sg = [0.; 3];
+        let rv = reference
+            .evaluate(&[1.; 3], &mut rg, &mut reference.workspace())
+            .unwrap();
+        let sv = standard
+            .evaluate(&[1.; 3], &mut sg, &mut standard.workspace())
+            .unwrap();
+        close(rv, -5. * (-1_f64).exp().ln_1p(), 1e-14);
+        close(sv, -5. * 2_f64.ln(), 1e-14);
+        assert!((rv - sv).abs() > 1.);
+        assert!((rg[1] - sg[1]).abs() > 1.);
+        // Never silently export a differently accumulated AD primal/gradient.
+        assert!(standard.source_rule().is_none());
+        assert!(standard.source_gradient_rule().is_none());
+        let rebound = standard
+            .with_data(standard.data().clone().with_offsets(vec![0.25; 5]).unwrap())
+            .unwrap();
+        assert_eq!(
+            rebound.execution_plan().arithmetic(),
+            RegressionArithmetic::Standard
+        );
+        assert_eq!(rebound.execution_plan().execution(), execution);
+    }
+}
+
+#[test]
+fn standard_score_reduction_can_lose_a_residual_even_with_exact_predictors() {
+    for execution in [RegressionExecution::Auto, RegressionExecution::Scalar] {
+        let mut b = ModelBuilder::new();
+        let beta = [b.real("beta").unwrap().expr()];
+        // At beta=0 every predictor is exactly zero and every score multiplier
+        // exactly 1/2. Exact gradient is 1e16 + 1 - 1e16 = 1, not zero.
+        let d = RegressionData::new(1, vec![2e16, 2., -2e16], vec![true; 3]).unwrap();
+        let reference = BernoulliLogitRegression::new(&beta, d.clone())
+            .unwrap()
+            .with_execution(execution);
+        let standard = BernoulliLogitRegression::new(&beta, d)
+            .unwrap()
+            .with_execution(execution)
+            .with_arithmetic(RegressionArithmetic::Standard);
+        let mut rg = [0.];
+        let mut sg = [0.];
+        let rv = reference
+            .evaluate(&[0.], &mut rg, &mut reference.workspace())
+            .unwrap();
+        let sv = standard
+            .evaluate(&[0.], &mut sg, &mut standard.workspace())
+            .unwrap();
+        close(rv, sv, 1e-15);
+        assert_eq!(rg[0].to_bits(), 1_f64.to_bits());
+        assert_eq!(sg[0].to_bits(), 0_f64.to_bits());
+    }
+}
+
+#[test]
+fn standard_arithmetic_all_families_fd_shapes_allocations_and_rebinding() {
+    for execution in [RegressionExecution::Auto, RegressionExecution::Scalar] {
+        for rows in [1, 3, 4, 5, 33, 1000, 2500, 5000, 7500, 10000] {
+            for columns in [0, 1, 3, 8] {
+                let mut b = ModelBuilder::new();
+                let beta: Vec<_> = (0..columns)
+                    .map(|j| b.real(&format!("b{j}")).unwrap().expr())
+                    .collect();
+                let sigma = b.positive("sigma").unwrap();
+                let q: Vec<_> = (0..columns).map(|j| j as f64 / 32. - 0.125).collect();
+                let nd = data(rows, columns, |i| (i % 7) as f64 / 4. - 0.5);
+                let normal = NormalRegression::new(&beta, &sigma, nd.clone())
+                    .unwrap()
+                    .with_execution(execution);
+                let standard = NormalRegression::new(&beta, &sigma, nd)
+                    .unwrap()
+                    .with_execution(execution)
+                    .with_arithmetic(RegressionArithmetic::Standard);
+                let standard = standard.with_data(standard.data().clone()).unwrap();
+                assert_eq!(
+                    standard.execution_plan().arithmetic(),
+                    RegressionArithmetic::Standard
+                );
+                let mut nq = q.clone();
+                nq.push(1.25);
+                check(normal, standard, &nq);
+                let ld = data(rows, columns, |i| i % 3 != 0);
+                check(
+                    BernoulliLogitRegression::new(&beta, ld.clone())
+                        .unwrap()
+                        .with_execution(execution),
+                    BernoulliLogitRegression::new(&beta, ld)
+                        .unwrap()
+                        .with_execution(execution)
+                        .with_arithmetic(RegressionArithmetic::Standard),
+                    &q,
+                );
+                let pd = data(rows, columns, |i| (i % 4) as u64);
+                let standard = PoissonLogRegression::new(&beta, pd.clone())
+                    .unwrap()
+                    .with_arithmetic(RegressionArithmetic::Standard)
+                    .with_execution(execution);
+                let standard = standard.with_data(standard.data().clone()).unwrap();
+                assert_eq!(
+                    standard.execution_plan().arithmetic(),
+                    RegressionArithmetic::Standard
+                );
+                check(
+                    PoissonLogRegression::new(&beta, pd)
+                        .unwrap()
+                        .with_execution(execution),
+                    standard,
+                    &q,
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn standard_arithmetic_keeps_errors_tail_scores_and_transactional_recovery() {
+    for execution in [RegressionExecution::Auto, RegressionExecution::Scalar] {
+        let mut b = ModelBuilder::new();
+        let beta = [b.real("beta").unwrap().expr()];
+        let sigma = b.positive("sigma").unwrap();
+        let p = BernoulliLogitRegression::new(
+            &beta,
+            RegressionData::new(1, vec![1.; 5], vec![true; 5]).unwrap(),
+        )
+        .unwrap()
+        .with_arithmetic(RegressionArithmetic::Standard)
+        .with_execution(execution);
+        let mut w = p.workspace();
+        let mut g = [17.];
+        let v = p.evaluate(&[40.], &mut g, &mut w).unwrap();
+        assert!(g[0] > 0. && v < 0.);
+        let saved = g;
+        for x in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert!(matches!(
+                p.evaluate(&[x], &mut g, &mut w),
+                Err(E::Numerical)
+            ));
+            assert_eq!(g, saved);
+        }
+        assert!(matches!(p.evaluate(&[], &mut g, &mut w), Err(E::Shape)));
+        assert_eq!(
+            p.evaluate(&[40.], &mut g, &mut w).unwrap().to_bits(),
+            v.to_bits()
+        );
+        let normal = NormalRegression::new(
+            &beta,
+            &sigma,
+            RegressionData::new(1, vec![1.; 5], vec![0.; 5]).unwrap(),
+        )
+        .unwrap()
+        .with_arithmetic(RegressionArithmetic::Standard)
+        .with_execution(execution);
+        let mut nw = normal.workspace();
+        let mut ng = [17.; 2];
+        for scale in [0., -1., f64::NAN, f64::INFINITY] {
+            assert!(matches!(
+                normal.evaluate(&[0., scale], &mut ng, &mut nw),
+                Err(E::Numerical)
+            ));
+            assert_eq!(ng, [17.; 2]);
+        }
+        // A finite divided score must survive a nonrepresentable reciprocal.
+        assert!(
+            normal
+                .evaluate(&[0., 1e200], &mut ng, &mut nw)
+                .unwrap()
+                .is_finite()
+        );
+        let poisson = PoissonLogRegression::new(
+            &beta,
+            RegressionData::new(1, vec![1.; 5], vec![1; 5]).unwrap(),
+        )
+        .unwrap()
+        .with_arithmetic(RegressionArithmetic::Standard)
+        .with_execution(execution);
+        let mut pw = poisson.workspace();
+        let mut pg = [17.];
+        assert!(matches!(
+            poisson.evaluate(&[800.], &mut pg, &mut pw),
+            Err(E::Numerical)
+        ));
+        assert_eq!(pg, [17.]);
+        assert!(
+            poisson
+                .evaluate(&[-800.], &mut pg, &mut pw)
+                .unwrap()
+                .is_finite()
+        );
+    }
+}
 fn check<P: Primitive>(auto: P, scalar: P, q: &[f64]) {
     assert_eq!(auto.signature(), scalar.signature());
     let mut aw = auto.workspace();

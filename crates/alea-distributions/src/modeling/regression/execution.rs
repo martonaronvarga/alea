@@ -1,6 +1,22 @@
 //! Fixed native CPU dispatch, separate from mathematical primitive signatures.
 use super::{E, kernels::TILE};
 
+/// Accumulation policy for native regression row kernels, independent of CPU
+/// dispatch. This does not enable compiler fast-math or change scalar laws,
+/// parameter transforms, sufficient-statistics preparation, or sampler arithmetic.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum RegressionArithmetic {
+    /// Compensated sums and predictor product residuals (the default).
+    #[default]
+    Compensated,
+    /// Conventional f64 sums/products, including SIMD lane reductions. Faster
+    /// execution is workload-dependent; cancellation can lose meaningful digits.
+    /// Shape/support/nonfinite checks remain enabled. No bitwise replay or
+    /// accuracy equivalence with the compensated policy is promised.
+    Standard,
+}
+
 /// Native regression dispatch policy. This does not select a different density,
 /// precision policy, generated-source backend or number of observation threads.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -19,7 +35,7 @@ pub enum RegressionExecution {
 
 /// Immutable, inspectable plan for one native regression binding.
 ///
-/// The plan uses existing compensated kernels and one observation worker. Packing
+/// The plan uses explicitly selected arithmetic and one observation worker. Packing
 /// and CPU selection happen at construction, never per observation. The dispatch
 /// branch remains once per evaluation. Plans are not serialized replay identities
 /// or cost-model predictions, and do not describe separately generated Rust source.
@@ -27,6 +43,7 @@ pub enum RegressionExecution {
 /// or storage of its separate square-root sufficient-statistics preparation.
 #[derive(Debug, Clone, Copy)]
 pub struct RegressionPlan {
+    pub(super) arithmetic: RegressionArithmetic,
     execution: RegressionExecution,
     arch: pulp::Arch,
     lanes: usize,
@@ -56,6 +73,7 @@ impl RegressionPlan {
             arch = pulp::Arch::Scalar;
         }
         Self {
+            arithmetic: RegressionArithmetic::Compensated,
             execution,
             arch,
             lanes: if scalar_for_shape { 1 } else { lanes },
@@ -75,6 +93,10 @@ impl RegressionPlan {
     /// Requested policy, preserved when a descriptor is rebound to new data.
     pub fn execution(&self) -> RegressionExecution {
         self.execution
+    }
+    /// Requested row-kernel arithmetic; independent of CPU provider selection.
+    pub fn arithmetic(&self) -> RegressionArithmetic {
+        self.arithmetic
     }
     /// Number of observations in this binding.
     pub fn rows(&self) -> usize {

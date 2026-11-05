@@ -26,12 +26,51 @@ fn normal_logp(z: f64, scale: f64) -> f64 {
     -0.5 * z * z - scale.ln() - 0.5 * LN_TAU
 }
 
+// Shared scalar/packet arithmetic. No reassociation, reciprocal substitution or
+// fused multiply-add: packet lanes follow the existing scalar operation order.
+#[inline]
+pub(crate) fn normal_standardized_value<S: pulp::Simd>(
+    simd: S,
+    event: S::f64s,
+    location: S::f64s,
+    scale: S::f64s,
+    log_scale: S::f64s,
+) -> (S::f64s, S::f64s) {
+    let z = simd.div_f64s(simd.sub_f64s(event, location), scale);
+    let value = simd.sub_f64s(
+        simd.sub_f64s(
+            simd.mul_f64s(simd.mul_f64s(simd.splat_f64s(-0.5), z), z),
+            log_scale,
+        ),
+        simd.splat_f64s(0.5 * LN_TAU),
+    );
+    (z, value)
+}
+#[inline]
+pub(crate) fn normal_local_scores<S: pulp::Simd>(
+    simd: S,
+    z: S::f64s,
+    scale: S::f64s,
+) -> [S::f64s; 3] {
+    // IEEE division is sign-symmetric for admitted finite operands. Share the
+    // event/location quotient without replacing division by a reciprocal.
+    let location = simd.div_f64s(z, scale);
+    [
+        simd.neg_f64s(location),
+        location,
+        simd.div_f64s(
+            simd.sub_f64s(simd.mul_f64s(z, z), simd.splat_f64s(1.)),
+            scale,
+        ),
+    ]
+}
+
 #[cfg(test)]
 mod normal_fusion_tests {
     use super::*;
     #[test]
     fn assembled_normal_shares_scores_without_changing_bits_or_error_order() {
-        for mu in [-f64::MAX, -0.2, 0., 1e150, f64::MAX] {
+        for mu in [-f64::MAX, -0.2, -0., 0., 1e150, f64::MAX] {
             for sigma in [
                 f64::from_bits(1),
                 f64::MIN_POSITIVE,
@@ -48,6 +87,7 @@ mod normal_fusion_tests {
                     -f64::MAX,
                     -1e154,
                     -0.2,
+                    -0.,
                     0.,
                     1.,
                     1e154,
@@ -337,6 +377,29 @@ macro_rules! continuous {
                 let (_, v, n) = self.0.scores(*x)?;
                 score(out, &v[..n])
             }
+            fn log_prob_event_parameter_score(
+                &self,
+                x: f64,
+                out: &mut [f64],
+            ) -> Result<(f64, f64), E> {
+                if out.len() != self.parameter_count() {
+                    return Err(E::Shape);
+                }
+                if self.0.law == Law::Normal {
+                    let (value, scores) = Normal(self.0).log_prob_event_parameter_scores(x)?;
+                    out.copy_from_slice(&scores[1..]);
+                    return Ok((value, scores[0]));
+                }
+                let value = self.0.logp(x)?;
+                let (event_score, parameters, count) = self.0.scores(x)?;
+                if !event_score.is_finite() {
+                    return Err(E::Numerical);
+                }
+                // The legacy parameter_score entry evaluates the complete
+                // score kernel too, so retain all of its parameter checks.
+                score(out, &parameters[..count])?;
+                Ok((value, event_score))
+            }
         }
         impl ScalarEventScore for $name {
             fn event_score(&self, x: f64) -> Result<f64, E> {
@@ -365,17 +428,24 @@ impl Normal {
     /// Native assembly needs all three scores, not two independent evaluations
     /// of the same score kernel. Keep the existing law and its error ordering.
     pub(crate) fn log_prob_event_parameter_scores(&self, x: f64) -> Result<(f64, [f64; 3]), E> {
+        self.log_prob_event_parameter_scores_prepared(x, self.0.b.ln())
+    }
+    pub(crate) fn log_prob_event_parameter_scores_prepared(
+        &self,
+        x: f64,
+        log_scale: f64,
+    ) -> Result<(f64, [f64; 3]), E> {
         if x.is_nan() {
             return Err(E::Observation);
         }
-        let z = (x - self.0.a) / self.0.b;
-        let value = checked(normal_logp(z, self.0.b))?;
+        let (z, value) = normal_standardized_value(pulp::Scalar, x, self.0.a, self.0.b, log_scale);
+        let value = checked(value)?;
         // Match standalone density-then-score error ordering, including infinite
         // observations. The standardized residual is shared, not recomputed.
         if !x.is_finite() {
             return Err(E::Observation);
         }
-        let gradients = [-z / self.0.b, z / self.0.b, (z * z - 1.) / self.0.b];
+        let gradients = normal_local_scores(pulp::Scalar, z, self.0.b);
         if gradients.iter().any(|g| !g.is_finite()) {
             return Err(E::Numerical);
         }

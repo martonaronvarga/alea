@@ -8,6 +8,11 @@ use alea_core::distribution::{
 use rand::Rng;
 use std::f64::consts::{PI, TAU};
 
+#[cfg(test)]
+std::thread_local! {
+    static DERIVATIVE_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Kind {
     Uniform,
@@ -335,6 +340,8 @@ impl Kernel {
         checked(self.eval(Jet::<0>::c(x), self.p.map(Jet::c)).v)
     }
     fn derivatives(self, x: f64) -> Result<[f64; 5], E> {
+        #[cfg(test)]
+        DERIVATIVE_CALLS.with(|calls| calls.set(calls.get() + 1));
         if !x.is_finite() || !self.contains(x, true) {
             return Err(E::Observation);
         }
@@ -491,6 +498,22 @@ macro_rules! family {
                 let s = self.0.derivatives(*x)?;
                 score(out, &s[1..1 + $n])
             }
+            fn log_prob_event_parameter_score(
+                &self,
+                x: f64,
+                out: &mut [f64],
+            ) -> Result<(f64, f64), E> {
+                if out.len() != $n {
+                    return Err(E::Shape);
+                }
+                // Keep the original primal, including its support/error order.
+                // One complete Jet supplies BOTH scores; do not differentiate
+                // the same law again merely to extract a different coordinate.
+                let value = self.0.logp(x)?;
+                let derivatives = self.0.derivatives(x)?;
+                score(out, &derivatives[1..1 + $n])?;
+                Ok((value, derivatives[0]))
+            }
         }
         impl ScalarEventScore for $name {
             fn event_score(&self, x: f64) -> Result<f64, E> {
@@ -505,6 +528,41 @@ macro_rules! family {
         }
     };
 }
+#[cfg(test)]
+mod fused_score_tests {
+    use super::*;
+
+    #[test]
+    fn cauchy_combined_scores_differentiate_once_and_preserve_errors() {
+        let law = Cauchy::new(0., 5.).unwrap();
+        DERIVATIVE_CALLS.with(|calls| calls.set(0));
+        law.event_score(0.3).unwrap();
+        law.parameter_score(&0.3, &mut [0.; 2]).unwrap();
+        DERIVATIVE_CALLS.with(|calls| assert_eq!(calls.get(), 2));
+        DERIVATIVE_CALLS.with(|calls| calls.set(0));
+        law.log_prob_event_parameter_score(0.3, &mut [0.; 2])
+            .unwrap();
+        DERIVATIVE_CALLS.with(|calls| assert_eq!(calls.get(), 1));
+        for x in [f64::NAN, f64::INFINITY, -f64::INFINITY, f64::MAX, 0., 1e150] {
+            let reference = law.log_prob(&x).and_then(|value| {
+                let event = law.event_score(x)?;
+                let mut parameters = [0.; 2];
+                law.parameter_score(&x, &mut parameters)?;
+                Ok((value, event, parameters))
+            });
+            let mut parameters = [17.; 2];
+            let actual = law
+                .log_prob_event_parameter_score(x, &mut parameters)
+                .map(|(value, event)| (value, event, parameters));
+            match (reference, actual) {
+                (Ok(a), Ok(b)) => assert_eq!(a, b),
+                (Err(a), Err(b)) => assert_eq!(a, b),
+                other => panic!("combined evaluation changed admission: {other:?}"),
+            }
+        }
+    }
+}
+
 family!(
     Uniform,
     Uniform,

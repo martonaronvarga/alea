@@ -168,13 +168,46 @@ fn statistical(posterior: bool) -> Result<CompiledModel, AssemblyError> {
 }
 
 pub fn native_batch(family: usize) -> Result<CompiledModel, AssemblyError> {
+    native_batch_rows(family, 3)
+}
+pub fn normal_vector(observed: bool) -> Result<CompiledModel, AssemblyError> {
+    use alea::distributions::modeling::NormalBatch;
+    let mut b = ModelBuilder::new();
+    let mu = b.real("mu")?.expr();
+    let sigma = b.positive("sigma")?.expr();
+    let term = if observed {
+        let mut locations = Vec::new();
+        for i in 0..129 {
+            let offset = b.constant((i % 3) as f64 / 4.)?;
+            locations.push(b.add(mu, offset)?);
+        }
+        b.primitive(NormalBatch::observed(
+            (0..129).map(|i| (i % 7) as f64 / 3. - 1.).collect(),
+            &locations,
+            &[sigma],
+        )?)?
+    } else {
+        let mut events = Vec::new();
+        for i in 0..5 {
+            events.push(b.real(&format!("event{i}"))?.expr());
+        }
+        b.primitive(NormalBatch::new(&events, &[mu], &[sigma])?)?
+    };
+    b.likelihood("data", term)?;
+    b.compile()
+}
+pub fn native_batch_rows(family: usize, rows: usize) -> Result<CompiledModel, AssemblyError> {
     use alea::distributions::modeling::regression::*;
     let mut b = ModelBuilder::new();
     let a = b.real("a")?;
     let slope = b.real("slope")?;
     let beta = [a.expr(), b.multiply(slope, slope)?];
-    let design = vec![1., -1., 1., 0.5, 1., 2.];
-    let offsets = vec![0.25, -0.5, 0.75];
+    let design = [1., -1., 1., 0.5, 1., 2.]
+        .into_iter()
+        .cycle()
+        .take(2 * rows)
+        .collect();
+    let offsets = [0.25, -0.5, 0.75].into_iter().cycle().take(rows).collect();
     let term = match family {
         0 => {
             let sigma = b.positive("sigma")?;
@@ -182,27 +215,39 @@ pub fn native_batch(family: usize) -> Result<CompiledModel, AssemblyError> {
                 &mut b,
                 &beta,
                 &sigma,
-                RegressionData::new(2, design, vec![0.5, -1., 1.5])
-                    .unwrap()
-                    .with_offsets(offsets)
-                    .unwrap(),
+                RegressionData::new(
+                    2,
+                    design,
+                    [0.5, -1., 1.5].into_iter().cycle().take(rows).collect(),
+                )
+                .unwrap()
+                .with_offsets(offsets)
+                .unwrap(),
             )?
         }
         1 => bernoulli_logit_regression(
             &mut b,
             &beta,
-            RegressionData::new(2, design, vec![false, true, true])
-                .unwrap()
-                .with_offsets(offsets)
-                .unwrap(),
+            RegressionData::new(
+                2,
+                design,
+                [false, true, true].into_iter().cycle().take(rows).collect(),
+            )
+            .unwrap()
+            .with_offsets(offsets)
+            .unwrap(),
         )?,
         _ => poisson_log_regression(
             &mut b,
             &beta,
-            RegressionData::new(2, design, vec![0, 2, 3])
-                .unwrap()
-                .with_offsets(offsets)
-                .unwrap(),
+            RegressionData::new(
+                2,
+                design,
+                [0, 2, 3].into_iter().cycle().take(rows).collect(),
+            )
+            .unwrap()
+            .with_offsets(offsets)
+            .unwrap(),
         )?,
     };
     b.likelihood("data", term)?;
@@ -210,6 +255,38 @@ pub fn native_batch(family: usize) -> Result<CompiledModel, AssemblyError> {
 }
 pub fn tensor_matrix() -> Result<CompiledModel, AssemblyError> {
     tensor_matrix_policy(false)
+}
+pub fn tensor_broadcast() -> Result<CompiledModel, AssemblyError> {
+    tensor_broadcast_policy(false)
+}
+pub fn tensor_checkpoint_broadcast() -> Result<CompiledModel, AssemblyError> {
+    tensor_broadcast_policy(true)
+}
+fn tensor_broadcast_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError> {
+    use alea::model::tensor::*;
+    let mut t = TensorBuilder::new();
+    let q = t.input("q", Shape::new(vec![2])?)?;
+    // The left map has TWO contributing axes, while the right map repeats
+    // entries of the same input. Keep the explicit gather as an irregular-map
+    // control. Two identical outer-product batches give -0.5*(a*a+b*b)^2.
+    let column = t.gather(q, Shape::new(vec![2, 1, 2])?, vec![0, 1, 0, 1])?;
+    let row = t.reshape(q, Shape::new(vec![1, 2, 1])?)?;
+    let outer = t.binary(BinaryOp::Multiply, column, row)?;
+    let square = t.binary(BinaryOp::Multiply, outer, outer)?;
+    let sum = t.sum(square)?;
+    let scale = t.constant(Shape::scalar(), vec![-0.25])?;
+    let result = t.binary(BinaryOp::Multiply, sum, scale)?;
+    let result = if checkpoint {
+        checkpoint_identity(&mut t, result)?
+    } else {
+        result
+    };
+    let binding = t.compile(result)?.bind(&[])?;
+    let mut b = ModelBuilder::new();
+    let q = [b.real("a")?.expr(), b.real("b")?.expr()];
+    let term = b.primitive(TensorFactor::new(binding, &q)?)?;
+    b.potential("objective", term)?;
+    b.compile()
 }
 pub fn tensor_checkpoint_matrix() -> Result<CompiledModel, AssemblyError> {
     tensor_matrix_policy(true)
@@ -488,7 +565,17 @@ pub fn all() -> Result<Vec<(&'static str, CompiledModel)>, AssemblyError> {
         ("native_normal_batch", native_batch(0)?),
         ("native_logit_batch", native_batch(1)?),
         ("native_poisson_batch", native_batch(2)?),
+        ("native_normal_large", native_batch_rows(0, 129)?),
+        ("native_logit_large", native_batch_rows(1, 129)?),
+        ("native_poisson_large", native_batch_rows(2, 129)?),
+        ("normal_vector", normal_vector(false)?),
+        ("normal_vector_observed", normal_vector(true)?),
         ("tensor_matrix", tensor_matrix()?),
+        ("tensor_broadcast", tensor_broadcast()?),
+        (
+            "tensor_checkpoint_broadcast",
+            tensor_checkpoint_broadcast()?,
+        ),
         ("tensor_checkpoint_matrix", tensor_checkpoint_matrix()?),
         ("tensor_control", tensor_control()?),
         ("tensor_checkpoint", tensor_checkpoint()?),

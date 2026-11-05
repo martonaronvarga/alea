@@ -1,13 +1,15 @@
 //! A recognizable normal-density primitive, using the existing Normal kernel.
+mod batch;
 use super::{E, error};
 use crate::scalar::Normal;
 use alea_core::{
     distribution::{EventShape, ReferenceMeasure, Support},
     model::assembly::{
         ArgumentShape, BatchRule, Expr, Primitive, PrimitiveArgument, PrimitiveSignature,
-        ProbabilitySemantics,
+        ProbabilitySemantics, ScalarPreparation,
     },
 };
+pub use batch::{NormalBatch, NormalBatchWorkspace};
 pub(super) const NORMAL_PRIMAL: &str = "if x[2] <= 0.0 { return f64::NAN; }\nlet z = (x[0] - x[1]) / x[2];\n-0.5 * z * z - x[2].ln() - 0.5 * ::std::f64::consts::TAU.ln()";
 
 /// Immutable scalar Normal log-density description. Arguments are event,
@@ -50,6 +52,23 @@ impl Primitive for NormalFactor {
         }
     }
     fn workspace(&self) {}
+    fn scalar_preparation(&self) -> Option<ScalarPreparation<Self>> {
+        Some(ScalarPreparation {
+            argument: 2,
+            prepare: f64::ln,
+            evaluate: |_, x, g, _, log_scale| {
+                if x.len() != 3 || g.len() != 3 {
+                    return Err(E::Shape);
+                }
+                let law = Normal::new(x[1], x[2]).map_err(error)?;
+                let (value, scores) = law
+                    .log_prob_event_parameter_scores_prepared(x[0], log_scale)
+                    .map_err(error)?;
+                g.copy_from_slice(&scores);
+                Ok(value)
+            },
+        })
+    }
     fn evaluate(&self, x: &[f64], g: &mut [f64], _: &mut ()) -> Result<f64, E> {
         if x.len() != 3 || g.len() != 3 {
             return Err(E::Shape);
@@ -61,6 +80,11 @@ impl Primitive for NormalFactor {
     }
     fn rust_primal(&self) -> Option<&'static str> {
         Some(NORMAL_PRIMAL)
+    }
+    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
+        Some(|_| {
+            "let law=match ::alea::distributions::scalar::Normal::new(x[1],x[2]) {Ok(v)=>v,Err(_)=>return f64::NAN};\nlet(value,event)=match ::alea::distribution::ParameterScore::log_prob_event_parameter_score(&law,x[0],&mut g[1..]) {Ok(v)=>v,Err(_)=>return f64::NAN};g[0]=event;value".into()
+        })
     }
     fn batch_rule(&self) -> Option<BatchRule<Self>> {
         Some(BatchRule {

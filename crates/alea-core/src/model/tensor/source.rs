@@ -58,6 +58,12 @@ impl BoundProgram {
     }
     pub(super) fn function_source(&self, name: &str) -> String {
         let p = &self.plan;
+        #[cfg(test)]
+        if registration::missing_source(p).is_some() {
+            // This old infallible API cannot advertise a native-only prototype
+            // as supported source. Its Primitive hook returns None below.
+            return "compile_error!(\"native-only R0 block has no source lowering\");".into();
+        }
         let failure = "*valid=false; return;";
         let mut source = format!(
             "#[inline(always)]\nfn {name}(x: &[f64], out: &mut [f64], scratch: &mut [f64], valid: &mut bool) {{\nlet _ = (x, &*valid, &*out); let rest=scratch;\n"
@@ -110,6 +116,8 @@ impl BoundProgram {
                 continue;
             }
             match &node.op {
+                #[cfg(test)]
+                Op::Prototype(_) => unreachable!("native-only prototype rejected before emission"),
                 Op::Input(_) | Op::Data(_) | Op::Constant(_) | Op::Alias(_) => {
                     unreachable!("borrowed nodes emitted above")
                 }
@@ -250,9 +258,9 @@ fn element_source(node: &Node) -> String {
             format!(
                 "n{}[{}] {op} n{}[{}]",
                 b.a.node,
-                index_source(&b.left),
+                b.left.index_source(),
                 b.b.node,
-                index_source(&b.right)
+                b.right.index_source()
             )
         }
         _ => unreachable!("pointwise expression"),
@@ -302,13 +310,6 @@ fn scaled(index: &str, stride: usize) -> String {
         0 => "0".into(),
         1 => index.into(),
         _ => format!("{index}*{stride}"),
-    }
-}
-fn index_source(map: &Map) -> String {
-    match map {
-        Map::Identity => "j".into(),
-        Map::Scalar => "0".into(),
-        Map::Gather(v) => format!("{v:?}[j]"),
     }
 }
 fn pack(source: &mut String, name: &str, mut start: usize, args: &[Value], p: &Plan) {

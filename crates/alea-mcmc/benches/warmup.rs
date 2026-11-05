@@ -180,5 +180,7 @@ fn bench(c: &mut Criterion) {
     }
     group.finish();
 }
-criterion_group!(benches, bench, matched_cost, fitting_cost);
+criterion_group! {name=benches; config=benchmark_support::criterion(); targets=bench, matched_cost, fitting_cost}
+#[path = "../../benches/support.rs"]
+mod benchmark_support;
 criterion_main!(benches);

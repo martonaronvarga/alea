@@ -416,10 +416,12 @@ fn bench_reused_buckets(c: &mut Criterion) {
 
 criterion_group! {
     name = wiener_benches;
-    config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
+    config = benchmark_support::criterion().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
     targets = bench_single_observation, bench_wiener4_batch, bench_wiener5_batch, bench_wiener7_batch, bench_branch_counts, bench_series, bench_reused_buckets, bench_sampling,
 }
 
+#[path = "../../benches/support.rs"]
+mod benchmark_support;
 criterion_main!(wiener_benches);
 
 fn bench_sampling(c: &mut Criterion) {

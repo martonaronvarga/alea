@@ -17,6 +17,9 @@ categories = ["science", "mathematics"]
 [lints]
 workspace = true
 
+[lib]
+bench = false
+
 [dependencies]
 tracing = { workspace = true, optional = true }
 rand.workspace = true
@@ -37,6 +40,10 @@ harness = false
 
 [[bench]]
 name = "tensor_tape"
+harness = false
+
+[[bench]]
+name = "model_pipeline"
 harness = false
 
 [features]

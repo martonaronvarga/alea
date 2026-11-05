@@ -75,7 +75,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 Pinned revision: 91027f9cdd13b7e76283fec3f2898f59d4b83ec4
 Source: https://github.com/stan-dev/posteriordb
 Scope: tools/bench/corpus/vendor and tools/bench/corpus/pdb-v2, including their
-source metadata and file hashes. The copied upstream LICENCE.md is retained under
+source metadata and file hashes; eight-schools adaptations in
+tools/native-benchmark/stan/schools*.stan and src/conformance.rs reuse these models.
+The copied upstream LICENCE.md is retained under
 corpus/vendor; individual source metadata remains authoritative.
 
 BSD 3-Clause License

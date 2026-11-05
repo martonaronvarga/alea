@@ -143,6 +143,32 @@ pub trait ParameterScore: Distribution {
     /// # Errors
     /// Returns shape, boundary or numerical errors; output is scratch on failure.
     fn parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> Result<(), Self::Error>;
+
+    /// Evaluates a scalar density and both kinds of score together.
+    /// Parameter scores use the same order as [`Self::parameter_score`]. The
+    /// returned pair is `(log_probability, event_score)`; output is scratch on
+    /// failure. Implementations may share work but must preserve the separate
+    /// density/event/parameter evaluation's error and numerical contracts.
+    ///
+    /// # Errors
+    /// Rejects the output shape first, then preserves density, event-score and
+    /// parameter-score failures, in that order.
+    fn log_prob_event_parameter_score(
+        &self,
+        event: f64,
+        output: &mut [f64],
+    ) -> Result<(f64, f64), Self::Error>
+    where
+        Self: ScalarEventScore + Sized,
+    {
+        if output.len() != self.parameter_count() {
+            return Err(DistributionError::Shape.into());
+        }
+        let value = self.log_prob(&event)?;
+        let event_score = self.event_score(event)?;
+        self.parameter_score(&event, output)?;
+        Ok((value, event_score))
+    }
 }
 
 /// Optional score of a scalar continuous event. Discrete events have no such score.
@@ -181,4 +207,82 @@ pub fn log_prob_batch<D: Distribution<Event = f64>>(
         *value = logp;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod combined_score_tests {
+    use super::*;
+    use std::cell::{Cell, RefCell};
+    struct ExternalLaw {
+        fail: Cell<u8>,
+        visits: RefCell<Vec<u8>>,
+    }
+    impl ExternalLaw {
+        fn visit(&self, stage: u8) -> Result<(), DistributionError> {
+            self.visits.borrow_mut().push(stage);
+            if self.fail.get() == stage {
+                Err(DistributionError::Numerical)
+            } else {
+                Ok(())
+            }
+        }
+    }
+    impl Distribution for ExternalLaw {
+        type Event = f64;
+        type Error = DistributionError;
+        fn event_shape(&self) -> EventShape {
+            EventShape::Scalar
+        }
+        fn support(&self) -> Support {
+            Support::Real
+        }
+        fn reference_measure(&self) -> ReferenceMeasure {
+            ReferenceMeasure::Lebesgue { dimension: 1 }
+        }
+        fn log_prob(&self, _: &f64) -> Result<f64, Self::Error> {
+            self.visit(1)?;
+            Ok(-2.)
+        }
+    }
+    impl ScalarEventScore for ExternalLaw {
+        fn event_score(&self, _: f64) -> Result<f64, Self::Error> {
+            self.visit(2)?;
+            Ok(3.)
+        }
+    }
+    impl ParameterScore for ExternalLaw {
+        fn parameter_count(&self) -> usize {
+            1
+        }
+        fn parameter_score(&self, _: &f64, out: &mut [f64]) -> Result<(), Self::Error> {
+            self.visit(3)?;
+            out[0] = 4.;
+            Ok(())
+        }
+    }
+    #[test]
+    fn downstream_default_preserves_shape_error_order_and_dyn_compatibility() {
+        let law = ExternalLaw {
+            fail: Cell::new(0),
+            visits: RefCell::new(Vec::new()),
+        };
+        // The new provided scalar method must not break multivariate/dyn users.
+        let erased: &dyn ParameterScore<Event = f64, Error = DistributionError> = &law;
+        assert_eq!(erased.parameter_count(), 1);
+        assert!(law.log_prob_event_parameter_score(0., &mut []).is_err());
+        assert!(law.visits.borrow().is_empty());
+        for stage in 1..=3 {
+            law.fail.set(stage);
+            law.visits.borrow_mut().clear();
+            assert!(law.log_prob_event_parameter_score(0., &mut [0.]).is_err());
+            assert_eq!(*law.visits.borrow(), (1..=stage).collect::<Vec<_>>());
+        }
+        law.fail.set(0);
+        let mut score = [0.];
+        assert_eq!(
+            law.log_prob_event_parameter_score(0., &mut score).unwrap(),
+            (-2., 3.)
+        );
+        assert_eq!(score, [4.]);
+    }
 }

@@ -105,6 +105,15 @@ pub trait Primitive: Send + Sync + 'static {
     fn signature(&self) -> PrimitiveSignature;
     /// Allocates/initializes scratch at construction, not during evaluation.
     fn workspace(&self) -> Self::Workspace;
+    /// Optional pure scalar preparation shared by identical inputs of the same
+    /// primitive type. The callback must preserve ALL ordinary evaluation checks
+    /// and error ordering; a cached value does not authorize skipping admission.
+    fn scalar_preparation(&self) -> Option<ScalarPreparation<Self>>
+    where
+        Self: Sized,
+    {
+        None
+    }
     /// Scratch for conditional row reporting. Defaults to ordinary evaluation
     /// scratch; primitives whose row rule needs less storage may specialize it.
     fn batch_workspace(&self) -> Self::Workspace {
@@ -132,6 +141,17 @@ pub trait Primitive: Send + Sync + 'static {
     {
         None
     }
+    /// Optional trusted FIRST-ORDER value/local-score source. The body receives
+    /// `x`, `g`, and `scratch`, returns the value, and must overwrite every score.
+    /// Return NaN on failure; all native primal and score admission must remain.
+    /// The ordinary scalar primal is still required for higher derivatives.
+    /// This rule is never differentiated to obtain HVPs or third derivatives.
+    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String>
+    where
+        Self: Sized,
+    {
+        None
+    }
     /// Number of mutable `f64` scratch elements required by the Rust source.
     /// When nonzero, the source receives `scratch: &mut [f64]` of this length.
     /// It must initialize every element before reading it, independently of prior
@@ -151,6 +171,20 @@ pub trait Primitive: Send + Sync + 'static {
 /// Author-supplied conditional pointwise decomposition of a summed primitive.
 pub type BatchEvaluator<P> =
     fn(&P, &[f64], &mut [f64], &mut <P as Primitive>::Workspace) -> Result<(), AssemblyError>;
+/// Optional local evaluation using a shared, pure scalar calculation.
+pub type PreparedEvaluator<P> =
+    fn(&P, &[f64], &mut [f64], &mut <P as Primitive>::Workspace, f64) -> Result<f64, AssemblyError>;
+/// A trusted preparation rule. `prepare` must depend only on its argument and
+/// have no side effects. Nonfinite results remain scratch: `evaluate` must admit
+/// or reject them exactly as ordinary evaluation would, at the original node.
+pub struct ScalarPreparation<P: Primitive> {
+    /// Flattened scalar input index.
+    pub argument: usize,
+    /// Pure preparation, e.g. the logarithm of a shared Normal scale.
+    pub prepare: fn(f64) -> f64,
+    /// Original value/local-score calculation using the prepared scalar.
+    pub evaluate: PreparedEvaluator<P>,
+}
 /// A fixed-size rule for a primitive's conditional row values.
 pub struct BatchRule<P: Primitive> {
     /// Number of entries in fixed row order.
@@ -171,6 +205,8 @@ pub struct PrimitiveMetadata {
     pub(super) signature: PrimitiveSignature,
     pub(super) descriptor: Arc<dyn Any + Send + Sync>,
     pub(super) source_workspace: usize,
+    pub(super) preparation: Option<super::prepare::Rule>,
+    pub(super) source_gradient: Option<Box<super::SourceCallback>>,
 }
 impl PrimitiveMetadata {
     /// Validated argument layout and declared probability semantics.
@@ -199,7 +235,19 @@ impl ModelBuilder {
         }
         let primal = primitive.rust_primal();
         let source = primitive.source_rule();
+        let source_gradient = primitive.source_gradient_rule();
         let source_workspace = primitive.source_workspace();
+        let preparation = primitive.scalar_preparation();
+        if preparation
+            .as_ref()
+            .is_some_and(|p| p.argument >= primitive.inputs().len())
+        {
+            return Err(AssemblyError::Shape);
+        }
+        let preparation_metadata = preparation.as_ref().map(|p| super::prepare::Rule {
+            argument: p.argument,
+            prepare: p.prepare,
+        });
         if source_workspace > isize::MAX as usize / size_of::<f64>() {
             return Err(AssemblyError::Shape);
         }
@@ -211,9 +259,18 @@ impl ModelBuilder {
         let mut workspace = primitive.workspace();
         let descriptor = Arc::new(primitive);
         let executable = Arc::clone(&descriptor);
-        let expression = self.custom_node(
+        let source_gradient = source_gradient.map(|rule| {
+            let descriptor = Arc::clone(&descriptor);
+            Box::new(move || rule(&descriptor)) as Box<super::SourceCallback>
+        });
+        let expression = self.custom_prepared_node(
             descriptor.inputs(),
-            move |x, g| executable.evaluate(x, g, &mut workspace),
+            move |x, g, prepared| match (&preparation, prepared) {
+                (Some(rule), Some(value)) => {
+                    (rule.evaluate)(&executable, x, g, &mut workspace, value)
+                }
+                _ => executable.evaluate(x, g, &mut workspace),
+            },
             primal,
         )?;
         if let Some(source) = source {
@@ -235,6 +292,8 @@ impl ModelBuilder {
                 signature,
                 descriptor,
                 source_workspace,
+                preparation: preparation_metadata,
+                source_gradient,
             },
         ));
         Ok(expression)

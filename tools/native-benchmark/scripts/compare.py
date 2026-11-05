@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 import subprocess
 import time
-from bench import (CASES, ROOT, describe, sha, completed_run, finite_number,
+from bench import (CASES, DEFAULT_CASES, ROOT, describe, sha, completed_run, finite_number,
                    read_metrics, statistical_qualification, run_process, host_metadata)
 
 
@@ -104,7 +104,7 @@ def main():
     p.add_argument('--cpu',type=int,default=2)
     p.add_argument('--chains',type=int,default=1)
     p.add_argument('--modes',nargs='+',choices=['evaluation','sampling'],default=['evaluation','sampling'])
-    p.add_argument('--cases',nargs='+',choices=list(CASES),default=list(CASES))
+    p.add_argument('--cases',nargs='+',choices=list(CASES),default=DEFAULT_CASES)
     p.add_argument('--allow-trajectory-change',action='store_true',help='Record changed arithmetic/work explicitly; still validate fixed-work checksums')
     p.add_argument('--max-slowdown',type=float,help='Optional calibrated timing alert; separate from correctness CI')
     args = p.parse_args()

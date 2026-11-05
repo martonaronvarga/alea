@@ -16,6 +16,9 @@ categories = ["science", "mathematics"]
 [lints]
 workspace = true
 
+[lib]
+bench = false
+
 [dependencies]
 alea-core.workspace = true
 alea-math.workspace = true

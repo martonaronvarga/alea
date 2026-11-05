@@ -166,11 +166,51 @@ fn forward_with(b: &Binary, a: &[f64], r: &[f64], out: &mut [f64], f: impl Fn(f6
             }
         }
         _ => {
-            for (j, out) in out.iter_mut().enumerate() {
-                *out = f(a[b.left.at(j)], r[b.right.at(j)]);
-            }
+            mapped(b, a, r, out, 0, f);
         }
     }
+}
+
+// Keep arbitrary-rank maps compact without adding rank/division work to every
+// scalar operation. Split at the two operands' innermost run boundaries; each
+// inner loop uses only increments. No per-call cursor allocation or reordered
+// reduction is needed. `start` permits fusion tiles to cut across map runs.
+pub(super) fn for_each_index(
+    b: &Binary,
+    start: usize,
+    len: usize,
+    mut f: impl FnMut(usize, usize, usize),
+) {
+    let (left_run, dl) = b.left.run();
+    let (right_run, dr) = b.right.run();
+    let end = start + len;
+    let mut j = start;
+    while j < end {
+        let stop = j
+            + (end - j)
+                .min(left_run - j % left_run)
+                .min(right_run - j % right_run);
+        let (mut left, mut right) = (b.left.at(j), b.right.at(j));
+        while j < stop {
+            f(j - start, left, right);
+            left += dl;
+            right += dr;
+            j += 1;
+        }
+    }
+}
+
+pub(super) fn mapped(
+    b: &Binary,
+    a: &[f64],
+    r: &[f64],
+    out: &mut [f64],
+    start: usize,
+    f: impl Fn(f64, f64) -> f64,
+) {
+    for_each_index(b, start, out.len(), |j, left, right| {
+        out[j] = f(a[left], r[right]);
+    });
 }
 
 pub(super) struct Pullback<'a> {
@@ -260,12 +300,11 @@ pub(super) fn reverse_range(b: &Binary, work: Pullback<'_>, start: usize) {
         starts: (lhs, rhs),
         active: (da, dr),
     } = work;
-    for (j, &seed) in seeds.iter().enumerate() {
+    for_each_index(b, start, seeds.len(), |j, l, index| {
+        let seed = seeds[j];
         if seed == 0. {
-            continue;
+            return;
         }
-        let l = b.left.at(start + j);
-        let index = b.right.at(start + j);
         let (left, right) = match b.kind {
             BinaryOp::Add => (1., 1.),
             BinaryOp::Subtract => (1., -1.),
@@ -278,7 +317,7 @@ pub(super) fn reverse_range(b: &Binary, work: Pullback<'_>, start: usize) {
         if dr {
             adjoints[rhs + index] += seed * right;
         }
-    }
+    });
 }
 #[inline(always)]
 fn reverse_with(b: &Binary, work: Pullback<'_>, f: impl Fn(f64, f64) -> (f64, f64)) {
@@ -377,12 +416,11 @@ fn reverse_with(b: &Binary, work: Pullback<'_>, f: impl Fn(f64, f64) -> (f64, f6
             }
         }
         _ => {
-            for (j, &seed) in seeds.iter().enumerate() {
+            for_each_index(b, 0, seeds.len(), |j, l, index| {
+                let seed = seeds[j];
                 if seed == 0. {
-                    continue;
+                    return;
                 }
-                let l = b.left.at(j);
-                let index = b.right.at(j);
                 let (a, r) = f(a[l], r[index]);
                 if da {
                     adjoints[lhs + l] += seed * a;
@@ -390,7 +428,7 @@ fn reverse_with(b: &Binary, work: Pullback<'_>, f: impl Fn(f64, f64) -> (f64, f6
                 if dr {
                     adjoints[rhs + index] += seed * r;
                 }
-            }
+            });
         }
     }
 }

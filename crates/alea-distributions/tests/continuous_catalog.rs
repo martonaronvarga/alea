@@ -15,6 +15,17 @@ fn scores<D: ScalarEventScore + ParameterScore>(
 ) {
     let mut s = vec![0.0; p.len()];
     law.parameter_score(&x, &mut s).unwrap();
+    let mut combined = vec![f64::NAN; p.len()];
+    let (value, event_score) = law
+        .log_prob_event_parameter_score(x, &mut combined)
+        .unwrap();
+    assert_eq!(value.to_bits(), law.log_prob(&x).unwrap().to_bits());
+    assert_eq!(event_score.to_bits(), law.event_score(x).unwrap().to_bits());
+    assert_eq!(
+        combined.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+        s.iter().map(|v| v.to_bits()).collect::<Vec<_>>()
+    );
+    assert!(law.log_prob_event_parameter_score(x, &mut []).is_err());
     for i in 0..p.len() {
         let h = 2e-5 * (1.0 + p[i].abs());
         let mut plus = p.to_vec();

@@ -23,8 +23,11 @@ impl Group {
 fn identity(map: &Map) -> bool {
     match map {
         Map::Identity => true,
-        Map::Scalar => false,
-        Map::Gather(indices) => indices.iter().enumerate().all(|(i, &j)| i == j),
+        Map::Empty | Map::Scalar => false,
+        // Equal-element broadcast shapes (including leading unit axes) are
+        // canonicalized to Identity at construction. Every other nonempty
+        // broadcast repeats destinations and cannot use independent VJP tiles.
+        Map::Broadcast(_) => false,
     }
 }
 fn pointwise(p: &Plan, i: usize, first: usize, elements: usize) -> bool {
@@ -153,23 +156,11 @@ fn binary(b: &Binary, a: &[f64], r: &[f64], out: &mut [f64], start: usize) {
         (Map::Identity, Map::Scalar) => kernels::forward(b, &a[start..end], r, out),
         (Map::Scalar, Map::Identity) => kernels::forward(b, a, &r[start..end], out),
         _ => match b.kind {
-            BinaryOp::Add => mapped(b, a, r, out, start, |a, b| a + b),
-            BinaryOp::Subtract => mapped(b, a, r, out, start, |a, b| a - b),
-            BinaryOp::Multiply => mapped(b, a, r, out, start, |a, b| a * b),
-            BinaryOp::Divide => mapped(b, a, r, out, start, |a, b| a / b),
+            BinaryOp::Add => kernels::mapped(b, a, r, out, start, |a, b| a + b),
+            BinaryOp::Subtract => kernels::mapped(b, a, r, out, start, |a, b| a - b),
+            BinaryOp::Multiply => kernels::mapped(b, a, r, out, start, |a, b| a * b),
+            BinaryOp::Divide => kernels::mapped(b, a, r, out, start, |a, b| a / b),
         },
-    }
-}
-fn mapped(
-    b: &Binary,
-    a: &[f64],
-    r: &[f64],
-    out: &mut [f64],
-    start: usize,
-    f: impl Fn(f64, f64) -> f64,
-) {
-    for (j, out) in out.iter_mut().enumerate() {
-        *out = f(a[b.left.at(start + j)], r[b.right.at(start + j)]);
     }
 }
 

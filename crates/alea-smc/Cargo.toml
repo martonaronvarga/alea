@@ -17,5 +17,8 @@ categories = ["science", "mathematics"]
 [lints]
 workspace = true
 
+[lib]
+bench = false
+
 [dependencies]
 rand.workspace = true

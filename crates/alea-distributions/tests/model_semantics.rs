@@ -11,6 +11,52 @@ use alea_distributions::modeling::{
     regression::{NormalRegression, RegressionData, normal_regression},
 };
 
+#[test]
+fn shared_normal_preparation_matches_scalar_callbacks_and_preserves_first_failure() {
+    fn model(shared: bool) -> alea_core::model::assembly::CompiledModel {
+        let mut b = ModelBuilder::new();
+        let x = b.real("x").unwrap().expr();
+        let sigma = b.real("sigma").unwrap().expr();
+        for i in 0..9 {
+            let mu = b.constant(i as f64 / 4.).unwrap();
+            let p = NormalFactor::new(x, mu, sigma);
+            let f = if shared {
+                b.primitive(p).unwrap()
+            } else {
+                let inputs = p.inputs().to_vec();
+                b.custom(&inputs, move |x, g| p.evaluate(x, g, &mut ()))
+                    .unwrap()
+            };
+            b.likelihood(&format!("row{i}"), f).unwrap();
+        }
+        b.compile().unwrap()
+    }
+    let a = model(true);
+    let b = model(false);
+    for q in [
+        [0., 1.],
+        [3., 1e-150],
+        [0., 0.],
+        [1., -1.],
+        [1e200, 1.],
+        [0.2, 2.],
+        [0.2, 2.],
+    ] {
+        let mut ga = [17.; 2];
+        let mut gb = ga;
+        let ra = a.logp_grad(&q, &mut ga);
+        let rb = b.logp_grad(&q, &mut gb);
+        assert_eq!(format!("{ra:?}"), format!("{rb:?}"));
+        assert_eq!(ga.map(f64::to_bits), gb.map(f64::to_bits));
+    }
+    let allocation = allocation_counter::measure(|| {
+        for sigma in [1., 2., 3., 1.] {
+            a.logp_grad(&[0.2, sigma], &mut [0.; 2]).unwrap();
+        }
+    });
+    assert_eq!(allocation.count_total, 0);
+}
+
 fn data(rows: usize) -> RegressionData<f64> {
     RegressionData::new(
         2,

@@ -17,6 +17,12 @@ use alea_core::model::assembly::{AssemblyError, CompiledModel};
 /// pullback, exposed by the generated `SOURCE_CHECKPOINTED` receipt. HVPs and
 /// third derivatives retain the compiler-owned reverse path: they are not
 /// checkpointed. Other factors' compiler tapes are not bounded by the receipt.
+/// Trusted primitive first-order rules reuse native value/score kernels where
+/// provided; `SOURCE_EXPLICIT_FIRST_ORDER` distinguishes this from compiler AD.
+/// Frozen regression kernels initialize a cache once per calling thread, then
+/// reuse their native workspace. That heap storage and initialization cost are
+/// outside the fixed source scratch receipt. Their original scalar primals
+/// remain the independent compiler path for higher derivatives.
 /// HVP/tensor calls admit the same value and gradient entry point as sampling:
 /// a finite directional result cannot admit an invalid primal or singular score,
 /// including for a zero direction. This replaces primal-only admission and can
@@ -71,17 +77,28 @@ fn mapped_source_inner(model: &CompiledModel, density: bool) -> Result<String, A
     } else {
         model.rust_objective_validation()
     };
-    let checkpoint = model.rust_checkpoint_gradient(density)?;
+    let checkpoint = model.rust_first_order_gradient(density)?;
     let mut template = TEMPLATE.to_owned();
     template = template.replace(
         "__CHECKPOINTED__",
+        if checkpoint
+            .as_ref()
+            .is_some_and(|(_, _, checkpointed)| *checkpointed)
+        {
+            "true"
+        } else {
+            "false"
+        },
+    );
+    template = template.replace(
+        "__EXPLICIT_FIRST_ORDER__",
         if checkpoint.is_some() {
             "true"
         } else {
             "false"
         },
     );
-    if let Some((source, count)) = checkpoint {
+    if let Some((source, count, _)) = checkpoint {
         workspace = workspace.max(count);
         template = template.replace(
             "#[::std::autodiff::autodiff_reverse(__gradient, Duplicated, Duplicated, Active)]",
@@ -115,6 +132,8 @@ pub const DIMENSION: usize = __DIMENSION__;
 /// Whether first-order gradients use explicit segmented tensor replay.
 /// Higher derivatives still use the compiler-owned reverse tape.
 pub const SOURCE_CHECKPOINTED: bool = __CHECKPOINTED__;
+/// Whether sampling uses an explicit first-order pullback rather than compiler reverse.
+pub const SOURCE_EXPLICIT_FIRST_ORDER: bool = __EXPLICIT_FIRST_ORDER__;
 
 // Each float buffer must stay explicit across nested AD. The generated Enzyme
 // ABI duplicates arguments; a user-facing argument-count convention does not
@@ -125,7 +144,7 @@ pub const SOURCE_CHECKPOINTED: bool = __CHECKPOINTED__;
 // are generator style artifacts, not hand-written numerical validation waivers.
 #[allow(clippy::identity_op, clippy::manual_memcpy, clippy::modulo_one,
         clippy::reversed_empty_ranges, clippy::if_same_then_else,
-        clippy::possible_missing_else)]
+        clippy::possible_missing_else, clippy::approx_constant)]
 mod __enzyme {
 use super::DIMENSION;
 

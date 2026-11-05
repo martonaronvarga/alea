@@ -39,5 +39,7 @@ fn actions(c: &mut Criterion) {
     }
     group.finish();
 }
-criterion_group!(benches, actions);
+criterion_group! {name=benches; config=benchmark_support::criterion(); targets=actions}
+#[path = "../../benches/support.rs"]
+mod benchmark_support;
 criterion_main!(benches);

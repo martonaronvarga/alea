@@ -18,6 +18,7 @@ mod batch;
 mod factors;
 mod inputs;
 mod pointwise;
+mod prepare;
 mod primitives;
 mod rebinding;
 mod reverse;
@@ -28,9 +29,9 @@ pub use factors::{FactorMetadata, FactorRole};
 pub use inputs::ScalarInput;
 pub use pointwise::{PointwiseError, PointwiseLikelihood, PredictiveUnit};
 pub use primitives::{
-    ArgumentShape, BatchEvaluator, BatchRule, GraphNode, OperationKind, Primitive,
-    PrimitiveArgument, PrimitiveMetadata, PrimitiveSignature, ProbabilitySemantics,
-    SourceCapabilities,
+    ArgumentShape, BatchEvaluator, BatchRule, GraphNode, OperationKind, PreparedEvaluator,
+    Primitive, PrimitiveArgument, PrimitiveMetadata, PrimitiveSignature, ProbabilitySemantics,
+    ScalarPreparation, SourceCapabilities,
 };
 pub use rebinding::RebindError;
 pub use scope::ModelScope;
@@ -179,7 +180,8 @@ pub enum AssemblyError {
     #[error(transparent)]
     Transform(#[from] TransformError),
 }
-type Callback = dyn FnMut(&[f64], &mut [f64]) -> Result<f64, AssemblyError> + Send + Sync;
+type Callback =
+    dyn FnMut(&[f64], &mut [f64], Option<f64>) -> Result<f64, AssemblyError> + Send + Sync;
 enum Op {
     Parameter(usize),
     Constant(f64),
@@ -513,11 +515,25 @@ impl ModelBuilder {
     fn custom_node<F>(
         &mut self,
         inputs: &[Expr],
-        callback: F,
+        mut callback: F,
         primal: Option<&'static str>,
     ) -> Result<Expr, AssemblyError>
     where
         F: FnMut(&[f64], &mut [f64]) -> Result<f64, AssemblyError> + Send + Sync + 'static,
+    {
+        self.custom_prepared_node(inputs, move |x, g, _| callback(x, g), primal)
+    }
+    fn custom_prepared_node<F>(
+        &mut self,
+        inputs: &[Expr],
+        callback: F,
+        primal: Option<&'static str>,
+    ) -> Result<Expr, AssemblyError>
+    where
+        F: FnMut(&[f64], &mut [f64], Option<f64>) -> Result<f64, AssemblyError>
+            + Send
+            + Sync
+            + 'static,
     {
         let inputs = inputs
             .iter()
@@ -601,6 +617,7 @@ impl ModelBuilder {
         }
         let layout = ParameterLayout::new(self.transforms)?;
         let reverse = reverse::Plan::new(&self.nodes);
+        let preparation = prepare::Plan::new(&self.nodes, &self.primitives, self.callbacks.len());
         let workspace = RefCell::new(PlanWorkspace {
             callbacks: self.callbacks,
             batch_rules: self.batch_rules,
@@ -609,6 +626,7 @@ impl ModelBuilder {
             locals: vec![0.0; self.local_count],
             inputs: vec![0.0; self.max_inputs],
             gradient: vec![0.0; layout.constrained_dimension()],
+            preparation,
         });
         Ok(CompiledModel {
             owner: self.owner,
@@ -636,6 +654,7 @@ struct PlanWorkspace {
     locals: Vec<f64>,
     inputs: Vec<f64>,
     gradient: Vec<f64>,
+    preparation: Option<Box<prepare::Plan>>,
 }
 /// Fixed analytic reverse plan with chain-local scratch and named layout metadata.
 #[must_use = "a compiled model must be evaluated or lowered to a target"]
@@ -768,8 +787,12 @@ impl CompiledModel {
             locals,
             inputs,
             callbacks,
+            preparation,
             ..
         } = work;
+        if let Some(preparation) = preparation {
+            preparation.begin_evaluation();
+        }
         for (i, op) in self.nodes.iter().enumerate() {
             if FILTERED && !self.active_nodes.as_ref().expect("selected graph")[i] {
                 continue;
@@ -787,16 +810,35 @@ impl CompiledModel {
                     start,
                     ..
                 } => {
-                    for (slot, index) in inputs.iter_mut().zip(indices.iter()) {
-                        *slot = values[*index];
-                    }
                     let derivatives = &mut locals[*start..*start + indices.len()];
-                    derivatives.fill(f64::NAN);
-                    let value = callbacks[*callback](&inputs[..indices.len()], derivatives)?;
-                    if derivatives.iter().any(|x| !x.is_finite()) {
-                        return Err(AssemblyError::Numerical);
+                    let mut evaluate = |arguments: &[f64]| {
+                        derivatives.fill(f64::NAN);
+                        let prepared = preparation
+                            .as_mut()
+                            .and_then(|p| p.value(*callback, arguments));
+                        let value = callbacks[*callback](arguments, derivatives, prepared)?;
+                        if derivatives.iter().any(|x| !x.is_finite()) {
+                            return Err(AssemblyError::Numerical);
+                        }
+                        Ok(value)
+                    };
+                    // Fixed scalar argument packets avoid scratch gathering
+                    // loops. Keep semantic nodes, callback order, poisoning and
+                    // all local-score admission unchanged, including aliases.
+                    match indices.as_ref() {
+                        [a] => evaluate(&[values[*a]])?,
+                        [a, b] => evaluate(&[values[*a], values[*b]])?,
+                        [a, b, c] => evaluate(&[values[*a], values[*b], values[*c]])?,
+                        [a, b, c, d] => {
+                            evaluate(&[values[*a], values[*b], values[*c], values[*d]])?
+                        }
+                        _ => {
+                            for (slot, index) in inputs.iter_mut().zip(indices.iter()) {
+                                *slot = values[*index];
+                            }
+                            evaluate(&inputs[..indices.len()])?
+                        }
                     }
-                    value
                 }
             };
             if !values[i].is_finite() {

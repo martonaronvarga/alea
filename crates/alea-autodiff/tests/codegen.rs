@@ -24,6 +24,38 @@ fn a_zero_dimensional_chart_cannot_generate_a_sampler_target() {
 }
 
 #[test]
+fn native_first_order_rules_do_not_claim_checkpointing_or_replace_higher_ad() {
+    use alea_distributions::modeling::{
+        normal,
+        regression::{RegressionData, bernoulli_logit_regression},
+    };
+    let mut b = ModelBuilder::new();
+    let mu = b.real("mu").unwrap().expr();
+    let sigma = b.positive("sigma").unwrap().expr();
+    let y = b.constant(0.5).unwrap();
+    let term = normal(&mut b, y, mu, sigma).unwrap();
+    b.factor(term).unwrap();
+    let batch = bernoulli_logit_regression(
+        &mut b,
+        &[mu],
+        RegressionData::new(1, vec![1.; 4], vec![false, true, false, true]).unwrap(),
+    )
+    .unwrap();
+    b.factor(batch).unwrap();
+    let model = b.compile().unwrap();
+    assert!(model.rust_checkpoint_gradient(true).unwrap().is_none());
+    let source = enzyme_source(&model).unwrap();
+    assert!(source.contains("SOURCE_EXPLICIT_FIRST_ORDER: bool = true"));
+    assert!(source.contains("SOURCE_CHECKPOINTED: bool = false"));
+    assert!(source.contains("ParameterScore::log_prob_event_parameter_score"));
+    assert!(source.contains("kernel.evaluate(x,g,workspace)"));
+    assert!(source.contains("__higher_gradient(q, g, work, reverse, 1.0)"));
+    // Scores are admitted/staged on the forward visit, not recomputed in reverse.
+    assert_eq!(source.matches("let value=__native").count(), 2);
+    assert!(source.contains("scores.iter().any(|s|!s.is_finite())"));
+}
+
+#[test]
 fn checkpoint_higher_derivatives_keep_the_qualified_compiler_reverse() {
     use alea_core::model::tensor::{Shape, TensorBuilder, TensorFactor};
     let mut body = TensorBuilder::new();

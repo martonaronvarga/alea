@@ -17,6 +17,9 @@ categories = ["science", "mathematics"]
 [lints]
 workspace = true
 
+[lib]
+bench = false
+
 [dependencies]
 tracing = { workspace = true, optional = true }
 thiserror.workspace = true
@@ -25,7 +28,12 @@ thiserror.workspace = true
 cc.workspace = true
 
 [dev-dependencies]
+criterion.workspace = true
 allocation-counter.workspace = true
 
 [features]
 tracing = ["dep:tracing"]
+
+[[bench]]
+name = "cubature"
+harness = false

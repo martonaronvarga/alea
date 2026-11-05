@@ -64,6 +64,8 @@ fi
 if [[ -n "$features" ]]; then args+=(--features "$features"); fi
 cargo check "${args[@]}" --all-targets
 cargo test "${args[@]}"
+# Criterion test mode: execute fixture admission once, never time a CI runner.
+cargo test "${args[@]}" --benches -- --test
 cargo clippy "${args[@]}" --all-targets -- -D warnings
 RUSTDOCFLAGS='-D warnings' cargo doc "${args[@]}" --no-deps
 if command -v cargo-public-api >/dev/null 2>&1; then

@@ -5,6 +5,7 @@ import copy
 import json
 import subprocess
 import sys
+import os
 from unittest.mock import patch
 import compare
 import kernel_compare
@@ -21,6 +22,79 @@ spec.loader.exec_module(bench)
 
 
 class SummaryTests(unittest.TestCase):
+    def feature_runner(self, root, arguments, **overrides):
+        executable = root/'bin'; executable.mkdir()
+        (executable/'cargo').write_text('#!'+sys.executable+'\n'+
+            'import os,sys,json\n'
+            'if sys.argv[1:]==["-V"]: print("fake cargo");sys.exit(0)\n'
+            'with open(os.environ["CALLS"],"a") as f: f.write(json.dumps(dict(args=sys.argv[1:],target=os.environ.get("CARGO_TARGET_DIR"),criterion=os.environ.get("CRITERION_HOME")))+"\\n")\n'
+            'sys.exit(1 if "bad" in sys.argv else 0)\n')
+        (executable/'cargo').chmod(0o755)
+        (executable/'rustc').write_text('#!'+sys.executable+'\nprint("fake rustc")\n')
+        (executable/'rustc').chmod(0o755)
+        env={k:v for k,v in os.environ.items() if not k.startswith('SLURM')}
+        env.update(PATH=str(executable)+os.pathsep+env.get('PATH',''), CALLS=str(root/'calls'), **overrides)
+        script=Path(__file__).resolve().parents[2]/'bench-features.sh'
+        result=subprocess.run(['bash',str(script),'--output',str(root/'out'),*arguments],env=env,capture_output=True,text=True)
+        calls=[json.loads(l) for l in (root/'calls').read_text().splitlines()] if (root/'calls').exists() else []
+        return result,calls
+
+    def test_cargo_feature_runner_builds_all_cells_before_smoke_and_preserves_failures(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            result,calls=self.feature_runner(root,['--smoke','--crate','alea-core','--bench','transforms',
+                '--feature-set','','--feature-set','bad','--feature-set','faer'])
+            self.assertEqual(result.returncode,1,result.stderr)
+            self.assertEqual(['--no-run' in c['args'] for c in calls],[True,True,True,False,False])
+            self.assertTrue(all('--test' in c['args'] for c in calls[3:]))
+            self.assertEqual(calls[0]['target'],calls[3]['target'])
+            self.assertNotEqual(calls[0]['target'],calls[2]['target'])
+            self.assertTrue((root/'out/cell-1/BUILD_FAILED').is_file())
+            self.assertIsNotNone(calls[3]['criterion'])
+
+    def test_cargo_feature_runner_refuses_local_timings_and_returns_build_failures(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result,calls=self.feature_runner(Path(tmp),[])
+            self.assertEqual(result.returncode,2)
+            self.assertEqual(calls,[])
+        with tempfile.TemporaryDirectory() as tmp:
+            result,calls=self.feature_runner(Path(tmp),['--no-run','--feature-set','bad'])
+            self.assertEqual(result.returncode,1)
+            self.assertEqual(len(calls),1)
+
+    def test_parallel_stan_chain_processes_preserve_logical_order_and_failures(self):
+        def run(command,**kwargs):
+            return subprocess.CompletedProcess(command,command[0],str(command[0]),'')
+        with patch.object(bench,'run_process',side_effect=run):
+            for workers in [1,4]:
+                result=bench.run_chain_processes([[0],[2],[1]],{},workers)
+                self.assertEqual([p.returncode for p in result],[0,2,1])
+
+    def test_functional_agreement_requires_complete_finite_mapped_summaries(self):
+        a=[dict(mean=1.,mcse_mean=.01),dict(mean=2.,mcse_mean=.02)]
+        self.assertTrue(bench.functional_agreement(a,a))
+        for b in [a[:1],[],[dict(mean=1.,mcse_mean=-1.),a[1]],
+                  [a[0],dict(mean=2.3,mcse_mean=.02)],
+                  [a[0],dict(mean=float('nan'),mcse_mean=.02)]]:
+            self.assertFalse(bench.functional_agreement(a,b))
+
+    def test_new_sampling_policy_requires_both_spaces_and_ess_per_chain(self):
+        d=dict(rhat=1.001,bulk_ess=450.,tail_ess=410.)
+        metrics=dict(completed=4000,chains=4,dimension=5,failures=[],retained_divergences=0,
+                     diagnostics=[d.copy() for _ in range(5)],constrained_diagnostics=[d.copy() for _ in range(5)])
+        row=dict(case='covariance',success=True,wall_seconds=1.,metrics=metrics)
+        policy=dict(chains=4,minimum_ess_per_chain=100,both_coordinate_spaces=True)
+        self.assertTrue(bench.statistical_qualification(row,policy)[0])
+        metrics['diagnostics'][0]['rhat']=1.01
+        self.assertFalse(bench.statistical_qualification(row,policy)[0])
+        self.assertTrue(bench.statistical_qualification(row,dict(chains=4))[0])
+        metrics['diagnostics'][0]['rhat']=1.001
+        metrics['constrained_diagnostics'][2]['tail_ess']=399.
+        self.assertFalse(bench.statistical_qualification(row,policy)[0])
+        self.assertTrue(bench.statistical_qualification(row,dict(chains=4))[0])
+        del metrics['constrained_diagnostics']
+        self.assertFalse(bench.statistical_qualification(row,policy)[0])
+
     def test_host_metadata_records_the_measurement_host_without_tuning_it(self):
         with patch.object(bench.platform, 'node', return_value='measurement-host'), \
              patch.object(bench.os, 'sched_getaffinity', return_value={3, 1}), \

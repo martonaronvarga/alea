@@ -28,7 +28,7 @@ mod map;
 mod normal_compression;
 mod poisson_statistics;
 pub use curvature::GlmLikelihood;
-pub use execution::{RegressionExecution, RegressionPlan};
+pub use execution::{RegressionArithmetic, RegressionExecution, RegressionPlan};
 pub use links::{BernoulliLogitRegression, LinkRegressionWorkspace, PoissonLogRegression};
 pub use map::{LinearPredictor, ObservationMap};
 
@@ -164,6 +164,16 @@ impl<Y> RegressionData<Y> {
         }
         sum.total()
     }
+    #[inline(always)]
+    fn predictor_with_arithmetic<const STANDARD: bool>(&self, row: usize, beta: &[f64]) -> f64 {
+        if !STANDARD {
+            return self.linear_predictor(row, beta);
+        }
+        self.design[row * self.columns..(row + 1) * self.columns]
+            .iter()
+            .zip(beta)
+            .fold(self.offsets[row], |sum, (&x, &b)| sum + x * b)
+    }
 }
 fn finite(values: &[f64], field: &'static str) -> Result<(), RegressionDataError> {
     if let Some(index) = first_nonfinite(values) {
@@ -221,6 +231,7 @@ impl NormalRegression {
         finite(data.observations(), "observation").map_err(error)?;
         let mut design = kernels::Design::new(&data)?;
         design.set_execution(self.execution_plan().execution());
+        design.plan.arithmetic = self.execution_plan().arithmetic();
         let compressed = normal_compression::CompressedNormal::new(&data);
         Ok(Self {
             inputs: self.inputs.clone(),
@@ -265,6 +276,14 @@ impl NormalRegression {
     #[must_use]
     pub fn with_execution(mut self, execution: RegressionExecution) -> Self {
         self.design.set_execution(execution);
+        self
+    }
+    /// Selects row-kernel accumulation explicitly. Fixed-data Gaussian
+    /// compression remains unchanged. Standard arithmetic is opt-in; source AD
+    /// export is unavailable for it rather than silently using another policy.
+    #[must_use]
+    pub fn with_arithmetic(mut self, arithmetic: RegressionArithmetic) -> Self {
+        self.design.plan.arithmetic = arithmetic;
         self
     }
 }
@@ -322,7 +341,21 @@ impl Primitive for NormalRegression {
         })
     }
     fn source_rule(&self) -> Option<fn(&Self) -> String> {
-        Some(Self::emit_source)
+        (self.execution_plan().arithmetic() == RegressionArithmetic::Compensated)
+            .then_some(Self::emit_source)
+    }
+    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
+        if self.execution_plan().arithmetic() != RegressionArithmetic::Compensated {
+            return None;
+        }
+        Some(|this| {
+            native_score_source(
+                &this.data,
+                "NormalRegression",
+                this.execution_plan().execution(),
+                true,
+            )
+        })
     }
     fn evaluate(
         &self,
@@ -350,6 +383,46 @@ impl Primitive for NormalRegression {
             scores: &mut workspace.scores,
         })
     }
+}
+// Reuse native preparation/dispatch, not an alternative generated probability
+// implementation. Each emitted function owns a separate thread-local cache:
+// immutable frozen data plus reusable execution scratch. Initialization allocates
+// once per calling thread; this heap is outside the source float-arena receipt.
+fn native_score_source<Y: std::fmt::Debug>(
+    data: &RegressionData<Y>,
+    name: &str,
+    execution: RegressionExecution,
+    scale: bool,
+) -> String {
+    let p = data.columns();
+    let sigma = if scale {
+        "let sigma=b.positive(\"sigma\")?;"
+    } else {
+        ""
+    };
+    let arguments = if scale {
+        "&beta,&sigma,data"
+    } else {
+        "&beta,data"
+    };
+    let constructor = format!(
+        r#"use ::alea::distributions::modeling::regression as regression;
+    let data=regression::RegressionData::new({p},vec!{design:?},vec!{observations:?})
+        .and_then(|d|d.with_offsets(vec!{offsets:?})).map_err(|_|::alea::model::assembly::AssemblyError::Shape)?;
+    let mut b=::alea::model::assembly::ModelBuilder::new();
+    let mut beta=Vec::with_capacity({p});
+    for j in 0..{p} {{beta.push(b.real(&format!("beta{{j}}"))?.expr());}}
+    {sigma}
+    Ok(Native::new({arguments})?.with_execution(regression::RegressionExecution::{execution:?}))
+"#,
+        design = data.design(),
+        observations = data.observations(),
+        offsets = data.offsets()
+    );
+    super::cached_primitive_source(
+        &format!("::alea::distributions::modeling::regression::{name}"),
+        &constructor,
+    )
 }
 impl NormalRegression {
     fn emit_source(&self) -> String {
@@ -406,6 +479,65 @@ struct Scores {
     corrections: Vec<f64>,
 }
 impl Scores {
+    #[inline(always)]
+    fn add_scaled_policy<S: pulp::Simd, const STANDARD: bool>(
+        &mut self,
+        simd: S,
+        row: &[f64],
+        residual: f64,
+    ) {
+        if !STANDARD {
+            self.add_scaled(simd, row, residual);
+            return;
+        }
+        let (sums, tail) = S::as_mut_simd_f64s(&mut self.sums);
+        let (row, rt) = S::as_simd_f64s(row);
+        let scale = simd.splat_f64s(residual);
+        for (sum, x) in sums.iter_mut().zip(row) {
+            *sum = simd.add_f64s(*sum, simd.mul_f64s(*x, scale));
+        }
+        for (sum, x) in tail.iter_mut().zip(rt) {
+            *sum += x * residual;
+        }
+    }
+    #[inline(always)]
+    fn add_tile_policy<S: pulp::Simd, const STANDARD: bool>(
+        &mut self,
+        simd: S,
+        rows: [&[f64]; kernels::TILE],
+        residuals: &[f64; kernels::TILE],
+    ) {
+        if !STANDARD {
+            self.add_tile(simd, rows, residuals);
+            return;
+        }
+        // Independent coefficient lanes, four ordered conventional updates.
+        // No compensation, approximate transcendental change, or fast-math.
+        let width = self.sums.len();
+        let (sums, tail) = S::as_mut_simd_f64s(&mut self.sums);
+        let (a, at) = S::as_simd_f64s(&rows[0][..width]);
+        let (b, bt) = S::as_simd_f64s(&rows[1][..width]);
+        let (c, ct) = S::as_simd_f64s(&rows[2][..width]);
+        let (d, dt) = S::as_simd_f64s(&rows[3][..width]);
+        let scales = [
+            simd.splat_f64s(residuals[0]),
+            simd.splat_f64s(residuals[1]),
+            simd.splat_f64s(residuals[2]),
+            simd.splat_f64s(residuals[3]),
+        ];
+        for ((((sum, a), b), c), d) in sums.iter_mut().zip(a).zip(b).zip(c).zip(d) {
+            let head = simd.add_f64s(*sum, simd.mul_f64s(*a, scales[0]));
+            let head = simd.add_f64s(head, simd.mul_f64s(*b, scales[1]));
+            let head = simd.add_f64s(head, simd.mul_f64s(*c, scales[2]));
+            *sum = simd.add_f64s(head, simd.mul_f64s(*d, scales[3]));
+        }
+        for ((((sum, a), b), c), d) in tail.iter_mut().zip(at).zip(bt).zip(ct).zip(dt) {
+            *sum += a * residuals[0];
+            *sum += b * residuals[1];
+            *sum += c * residuals[2];
+            *sum += d * residuals[3];
+        }
+    }
     fn new(columns: usize) -> Self {
         Self {
             sums: vec![0.; columns],
@@ -460,17 +592,30 @@ impl Scores {
         // State the already validated common extent in the slice types. This
         // lets LLVM remove the independent zip-length minima in the hot loop.
         let width = self.sums.len();
-        let rows = rows.map(|row| &row[..width]);
+        let rows = [
+            &rows[0][..width],
+            &rows[1][..width],
+            &rows[2][..width],
+            &rows[3][..width],
+        ];
         let (sums, st) = S::as_mut_simd_f64s(&mut self.sums);
         let (corrections, ct) = S::as_mut_simd_f64s(&mut self.corrections[..width]);
-        let [(a, at), (b, bt), (c, ctail), (d, dt)] = rows.map(S::as_simd_f64s);
-        let scales = residuals.map(|r| simd.splat_f64s(r));
+        let (a, at) = S::as_simd_f64s(rows[0]);
+        let (b, bt) = S::as_simd_f64s(rows[1]);
+        let (c, ctail) = S::as_simd_f64s(rows[2]);
+        let (d, dt) = S::as_simd_f64s(rows[3]);
+        let scales = [
+            simd.splat_f64s(residuals[0]),
+            simd.splat_f64s(residuals[1]),
+            simd.splat_f64s(residuals[2]),
+            simd.splat_f64s(residuals[3]),
+        ];
         for (((((sum, correction), a), b), c), d) in
             sums.iter_mut().zip(corrections).zip(a).zip(b).zip(c).zip(d)
         {
             let mut head = *sum;
             let mut low = *correction;
-            for (x, scale) in [*a, *b, *c, *d].into_iter().zip(scales) {
+            let mut add = |x: S::f64s, scale: S::f64s| {
                 let value = simd.mul_f64s(x, scale);
                 let next = simd.add_f64s(head, value);
                 let large =
@@ -482,14 +627,20 @@ impl Scores {
                 );
                 low = simd.add_f64s(low, error);
                 head = next;
-            }
+            };
+            // Four ordered updates, not a runtime array iterator. In particular
+            // do not accumulate rows in independent lanes and reassociate them.
+            add(*a, scales[0]);
+            add(*b, scales[1]);
+            add(*c, scales[2]);
+            add(*d, scales[3]);
             *sum = head;
             *correction = low;
         }
         for (((((sum, correction), a), b), c), d) in
             st.iter_mut().zip(ct).zip(at).zip(bt).zip(ctail).zip(dt)
         {
-            for (x, scale) in [*a, *b, *c, *d].into_iter().zip(residuals) {
+            let mut add = |x: f64, scale: f64| {
                 let value = x * scale;
                 let next = *sum + value;
                 *correction += if sum.abs() >= value.abs() {
@@ -498,7 +649,11 @@ impl Scores {
                     (value - next) + *sum
                 };
                 *sum = next;
-            }
+            };
+            add(*a, residuals[0]);
+            add(*b, residuals[1]);
+            add(*c, residuals[2]);
+            add(*d, residuals[3]);
         }
     }
     fn finish(&self, total: CompensatedSum, g: &mut [f64]) -> Result<f64, E> {
@@ -539,23 +694,45 @@ impl pulp::WithSimd for NormalEval<'_> {
         // limits. Keep the original division path when either squared scale is
         // nonnormal (including under/overflow); never clip or reject that input.
         let ordinary = (sigma * sigma).is_normal() && (inverse * inverse).is_normal();
+        if self.design.plan.arithmetic() == RegressionArithmetic::Standard {
+            return self.evaluate_standard(simd, inverse, ordinary);
+        }
         match (ordinary, self.broadcast) {
-            (true, true) => self.evaluate::<S, true, true>(simd, inverse),
-            (true, false) => self.evaluate::<S, true, false>(simd, inverse),
-            (false, true) => self.evaluate::<S, false, true>(simd, inverse),
-            (false, false) => self.evaluate::<S, false, false>(simd, inverse),
+            (true, true) => self.evaluate::<S, true, true, false>(simd, inverse),
+            (true, false) => self.evaluate::<S, true, false, false>(simd, inverse),
+            (false, true) => self.evaluate::<S, false, true, false>(simd, inverse),
+            (false, false) => self.evaluate::<S, false, false, false>(simd, inverse),
         }
     }
 }
 impl NormalEval<'_> {
     #[inline(always)]
-    fn evaluate<S: pulp::Simd, const RECIPROCAL: bool, const BROADCAST: bool>(
+    fn evaluate_standard<S: pulp::Simd>(
+        self,
+        simd: S,
+        inverse: f64,
+        ordinary: bool,
+    ) -> Result<f64, E> {
+        match (ordinary, self.broadcast) {
+            (true, true) => self.evaluate::<S, true, true, true>(simd, inverse),
+            (true, false) => self.evaluate::<S, true, false, true>(simd, inverse),
+            (false, true) => self.evaluate::<S, false, true, true>(simd, inverse),
+            (false, false) => self.evaluate::<S, false, false, true>(simd, inverse),
+        }
+    }
+    #[inline(always)]
+    fn evaluate<
+        S: pulp::Simd,
+        const RECIPROCAL: bool,
+        const BROADCAST: bool,
+        const STANDARD: bool,
+    >(
         self,
         simd: S,
         inverse: f64,
     ) -> Result<f64, E> {
         if RECIPROCAL && size_of::<S::f64s>() <= size_of::<[f64; kernels::TILE]>() {
-            return self.batch::<S, BROADCAST>(simd, inverse);
+            return self.batch::<S, BROADCAST, STANDARD>(simd, inverse);
         }
         let Self {
             data, x, g, scores, ..
@@ -563,14 +740,14 @@ impl NormalEval<'_> {
         let p = data.columns;
         let sigma = x[p];
         let normalizer = -sigma.ln() - 0.5 * std::f64::consts::TAU.ln();
-        let mut total = CompensatedSum::default();
-        let mut sigma_score = CompensatedSum::default();
+        let mut total = kernels::Sum::<STANDARD>::default();
+        let mut sigma_score = kernels::Sum::<STANDARD>::default();
         scores.reset();
         for i in 0..data.rows() {
             let eta = if BROADCAST {
                 x[0] + 0.
             } else {
-                data.linear_predictor(i, &x[..p])
+                data.predictor_with_arithmetic::<STANDARD>(i, &x[..p])
             };
             let residual = data.observations[i] - eta;
             let z = if RECIPROCAL {
@@ -586,9 +763,13 @@ impl NormalEval<'_> {
             });
             let mean_score = if RECIPROCAL { z * inverse } else { z / sigma };
             if BROADCAST {
-                scores.add_scaled(simd, &[1.], mean_score);
+                scores.add_scaled_policy::<S, STANDARD>(simd, &[1.], mean_score);
             } else {
-                scores.add_scaled(simd, &data.design[i * p..(i + 1) * p], mean_score);
+                scores.add_scaled_policy::<S, STANDARD>(
+                    simd,
+                    &data.design[i * p..(i + 1) * p],
+                    mean_score,
+                );
             }
             sigma_score.add(if RECIPROCAL {
                 (z * z - 1.) * inverse
@@ -604,7 +785,7 @@ impl NormalEval<'_> {
         if !sigma_score.total().is_finite() {
             return Err(E::Numerical);
         }
-        let value = scores.finish(total, &mut g[..p])?;
+        let value = scores.finish(total.into_compensated(), &mut g[..p])?;
         g[p] = sigma_score.total();
         Ok(value)
     }
@@ -628,14 +809,22 @@ impl pulp::WithSimd for PoissonEval<'_> {
     type Output = Result<f64, E>;
     #[inline(always)]
     fn with_simd<S: pulp::Simd>(self, simd: S) -> Self::Output {
-        self.batch(simd)
+        if self.design.plan.arithmetic() == RegressionArithmetic::Standard {
+            self.batch::<S, true>(simd)
+        } else {
+            self.batch::<S, false>(simd)
+        }
     }
 }
 impl pulp::WithSimd for LogitEval<'_> {
     type Output = Result<f64, E>;
     #[inline(always)]
     fn with_simd<S: pulp::Simd>(self, simd: S) -> Self::Output {
-        self.batch(simd)
+        if self.design.plan.arithmetic() == RegressionArithmetic::Standard {
+            self.batch::<S, true>(simd)
+        } else {
+            self.batch::<S, false>(simd)
+        }
     }
 }
 

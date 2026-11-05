@@ -17,6 +17,9 @@ categories = ["science", "mathematics"]
 [lints]
 workspace = true
 
+[lib]
+bench = false
+
 [dependencies]
 tracing = { workspace = true, optional = true }
 aligned-vec.workspace = true
@@ -51,4 +54,8 @@ harness = false
 
 [[bench]]
 name = "quasi_newton"
+harness = false
+
+[[bench]]
+name = "primitives"
 harness = false

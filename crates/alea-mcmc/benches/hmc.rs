@@ -5,16 +5,20 @@ use alea_distributions::wiener::{Boundary, WienerObservation};
 use alea_math::buffer::OwnedBuffer;
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 
-use alea_core::model::{AnalyticModel, PrimitiveModel, TransformedTarget};
+use alea_core::model::{PrimitiveModel, TransformedTarget};
 use alea_math::metric::{
     CholeskyFactor, DenseMetric, DiagonalMetric, EuclideanMetric, IdentityMetric,
 };
 
 use alea_core::target::LogDensityGradient;
 use alea_core::transform::{ParameterLayout, Transform};
-use alea_mcmc::{Hmc, HmcOptions};
+use alea_mcmc::{Hmc, HmcOptions, Nuts, NutsOptions};
 use rand::{SeedableRng, rngs::SmallRng};
 use std::{hint::black_box, time::Duration};
+
+#[allow(dead_code)]
+#[path = "support/warmup.rs"]
+mod warmup_workload;
 
 fn workload<T: LogDensityGradient, M: EuclideanMetric>(
     c: &mut criterion::BenchmarkGroup<'_, criterion::measurement::WallTime>,
@@ -76,38 +80,32 @@ fn workloads(c: &mut Criterion) {
         DenseMetric::new(CholeskyFactor::new_lower(64, factor).unwrap()),
     );
 
-    // Immutable data are constructed outside timing; the model computes 1024
-    // logistic terms and all 16 derivatives in a single allocation-free pass.
+    // Production public native GLM, never a hand-written benchmark likelihood.
     let data = (0..1024 * 16)
         .map(|i| ((i * 17 % 101) as f64 - 50.0) / 50.0)
         .collect::<Vec<_>>();
-    let logistic = AnalyticModel::new(16, move |q: &[f64], g: &mut [f64]| {
-        let mut lp = 0.0;
-        for (&q, g) in q.iter().zip(g.iter_mut()) {
-            *g = -q;
-            lp -= 0.5 * q * q;
-        }
-        for (i, row) in data.chunks_exact(16).enumerate() {
-            let eta: f64 = row.iter().zip(q).map(|(x, q)| x * q).sum();
-            let t = (-eta.abs()).exp();
-            let p = if eta >= 0.0 {
-                1.0 / (1.0 + t)
-            } else {
-                t / (1.0 + t)
-            };
-            let y = (i % 2) as f64;
-            lp += y * eta - eta.max(0.0) - t.ln_1p();
-            for (g, x) in g.iter_mut().zip(row) {
-                *g += (y - p) * x;
-            }
-        }
-        Ok::<_, std::convert::Infallible>(lp)
-    });
-    let logistic = TransformedTarget::new(
-        logistic,
-        ParameterLayout::new([Transform::identity(16).unwrap()]).unwrap(),
+    let mut builder = alea_core::model::assembly::ModelBuilder::new();
+    let beta: Vec<_> = (0..16)
+        .map(|i| builder.real(&format!("b{i}")).unwrap().expr())
+        .collect();
+    for &b in &beta {
+        let f = alea_distributions::modeling::normal(&mut builder, b, 0., 1.).unwrap();
+        builder.factor(f).unwrap();
+    }
+    let data = alea_distributions::modeling::regression::RegressionData::new(
+        16,
+        data,
+        (0..1024).map(|i| i % 2 != 0).collect(),
     )
     .unwrap();
+    let f = alea_distributions::modeling::regression::bernoulli_logit_regression(
+        &mut builder,
+        &beta,
+        data,
+    )
+    .unwrap();
+    builder.likelihood("data", f).unwrap();
+    let logistic = builder.compile().unwrap().into_target().unwrap();
     workload(
         &mut group,
         "logistic1024x16",
@@ -174,5 +172,184 @@ fn hmc(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, hmc, workloads);
+fn nuts(c: &mut Criterion) {
+    use criterion::{BatchSize, Throughput};
+    for dim in [4, 64] {
+        let target = StandardNormalTarget::new(dim);
+        let options = NutsOptions::new(0.2, 6).unwrap();
+        // Separate instrumented admission pass; no counters/clocks in timed target.
+        let counted = warmup_workload::Counted {
+            target: StandardNormalTarget::new(dim),
+            calls: std::cell::Cell::new(0),
+        };
+        let mut check = Nuts::new(
+            &counted,
+            OwnedBuffer::from_fn(dim, |_| 0.1),
+            IdentityMetric::new(dim),
+            options,
+        )
+        .unwrap();
+        let initialize_calls = counted.calls.get();
+        let receipt = check.step(&mut SmallRng::seed_from_u64(912)).unwrap();
+        let calls = counted.calls.get() - initialize_calls;
+        assert_eq!(calls, receipt.integration_steps);
+        eprintln!(
+            "ALEA_NUTS_FIXED_WORK {{\"dimension\":{dim},\"seed\":912,\"initialize_calls\":{initialize_calls},\"gradient_calls\":{calls},\"leapfrog_steps\":{},\"tree_depth\":{}}}",
+            receipt.integration_steps, receipt.tree_depth
+        );
+        let create = || {
+            Nuts::new(
+                &target,
+                OwnedBuffer::from_fn(dim, |_| 0.1),
+                IdentityMetric::new(dim),
+                options,
+            )
+            .unwrap()
+        };
+        let mut group = c.benchmark_group(format!("nuts/{dim}"));
+        group.bench_function("initialize_and_drop", |b| b.iter(|| black_box(create())));
+        group.throughput(Throughput::Elements(1)); // Transition, NOT leapfrog/gradient.
+        group.bench_function("fixed_initial_state_transition", |b| {
+            b.iter_batched_ref(
+                || (create(), SmallRng::seed_from_u64(912)),
+                |(chain, rng)| black_box(chain.step(rng).unwrap()),
+                BatchSize::SmallInput,
+            )
+        });
+        let mut chain = create();
+        let mut rng = SmallRng::seed_from_u64(912);
+        group.bench_function("evolving_transitions", |b| {
+            b.iter(|| black_box(chain.step(&mut rng).unwrap()))
+        });
+        group.finish();
+    }
+}
+// Shared native chain harness: seed and construction outside fixed-transition
+// timing, with no new target formulas or sampler implementations.
+fn engine<C: alea_mcmc::MarkovChain>(
+    c: &mut Criterion,
+    name: &str,
+    make: impl Fn(&mut SmallRng) -> C,
+) where
+    C::Transition: std::fmt::Debug,
+{
+    use criterion::BatchSize;
+    let prepare = || {
+        let mut rng = SmallRng::seed_from_u64(912);
+        let chain = make(&mut rng);
+        (chain, rng)
+    };
+    let (mut check, mut rng) = prepare();
+    let receipt = check.step(&mut rng).unwrap();
+    assert!(check.position().iter().all(|x| x.is_finite()));
+    eprintln!("ALEA_ENGINE_FIXED_WORK {name}: {receipt:?}");
+    let mut group = c.benchmark_group(format!("experimental_engines/{name}"));
+    group.bench_function("initialize_and_drop", |b| b.iter(|| black_box(prepare())));
+    group.bench_function("fixed_initial_state_transition", |b| {
+        b.iter_batched_ref(
+            prepare,
+            |(chain, rng)| black_box(chain.step(rng).unwrap()),
+            BatchSize::SmallInput,
+        )
+    });
+    group.finish();
+}
+
+fn experimental_engines(c: &mut Criterion) {
+    use alea_mcmc::{
+        adapt::{CheesCriterion, CheesEnsembleAdapter},
+        advanced::{AdvancedHmcOptions, ForceGradientHmc, ForceGradientMode},
+        atlas_sampler::{Atlas, AtlasOptions},
+        chees::{CheesHmc, CheesHmcOptions},
+        ghmc::{DrGhmc, DrGhmcOptions, Ghmc, GhmcOptions},
+        mams::{ApproximateMclmc, ApproximateMclmcOptions, ApproximateTarget, Mams, MamsOptions},
+        walnuts::{Walnuts, WalnutsOptions},
+    };
+    for dim in [4, 64] {
+        let target = StandardNormalTarget::new(dim);
+        let q = || OwnedBuffer::from_fn(dim, |_| 0.1);
+        let metric = || IdentityMetric::new(dim);
+        engine(c, &format!("ghmc/{dim}"), |rng| {
+            Ghmc::new(
+                &target,
+                q(),
+                metric(),
+                GhmcOptions::new(0.1, 4, 0.8).unwrap(),
+                rng,
+            )
+            .unwrap()
+        });
+        engine(c, &format!("drghmc/{dim}"), |rng| {
+            DrGhmc::new(
+                &target,
+                q(),
+                metric(),
+                DrGhmcOptions::new(0.2, 2., 0.8)
+                    .unwrap()
+                    .with_integration_steps(2)
+                    .unwrap(),
+                rng,
+            )
+            .unwrap()
+        });
+        engine(c, &format!("mams/{dim}"), |_| {
+            Mams::new(&target, q(), MamsOptions::new(0.1, 4).unwrap()).unwrap()
+        });
+        // This method is explicitly approximate. A timing is not posterior or
+        // exactness qualification, nor an efficiency comparison with NUTS.
+        engine(c, &format!("approximate_mclmc/{dim}"), |rng| {
+            ApproximateMclmc::new(
+                ApproximateTarget::acknowledge_bias(),
+                &target,
+                q(),
+                ApproximateMclmcOptions::new(0.1, 4, Some(1.)).unwrap(),
+                rng,
+            )
+            .unwrap()
+        });
+        engine(c, &format!("walnuts/{dim}"), |_| {
+            Walnuts::new(&target, q(), metric(), WalnutsOptions::new(0.1, 4).unwrap()).unwrap()
+        });
+        engine(c, &format!("atlas/{dim}"), |_| {
+            Atlas::from_hmc(
+                Hmc::new(&target, q(), metric(), HmcOptions::new(0.1, 4).unwrap()).unwrap(),
+                AtlasOptions::new(0.1, 64).unwrap(),
+                &[4, 6, 8],
+            )
+            .unwrap()
+        });
+        let frozen = CheesEnsembleAdapter::new(
+            dim,
+            0.1.try_into().unwrap(),
+            0.8,
+            0.1,
+            2.,
+            CheesCriterion::Global,
+        )
+        .unwrap()
+        .finish()
+        .unwrap();
+        engine(c, &format!("chees/{dim}"), |_| {
+            CheesHmc::new(&target, q(), metric(), CheesHmcOptions::new(frozen)).unwrap()
+        });
+        for mode in [
+            ForceGradientMode::AnalyticHvp,
+            ForceGradientMode::HessianFree,
+        ] {
+            engine(c, &format!("force_gradient_{mode:?}/{dim}"), |_| {
+                ForceGradientHmc::new(
+                    &target,
+                    q(),
+                    metric(),
+                    AdvancedHmcOptions::new(0.1, 4).unwrap(),
+                    mode,
+                )
+                .unwrap()
+            });
+        }
+    }
+}
+criterion_group! {name=benches; config=benchmark_support::criterion(); targets=hmc, workloads, nuts, experimental_engines}
+#[path = "../../benches/support.rs"]
+mod benchmark_support;
 criterion_main!(benches);

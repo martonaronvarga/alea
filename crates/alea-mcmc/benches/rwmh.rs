@@ -236,7 +236,7 @@ fn bench_metric_dense(c: &mut Criterion) {
 }
 
 fn criterion_config() -> Criterion {
-    Criterion::default()
+    benchmark_support::criterion()
         .sample_size(80)
         .warm_up_time(Duration::from_secs(2))
         .measurement_time(Duration::from_secs(5))
@@ -255,4 +255,6 @@ criterion_group!(
         bench_metric_dense,
 );
 
+#[path = "../../benches/support.rs"]
+mod benchmark_support;
 criterion_main!(benches);

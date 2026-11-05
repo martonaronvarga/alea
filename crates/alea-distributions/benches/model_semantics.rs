@@ -71,8 +71,10 @@ fn benchmark(c: &mut Criterion) {
 }
 criterion_group! {
     name = benches;
-    config = Criterion::default().sample_size(30).warm_up_time(Duration::from_millis(500))
+    config = benchmark_support::criterion().sample_size(30).warm_up_time(Duration::from_millis(500))
         .measurement_time(Duration::from_secs(2));
     targets = benchmark
 }
+#[path = "../../benches/support.rs"]
+mod benchmark_support;
 criterion_main!(benches);

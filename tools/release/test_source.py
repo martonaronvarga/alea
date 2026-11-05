@@ -56,6 +56,7 @@ class SourceTests(unittest.TestCase):
 
     def test_verification_source_and_locks_ship_without_generated_artifacts(self):
         included = ['docs/native-model-performance.md','docs/kernel-optimization.md',
+                    'tools/bench-features.sh',
                     'tools/native-benchmark/PINNED.json','tools/native-benchmark/REPORT.md',
                     'tools/native-benchmark/stan/linear.stan','tools/native-benchmark/scripts/replay.py',
                     'tools/wiener-validation/report.py','tools/wiener-validation/test_report.py']

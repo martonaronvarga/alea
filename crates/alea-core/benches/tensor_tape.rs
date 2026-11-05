@@ -143,5 +143,61 @@ fn benchmark(c: &mut Criterion) {
         group.finish();
     }
 }
-criterion_group! {name=benches; config=Criterion::default().sample_size(30).warm_up_time(Duration::from_millis(500)).measurement_time(Duration::from_secs(2)); targets=benchmark,matrix_kernels}
+fn broadcast_region(n: usize) -> BoundProgram {
+    let mut b = TensorBuilder::new();
+    let column = b.input("column", Shape::new(vec![n, 1]).unwrap()).unwrap();
+    let row = b.input("row", Shape::new(vec![8]).unwrap()).unwrap();
+    let product = b.binary(B::Multiply, column, row).unwrap();
+    let square = b.binary(B::Multiply, product, product).unwrap();
+    let out = b.sum(square).unwrap();
+    b.compile(out).unwrap().bind(&[]).unwrap()
+}
+// Separate cold planning/emission/allocation from repeated forward and VJP work.
+// Compact metadata reduces storage, but integer indexing may cost hot time;
+// these controls must accompany remote before/after measurements.
+fn broadcast_maps(c: &mut Criterion) {
+    for n in [128, 4096, 65_536] {
+        let p = broadcast_region(n);
+        let mut group = c.benchmark_group(format!("tensor_broadcast/{n}"));
+        group.bench_function("plan_bind", |b| {
+            b.iter(|| black_box(broadcast_region(black_box(n))))
+        });
+        group.bench_function("primal_source", |b| b.iter(|| black_box(p.rust_function())));
+        group.bench_function("workspace", |b| b.iter(|| black_box(p.workspace())));
+        let x = vec![0.25; p.dimension()];
+        let mut w = p.workspace();
+        let mut out = [0.];
+        let mut g = vec![0.; x.len()];
+        p.value_and_vjp(&x, &[1.], &mut out, &mut g, &mut w)
+            .unwrap();
+        assert_eq!(out[0], n as f64 / 32.);
+        assert!(g[..n].iter().all(|&v| v == 0.25));
+        assert!(g[n..].iter().all(|&v| v == n as f64 / 32.));
+        group.throughput(Throughput::Elements((8 * n) as u64));
+        group.bench_function("forward", |b| {
+            b.iter(|| {
+                p.evaluate(black_box(&x), black_box(&mut out), &mut w)
+                    .unwrap();
+                black_box(out);
+            })
+        });
+        group.bench_function("value_vjp", |b| {
+            b.iter(|| {
+                p.value_and_vjp(
+                    black_box(&x),
+                    &[1.],
+                    black_box(&mut out),
+                    black_box(&mut g),
+                    &mut w,
+                )
+                .unwrap();
+                black_box(&g);
+            })
+        });
+        group.finish();
+    }
+}
+criterion_group! {name=benches; config=benchmark_support::criterion().sample_size(30).warm_up_time(Duration::from_millis(500)).measurement_time(Duration::from_secs(2)); targets=benchmark,matrix_kernels,broadcast_maps}
+#[path = "../../benches/support.rs"]
+mod benchmark_support;
 criterion_main!(benches);

@@ -88,13 +88,65 @@ Reshape aliases both value and adjoint storage. Gather repeats scatter-add in
 reverse. Unreachable operations remain inspectable but do not execute or export.
 Only the scalar result bridge `TensorFactor` connects to `ModelBuilder`; arbitrary
 tensor outputs use `BoundProgram::evaluate` / `value_and_vjp` directly.
+In particular, a tensor-valued predictor cannot currently be passed directly to
+the scalar-expression-based native `NormalBatch`. Tensor execution and native
+batch-likelihood support do not yet imply automatic composition between them.
 
 Broadcast maps are specialized at construction. If output element j reads input
 element m(j), its pullback accumulates `input_bar[m(j)] += output_bar[j] * local_score`.
+Regular broadcasts retain O(rank) index descriptors, not one integer per output
+element. Native forward/reverse execution and fusion share the same descriptor;
+the primal and explicit-pullback source emitters share its index renderer.
+Explicit irregular `gather` still retains the caller's indices.
 Matrix products use the usual `A_bar += C_bar B^T` and `B_bar += A^T C_bar`
 pullbacks, without materializing a Jacobian. The default matrix execution is an
 ordered compensated reference kernel. Explicit accelerated kernels are available
 as described below; this is not batched GEMM or a GPU backend.
+
+### Compact broadcast indexing: contracts and evidence
+
+For each non-unit input axis, the private descriptor retains its extent `n`,
+row-major input stride `s`, and corresponding output stride `d`. An output flat
+index maps to `sum(((j / d) % n) * s)`. Shape/broadcast admission precedes map
+construction; stride multiplication is checked. Empty output domains need no
+strides or addresses, including when a suffix product after a zero axis would
+otherwise overflow. A distinct empty map prevents contiguous fast paths from
+addressing nonexistent inputs or adjoint ranges. Leading unit dimensions with
+no repeated elements canonicalize to the identity path.
+
+Native kernels split work at the two operands' innermost run boundaries, unrank
+only at those boundaries, and advance constant or contiguous input indices in
+the inner loop. This avoids per-element rank-dependent division without a
+heap-allocated cursor. Fusion tiles can start/end inside runs. Reverse traversal
+keeps the original element and operand accumulation order: a repeated read map
+is not an injective write map and does not justify unordered scatter stores.
+Generated code uses compact, shape-specialized integer expressions instead of
+index-array literals. Frozen data literals and primal/adjoint storage remain
+separate costs and can still grow with problem size.
+
+This follows the distinction between indexing and storage in
+[Futhark's memory work](https://futhark-lang.org/publications/sc22-mem.pdf) and
+the explicit reindexer obligations in
+[ATL's verified lowering](https://adam.chlipala.net/papers/AtlPLDI24/AtlPLDI24.pdf).
+Neither is a formal proof of Alea or of floating-point AD. No tensor-layout,
+copy-elision, speculative branch, reassociation or checkpoint-policy change is
+included here.
+
+Tests use an independent dense coordinate oracle, arbitrary-rank property cases,
+partial runs, exact-bit explicit-gather comparisons with cancellation-sensitive
+seeds, finite differences, empty axes, immutable rebinding and staged failure
+recovery. Downstream compiler conformance includes a rank-three shared-input
+quartic with independent value/score/Hessian/third derivatives on ordinary and
+explicit first-order checkpoint source routes. Higher derivatives still use the
+qualified compiler reverse, not differentiation of the checkpointed pullback.
+
+`tensor_tape` adds `tensor_broadcast/{128,4096,65536}` cases, separating
+`plan_bind`, `primal_source`, `workspace`, `forward`, and `value_vjp`. Run these
+through `cargo bench -p alea-core --bench tensor_tape -- tensor_broadcast` from
+the crate workspace, on an ELTE HPC compute allocation. Compare saved before/after
+sources on the same host, retaining nonbroadcast/scan controls. Storage/source
+complexity is established by code and allocation tests; latency and inference
+speedups remain unmeasured for this increment.
 
 ### Explicit Faer and BLAS matrix kernels
 

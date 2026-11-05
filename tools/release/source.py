@@ -55,11 +55,13 @@ def allowed_source_path(relative: PurePosixPath) -> bool:
     if parts[0] == "docs":
         return len(parts) == 2 and parts[1] in DOCS
     if parts[0] == "tools":
+        if str(relative) == "tools/bench-features.sh":
+            return True
         if parts[1] in VERIFICATION_TOOLS:
             # Do not admit arbitrary generated outputs or extensionless Stan binaries.
             tail = parts[2:]
             return ((len(tail) == 1 and tail[0] in {
-                        "Cargo.toml", "Cargo.lock", "README.md", "REPORT.md", "PINNED.json",
+                        "Cargo.toml", "Cargo.lock", "build.rs", "README.md", "REPORT.md", "PINNED.json",
                         "report.py", "test_report.py"})
                     or (len(tail) > 1 and tail[0] == "src" and relative.suffix == ".rs")
                     or (len(tail) == 2 and tail[0] == "scripts" and relative.suffix == ".py")

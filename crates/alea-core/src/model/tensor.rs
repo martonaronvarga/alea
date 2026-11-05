@@ -17,6 +17,10 @@ mod execute;
 mod fusion;
 mod kernels;
 mod pullback;
+// R0's private boundary experiment uses this graph/executor, not a second IR.
+// It is not a shipping operation API and has no production layout/dispatch cost.
+#[cfg(test)]
+mod registration;
 mod source;
 pub use alea_math::gemm::MatrixKernel;
 pub use execute::TensorWorkspace;
@@ -115,6 +119,8 @@ pub enum TensorOperation {
     Matmul,
     Cond,
     Scan,
+    #[cfg(test)]
+    Registered,
 }
 /// Cold SSA node description; input handles preserve sharing and order.
 pub struct TensorNode<'a> {
@@ -131,17 +137,74 @@ pub struct TensorNode<'a> {
 }
 #[derive(Clone)]
 enum Map {
+    Empty,
     Identity,
     Scalar,
-    Gather(Arc<[usize]>),
+    Broadcast(Arc<[BroadcastAxis]>),
+}
+// Read maps may repeat indices. They are NOT independent write maps: the VJP
+// must still accumulate repeated destinations in the original element order.
+#[derive(Clone, Copy)]
+struct BroadcastAxis {
+    extent: usize,
+    output_stride: usize,
+    input_stride: usize,
 }
 impl Map {
+    // Within this many output elements the input index is constant or advances
+    // by one. Native kernels unrank only at run boundaries, not per element.
+    fn run(&self) -> (usize, usize) {
+        match self {
+            Self::Empty => (1, 0),
+            Self::Identity => (usize::MAX, 1),
+            Self::Scalar => (usize::MAX, 0),
+            Self::Broadcast(axes) => {
+                let inner = axes
+                    .first()
+                    .expect("nonempty broadcast has a nonunit input axis");
+                if inner.output_stride == 1 {
+                    (inner.extent, 1)
+                } else {
+                    (inner.output_stride, 0)
+                }
+            }
+        }
+    }
     #[inline]
     fn at(&self, i: usize) -> usize {
         match self {
+            Self::Empty => unreachable!("empty broadcast domain has no indices"),
             Self::Identity => i,
             Self::Scalar => 0,
-            Self::Gather(v) => v[i],
+            Self::Broadcast(axes) => axes
+                .iter()
+                .map(|axis| (i / axis.output_stride % axis.extent) * axis.input_stride)
+                .sum(),
+        }
+    }
+    // Both primal and explicit pullback source lower the SAME checked map.
+    // This emits O(rank) code, never an O(output elements) integer literal.
+    fn index_source(&self) -> String {
+        match self {
+            Self::Empty => "0".into(),
+            Self::Identity => "j".into(),
+            Self::Scalar => "0".into(),
+            Self::Broadcast(axes) => axes
+                .iter()
+                .map(|axis| {
+                    let coordinate = if axis.output_stride == 1 {
+                        format!("j%{}", axis.extent)
+                    } else {
+                        format!("j/{}%{}", axis.output_stride, axis.extent)
+                    };
+                    if axis.input_stride == 1 {
+                        coordinate
+                    } else {
+                        format!("({coordinate})*{}", axis.input_stride)
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("+"),
         }
     }
 }
@@ -170,6 +233,8 @@ struct Scan {
     checkpointed: bool,
 }
 enum Op {
+    #[cfg(test)]
+    Prototype(Box<registration::Operation>),
     Input(usize),
     Data(usize),
     Constant(Arc<[f64]>),
@@ -196,10 +261,20 @@ struct Node {
 }
 impl Node {
     fn range(&self) -> Range<usize> {
+        #[cfg(test)]
+        if self.discrete() {
+            return self.start..self.start;
+        }
         self.start..self.start + self.shape.elements
+    }
+    #[cfg(test)]
+    fn discrete(&self) -> bool {
+        matches!(&self.op, Op::Prototype(op) if matches!(&**op, registration::Operation::Data(_)))
     }
     fn inputs(&self) -> Vec<Value> {
         match &self.op {
+            #[cfg(test)]
+            Op::Prototype(op) => op.inputs().to_vec(),
             Op::Input(_) | Op::Data(_) | Op::Constant(_) => vec![],
             Op::Unary(_, a) | Op::Sum(a) | Op::Alias(a) | Op::Gather(a, _) => vec![*a],
             Op::Binary(b) => vec![b.a, b.b],
@@ -291,9 +366,25 @@ impl TensorBuilder {
         }
         self.nodes.get(value.node).ok_or(E::ForeignHandle)
     }
+    fn real_node(&self, value: Value) -> Result<&Node, E> {
+        let node = self.node(value)?;
+        #[cfg(test)]
+        if node.discrete() {
+            return Err(E::Shape);
+        }
+        Ok(node)
+    }
     fn push(&mut self, shape: Shape, op: Op) -> Result<Value, E> {
         let start = self.slots;
-        let slots = start.checked_add(shape.elements).ok_or(E::Shape)?;
+        let elements = shape.elements;
+        #[cfg(test)]
+        let elements = if matches!(&op, Op::Prototype(p) if matches!(&**p, registration::Operation::Data(_)))
+        {
+            0
+        } else {
+            elements
+        };
+        let slots = start.checked_add(elements).ok_or(E::Shape)?;
         if slots > isize::MAX as usize / size_of::<f64>() {
             return Err(E::Shape);
         }
@@ -356,17 +447,17 @@ impl TensorBuilder {
     /// # Errors
     /// Rejects foreign values or overflowing storage.
     pub fn unary(&mut self, kind: UnaryOp, value: Value) -> Result<Value, E> {
-        self.push(self.node(value)?.shape.clone(), Op::Unary(kind, value))
+        self.push(self.real_node(value)?.shape.clone(), Op::Unary(kind, value))
     }
     /// Applies a broadcasted binary operation, with maps specialized once.
     /// # Errors
     /// Rejects incompatible shapes, foreign values or storage overflow.
     pub fn binary(&mut self, kind: BinaryOp, a: Value, b: Value) -> Result<Value, E> {
-        let lhs = &self.node(a)?.shape;
-        let rhs = &self.node(b)?.shape;
+        let lhs = &self.real_node(a)?.shape;
+        let rhs = &self.real_node(b)?.shape;
         let shape = broadcast(lhs, rhs)?;
-        let left = map(lhs, &shape);
-        let right = map(rhs, &shape);
+        let left = map(lhs, &shape)?;
+        let right = map(rhs, &shape)?;
         self.push(
             shape,
             Op::Binary(Box::new(Binary {
@@ -382,14 +473,14 @@ impl TensorBuilder {
     /// # Errors
     /// Rejects foreign values or storage overflow.
     pub fn sum(&mut self, value: Value) -> Result<Value, E> {
-        self.node(value)?;
+        self.real_node(value)?;
         self.push(Shape::scalar(), Op::Sum(value))
     }
     /// Zero-copy reshape in the native tape; value/adjoint storage is aliased.
     /// # Errors
     /// Rejects changed element count or foreign values.
     pub fn reshape(&mut self, value: Value, shape: Shape) -> Result<Value, E> {
-        let old = self.node(value)?;
+        let old = self.real_node(value)?;
         if old.shape.elements != shape.elements {
             return Err(E::Shape);
         }
@@ -409,7 +500,7 @@ impl TensorBuilder {
     /// # Errors
     /// Rejects invalid indices, shape mismatch or foreign values.
     pub fn gather(&mut self, value: Value, shape: Shape, indices: Vec<usize>) -> Result<Value, E> {
-        let old = self.node(value)?;
+        let old = self.real_node(value)?;
         if indices.len() != shape.elements || indices.iter().any(|&i| i >= old.shape.elements) {
             return Err(E::Shape);
         }
@@ -439,8 +530,8 @@ impl TensorBuilder {
         kernel: MatrixKernel,
     ) -> Result<Value, E> {
         let kernel = kernel.resolved();
-        let lhs = &self.node(a)?.shape;
-        let rhs = &self.node(b)?.shape;
+        let lhs = &self.real_node(a)?.shape;
+        let rhs = &self.real_node(b)?.shape;
         if lhs.axes.len() != 2 || rhs.axes.len() != 2 || lhs.axes[1] != rhs.axes[0] {
             return Err(E::Shape);
         }
@@ -462,7 +553,7 @@ impl TensorBuilder {
             return Err(E::Shape);
         }
         for (&arg, input) in args.iter().zip(&region.plan.inputs) {
-            if self.node(arg)?.shape != input.shape {
+            if self.real_node(arg)?.shape != input.shape {
                 return Err(E::Shape);
             }
         }
@@ -481,8 +572,8 @@ impl TensorBuilder {
         yes: BoundProgram,
         no: BoundProgram,
     ) -> Result<Value, E> {
-        if self.node(lhs)?.shape != Shape::scalar()
-            || self.node(rhs)?.shape != Shape::scalar()
+        if self.real_node(lhs)?.shape != Shape::scalar()
+            || self.real_node(rhs)?.shape != Shape::scalar()
             || yes.output_shape() != no.output_shape()
         {
             return Err(E::Shape);
@@ -545,8 +636,8 @@ impl TensorBuilder {
         body: BoundProgram,
         checkpointed: bool,
     ) -> Result<Value, E> {
-        let shape = self.node(initial)?.shape.clone();
-        let data = self.node(xs)?.shape.clone();
+        let shape = self.real_node(initial)?.shape.clone();
+        let data = self.real_node(xs)?.shape.clone();
         if data.axes.is_empty()
             || body.plan.inputs.len() != captures.len() + 2
             || body.output_shape() != &shape
@@ -556,11 +647,15 @@ impl TensorBuilder {
             return Err(E::Shape);
         }
         for (&arg, input) in captures.iter().zip(&body.plan.inputs[2..]) {
-            if self.node(arg)?.shape != input.shape {
+            if self.real_node(arg)?.shape != input.shape {
                 return Err(E::Shape);
             }
         }
         let steps = data.axes[0];
+        #[cfg(test)]
+        if checkpointed && steps != 0 && registration::blocks_replay(&body.plan) {
+            return Err(E::Shape);
+        }
         let row = body.plan.inputs[1].shape.elements;
         steps
             .checked_mul(body.plan.workspace_bytes)
@@ -584,7 +679,7 @@ impl TensorBuilder {
     /// # Errors
     /// Rejects a foreign output value or overflowing nested workspace storage.
     pub fn compile(self, output: Value) -> Result<TensorProgram, E> {
-        self.node(output)?;
+        self.real_node(output)?;
         let mut active = vec![false; self.nodes.len()];
         active[output.node] = true;
         for (i, node) in self.nodes.iter().enumerate().rev() {
@@ -628,6 +723,8 @@ pub struct TensorProgram {
 pub struct BoundProgram {
     plan: Arc<Plan>,
     data: Vec<Arc<[f64]>>,
+    #[cfg(test)]
+    snapshot: Arc<registration::BindingState>,
 }
 /// Target-owned tensor scratch exceeds the caller's explicit per-execution budget.
 /// Counts include native value/adjoint buffers and retained control-flow frames,
@@ -672,6 +769,9 @@ impl TensorProgram {
             }
             data.push(Arc::from(values));
         }
+        #[cfg(test)]
+        return registration::bind_snapshot(Arc::clone(&self.plan), data);
+        #[cfg(not(test))]
         Ok(BoundProgram {
             plan: Arc::clone(&self.plan),
             data,
@@ -692,6 +792,11 @@ impl TensorProgram {
             inputs: n.inputs(),
             active: self.plan.active[i],
             operation: match &n.op {
+                #[cfg(test)]
+                Op::Prototype(op) => match &**op {
+                    registration::Operation::Data(_) => TensorOperation::Constant,
+                    registration::Operation::Native(_) => TensorOperation::Registered,
+                },
                 Op::Input(_) => TensorOperation::Input,
                 Op::Data(_) => TensorOperation::Data,
                 Op::Constant(_) => TensorOperation::Constant,
@@ -736,6 +841,9 @@ impl BoundProgram {
         }
         let mut data = self.data.clone();
         data[index] = Arc::from(values);
+        #[cfg(test)]
+        return registration::bind_snapshot(Arc::clone(&self.plan), data);
+        #[cfg(not(test))]
         Ok(Self {
             plan: Arc::clone(&self.plan),
             data,
@@ -811,6 +919,10 @@ impl Primitive for TensorFactor {
         Ok(out[0])
     }
     fn source_rule(&self) -> Option<fn(&Self) -> String> {
+        #[cfg(test)]
+        if registration::missing_source(&self.binding.plan).is_some() {
+            return None;
+        }
         Some(|this| this.binding.scalar_source())
     }
     fn source_workspace(&self) -> usize {
@@ -841,30 +953,138 @@ fn broadcast(a: &Shape, b: &Shape) -> Result<Shape, E> {
     }
     Shape::new(axes)
 }
-fn map(input: &Shape, output: &Shape) -> Map {
-    if input == output {
-        return Map::Identity;
+// Called only after broadcast() has admitted the shapes. Nonempty shape products
+// bound every stride and computed offset. Empty domains require no strides (and
+// may have otherwise unrepresentable suffix products following a zero axis).
+fn map(input: &Shape, output: &Shape) -> Result<Map, E> {
+    if output.elements == 0 {
+        return Ok(Map::Empty);
+    }
+    if input.elements == output.elements {
+        return Ok(Map::Identity);
     }
     if input.elements == 1 {
-        return Map::Scalar;
+        return Ok(Map::Scalar);
     }
-    let indices = (0..output.elements)
-        .map(|mut i| {
-            let mut index = 0;
-            let mut stride = 1;
-            for (axis, &extent) in output.axes.iter().enumerate().rev() {
-                let coordinate = i % extent;
-                i /= extent;
-                if axis + input.axes.len() >= output.axes.len() {
-                    let size = input.axes[axis + input.axes.len() - output.axes.len()];
-                    if size != 1 {
-                        index += coordinate * stride;
-                    }
-                    stride *= size;
+    let leading = output.axes.len() - input.axes.len();
+    let mut axes = Vec::with_capacity(input.axes.len());
+    let (mut input_stride, mut output_stride) = (1_usize, 1_usize);
+    for (&size, &extent) in input.axes.iter().zip(&output.axes[leading..]).rev() {
+        if size != 1 {
+            axes.push(BroadcastAxis {
+                extent,
+                output_stride,
+                input_stride,
+            });
+        }
+        input_stride = input_stride.checked_mul(size).ok_or(E::Shape)?;
+        output_stride = output_stride.checked_mul(extent).ok_or(E::Shape)?;
+    }
+    Ok(Map::Broadcast(axes.into()))
+}
+
+#[cfg(test)]
+mod indexing_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    // Independent coordinate expansion, retained only as a test oracle. Do not
+    // materialize this table in the planner or either source renderer.
+    fn expanded(input: &Shape, output: &Shape) -> Vec<usize> {
+        (0..output.elements)
+            .map(|mut flat| {
+                let mut coordinates = vec![0; output.axes.len()];
+                for (coordinate, &extent) in coordinates.iter_mut().zip(output.axes.iter()).rev() {
+                    *coordinate = flat % extent;
+                    flat /= extent;
+                }
+                input
+                    .axes
+                    .iter()
+                    .zip(&coordinates[output.axes.len() - input.axes.len()..])
+                    .fold(0, |index, (&extent, &coordinate)| {
+                        index * extent + if extent == 1 { 0 } else { coordinate }
+                    })
+            })
+            .collect()
+    }
+
+    proptest! {
+        #[test]
+        fn compact_broadcast_matches_coordinate_oracle(
+            axes in prop::collection::vec(0_usize..5, 0..7),
+            mask in any::<u8>(),
+            leading in 0_usize..7,
+        ) {
+            let output = Shape::new(axes.clone()).unwrap();
+            let input_axes: Vec<_> = axes.iter().enumerate()
+                .map(|(i, &extent)| if mask & (1 << i) == 0 { 1 } else { extent })
+                .collect();
+            // Only leading unit axes may be omitted under trailing broadcasting.
+            let drop = input_axes.iter().take(leading).take_while(|&&n| n == 1).count();
+            let input = Shape::new(input_axes[drop..].to_vec()).unwrap();
+            prop_assert_eq!(broadcast(&input, &output).unwrap(), output.clone());
+            let compact = map(&input, &output).unwrap();
+            let expected = expanded(&input, &output);
+            for (i, &expected) in expected.iter().enumerate() {
+                prop_assert_eq!(compact.at(i), expected);
+                prop_assert!(compact.at(i) < input.elements);
+            }
+            let b = Binary {
+                kind: BinaryOp::Add,
+                a: Value { owner: 0, node: 0 },
+                b: Value { owner: 0, node: 1 },
+                left: compact.clone(),
+                right: Map::Identity,
+            };
+            // Fusion blocks can begin/end inside a broadcast run.
+            for start in [0, output.elements.min(1), output.elements / 2, output.elements] {
+                let len = (output.elements - start).min(257);
+                let mut visited = Vec::new();
+                kernels::for_each_index(&b, start, len, |j, left, right| visited.push((j, left, right)));
+                prop_assert_eq!(visited.len(), len);
+                for (j, left, right) in visited {
+                    prop_assert_eq!(left, expected[start + j]);
+                    prop_assert_eq!(right, start + j);
                 }
             }
-            index
-        })
-        .collect::<Vec<_>>();
-    Map::Gather(indices.into())
+            if let Map::Broadcast(terms) = compact {
+                prop_assert!(!terms.is_empty());
+                prop_assert!(terms.len() <= input.axes.len());
+            }
+        }
+    }
+
+    #[test]
+    fn map_storage_and_source_depend_on_rank_not_output_cardinality() {
+        for n in [1_000, 1_000_000] {
+            let output = Shape::new(vec![n, 8]).unwrap();
+            for input in [
+                Shape::new(vec![n, 1]).unwrap(),
+                Shape::new(vec![8]).unwrap(),
+            ] {
+                let mut retained = None;
+                let allocation = allocation_counter::measure(|| {
+                    retained = Some(map(&input, &output).unwrap());
+                });
+                assert!(allocation.bytes_total < 256);
+                let compact = retained.unwrap();
+                assert!(compact.index_source().len() < 64);
+                let Map::Broadcast(terms) = compact else {
+                    panic!("nontrivial broadcast")
+                };
+                assert_eq!(terms.len(), 1);
+            }
+        }
+        let input = Shape::new(vec![3]).unwrap();
+        assert!(matches!(
+            map(&input, &Shape::new(vec![1, 1, 3]).unwrap()).unwrap(),
+            Map::Identity
+        ));
+        // Valid empty shapes need no suffix products, divisions or index arrays.
+        let empty = Shape::new(vec![0, usize::MAX, usize::MAX]).unwrap();
+        let input = Shape::new(vec![0, 1, 1]).unwrap();
+        assert_eq!(broadcast(&input, &empty).unwrap(), empty);
+        assert!(matches!(map(&input, &empty).unwrap(), Map::Empty));
+    }
 }

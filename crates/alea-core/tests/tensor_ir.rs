@@ -117,6 +117,116 @@ fn broadcast_rank_three_gather_and_shared_reshape_have_correct_reverse_maps() {
 }
 
 #[test]
+fn regular_broadcast_matches_explicit_gathers_without_reordering_scores() {
+    for op in [B::Add, B::Subtract, B::Multiply, B::Divide] {
+        for n in [2, 683] {
+            let build = |expand: bool| {
+                let mut b = TensorBuilder::new();
+                let mut a = b.input("a", shape(&[n, 1, 3])).unwrap();
+                let mut r = b.input("r", shape(&[1, 2, 1])).unwrap();
+                if expand {
+                    a = b
+                        .gather(
+                            a,
+                            shape(&[n, 2, 3]),
+                            (0..n * 6).map(|j| j / 6 * 3 + j % 3).collect(),
+                        )
+                        .unwrap();
+                    r = b
+                        .gather(
+                            r,
+                            shape(&[n, 2, 3]),
+                            (0..n * 6).map(|j| j / 3 % 2).collect(),
+                        )
+                        .unwrap();
+                }
+                let result = b.binary(op, a, r).unwrap();
+                // Long case also exercises the native forward fusion schedule.
+                let neg = b.unary(U::Neg, result).unwrap();
+                let square = b.binary(B::Multiply, neg, neg).unwrap();
+                let out = b.binary(B::Add, result, square).unwrap();
+                b.compile(out).unwrap().bind(&[]).unwrap()
+            };
+            let regular = build(false);
+            let gathered = build(true);
+            let mut x: Vec<_> = (0..n * 3).map(|j| (j % 7) as f64 / 8. - 0.25).collect();
+            x.extend([0.5, 1.5]);
+            let seed: Vec<_> = (0..n * 6)
+                .map(|j| [1e16, 1., -1e16, 0., -0.5][j % 5])
+                .collect();
+            let run = |p: &alea_core::model::tensor::BoundProgram| {
+                let mut out = vec![0.; seed.len()];
+                let mut g = vec![0.; x.len()];
+                p.value_and_vjp(&x, &seed, &mut out, &mut g, &mut p.workspace())
+                    .unwrap();
+                (
+                    out.into_iter().map(f64::to_bits).collect::<Vec<_>>(),
+                    g.into_iter().map(f64::to_bits).collect::<Vec<_>>(),
+                )
+            };
+            assert_eq!(run(&regular), run(&gathered), "{op:?}, n={n}");
+            if n == 2 {
+                check_vjp(&regular, &x, &vec![0.25; n * 6]);
+            }
+        }
+    }
+}
+
+#[test]
+fn broadcast_source_is_compact_and_rebinding_preserves_error_staging() {
+    let build = |n| {
+        let mut b = TensorBuilder::new();
+        let a = b.input("a", shape(&[2, 1])).unwrap();
+        let r = b.data("r", shape(&[n])).unwrap();
+        let out = b.binary(B::Divide, a, r).unwrap();
+        b.compile(out).unwrap()
+    };
+    let small = build(16).bind(&[("r", &[1.; 16])]).unwrap().rust_function();
+    let large = build(4096)
+        .bind(&[("r", &[1.; 4096])])
+        .unwrap()
+        .rust_function();
+    // Data literals still scale with data; regular maps must not add literals.
+    assert!(small.contains("j%16"));
+    assert!(large.contains("j%4096"));
+    assert!(!large.contains("[usize;"));
+    let plan = build(3);
+    let good = plan.bind(&[("r", &[1., 2., 4.])]).unwrap();
+    let bad = plan.bind(&[("r", &[1., 0., 4.])]).unwrap();
+    let mut w = good.workspace();
+    let mut out = [41.; 6];
+    let mut g = [41.; 2];
+    assert!(
+        bad.value_and_vjp(&[1., 2.], &[1.; 6], &mut out, &mut g, &mut w)
+            .is_err()
+    );
+    assert_eq!(out, [41.; 6]);
+    assert_eq!(g, [41.; 2]);
+    good.value_and_vjp(&[1., 2.], &[1.; 6], &mut out, &mut g, &mut w)
+        .unwrap();
+    assert_eq!(out, [1., 0.5, 0.25, 2., 1., 0.5]);
+    assert_eq!(g, [1.75, 1.75]);
+}
+
+#[test]
+fn empty_broadcasts_do_not_address_inputs_or_adjoint_ranges() {
+    for reverse in [false, true] {
+        let mut b = TensorBuilder::new();
+        let empty = b.input("empty", shape(&[0, 3])).unwrap();
+        let full = b.constant(shape(&[3]), vec![1., 2., 3.]).unwrap();
+        let (a, r) = if reverse {
+            (full, empty)
+        } else {
+            (empty, full)
+        };
+        let out = b.binary(B::Add, a, r).unwrap();
+        let p = b.compile(out).unwrap().bind(&[]).unwrap();
+        p.value_and_vjp(&[], &[], &mut [], &mut [], &mut p.workspace())
+            .unwrap();
+    }
+}
+
+#[test]
 fn matrix_block_vjp_matches_finite_differences_and_exact_product() {
     let mut b = TensorBuilder::new();
     let a = b.input("a", shape(&[2, 3])).unwrap();

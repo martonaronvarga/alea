@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import platform
 import subprocess
-from bench import describe, sha, REPO, read_metrics, finite_number, run_process, host_metadata
+from bench import describe, sha, REPO, read_metrics, finite_number, run_process, host_metadata, command_output
 
 # Declared before measurements. Small dimensions test dispatch crossovers;
 # NIG/standard-normal paths control unrelated codegen effects. Normal factors
@@ -47,6 +47,9 @@ SUITES['tensor-fusion'] = SUITES['tensor-checkpoint'] + [
 SUITES['tensor-storage'] = SUITES['tensor-fusion'] + [
     (case,size,calls) for case in ['tensor_vector','tensor_reuse']
     for size,calls in [(1000,1000),(10000,100),(100000,10)]]
+SUITES['matrix-providers'] = [('gemm',8,10000),('gemm',64,100),('gemm',128,25)]
+SUITES['normal-batching'] = [('normal_factors',size,calls) for size,calls in
+    [(3,100000),(4,100000),(5,100000),(128,10000),(4096,1000)]]
 
 
 def compatible(a,b,case):
@@ -92,15 +95,48 @@ def main():
     p.add_argument('--after',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--reps',type=int,default=7)
-    p.add_argument('--cpu',type=int,default=2)
+    p.add_argument('--cpu',type=int,help='first allowed CPU by default')
+    p.add_argument('--threads',type=int,default=1,help='equal CPU/library-thread budget for both providers')
+    p.add_argument('--before-env',action='append',default=[],metavar='NAME=VALUE')
+    p.add_argument('--after-env',action='append',default=[],metavar='NAME=VALUE')
+    p.add_argument('--build-metadata',type=Path,help='variants.json and adjacent completed qualification receipt for saved binaries')
     p.add_argument('--suite',choices=list(SUITES),default='base',
                    help='base preserves the original 15-case protocol; mixture-scores adds derivative/native controls')
     args=p.parse_args()
+    def overrides(values):
+        result={}
+        for item in values:
+            name,separator,value=item.partition('=')
+            if not separator or not name or name in result: p.error('unique NAME=VALUE overrides required')
+            result[name]=value
+        return result
+    environments=dict(before=overrides(args.before_env),after=overrides(args.after_env))
     cases=SUITES[args.suite]
-    if args.reps<1:p.error('positive repetitions required')
+    allowed=sorted(os.sched_getaffinity(0))
+    cpu=allowed[0] if args.cpu is None else args.cpu
+    if args.reps<1 or not 1 <= args.threads <= len(allowed) or cpu not in allowed:
+        p.error('positive repetitions and thread budget within the CPU allocation required')
+    cpus=[cpu]+[c for c in allowed if c!=cpu][:args.threads-1]
+    for overrides in environments.values():
+        for key in ['OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','RAYON_NUM_THREADS']:
+            if key in overrides and not 1 <= int(overrides[key]) <= args.threads:
+                p.error('library thread override exceeds the declared CPU budget')
     args.output.mkdir(parents=True,exist_ok=False)
-    os.sched_setaffinity(0,{args.cpu})
+    os.sched_setaffinity(0,set(cpus))
     binaries=dict(before=args.before.resolve(),after=args.after.resolve())
+    binary_builds=None
+    if args.build_metadata:
+        metadata=json.loads(args.build_metadata.read_text())
+        receipt=read_metrics((args.build_metadata.parent/'qualification.json').read_text())
+        if receipt.get('status')!='complete' or sha(args.build_metadata)!=receipt['variants_sha256']:
+            raise ValueError('incomplete or changed kernel build metadata')
+        binary_builds={}
+        for engine,path in binaries.items():
+            label=path.name.removesuffix('-kernels')
+            matching=[r for r in metadata if r['name']==label]
+            if len(matching)!=1 or sha(path)!=receipt['files'].get(path.name):
+                raise ValueError('kernel binary does not match the completed build receipt')
+            binary_builds[engine]=matching[0]
     files=[REPO/'crates/alea-math/src/numeric.rs',REPO/'crates/alea-math/src/metric.rs',
            REPO/'crates/alea-core/src/model.rs',
            REPO/'crates/alea-core/src/model/assembly.rs',
@@ -114,20 +150,23 @@ def main():
            REPO/'crates/alea-math/src/gemm.rs',
            REPO/'crates/alea-distributions/src/mixture.rs',
            REPO/'crates/alea-distributions/src/scalar.rs',REPO/'crates/alea-distributions/src/modeling.rs',
+           REPO/'crates/alea-distributions/src/modeling/normal.rs',
+           REPO/'crates/alea-distributions/src/modeling/normal/batch.rs',
            REPO/'crates/alea-distributions/src/modeling/regression.rs',
            REPO/'crates/alea-distributions/src/modeling/regression/links.rs',
            REPO/'crates/alea-distributions/src/modeling/regression/poisson_statistics.rs',
            REPO/'crates/alea-distributions/src/modeling/regression/kernels.rs',
            Path(__file__).resolve().parents[1]/'src/bin/kernel_audit.rs',Path(__file__).with_name('bench.py'),Path(__file__).resolve()]
-    manifest=dict(schema_version=2,cases=cases,suite=args.suite,reps=args.reps,cpu=args.cpu,machine=platform.machine(),host=host_metadata(),
-        alea_commit=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip(),
+    manifest=dict(schema_version=2,cases=cases,suite=args.suite,reps=args.reps,cpu=cpu,threads=args.threads,machine=platform.machine(),host=host_metadata(),
+        alea_commit=command_output(['git','-C',str(REPO),'rev-parse','HEAD']),
         flake_lock_sha256=sha(REPO/'flake.lock'),
         cargo_lock_sha256=sha(Path(__file__).resolve().parents[1]/'Cargo.lock'),
         package_sha256=sha(Path(__file__).resolve().parents[1]/'Cargo.toml'),
         cpuinfo=Path('/proc/cpuinfo').read_text(),binaries={k:dict(path=str(v),sha256=sha(v)) for k,v in binaries.items()},
         source_sha256={str(f.relative_to(REPO)):sha(f) for f in files},
-        rustc=subprocess.check_output(['rustc','-vV'],text=True),
+        rustc=command_output(['rustc','-vV']),binary_builds=binary_builds,
         flags={k:os.environ.get(k) for k in ['RUSTFLAGS','CXXFLAGS','CARGO_ENCODED_RUSTFLAGS']},
+        environments=environments,
         protocol='fixed production calls, construction separate; exact checksum except Poisson relative1e-12/absolute1e-8; no compile/profile overlap')
     (args.output/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     rows=[]
@@ -141,7 +180,7 @@ def main():
                 pair={}
                 for engine in (['before','after'] if rep%2==0 else ['after','before']):
                     result=run_process([str(binaries[engine]),case,str(size),str(calls)],text=True,capture_output=True,check=False,
-                        env={**os.environ,'OMP_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','MKL_NUM_THREADS':'1','RAYON_NUM_THREADS':'1'})
+                        env={**os.environ,**{k:str(args.threads) for k in ['OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','RAYON_NUM_THREADS']},**environments[engine]})
                     row=dict(case=case,size=size,calls=calls,engine=engine,rep=rep,returncode=result.returncode,
                              success=False,stdout=result.stdout,stderr=result.stderr)
                     try:

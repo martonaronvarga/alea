@@ -273,6 +273,7 @@ pub fn alea_core::distribution::Distribution::log_prob(&self, event: &Self::Even
 pub fn alea_core::distribution::Distribution::reference_measure(&self) -> alea_core::distribution::ReferenceMeasure
 pub fn alea_core::distribution::Distribution::support(&self) -> alea_core::distribution::Support
 pub trait alea_core::distribution::ParameterScore: alea_core::distribution::Distribution
+pub fn alea_core::distribution::ParameterScore::log_prob_event_parameter_score(&self, event: f64, output: &mut [f64]) -> core::result::Result<(f64, f64), Self::Error> where Self: alea_core::distribution::ScalarEventScore + core::marker::Sized
 pub fn alea_core::distribution::ParameterScore::parameter_count(&self) -> usize
 pub fn alea_core::distribution::ParameterScore::parameter_score(&self, event: &Self::Event, output: &mut [f64]) -> core::result::Result<(), Self::Error>
 pub trait alea_core::distribution::Sample: alea_core::distribution::Distribution
@@ -533,6 +534,7 @@ impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::rebind<P: alea_core::model::assembly::Primitive>(self, expression: alea_core::model::assembly::Expr, update: impl core::ops::function::FnOnce(&P) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> core::result::Result<Self, alea_core::model::assembly::RebindError>
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::rust_checkpoint_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::CompiledModel::rust_first_order_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize, bool)>, alea_core::model::assembly::AssemblyError>
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal_with_workspace(&self) -> core::result::Result<(alloc::string::String, usize), alea_core::model::assembly::AssemblyError>
@@ -723,6 +725,10 @@ impl core::fmt::Debug for alea_core::model::assembly::RebindError
 pub fn alea_core::model::assembly::RebindError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::fmt::Display for alea_core::model::assembly::RebindError
 pub fn alea_core::model::assembly::RebindError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct alea_core::model::assembly::ScalarPreparation<P: alea_core::model::assembly::Primitive>
+pub alea_core::model::assembly::ScalarPreparation::argument: usize
+pub alea_core::model::assembly::ScalarPreparation::evaluate: alea_core::model::assembly::PreparedEvaluator<P>
+pub alea_core::model::assembly::ScalarPreparation::prepare: fn(f64) -> f64
 pub struct alea_core::model::assembly::SourceCapabilities
 pub alea_core::model::assembly::SourceCapabilities::missing_primals: alloc::vec::Vec<alea_core::model::assembly::Expr>
 impl alea_core::model::assembly::SourceCapabilities
@@ -750,7 +756,9 @@ pub fn alea_core::model::assembly::Primitive::batch_workspace(&self) -> Self::Wo
 pub fn alea_core::model::assembly::Primitive::evaluate(&self, inputs: &[f64], gradient: &mut [f64], workspace: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::Primitive::inputs(&self) -> &[alea_core::model::assembly::Expr]
 pub fn alea_core::model::assembly::Primitive::rust_primal(&self) -> core::option::Option<&'static str>
+pub fn alea_core::model::assembly::Primitive::scalar_preparation(&self) -> core::option::Option<alea_core::model::assembly::ScalarPreparation<Self>> where Self: core::marker::Sized
 pub fn alea_core::model::assembly::Primitive::signature(&self) -> alea_core::model::assembly::PrimitiveSignature
+pub fn alea_core::model::assembly::Primitive::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String> where Self: core::marker::Sized
 pub fn alea_core::model::assembly::Primitive::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String> where Self: core::marker::Sized
 pub fn alea_core::model::assembly::Primitive::source_workspace(&self) -> usize
 pub fn alea_core::model::assembly::Primitive::workspace(&self) -> Self::Workspace
@@ -761,7 +769,9 @@ pub fn alea_core::model::tensor::TensorFactor::batch_workspace(&self) -> Self::W
 pub fn alea_core::model::tensor::TensorFactor::evaluate(&self, x: &[f64], g: &mut [f64], w: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::TensorFactor::inputs(&self) -> &[alea_core::model::assembly::Expr]
 pub fn alea_core::model::tensor::TensorFactor::rust_primal(&self) -> core::option::Option<&'static str>
+pub fn alea_core::model::tensor::TensorFactor::scalar_preparation(&self) -> core::option::Option<alea_core::model::assembly::ScalarPreparation<Self>> where Self: core::marker::Sized
 pub fn alea_core::model::tensor::TensorFactor::signature(&self) -> alea_core::model::assembly::PrimitiveSignature
+pub fn alea_core::model::tensor::TensorFactor::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String> where Self: core::marker::Sized
 pub fn alea_core::model::tensor::TensorFactor::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>
 pub fn alea_core::model::tensor::TensorFactor::source_workspace(&self) -> usize
 pub fn alea_core::model::tensor::TensorFactor::workspace(&self) -> Self::Workspace
@@ -792,6 +802,7 @@ pub fn alea_core::model::assembly::UnitInterval::accepts(transform: alea_core::t
 impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::UnitSphere
 pub fn alea_core::model::assembly::UnitSphere::accepts(transform: alea_core::transform::Transform) -> bool
 pub type alea_core::model::assembly::BatchEvaluator<P> = fn(&P, &[f64], &mut [f64], &mut <P as alea_core::model::assembly::Primitive>::Workspace) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub type alea_core::model::assembly::PreparedEvaluator<P> = fn(&P, &[f64], &mut [f64], &mut <P as alea_core::model::assembly::Primitive>::Workspace, f64) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
 pub mod alea_core::model::prediction
 pub enum alea_core::model::prediction::PredictionError<E: core::error::Error + 'static>
 pub alea_core::model::prediction::PredictionError::Generator(E)
@@ -968,7 +979,9 @@ pub fn alea_core::model::tensor::TensorFactor::batch_workspace(&self) -> Self::W
 pub fn alea_core::model::tensor::TensorFactor::evaluate(&self, x: &[f64], g: &mut [f64], w: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::TensorFactor::inputs(&self) -> &[alea_core::model::assembly::Expr]
 pub fn alea_core::model::tensor::TensorFactor::rust_primal(&self) -> core::option::Option<&'static str>
+pub fn alea_core::model::tensor::TensorFactor::scalar_preparation(&self) -> core::option::Option<alea_core::model::assembly::ScalarPreparation<Self>> where Self: core::marker::Sized
 pub fn alea_core::model::tensor::TensorFactor::signature(&self) -> alea_core::model::assembly::PrimitiveSignature
+pub fn alea_core::model::tensor::TensorFactor::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String> where Self: core::marker::Sized
 pub fn alea_core::model::tensor::TensorFactor::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>
 pub fn alea_core::model::tensor::TensorFactor::source_workspace(&self) -> usize
 pub fn alea_core::model::tensor::TensorFactor::workspace(&self) -> Self::Workspace
@@ -1218,6 +1231,7 @@ impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::rebind<P: alea_core::model::assembly::Primitive>(self, expression: alea_core::model::assembly::Expr, update: impl core::ops::function::FnOnce(&P) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> core::result::Result<Self, alea_core::model::assembly::RebindError>
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::rust_checkpoint_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::CompiledModel::rust_first_order_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize, bool)>, alea_core::model::assembly::AssemblyError>
 impl alea_core::model::assembly::CompiledModel
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal_with_workspace(&self) -> core::result::Result<(alloc::string::String, usize), alea_core::model::assembly::AssemblyError>

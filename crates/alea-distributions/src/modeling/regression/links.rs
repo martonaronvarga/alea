@@ -50,6 +50,14 @@ impl BernoulliLogitRegression {
         self.design.set_execution(execution);
         self
     }
+    /// Selects opt-in conventional f64 or default compensated accumulation.
+    /// Standard arithmetic retains validation but can lose accuracy under
+    /// cancellation. Source AD export is unavailable for the Standard policy.
+    #[must_use]
+    pub fn with_arithmetic(mut self, arithmetic: RegressionArithmetic) -> Self {
+        self.design.plan.arithmetic = arithmetic;
+        self
+    }
     /// Returns an immutable same-shape replacement descriptor.
     /// # Errors
     /// Rejects a changed row/column count or preparation failure.
@@ -57,7 +65,9 @@ impl BernoulliLogitRegression {
         if data.rows() != self.data.rows() || data.columns() != self.data.columns() {
             return Err(E::Shape);
         }
-        Ok(Self::new(&self.inputs, data)?.with_execution(self.execution_plan().execution()))
+        Ok(Self::new(&self.inputs, data)?
+            .with_execution(self.execution_plan().execution())
+            .with_arithmetic(self.execution_plan().arithmetic()))
     }
 }
 impl PoissonLogRegression {
@@ -97,6 +107,14 @@ impl PoissonLogRegression {
         self.design.set_execution(execution);
         self
     }
+    /// Selects row-kernel accumulation. Eligible common-predictor sufficient
+    /// statistics remain unchanged. Standard arithmetic is opt-in and does not
+    /// support source AD export; all validation remains enabled.
+    #[must_use]
+    pub fn with_arithmetic(mut self, arithmetic: RegressionArithmetic) -> Self {
+        self.design.plan.arithmetic = arithmetic;
+        self
+    }
     /// Returns an immutable same-shape replacement descriptor.
     /// # Errors
     /// Rejects changed shape, count precision or preparation failures.
@@ -104,7 +122,9 @@ impl PoissonLogRegression {
         if data.rows() != self.data.rows() || data.columns() != self.data.columns() {
             return Err(E::Shape);
         }
-        Ok(Self::new(&self.inputs, data)?.with_execution(self.execution_plan().execution()))
+        Ok(Self::new(&self.inputs, data)?
+            .with_execution(self.execution_plan().execution())
+            .with_arithmetic(self.execution_plan().arithmetic()))
     }
 }
 fn signature(
@@ -179,7 +199,23 @@ impl Primitive for BernoulliLogitRegression {
         })
     }
     fn source_rule(&self) -> Option<fn(&Self) -> String> {
+        if self.execution_plan().arithmetic() != RegressionArithmetic::Compensated {
+            return None;
+        }
         Some(|this| source(&this.data, "bool", "BernoulliLogit"))
+    }
+    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
+        if self.execution_plan().arithmetic() != RegressionArithmetic::Compensated {
+            return None;
+        }
+        Some(|this| {
+            native_score_source(
+                &this.data,
+                "BernoulliLogitRegression",
+                this.execution_plan().execution(),
+                false,
+            )
+        })
     }
 }
 impl Primitive for PoissonLogRegression {
@@ -255,7 +291,23 @@ impl Primitive for PoissonLogRegression {
         })
     }
     fn source_rule(&self) -> Option<fn(&Self) -> String> {
+        if self.execution_plan().arithmetic() != RegressionArithmetic::Compensated {
+            return None;
+        }
         Some(|this| source(&this.data, "u64", "PoissonLog"))
+    }
+    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
+        if self.execution_plan().arithmetic() != RegressionArithmetic::Compensated {
+            return None;
+        }
+        Some(|this| {
+            native_score_source(
+                &this.data,
+                "PoissonLogRegression",
+                this.execution_plan().execution(),
+                false,
+            )
+        })
     }
 }
 fn source<Y: std::fmt::Debug>(data: &RegressionData<Y>, event: &str, law: &str) -> String {

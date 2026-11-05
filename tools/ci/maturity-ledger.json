@@ -323,6 +323,12 @@
       "promotion_gate": "Broaden independent downstream and transformation conformance before promotion; no inferred generation, pointwise, higher-derivative or speed claim."
     },
     {
+      "path": "crates/alea-distributions/src/modeling/normal/batch.rs",
+      "profile": "research_component",
+      "summary": "Broadcasted native Normal map/reduce using shared scalar/SIMD arithmetic, row reporting, rebinding and native first-order source rules.",
+      "promotion_gate": "Broaden model/ISA/compiler qualification and measure execution before promotion; no arbitrary-plate fusion or higher-AD kernel differentiation claim."
+    },
+    {
       "path": "crates/alea-distributions/src/modeling/regression.rs",
       "profile": "research_component",
       "summary": "Fixed-design analytic normal, Bernoulli-logit and Poisson-log batch likelihoods with typed responses, explicit offsets and compensated scores.",
@@ -5509,6 +5515,24 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::ScalarPreparation::argument: usize",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::ScalarPreparation::evaluate: alea_core::model::assembly::PreparedEvaluator<P>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::ScalarPreparation::prepare: fn(f64) -> f64",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub alea_core::model::assembly::SourceCapabilities::missing_primals: alloc::vec::Vec<alea_core::model::assembly::Expr>",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
@@ -6790,6 +6814,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::distribution::ParameterScore::log_prob_event_parameter_score(&self, event: f64, output: &mut [f64]) -> core::result::Result<(f64, f64), Self::Error> where Self: alea_core::distribution::ScalarEventScore + core::marker::Sized",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::distribution::ParameterScore::parameter_count(&self) -> usize",
       "profile": "validated_component_opt_in"
     },
@@ -7246,6 +7276,12 @@
       "item": "pub fn alea_core::model::assembly::CompiledModel::rust_checkpoint_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify explicit first-order source replay separately from compiler-owned higher-order tapes; no arbitrary-program memory or speed guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_first_order_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize, bool)>, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-core",
@@ -7841,9 +7877,21 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Primitive::scalar_preparation(&self) -> core::option::Option<alea_core::model::assembly::ScalarPreparation<Self>> where Self: core::marker::Sized",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::Primitive::signature(&self) -> alea_core::model::assembly::PrimitiveSignature",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Primitive::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String> where Self: core::marker::Sized",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-core",
@@ -8480,9 +8528,21 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::TensorFactor::scalar_preparation(&self) -> core::option::Option<alea_core::model::assembly::ScalarPreparation<Self>> where Self: core::marker::Sized",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::TensorFactor::signature(&self) -> alea_core::model::assembly::PrimitiveSignature",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::TensorFactor::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String> where Self: core::marker::Sized",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-core",
@@ -9358,6 +9418,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::ScalarPreparation<P: alea_core::model::assembly::Primitive>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub struct alea_core::model::assembly::SourceCapabilities",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
@@ -9727,6 +9793,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub type alea_core::model::assembly::PreparedEvaluator<P> = fn(&P, &[f64], &mut [f64], &mut <P as alea_core::model::assembly::Primitive>::Workspace, f64) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub type alea_core::model::assembly::Primitive::Workspace: core::marker::Send + core::marker::Sync + 'static",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
@@ -9777,6 +9849,12 @@
       "item": "pub use alea_core::model::tensor::MatrixKernel",
       "profile": "research_component",
       "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "#[non_exhaustive] pub enum alea_distributions::modeling::regression::RegressionArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -11030,6 +11108,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl alea_core::model::assembly::primitives::Primitive for alea_distributions::modeling::NormalBatch",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl alea_core::model::assembly::primitives::Primitive for alea_distributions::modeling::NormalFactor",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
@@ -11138,6 +11222,12 @@
       "item": "impl alea_distributions::modeling::ModelBuilderExt for alea_core::model::assembly::ModelBuilder",
       "profile": "research_component",
       "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl alea_distributions::modeling::NormalBatch",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
     },
     {
       "crate": "alea-distributions",
@@ -11734,6 +11824,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::clone::Clone for alea_distributions::modeling::regression::RegressionArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::clone::Clone for alea_distributions::modeling::regression::RegressionDataError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -12247,6 +12343,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::cmp::Eq for alea_distributions::modeling::regression::RegressionArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::cmp::Eq for alea_distributions::modeling::regression::RegressionDataError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -12324,6 +12426,12 @@
       "crate": "alea-distributions",
       "item": "impl core::cmp::PartialEq for alea_distributions::latent::LatentFrame",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::cmp::PartialEq for alea_distributions::modeling::regression::RegressionArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -12762,6 +12870,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::default::Default for alea_distributions::modeling::regression::RegressionArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::default::Default for alea_distributions::modeling::regression::RegressionExecution",
       "profile": "research_component",
       "promotion_gate": "Qualify broader native CPU-plan and numerical conformance before promotion; no measured cost-optimal scheduling or speed guarantee."
@@ -12902,6 +13016,12 @@
       "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::CoefficientStandardization",
       "profile": "research_component",
       "promotion_gate": "Qualify reversible regression coordinates and derivative accuracy on declared workloads; no automatic priors, convergence, identification or uncertainty guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::fmt::Debug for alea_distributions::modeling::regression::RegressionArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -13529,6 +13649,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "impl core::marker::Copy for alea_distributions::modeling::regression::RegressionArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "impl core::marker::Copy for alea_distributions::modeling::regression::RegressionDataError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -13956,6 +14082,12 @@
       "crate": "alea-distributions",
       "item": "impl core::marker::StructuralPartialEq for alea_distributions::latent::LatentFrame",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::marker::StructuralPartialEq for alea_distributions::modeling::regression::RegressionArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -14652,6 +14784,18 @@
       "item": "pub alea_distributions::latent::WienerObservationModel::map: M",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::RegressionArithmetic::Compensated",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub alea_distributions::modeling::regression::RegressionArithmetic::Standard",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -15591,6 +15735,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::normal_vector_likelihood(&mut self, name: &str, observations: &[f64], locations: &[alea_core::model::assembly::Expr], scales: &[alea_core::model::assembly::Expr]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_core::model::assembly::ModelBuilder::poisson_log_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
@@ -16096,9 +16246,93 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::ModelBuilderExt::normal_vector_likelihood(&mut self, name: &str, observations: &[f64], locations: &[alea_core::model::assembly::Expr], scales: &[alea_core::model::assembly::Expr]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::ModelBuilderExt::poisson_log_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::primitives::BatchRule<Self>>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::batch_workspace(&self) -> Self::Workspace",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::evaluate(&self, x: &[f64], g: &mut [f64], work: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::inputs(&self) -> &[alea_core::model::assembly::Expr]",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::new(events: &[alea_core::model::assembly::Expr], locations: &[alea_core::model::assembly::Expr], scales: &[alea_core::model::assembly::Expr]) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::observations(&self) -> core::option::Option<&[f64]>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::observed(observations: alloc::vec::Vec<f64>, locations: &[alea_core::model::assembly::Expr], scales: &[alea_core::model::assembly::Expr]) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::rows(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::signature(&self) -> alea_core::model::assembly::primitives::PrimitiveSignature",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::with_observations(&self, observations: alloc::vec::Vec<f64>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::workspace(&self) -> Self::Workspace",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16144,9 +16378,21 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalFactor::scalar_preparation(&self) -> core::option::Option<alea_core::model::assembly::primitives::ScalarPreparation<Self>>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::NormalFactor::signature(&self) -> alea_core::model::assembly::primitives::PrimitiveSignature",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalFactor::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16176,6 +16422,12 @@
       "item": "pub fn alea_distributions::modeling::normal(builder: &mut alea_core::model::assembly::ModelBuilder, event: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::normal_batch(builder: &mut alea_core::model::assembly::ModelBuilder, events: &[alea_core::model::assembly::Expr], locations: &[alea_core::model::assembly::Expr], scales: &[alea_core::model::assembly::Expr]) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16239,9 +16491,21 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::with_arithmetic(self, arithmetic: alea_distributions::modeling::regression::RegressionArithmetic) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16407,9 +16671,21 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::regression::NormalRegression::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::with_arithmetic(self, arithmetic: alea_distributions::modeling::regression::RegressionArithmetic) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16491,9 +16767,21 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::with_arithmetic(self, arithmetic: alea_distributions::modeling::regression::RegressionArithmetic) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16512,6 +16800,30 @@
       "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::workspace(&self) -> Self::Workspace",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionArithmetic::clone(&self) -> alea_distributions::modeling::regression::RegressionArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionArithmetic::default() -> alea_distributions::modeling::regression::RegressionArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionArithmetic::eq(&self, other: &alea_distributions::modeling::regression::RegressionArithmetic) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionArithmetic::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16710,6 +17022,12 @@
       "item": "pub fn alea_distributions::modeling::regression::RegressionExecution::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_component",
       "promotion_gate": "Qualify broader native CPU-plan and numerical conformance before promotion; no measured cost-optimal scheduling or speed guarantee."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionPlan::arithmetic(&self) -> alea_distributions::modeling::regression::RegressionArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Retain opt-in accumulation and cancellation/error tests; qualify remote throughput and inference accuracy before any default or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -17770,6 +18088,12 @@
       "item": "pub fn alea_distributions::prelude::ModelBuilderExt::normal_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::prelude::ModelBuilderExt::normal_vector_likelihood(&mut self, name: &str, observations: &[f64], locations: &[alea_core::model::assembly::Expr], scales: &[alea_core::model::assembly::Expr]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
     },
     {
       "crate": "alea-distributions",
@@ -18880,6 +19204,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Beta::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Beta::new(alpha: f64, beta: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -19050,6 +19380,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::BetaProportion::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::BetaProportion::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -19226,6 +19562,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Cauchy::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Cauchy::new(location: f64, scale: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -19284,6 +19626,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::ChiSquared::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::ChiSquared::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -19394,6 +19742,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::ExpModNormal::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::ExpModNormal::new(location: f64, scale: f64, rate: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -19452,6 +19806,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Exponential::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Exponential::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -19516,6 +19876,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::FisherF::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::FisherF::new(numerator_df: f64, denominator_df: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -19574,6 +19940,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Frechet::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Frechet::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -19638,6 +20010,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Gamma::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Gamma::new(shape: f64, rate: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -19696,6 +20074,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::GeneralizedExtremeValue::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::GeneralizedExtremeValue::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -19816,6 +20200,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Gumbel::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Gumbel::new(location: f64, scale: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -19877,6 +20267,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::HalfCauchy::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::HalfCauchy::new(scale: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -19935,6 +20331,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::HalfNormal::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::HalfNormal::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -20045,6 +20447,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::InverseChiSquared::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::InverseChiSquared::new(df: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -20103,6 +20511,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::InverseGamma::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::InverseGamma::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -20167,6 +20581,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::InverseGaussian::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::InverseGaussian::new(mean: f64, shape: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -20225,6 +20645,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Laplace::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Laplace::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -20289,6 +20715,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Levy::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Levy::new(location: f64, scale: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -20347,6 +20779,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::LogLogistic::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::LogLogistic::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -20411,6 +20849,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::LogNormal::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::LogNormal::new(location: f64, scale: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -20469,6 +20913,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Logistic::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Logistic::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -20645,6 +21095,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Normal::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Normal::new(location: f64, scale: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -20703,6 +21159,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::NormalInverseGaussian::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::NormalInverseGaussian::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -20879,6 +21341,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Pareto::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Pareto::new(minimum: f64, shape: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -20940,6 +21408,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::ParetoType2::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::ParetoType2::new(location: f64, scale: f64, shape: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -20998,6 +21472,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Pert::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Pert::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -21230,6 +21710,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Rayleigh::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Rayleigh::new(scale: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -21288,6 +21774,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::ScaledInverseChiSquared::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::ScaledInverseChiSquared::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -21352,6 +21844,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::SkewNormal::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::SkewNormal::new(location: f64, scale: f64, skew: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -21410,6 +21908,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::StudentT::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::StudentT::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -21474,6 +21978,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Triangular::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Triangular::new(lower: f64, upper: f64, mode: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -21532,6 +22042,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Uniform::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Uniform::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -21596,6 +22112,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::VonMises::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::VonMises::new(mean: f64, concentration: f64) -> core::result::Result<Self, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
     },
@@ -21654,6 +22176,12 @@
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::scalar::Weibull::log_prob(&self, x: &f64) -> core::result::Result<f64, alea_core::distribution::DistributionError>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::scalar::Weibull::log_prob_event_parameter_score(&self, x: f64, out: &mut [f64]) -> core::result::Result<(f64, f64), alea_core::distribution::DistributionError>",
+      "profile": "research_component",
+      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -22255,6 +22783,18 @@
       "crate": "alea-distributions",
       "item": "pub struct alea_distributions::mixture::FiniteMixture<D>",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub struct alea_distributions::modeling::NormalBatch",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub struct alea_distributions::modeling::NormalBatchWorkspace",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
     },
     {
       "crate": "alea-distributions",
@@ -23359,6 +23899,12 @@
       "crate": "alea-distributions",
       "item": "pub type alea_distributions::mixture::FiniteMixture<D>::Event = <D as alea_core::distribution::Distribution>::Event",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub type alea_distributions::modeling::NormalBatch::Workspace = alea_distributions::modeling::NormalBatchWorkspace",
+      "profile": "research_component",
+      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
     },
     {
       "crate": "alea-distributions",

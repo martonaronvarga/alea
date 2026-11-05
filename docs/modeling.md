@@ -97,6 +97,36 @@ leave-out units. An explicit native batch rule now provides conditional rows via
 loops. Neither route changes the posterior measure or infers marginal leave-out
 units. See [tensor regions and batch lowering](tensor-ir.md).
 
+For a non-regression Normal observation map, use vector locations/scales directly:
+
+```rust
+use alea::{model::assembly::ModelBuilder, distributions::modeling::ModelBuilderExt};
+let mut builder = ModelBuilder::new();
+let means = builder.real_vector("means", &["a", "b", "c"])?;
+let sigma = builder.positive("sigma")?;
+builder.normal_vector_likelihood(
+    "data", &[0.2, -0.4, 1.1], means.expressions(), &[sigma.expr()],
+)?;
+let model = builder.compile()?;
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+Each location/scale slice has length one or the observation count. The native
+`NormalBatch` primitive selects packet/scalar execution automatically, caches
+shared scale logarithms, and reuses derivative storage. It keeps one graph node
+for the joint density; conditional rows remain explicit through
+`batch_likelihood()`. Fixed responses can be replaced with the existing consuming
+`CompiledModel::rebind` and `NormalBatch::with_observations` interfaces.
+
+For differentiable event vectors, `modeling::normal_batch` accepts event,
+location and scale expression slices with the same broadcasting rule. It does
+not infer priors or add Jacobians: parameter declarations still own those charts.
+All local scalar scores are validated, including fixed-event scores. Broadcast
+scores and likelihoods use row-ordered compensated sums; separate scalar graph
+reductions need not be bit-identical. Arbitrary `plate` closures are **not**
+automatically rewritten into vector factors. Existing `normal_observations`
+continues to use compressed regression when all observations share one mean.
+
 For regression, named vector declarations are convenient:
 
 ```rust
@@ -640,10 +670,17 @@ fallbacks. `is_scalar_for_shape()` identifies this decision. Otherwise it caches
 Pulp's CPU selection at construction; it does not use fitted timing thresholds,
 autotuning, observation threading or Faer kernel selection.
 `Scalar` is a diagnostic backend, not a strict row-wise reduction policy or a
-cross-ISA bitwise replay guarantee. Both preserve the existing compensated
-formulations, error checks and reusable score buffers. `with_data` preserves the
-requested policy while rebuilding data-dependent packing/broadcast decisions.
-Generated source has its own backend and does not inherit this native CPU plan.
+cross-ISA bitwise replay guarantee. Both default to compensated arithmetic,
+with the same error checks and reusable score buffers. Native descriptors also
+accept `.with_arithmetic(RegressionArithmetic::Standard)` to opt into conventional
+f64 predictor, likelihood and score accumulation independently of CPU dispatch.
+This can lose meaningful digits under cancellation; it is not accuracy-equivalent
+to the default and has no established universal speed advantage. Gaussian and
+Poisson sufficient-statistics algorithms remain unchanged. `with_data` preserves
+both policies while rebuilding data-dependent packing/broadcast decisions.
+Standard descriptors explicitly reject source AD export; other source backends
+retain their existing rules. See the [arithmetic experiment](kernel-optimization.md#compensated-versus-conventional-f64-regression-arithmetic)
+for numerical counterexamples and the remote benchmark procedure.
 See [the kernel methodology](kernel-optimization.md#native-regression-execution-plans)
 for separate construction/evaluation benchmarks and the remaining selection gates.
 

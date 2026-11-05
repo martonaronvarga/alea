@@ -56,7 +56,19 @@ impl CompiledModel {
             }
             let static_source = new.rust_primal();
             let owned_source = new.source_rule();
+            let source_gradient = new.source_gradient_rule();
             let source_workspace = new.source_workspace();
+            let preparation = new.scalar_preparation();
+            if preparation
+                .as_ref()
+                .is_some_and(|p| p.argument >= new.inputs().len())
+            {
+                return Err(AssemblyError::Shape);
+            }
+            let preparation_metadata = preparation.as_ref().map(|p| super::prepare::Rule {
+                argument: p.argument,
+                prepare: p.prepare,
+            });
             if source_workspace > isize::MAX as usize / size_of::<f64>() {
                 return Err(AssemblyError::Shape);
             }
@@ -81,8 +93,17 @@ impl CompiledModel {
             let batch = batch.map(|rule| (rule, new.batch_workspace()));
             let descriptor = Arc::new(new);
             let executable = Arc::clone(&descriptor);
+            let source_gradient = source_gradient.map(|rule| {
+                let descriptor = Arc::clone(&descriptor);
+                Box::new(move || rule(&descriptor)) as Box<super::SourceCallback>
+            });
             let callback: Box<super::Callback> =
-                Box::new(move |x, g| executable.evaluate(x, g, &mut work));
+                Box::new(move |x, g, prepared| match (&preparation, prepared) {
+                    (Some(rule), Some(value)) => {
+                        (rule.evaluate)(&executable, x, g, &mut work, value)
+                    }
+                    _ => executable.evaluate(x, g, &mut work),
+                });
             let batch = batch.map(|(rule, mut workspace)| {
                 let descriptor = Arc::clone(&descriptor);
                 let callback: Box<super::BatchCallback> =
@@ -100,6 +121,8 @@ impl CompiledModel {
                     signature,
                     descriptor,
                     source_workspace,
+                    preparation: preparation_metadata,
+                    source_gradient,
                 },
                 callback,
                 batch,
@@ -129,6 +152,8 @@ impl CompiledModel {
             workspace.batch_rules.sort_by_key(|(node, _, _)| *node);
         }
         self.primitives[index].1 = descriptor;
+        workspace.preparation =
+            super::prepare::Plan::new(&self.nodes, &self.primitives, workspace.callbacks.len());
         self.primals.retain(|(node, _)| *node != expression.node);
         self.generated_primals
             .retain(|(node, _)| *node != expression.node);

@@ -11,9 +11,25 @@ use alea_core::{
     model::assembly::{AssemblyError as E, Expr, ModelBuilder, Parameter, Positive, ScalarInput},
 };
 pub use builder::ModelBuilderExt;
-pub use normal::NormalFactor;
+pub use normal::{NormalBatch, NormalBatchWorkspace, NormalFactor};
 fn error(e: impl std::error::Error + Send + Sync + 'static) -> E {
     E::Factor(Box::new(e))
+}
+// Common source bridge for built-in analytic primitives. Each emitted helper
+// owns a cache; native setup/heap storage stays outside the float-arena receipt.
+fn cached_primitive_source(native: &str, constructor: &str) -> String {
+    format!(
+        r#"use ::alea::model::assembly::Primitive as _;
+type Native={native};
+::std::thread_local! {{static CACHE: ::std::cell::RefCell<Option<(Native,<Native as ::alea::model::assembly::Primitive>::Workspace)>> = const {{::std::cell::RefCell::new(None)}};}}
+fn prepare()->Result<Native,::alea::model::assembly::AssemblyError> {{{constructor}}}
+CACHE.try_with(|cache| {{
+    let Ok(mut cache)=cache.try_borrow_mut() else {{return f64::NAN}};
+    if cache.is_none() {{let Ok(kernel)=prepare() else {{return f64::NAN}};let workspace=kernel.workspace();*cache=Some((kernel,workspace));}}
+    let Some((kernel,workspace))=cache.as_mut() else {{return f64::NAN}};
+    kernel.evaluate(x,g,workspace).unwrap_or(f64::NAN)
+}}).unwrap_or(f64::NAN)"#
+    )
 }
 /// A continuous scalar law as a model factor, including the event derivative.
 /// `construct` receives the parameter values in the order supplied by `parameters`.
@@ -42,9 +58,10 @@ where
         if law.parameter_count() != g.len() - 1 {
             return Err(error(alea_core::distribution::DistributionError::Shape));
         }
-        let value = law.log_prob(&x[0]).map_err(error)?;
-        g[0] = law.event_score(x[0]).map_err(error)?;
-        law.parameter_score(&x[0], &mut g[1..]).map_err(error)?;
+        let (value, event_score) = law
+            .log_prob_event_parameter_score(x[0], &mut g[1..])
+            .map_err(error)?;
+        g[0] = event_score;
         Ok(value)
     })
 }
@@ -90,6 +107,21 @@ pub fn normal(
 ) -> Result<Expr, E> {
     let [event, location, scale] = builder.inputs([event.into(), location.into(), scale.into()])?;
     builder.primitive(NormalFactor::new(event, location, scale))
+}
+/// Sum of Normal log densities with scalar broadcasting along one observation
+/// axis. Each nonempty argument has length one or the common batch length.
+/// Events may be differentiable expressions. This is one joint factor; explicit
+/// conditional row reporting remains available through its native descriptor.
+/// # Errors
+/// Rejects incompatible/empty shapes and foreign handles before registration;
+/// all scalar law checks and local-score failures remain visible at evaluation.
+pub fn normal_batch(
+    builder: &mut ModelBuilder,
+    events: &[Expr],
+    locations: &[Expr],
+    scales: &[Expr],
+) -> Result<Expr, E> {
+    builder.primitive(NormalBatch::new(events, locations, scales)?)
 }
 /// Convenience observation with a support-typed positive scale handle.
 /// # Errors

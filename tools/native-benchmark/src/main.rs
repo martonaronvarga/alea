@@ -6,10 +6,17 @@
 //! - regression::normal_regression for normal location/linear regression;
 //! - regression::bernoulli_logit_regression for binary logistic regression;
 //! - normal factors and expression graph for the centered Neal funnel.
+#![cfg_attr(feature = "enzyme", feature(autodiff))]
+
+mod conformance;
+#[cfg(feature = "enzyme")]
+pub mod generated_covariance {
+    include!(concat!(env!("OUT_DIR"), "/covariance.rs"));
+}
 
 use alea::distributions::modeling::{
     normal,
-    regression::{RegressionData, bernoulli_logit_regression, normal_regression},
+    regression::{BernoulliLogitRegression, NormalRegression, RegressionData, RegressionExecution},
 };
 use alea::model::assembly::{AssemblyError, CompiledModel, ModelBuilder};
 use alea::sampling::{NutsOptions, adapt::MetricKind};
@@ -28,6 +35,29 @@ use std::{
 
 #[cfg(test)]
 mod correctness;
+
+// Flat whitespace-delimited rows, shared with the Stan evaluator. Loading and
+// validation are construction work; copying the next state is timed on both.
+fn state_bank(dimension: usize) -> Result<Option<Vec<f64>>, Box<dyn Error>> {
+    env::var("ALEA_BENCH_STATES")
+        .ok()
+        .map(|path| parse_state_bank(&fs::read_to_string(path)?, dimension))
+        .transpose()
+}
+fn parse_state_bank(text: &str, dimension: usize) -> Result<Vec<f64>, Box<dyn Error>> {
+    let values: Vec<f64> = text
+        .split_whitespace()
+        .map(str::parse)
+        .collect::<Result<_, _>>()?;
+    if dimension == 0
+        || values.is_empty()
+        || !values.len().is_multiple_of(dimension)
+        || values.iter().any(|v| !v.is_finite())
+    {
+        return Err("state bank requires complete finite coordinate rows".into());
+    }
+    Ok(values)
+}
 
 #[derive(Default)]
 struct Metrics {
@@ -106,6 +136,18 @@ fn parse_input(path: &str) -> Result<Input, Box<dyn Error>> {
 }
 
 fn build_model(name: &str, input: &Input) -> Result<CompiledModel, AssemblyError> {
+    let execution = regression_execution(env::var("ALEA_BENCH_REGRESSION").ok().as_deref())?;
+    build_model_with_execution(name, input, execution)
+}
+
+fn build_model_with_execution(
+    name: &str,
+    input: &Input,
+    execution: RegressionExecution,
+) -> Result<CompiledModel, AssemblyError> {
+    if matches!(name, "schools" | "schools_nc" | "covariance") {
+        return conformance::build(name, input.n, input.k, &input.x, &input.y);
+    }
     let mut b = ModelBuilder::new();
     let zero = b.constant(0.0)?;
     let one = b.constant(1.0)?;
@@ -140,13 +182,17 @@ fn build_model(name: &str, input: &Input) -> Result<CompiledModel, AssemblyError
                 };
                 let data = RegressionData::new(columns, design, input.y.clone())
                     .map_err(|_| AssemblyError::Shape)?;
-                let likelihood = normal_regression(&mut b, &coefficients, &sigma, data)?;
+                let likelihood = b.primitive(
+                    NormalRegression::new(&coefficients, &sigma, data)?.with_execution(execution),
+                )?;
                 b.likelihood("normal observations", likelihood)?;
             } else {
                 let observations = input.y.iter().map(|&y| y == 1.0).collect();
                 let data = RegressionData::new(columns, input.x.clone(), observations)
                     .map_err(|_| AssemblyError::Shape)?;
-                let likelihood = bernoulli_logit_regression(&mut b, &coefficients, data)?;
+                let likelihood = b.primitive(
+                    BernoulliLogitRegression::new(&coefficients, data)?.with_execution(execution),
+                )?;
                 b.likelihood("bernoulli observations", likelihood)?;
             }
         }
@@ -172,14 +218,32 @@ fn build_model(name: &str, input: &Input) -> Result<CompiledModel, AssemblyError
     b.compile()
 }
 
+fn regression_execution(value: Option<&str>) -> Result<RegressionExecution, AssemblyError> {
+    match value {
+        None | Some("auto") => Ok(RegressionExecution::Auto),
+        Some("scalar") => Ok(RegressionExecution::Scalar),
+        _ => Err(AssemblyError::Shape),
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let process_start = Instant::now();
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
-        return Err("usage: alea-stan-bench <mean|linear|logistic|funnel> <input.txt>".into());
+        return Err("usage: alea-stan-bench <mean|linear|logistic|funnel|schools|schools_nc|covariance> <input.txt>".into());
     }
     let name = args[1].as_str();
-    if !["mean", "linear", "logistic", "funnel"].contains(&name) {
+    if ![
+        "mean",
+        "linear",
+        "logistic",
+        "funnel",
+        "schools",
+        "schools_nc",
+        "covariance",
+    ]
+    .contains(&name)
+    {
         return Err("unknown model".into());
     }
     let input = parse_input(&args[2])?;
@@ -198,8 +262,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         "linear" => input.k + 1, // coefficients, log(sigma)
         "logistic" => input.k,
         "funnel" => input.k + 1,
+        "schools" | "schools_nc" => input.n + 2,
+        "covariance" => 5,
         _ => unreachable!(),
     };
+    if env::var("ALEA_BENCH_BACKEND").as_deref() == Ok("enzyme") {
+        #[cfg(feature = "enzyme")]
+        {
+            let (x, y) = conformance::covariance_data();
+            if name != "covariance" || input.n != 32 || input.k != 2 || input.x != x || input.y != y
+            {
+                return Err("unsupported source model or changed frozen binding (schools Cauchy lacks a source rule)".into());
+            }
+            return evaluation_protocol(&generated_covariance::target(), dimension);
+        }
+        #[cfg(not(feature = "enzyme"))]
+        return Err("Enzyme backend was not compiled".into());
+    }
     if let Ok(path) = env::var("ALEA_BENCH_PROBES") {
         let probes: Vec<Vec<f64>> = serde_json::from_str(&fs::read_to_string(path)?)?;
         let target = build_model(name, &input)?
@@ -238,7 +317,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let fields: Vec<_> = row.split(',').collect();
                 for (column, &i) in values.iter_mut().zip(&indices) {
                     let value = fields[i].parse::<f64>()?;
-                    column.push(if header[i] == "sigma" {
+                    column.push(if ["sigma", "tau", "s0", "s1"].contains(&header[i]) {
                         value.ln()
                     } else {
                         value
@@ -255,7 +334,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 serde_json::json!({"rhat":s.rhat,"bulk_ess":s.bulk_ess,"tail_ess":s.tail_ess,"mean":s.mean,"mcse_mean":s.mcse_mean,"mean_ess":s.mean_ess}),
             );
         }
-        println!("{}", serde_json::json!({"diagnostics":diagnostics}));
+        let constrained_diagnostics = constrained_summaries(name, dimension, &chains);
+        println!(
+            "{}",
+            serde_json::json!({"diagnostics":diagnostics,"constrained_diagnostics":constrained_diagnostics})
+        );
         return Ok(());
     }
     if env::var_os("ALEA_BENCH_KERNEL").is_some() {
@@ -263,7 +346,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     if let Ok(count) = env::var("ALEA_BENCH_EVALUATIONS") {
         let count: usize = count.parse()?;
+        if count == 0 {
+            return Err("positive evaluations required".into());
+        }
         let start = Instant::now();
+        let states = state_bank(dimension)?;
         let target = build_model(name, &input)?
             .select_posterior()?
             .into_target()?;
@@ -275,7 +362,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut gradient_checksum = 0.;
         let mut value = 0.;
         for i in 0..count {
-            q[0] = (i % 10) as f64 * 0.01;
+            if let Some(states) = &states {
+                let offset = (i % (states.len() / dimension)) * dimension;
+                q.copy_from_slice(&states[offset..offset + dimension]);
+            } else {
+                q[0] = (i % 10) as f64 * 0.01;
+            }
             value = std::hint::black_box(target.logp_grad(std::hint::black_box(&q), &mut g)?);
             checksum += value;
             for (j, score) in g.iter().enumerate() {
@@ -295,8 +387,27 @@ fn main() -> Result<(), Box<dyn Error>> {
         .transpose()?
         .unwrap_or(1);
     let timed = env::var_os("ALEA_BENCH_TIMED").is_some();
-    let metrics = Arc::new(Mutex::new(Metrics::default()));
-    let factory_metrics = Arc::clone(&metrics);
+    let chain_threads: usize = env::var("ALEA_BENCH_CHAIN_THREADS")
+        .ok()
+        .map(|s| s.parse())
+        .transpose()?
+        .unwrap_or(1);
+    if chain_threads == 0 || chain_threads > chains || chain_threads > 16 {
+        return Err("chain threads must be positive, no greater than chains or the session thread budget (16)".into());
+    }
+    let pool = (chain_threads > 1)
+        .then(|| {
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(chain_threads)
+                .build()
+        })
+        .transpose()?;
+    let target_acceptance =
+        acceptance_option(env::var("ALEA_BENCH_TARGET_ACCEPT").ok().as_deref())?;
+    let metrics: Vec<_> = (0..chains)
+        .map(|_| Arc::new(Mutex::new(Metrics::default())))
+        .collect();
+    let factory_metrics = metrics.clone();
     let session = SessionBuilder::new(
         format!("alea-stan-native:{name}:{}:{}", input.n, input.k),
         dimension,
@@ -308,7 +419,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     .warmup(Warmup::Covariance {
         iterations: 1_000,
         metric: MetricKind::Diagonal,
-        target: 0.8.try_into()?,
+        target: target_acceptance.try_into()?,
         search: None,
     })
     .build()?;
@@ -316,24 +427,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Alea's session factory takes an independent target per chain.
     // All datasets and factors use the public model API; no custom scores.
     let outcome = session.run(
-        move |_| {
+        move |chain| {
             let start = Instant::now();
             let model = build_model(name, &input).expect("validated benchmark model must assemble");
             let model = model
                 .select_posterior()
                 .expect("named prior/likelihood factors");
             let target = model.into_target().expect("valid parameter layout");
-            factory_metrics
-                .lock()
-                .expect("metrics lock")
-                .construction_ns += start.elapsed().as_nanos();
+            let metrics = &factory_metrics[usize::try_from(chain.0).expect("bounded chain index")];
+            metrics.lock().expect("metrics lock").construction_ns += start.elapsed().as_nanos();
             Ok(Observed {
                 target,
-                metrics: Arc::clone(&factory_metrics),
+                metrics: Arc::clone(metrics),
                 timed,
             })
         },
-        Execution::Sequential,
+        pool.as_ref()
+            .map_or(Execution::Sequential, Execution::Parallel),
         &Discard,
     )?;
     let serialization = Instant::now();
@@ -402,12 +512,32 @@ fn main() -> Result<(), Box<dyn Error>> {
             Err(e) => serde_json::json!({"error":format!("{e:?}")}),
         }
     }).collect();
-    let m = metrics.lock().expect("metrics lock");
+    let coordinates: Vec<Vec<Vec<f64>>> = outcome
+        .chains
+        .iter()
+        .map(|c| {
+            (0..dimension)
+                .map(|j| c.draws.iter().map(|d| d.position[j]).collect())
+                .collect()
+        })
+        .collect();
+    let constrained_diagnostics = constrained_summaries(name, dimension, &coordinates);
+    let mut m = Metrics::default();
+    for metrics in &metrics {
+        let chain = metrics.lock().expect("metrics lock");
+        m.calls += chain.calls;
+        m.evaluation_ns += chain.evaluation_ns;
+        m.construction_ns += chain.construction_ns;
+        m.errors += chain.errors;
+        if m.first_error.is_none() {
+            m.first_error = chain.first_error.clone();
+        }
+    }
     let completed: usize = outcome.chains.iter().map(|c| c.completed).sum();
     println!(
         "{}",
         serde_json::json!({
-            "completed":completed,"chains":chains,"dimension":dimension,"status":format!("{:?}",outcome.status),
+            "completed":completed,"chains":chains,"chain_threads":chain_threads,"dimension":dimension,"status":format!("{:?}",outcome.status),"target_acceptance":target_acceptance,
         "serialization_seconds":serialization_seconds,
         "trajectory_hash":format!("{:016x}",trajectory_hash.finish()),
             "failures":failures,"seconds":elapsed,"construction_seconds":m.construction_ns as f64/1e9,
@@ -415,13 +545,98 @@ fn main() -> Result<(), Box<dyn Error>> {
             "evaluation_errors":m.errors,"first_error":m.first_error,"retained_leapfrog_steps":steps,
             "retained_mean_depth": if depths.is_empty(){0.} else {depths.iter().sum::<usize>() as f64/depths.len() as f64},
             "retained_max_depth":depths.iter().max(),"retained_divergences":divergences,
-            "final_step_sizes":step_sizes,"diagnostics":summaries,
+            "final_step_sizes":step_sizes,"diagnostics":summaries,"constrained_diagnostics":constrained_diagnostics,
             "warmup_completed":outcome.chains.iter().map(|c|c.warmup_completed).collect::<Vec<_>>()
         })
     );
     if !failures.is_empty() || completed != chains * 1_000 {
         return Err("incomplete run (see JSON record)".into());
     }
+    Ok(())
+}
+
+fn acceptance_option(text: Option<&str>) -> Result<f64, Box<dyn Error>> {
+    let value = text.map(str::parse::<f64>).transpose()?.unwrap_or(0.8);
+    if !value.is_finite() || value <= 0. || value >= 1. {
+        return Err("target acceptance must be finite and strictly between zero and one".into());
+    }
+    Ok(value)
+}
+
+fn constrained_summaries(
+    name: &str,
+    dimension: usize,
+    chains: &[Vec<Vec<f64>>],
+) -> Vec<serde_json::Value> {
+    (0..dimension).map(|j| {
+        let positive = match name {
+            "mean" | "linear" => j+1==dimension,
+            "schools" | "schools_nc" => j+1==dimension,
+            "covariance" => j==2 || j==3,
+            _ => false,
+        };
+        let values:Vec<Vec<f64>> = chains.iter().map(|c|c[j].iter().map(|&x|if positive {x.exp()} else {x}).collect()).collect();
+        let refs:Vec<_> = values.iter().map(Vec::as_slice).collect();
+        match alea::diagnostics::modern::summarize(&refs) {
+            Ok(s) => serde_json::json!({"rhat":s.rhat,"bulk_ess":s.bulk_ess,"tail_ess":s.tail_ess,"mean":s.mean,"mcse_mean":s.mcse_mean}),
+            Err(e) => serde_json::json!({"error":format!("{e:?}")}),
+        }
+    }).collect()
+}
+
+#[cfg(feature = "enzyme")]
+fn evaluation_protocol<T: LogDensityGradient>(
+    target: &T,
+    dimension: usize,
+) -> Result<(), Box<dyn Error>> {
+    if let Ok(path) = env::var("ALEA_BENCH_PROBES") {
+        let points: Vec<Vec<f64>> = serde_json::from_str(&fs::read_to_string(path)?)?;
+        let records: Vec<_> = points
+            .into_iter()
+            .map(|q| {
+                let mut g = vec![0.; dimension];
+                match alea::target::evaluate(target, &q, &mut g) {
+                    Ok(logp) => serde_json::json!({"q":q,"logp":logp,"gradient":g}),
+                    Err(error) => serde_json::json!({"q":q,"error":format!("{error:?}")}),
+                }
+            })
+            .collect();
+        println!("{}", serde_json::json!(records));
+        return Ok(());
+    }
+    let calls: usize = env::var("ALEA_BENCH_EVALUATIONS")
+        .map_err(|_| "source backend currently supports evaluation, not this sampling workflow")?
+        .parse()?;
+    if calls == 0 {
+        return Err("positive evaluations required".into());
+    }
+    let mut q = vec![0.; dimension];
+    let states = state_bank(dimension)?;
+    let mut g = vec![0.; dimension];
+    let mut value = 0.;
+    let mut checksum = 0.;
+    let mut gradient_checksum = 0.;
+    let start = Instant::now();
+    for i in 0..calls {
+        if let Some(states) = &states {
+            let offset = (i % (states.len() / dimension)) * dimension;
+            q.copy_from_slice(&states[offset..offset + dimension]);
+        } else {
+            q[0] = (i % 10) as f64 * 0.01;
+        }
+        value = target.logp_grad(std::hint::black_box(&q), &mut g)?;
+        checksum += std::hint::black_box(value);
+        gradient_checksum += g
+            .iter()
+            .enumerate()
+            .map(|(j, g)| (j + 1) as f64 * g)
+            .sum::<f64>();
+        std::hint::black_box(&g);
+    }
+    println!(
+        "{}",
+        serde_json::json!({"evaluations":calls,"evaluation_seconds":start.elapsed().as_secs_f64(),"construction_seconds":0.,"construction_scope":"frozen source target; preparation charged at build time","logp":value,"gradient":g,"checksum":checksum,"gradient_checksum":gradient_checksum})
+    );
     Ok(())
 }
 
@@ -446,7 +661,12 @@ fn kernel_profile(name: &str, input: &Input, dimension: usize) -> Result<(), Box
         &target,
         OwnedBuffer::new(dimension),
         NutsOptions::new(0.2, 10)?,
-        WarmupOptions::new(1000).with_search(None),
+        WarmupOptions::new(1000)
+            .with_target(
+                acceptance_option(env::var("ALEA_BENCH_TARGET_ACCEPT").ok().as_deref())?
+                    .try_into()?,
+            )
+            .with_search(None),
     )?;
     let start = Instant::now();
     let mut depths = Vec::new();

@@ -45,6 +45,8 @@ fn residual_layout(p: &Plan, active: &[bool], full: &[usize]) -> Result<Residual
             continue;
         }
         match &n.op {
+            #[cfg(test)]
+            Op::Prototype(_) => return Err(E::MissingPrimal { node: i }),
             Op::Unary(op, v) => match op {
                 UnaryOp::Neg => {}
                 UnaryOp::Exp | UnaryOp::Tanh | UnaryOp::Sqrt => mark(Value {
@@ -139,6 +141,10 @@ pub(super) fn adjoint_layout(p: &Plan, active: &[bool]) -> Result<(Vec<usize>, u
     let mut offsets = vec![0; p.nodes.len()];
     let mut slots = 0;
     for (i, n) in p.nodes.iter().enumerate() {
+        #[cfg(test)]
+        if n.discrete() {
+            continue;
+        }
         if !p.active[i] || !active[i] || matches!(n.op, Op::Data(_) | Op::Constant(_)) {
             continue;
         }
@@ -191,6 +197,10 @@ pub(super) fn reused_adjoint_layout(
     let mut intervals = Vec::new();
     let mut scratch = 0;
     for (i, n) in p.nodes.iter().enumerate() {
+        #[cfg(test)]
+        if n.discrete() {
+            continue;
+        }
         if p.active[i]
             && active[i]
             && owner[i] == i
@@ -293,6 +303,10 @@ impl BoundProgram {
     }
     fn pullback_with_activity(&self, name: &str, inputs: &[bool]) -> Result<PullbackSource, E> {
         let p = &self.plan;
+        #[cfg(test)]
+        if let Some(node) = registration::missing_source(p) {
+            return Err(E::MissingPrimal { node });
+        }
         let active = self.activity(inputs);
         let (adjoints, adjoint_slots) = adjoint_layout(p, &active)?;
         let mut offsets = vec![0; p.nodes.len()];
@@ -339,6 +353,8 @@ impl BoundProgram {
             let base = adjoints[i];
             let len = n.shape.elements;
             match &n.op {
+                #[cfg(test)]
+                Op::Prototype(_) => return Err(E::MissingPrimal { node: i }),
                 Op::Input(j) => {
                     let input = &p.inputs[*j];
                     writeln!(
@@ -372,8 +388,8 @@ impl BoundProgram {
                     writeln!(reverse,"for j in 0..{len} {{ let s=a[{base}+j]; let d={derivative}; if s!=0.0 || d.is_finite() {{ a[{}+j]+=s*d; }} }}",adjoints[v.node]).unwrap();
                 }
                 Op::Binary(b) => {
-                    let l = map_source(&b.left);
-                    let r = map_source(&b.right);
+                    let l = b.left.index_source();
+                    let r = b.right.index_source();
                     let x = value(b.a, &l);
                     let y = value(b.b, &r);
                     let (dl, dr) = match b.kind {
@@ -617,13 +633,6 @@ fn value_source(p: &Plan, offsets: &[usize], mut v: Value, j: &str) -> String {
         Op::Input(i) => format!("x[{}+({j})]", p.inputs[i].start),
         Op::Data(_) | Op::Constant(_) => format!("data{}[{j}]", v.node),
         _ => format!("primal[{}+({j})]", offsets[v.node]),
-    }
-}
-fn map_source(m: &Map) -> String {
-    match m {
-        Map::Identity => "j".into(),
-        Map::Scalar => "0".into(),
-        Map::Gather(v) => format!("({{let map:[usize;{}]={v:?};map[j]}})", v.len()),
     }
 }
 fn child_buffers(s: &mut String, dimension: usize, output: usize) {

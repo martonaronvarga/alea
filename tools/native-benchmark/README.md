@@ -333,6 +333,154 @@ the updated runner in both saved builds and exact checksum agreement. The native
 factor uses public `modeling::continuous` and `FiniteMixture<Normal>` and includes
 per-evaluation construction. No benchmark-local probability or derivative is used.
 
+## Fresh conformance and numerical-feature studies
+
+The existing executable additionally accepts `schools`, `schools_nc` and
+`covariance`. The school models reuse the retained PosteriorDB eight-schools
+JSON and its centered/noncentered parameter ordering and Cauchy prior. They do
+not create another corpus. Set `ALEA_SCHOOLS_DATA` to that existing JSON when
+running `scripts/gen_data.py` from a source artifact without the local corpus;
+missing external data is reported, never replaced. Original six-case defaults
+remain unchanged. The covariance control is a separate 32-observation synthetic
+Cholesky model, not a PosteriorDB posterior or an LKJ/Wishart benchmark.
+
+`simd`, `faer` and `openblas` forward the corresponding facade features. The
+optional `enzyme` feature generates a frozen covariance target from the very
+same public native model in `src/conformance.rs`, using the existing source
+exporter. Runtime `ALEA_BENCH_BACKEND=enzyme` selects its **evaluation-only**
+protocol. Changed frozen data and other models reject explicitly. The school
+prior uses the existing opaque Cauchy factor, whose source export is unsupported;
+do not replace it with a Normal prior to fill a timing cell.
+
+The maintained `scripts/three_engine.py` runner also supports:
+
+```sh
+# Builds/tests are separate from timing; use the pinned nightly/BLAS environment.
+python3 scripts/three_engine.py matrix-build --output /new/native-builds
+# Under the pinned autodiff environment, with LP64 BLAS available:
+python3 scripts/three_engine.py matrix-build --enzyme --output /new/enzyme-builds
+# Alternatively build the matched 16-way matrix in one autodiff environment:
+python3 scripts/three_engine.py matrix-build \
+  --feature-axes simd faer openblas enzyme --output /new/matched-builds
+python3 scripts/three_engine.py matrix-stan-build \
+  --cmdstan /pinned/cmdstan --cxx /pinned/g++ \
+  --cases schools schools_nc covariance --output /new/stan-build
+python3 scripts/three_engine.py matrix --matrix-plan /sealed/plan.json --output /new/results
+python3 scripts/three_engine.py matrix-report --output /new/results
+```
+
+Run these commands from this benchmark directory. A matrix plan declares
+`cases`, positive `reps`, `evaluations` (a positive multiple of ten), `cpu` and
+`variants`. Each variant declares a unique `name`, saved `binary`, feature and
+compiler receipts, and optional `env` and applicable `cases`. The reference
+variant is named `stan`; Stan Math variants use `kind: "stan_math"` and optional
+`implementation: "glm"`. Other variants use the existing native executable
+protocol. Declare unsupported combinations before measurement.
+
+The builder writes a pending cohort receipt first and only completes it after
+the final source-freeze check, sealing binaries, test logs and input identities.
+Per-variant success cannot override a pending/rejected cohort. Preserve the
+`build_receipt` and `source_sha256` fields when constructing plans from its
+`variants.json`; relocate the receipt path with the saved build directory.
+
+The runner reuses child-process isolation and the existing JSON/compatibility
+helpers. It checks all gradient coordinates, central finite differences and
+changing-state work receipts before admitting timing ratios. It rotates variant
+order, preserves every planned outcome, and captures binaries/data by digest.
+Replay re-admits raw process/probe/loop outputs rather than trusting journal pass
+flags. Captured inputs allow replay after moving a sealed capsule; executable
+permission is not needed for replay. These are fixed-work measurements, not
+statistical efficiency or proof of every support point.
+
+For inference, the existing `scripts/bench.py` accepts
+`--minimum-ess-per-chain 100 --both-coordinate-spaces --alea-csv --timed`.
+The stronger policy is opt-in so historical reports retain their original
+thresholds. Compare mapped posterior functionals and independent references
+separately, and only rank ESS/sec after all required gates pass.
+
+Use `kernel_compare.py --suite matrix-providers` with `--before-env
+ALEA_MATRIX_KERNEL=compensated` and `--after-env ALEA_MATRIX_KERNEL=faer` (or
+`blas`) to select actual tensor forward-and-VJP providers in one saved build.
+The kernel audit checks every value and score against compensated execution
+before timing. Provider scratch and changed reduction semantics remain explicit.
+Enabling a provider feature alone does not select it; `simd` is not a switch
+disabling all existing `pulp` runtime dispatch. Portable SIMD requires nightly.
+Match compiler revisions/flags when attributing a feature effect; the general
+nightly and Enzyme shells currently pin different compilers.
+
+All new performance measurements run on ELTE HPC (`ssh eltehpc`) through the
+existing `elte-vpn` connection, inside a Slurm compute allocation. Do not time on
+the login node, Dusk, or the variable-power laptop. Local correctness builds and
+tests are permitted. Do not overlap builds/tests/profiles with timing.
+
+### Full configuration comparison on HPC
+
+The `suite` action reuses the existing builders, numerical preflight, evaluation
+runner, kernel controls and four-chain inference runner. It defaults to all nine
+models, seven repetitions, both evaluation and sampling, and the full powerset
+of `simd faer openblas enzyme branch-hints tracing analysis`, in separate stable
+and pinned Enzyme-nightly compiler cohorts. Unsupported builds remain visible;
+they do not acquire timings. This is deliberately a long run, not a smoke test.
+
+On the remote source checkout, with the two Rust toolchains, CmdStan 2.40 and
+LP64 OpenBLAS installed, submit the existing suite through the same CLI:
+
+```sh
+python3 scripts/three_engine.py slurm-submit --output /new/submission \
+  --cpus 18 --walltime 120:00:00 --job-command \
+  python3 scripts/three_engine.py suite --output /new/results \
+  --cmdstan /installed/cmdstan-2.40.0 --cxx /usr/bin/g++ --native-cpu
+```
+
+Submission requests one exclusive node by default; it never changes the host's
+governor, global thread settings or VPN configuration. `--dry-run` writes the job
+without submitting. The worker chooses a CPU from its actual allocation rather
+than assuming CPU 0 is available. Scheduler identity, affinity and virtualization
+are recorded automatically. `--native-cpu` specializes both Rust and Stan builds
+on the allocated compute node. Evaluation latency controls use one CPU. Provider
+controls compare one thread against the full allocated CPU budget; Faer currently
+remains sequential, while BLAS may use its bounded library threads. Four-chain
+inference compares one worker with up to four workers in both engines. Library
+threads stay at one during chain parallelism to avoid nested oversubscription.
+An 18-CPU allocation alone does **not** establish multicore scaling.
+
+`report.md` ranks full posterior evaluations separately from qualified inference
+ESS/sec. `summary.json` includes all pairwise evaluation ratios, observed ranges,
+failed and unstarted measurements. `progress.json` retains stage outcomes. Use
+`suite-report --output /existing/results` to regenerate reports. Existing saved
+builds can be supplied with `--builds /saved/variants.json`; compiler identities
+are retained rather than inferred from the runtime shell.
+
+Native Auto and explicitly scalar regression execution are distinct rows even
+when compiled features match. Scalar controls select the row-kernel policy, not
+disable Gaussian compression. Provider controls explicitly select compensated,
+Faer or BLAS tensor GEMMs. Source/Enzyme rows currently cover the frozen covariance
+worker only; source-backed inference is explicitly unsupported, never silently
+measured as native inference. The broader PosteriorDB worker remains a separate
+existing suite; these nine models are not every Alea model or AD capability.
+
+Build evidence is shared by many execution configurations. The runner enumerates
+the union of input paths before hashing, verifies each file once per admission
+boundary, and reuses those decisions across workloads. The cache is local to
+that admission pass: replay rereads the files, and completion checks the live
+inputs again. `evaluation/setup.json` exposes setup progress separately from
+model timings. This avoids cohort-sized file reads inside a configuration loop
+without bypassing numerical preflight or accepting stale build evidence.
+For independent profiling jobs, `slurm-submit --exclude-nodes NODE ...` passes an
+explicit Slurm exclusion. Verify the actual allocated node; an environment-only
+exclusion must not be assumed to have taken effect.
+
+`kernel_compare.py --suite normal-batching` compares scalar-factor assembly with
+the native vector Normal operation at small, tail and larger shapes. For a
+same-binary representation comparison, pass `--before-env ALEA_NORMAL_BATCH=0`
+and `--after-env ALEA_NORMAL_BATCH=1` with the same `kernel_audit` executable on
+both sides. The density, parameters and all active event scores are unchanged;
+the existing exact-checksum admission remains in effect. This measures model
+representation, not a new sampler, general automatic plate fusion, or ESS/sec.
+
+Build identity and input checks are automatic bookkeeping. Archive/capsule
+packaging below is optional, not a prerequisite for running or reading results.
+
 ## Reusing PosteriorDB evidence and local sealed capsules
 
 Do not create another model registry or inference runner to classify an existing
@@ -376,3 +524,45 @@ alias-separated lifetime controls to the entire `tensor-fusion` suite. Both save
 binaries must contain the identical updated harness. Performance admission is
 still exact-checksum based, with complete-coordinate correctness tests separate
 from timing. This is not a PosteriorDB or Stan inference comparison.
+
+### Targeted perf profiles and varied parameter states
+
+The existing runner can profile saved matrix variants without rebuilding them:
+
+```sh
+python3 scripts/three_engine.py profile --matrix-plan plan.json --output profiles \
+  --cases logistic --evaluations 100000 --profile-variants CONFIGURATION
+```
+
+This collects hardware counters, DWARF cycle samples and text reports, retaining
+failed commands with a nonzero final status. Run inside a compute allocation.
+`--local-profile` is an explicit diagnostic-only exception, not permission to
+publish laptop timings as server results. If required by system perf policy,
+use `--perf-command 'sudo -n /path/to/perf'`; the tool does not change sysctls.
+Keep compilation, correctness tests and other profiles off the measurement host
+while collecting comparative timings. Perf-instrumented elapsed time is not a
+benchmark ranking.
+
+Historical evaluation varies coordinate zero only. For all-coordinate controls,
+the existing data generator optionally writes state banks when
+`ALEA_BENCH_STATE_DIR` is set. Generate them while preparing a **new** study, not
+by changing an active study's inputs. Pass `matrix-plan --state-bank-dir DIR`;
+each `<case>.txt` contains ten complete whitespace-delimited finite coordinate
+rows. Both executables load outside evaluation timing, cycle through the same
+rows and report their existing complete-gradient/checksum receipts. Matrix replay
+includes the state banks in its existing input checks. Omitting the option keeps
+the historical workload unchanged.
+
+`matrix-build --feature-axes` with no names builds just the default configuration,
+useful for compiler/flag controls. This does not select generated AD: the actual
+execution backend is still explicit in the matrix plan. Stan model builds use a
+study-local driver object so changed CPU flags cannot silently reuse a differently
+compiled shared `main.o`.
+
+The suite does not automatically enable compiler AD for every nightly/native
+cell. `matrix-build` enables it only for Enzyme cells that need it, while retaining
+explicit user `RUSTFLAGS` or encoded flags for controlled experiments. Inspect
+the saved per-cell flags: enabling a Cargo feature, selecting generated gradients
+and enabling a compiler mode are distinct configuration axes.
+The autodiff Nix shell itself supplies an AD flag: explicitly override its
+`RUSTFLAGS` when preparing native-only compiler controls.
