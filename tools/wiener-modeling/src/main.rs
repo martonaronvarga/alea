@@ -11,7 +11,7 @@ use alea::{
     ensemble::Execution,
     model::{
         ModelError, TransformedTarget,
-        assembly::{AssemblyError, CompiledModel, Expr, ModelBuilder},
+        assembly::{AssemblyError, CompiledModel, Value, ModelBuilder},
     },
     sampling::{
         NutsOptions,
@@ -95,14 +95,14 @@ fn sigmoid(x: f64) -> f64 {
         x.exp() / (1. + x.exp())
     }
 }
-fn logistic(b: &mut ModelBuilder, x: Expr, scale: f64) -> Result<Expr, AssemblyError> {
+fn logistic(b: &mut ModelBuilder, x: Value, scale: f64) -> Result<Value, AssemblyError> {
     b.custom(&[x], move |x, g| {
         let p = sigmoid(x[0]);
         g[0] = scale * p * (1. - p);
         Ok(scale * p)
     })
 }
-fn raw(b: &mut ModelBuilder, name: &str, mu: f64, sd: f64) -> Result<Expr, AssemblyError> {
+fn raw(b: &mut ModelBuilder, name: &str, mu: f64, sd: f64) -> Result<Value, AssemblyError> {
     let q = b.real(name)?.expr();
     let m = b.constant(mu)?;
     let s = b.constant(sd)?;

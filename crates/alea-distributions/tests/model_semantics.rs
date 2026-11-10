@@ -2,7 +2,9 @@ use alea_core::{
     distribution::{EventShape, ReferenceMeasure, Support},
     model::{
         ConstrainedModel,
-        assembly::{ArgumentShape, AssemblyError, ModelBuilder, OperationKind, Primitive},
+        assembly::{
+            ArgumentShape, AssemblyError, ModelBuilder, OperationDescriptor, OperationKind,
+        },
     },
     target::LogDensityGradient,
 };
@@ -321,11 +323,11 @@ fn shared_normal_preparation_matches_scalar_callbacks_and_preserves_first_failur
         let sigma = b.real("sigma").unwrap().expr();
         for i in 0..9 {
             let mu = b.constant(i as f64 / 4.).unwrap();
-            let p = NormalFactor::new(x, mu, sigma);
+            let p = NormalFactor::new();
             let f = if shared {
-                b.primitive(p).unwrap()
+                b.primitive(&[x, mu, sigma], p).unwrap()
             } else {
-                let inputs = p.inputs().to_vec();
+                let inputs = [x, mu, sigma];
                 b.custom(&inputs, move |x, g| p.evaluate(x, g, &mut ()))
                     .unwrap()
             };
@@ -377,8 +379,8 @@ fn regression(native: bool, rows: usize) -> alea_core::model::assembly::Compiled
     let f = if native {
         normal_regression(&mut b, &beta, &sigma, d).unwrap()
     } else {
-        let primitive = NormalRegression::new(&beta, &sigma, d).unwrap();
-        let inputs = primitive.inputs().to_vec();
+        let primitive = NormalRegression::new(d).unwrap();
+        let inputs = [&beta[..], &[sigma.expr()]].concat();
         let workspace = primitive.workspace();
         b.custom_with_scratch(&inputs, workspace, move |x, g, w| {
             primitive.evaluate(x, g, w)
@@ -402,7 +404,7 @@ fn native_normal_is_recognizable_and_preserves_the_existing_primal_and_density_b
     let metadata = node.primitive.unwrap();
     let primitive = metadata.descriptor::<NormalFactor>().unwrap();
     assert_eq!(node.inputs, [x, location, scale]);
-    assert_eq!(primitive.inputs(), node.inputs);
+    assert_eq!(node.inputs.len(), 3);
     assert!(metadata.descriptor::<NormalRegression>().is_none());
     assert_eq!(
         metadata
@@ -426,7 +428,7 @@ fn native_normal_is_recognizable_and_preserves_the_existing_primal_and_density_b
         model
             .rust_primal()
             .unwrap()
-            .contains(primitive.rust_primal().unwrap())
+            .contains(&primitive.rules().source.unwrap().body.render(primitive))
     );
     for value in [-10., 0., 2., 1e50] {
         let mut local_gradient = [0.; 3];
@@ -608,12 +610,8 @@ fn descriptor_shape_errors_numerical_errors_and_recovery_are_explicit() {
     let mut b = ModelBuilder::new();
     let x = b.real("x").unwrap().expr();
     let sigma = b.positive("sigma").unwrap();
-    let descriptor = NormalRegression::new(
-        &[x],
-        &sigma,
-        RegressionData::new(1, vec![1.; 3], vec![0.; 3]).unwrap(),
-    )
-    .unwrap();
+    let descriptor =
+        NormalRegression::new(RegressionData::new(1, vec![1.; 3], vec![0.; 3]).unwrap()).unwrap();
     let mut workspace = descriptor.workspace();
     let mut g = [77.; 2];
     assert!(matches!(
@@ -621,7 +619,7 @@ fn descriptor_shape_errors_numerical_errors_and_recovery_are_explicit() {
         Err(AssemblyError::Shape)
     ));
     assert_eq!(g, [77.; 2]);
-    let f = b.primitive(descriptor).unwrap();
+    let f = b.primitive(&[x, sigma.expr()], descriptor).unwrap();
     b.likelihood("data", f).unwrap();
     let model = b.compile().unwrap();
     for bad in [0., -1., 1e-300, f64::INFINITY] {

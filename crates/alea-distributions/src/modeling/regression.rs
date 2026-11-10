@@ -9,11 +9,12 @@
 #![deny(missing_docs)]
 use super::{E, error};
 use crate::scalar::{Bernoulli, Normal};
-use alea_core::model::assembly::{Expr, ModelBuilder, Parameter, Positive};
+use alea_core::model::assembly::{ModelBuilder, Parameter, Positive, Value};
+use alea_core::model::assembly::{NativeRules, SourceBody, SourceRule};
 use alea_core::{
     distribution::{Distribution, EventShape, ReferenceMeasure, Support},
     model::assembly::{
-        ArgumentShape, BatchRule, Primitive, PrimitiveArgument, PrimitiveSignature,
+        ArgumentShape, BatchRule, OperationDescriptor, PrimitiveArgument, PrimitiveSignature,
         ProbabilitySemantics,
     },
 };
@@ -181,7 +182,7 @@ fn finite(values: &[f64], field: &'static str) -> Result<(), RegressionDataError
     }
     Ok(())
 }
-fn check_columns<Y>(data: &RegressionData<Y>, beta: &[Expr]) -> Result<(), E> {
+fn check_columns<Y>(data: &RegressionData<Y>, beta: &[Value]) -> Result<(), E> {
     if data.columns != beta.len() {
         Err(E::Shape)
     } else {
@@ -196,11 +197,15 @@ fn check_columns<Y>(data: &RegressionData<Y>, beta: &[Expr]) -> Result<(), E> {
 /// Evaluation rejects nonpositive scales or nonrepresentable density/scores.
 pub fn normal_regression(
     builder: &mut ModelBuilder,
-    beta: &[Expr],
+    beta: &[Value],
     sigma: &Parameter<Positive>,
     data: RegressionData<f64>,
-) -> Result<Expr, E> {
-    builder.primitive(NormalRegression::new(beta, sigma, data)?)
+) -> Result<Value, E> {
+    check_columns(&data, beta)?;
+    builder.primitive(
+        &[beta, &[sigma.expr()]].concat(),
+        NormalRegression::new(data)?,
+    )
 }
 /// Immutable native normal-regression description. Retains row-major data and
 /// offsets. Eligible tall designs use square-root sufficient statistics; other
@@ -209,7 +214,6 @@ pub fn normal_regression(
 /// Coefficients may be arbitrary deterministic graph expressions. No intercept,
 /// prior, standardization, independent leave-out units or generation is inferred.
 pub struct NormalRegression {
-    inputs: Box<[Expr]>,
     data: RegressionData<f64>,
     design: kernels::Design,
     compressed: Option<normal_compression::CompressedNormal>,
@@ -220,8 +224,8 @@ pub struct NormalRegressionWorkspace {
     scores: Scores,
 }
 impl NormalRegression {
-    /// Creates an immutable replacement binding with the same rows/columns and
-    /// handles. The old descriptor/data remain unchanged on failure.
+    /// Creates an immutable replacement binding with the same rows/columns.
+    /// The graph owns its input edges; the old descriptor stays intact on error.
     /// # Errors
     /// Rejects changed shape, invalid responses or overflowing packed storage.
     pub fn with_data(&self, data: RegressionData<f64>) -> Result<Self, E> {
@@ -234,7 +238,6 @@ impl NormalRegression {
         design.plan.arithmetic = self.execution_plan().arithmetic();
         let compressed = normal_compression::CompressedNormal::new(&data);
         Ok(Self {
-            inputs: self.inputs.clone(),
             data,
             design,
             compressed,
@@ -242,21 +245,13 @@ impl NormalRegression {
     }
     /// Describes a fixed-design normal likelihood with a shared positive scale.
     /// # Errors
-    /// Rejects coefficient/data shape mismatch, nonfinite responses or overflowing
-    /// prepared design storage. Handle ownership is checked at graph registration.
-    pub fn new(
-        beta: &[Expr],
-        sigma: &Parameter<Positive>,
-        data: RegressionData<f64>,
-    ) -> Result<Self, E> {
-        check_columns(&data, beta)?;
+    /// Rejects nonfinite responses or overflowing prepared design storage.
+    /// Registration separately checks graph ownership and coefficient/scale count.
+    pub fn new(data: RegressionData<f64>) -> Result<Self, E> {
         finite(data.observations(), "observation").map_err(error)?;
-        let mut inputs = beta.to_vec();
-        inputs.push(sigma.expr());
         let design = kernels::Design::new(&data)?;
         let compressed = normal_compression::CompressedNormal::new(&data);
         Ok(Self {
-            inputs: inputs.into_boxed_slice(),
             data,
             design,
             compressed,
@@ -287,15 +282,12 @@ impl NormalRegression {
         self
     }
 }
-impl Primitive for NormalRegression {
-    type Workspace = NormalRegressionWorkspace;
-    fn batch_workspace(&self) -> Self::Workspace {
+impl NormalRegression {
+    /// Native kernel batch workspace.
+    pub fn batch_workspace(&self) -> NormalRegressionWorkspace {
         NormalRegressionWorkspace {
             scores: Scores::new(0),
         }
-    }
-    fn inputs(&self) -> &[Expr] {
-        &self.inputs
     }
     fn signature(&self) -> PrimitiveSignature {
         PrimitiveSignature {
@@ -318,7 +310,8 @@ impl Primitive for NormalRegression {
             }),
         }
     }
-    fn workspace(&self) -> Self::Workspace {
+    /// Native kernel workspace.
+    pub fn workspace(&self) -> NormalRegressionWorkspace {
         NormalRegressionWorkspace {
             scores: Scores::new(self.data.columns),
         }
@@ -327,7 +320,7 @@ impl Primitive for NormalRegression {
         Some(BatchRule {
             units: self.data.rows(),
             evaluate: |this, x, out, _| {
-                if x.len() != this.inputs.len() || out.len() != this.data.rows() {
+                if x.len() != (this.data.columns + 1) || out.len() != this.data.rows() {
                     return Err(E::Shape);
                 }
                 let p = this.data.columns();
@@ -353,18 +346,18 @@ impl Primitive for NormalRegression {
                 &this.data,
                 "NormalRegression",
                 this.execution_plan().execution(),
-                true,
             )
         })
     }
-    fn evaluate(
+    /// Native kernel evaluate.
+    pub fn evaluate(
         &self,
         x: &[f64],
         g: &mut [f64],
-        workspace: &mut Self::Workspace,
+        workspace: &mut NormalRegressionWorkspace,
     ) -> Result<f64, E> {
-        if x.len() != self.inputs.len()
-            || g.len() != self.inputs.len()
+        if x.len() != (self.data.columns + 1)
+            || g.len() != (self.data.columns + 1)
             || workspace.scores.sums.len() != self.data.columns
         {
             return Err(E::Shape);
@@ -384,6 +377,21 @@ impl Primitive for NormalRegression {
         })
     }
 }
+impl OperationDescriptor for NormalRegression {
+    type Workspace = NormalRegressionWorkspace;
+    fn rules(&self) -> NativeRules<Self> {
+        let mut rules = NativeRules::new(self.signature(), Self::workspace, Self::evaluate);
+        rules.batch_workspace = Self::batch_workspace;
+        rules.batch = self.batch_rule();
+        let body = self.source_rule().map(SourceBody::Generated);
+        rules.source = body.map(|body| SourceRule {
+            body,
+            gradient: self.source_gradient_rule(),
+            workspace: 0,
+        });
+        rules
+    }
+}
 // Reuse native preparation/dispatch, not an alternative generated probability
 // implementation. Each emitted function owns a separate thread-local cache:
 // immutable frozen data plus reusable execution scratch. Initialization allocates
@@ -392,28 +400,13 @@ fn native_score_source<Y: std::fmt::Debug>(
     data: &RegressionData<Y>,
     name: &str,
     execution: RegressionExecution,
-    scale: bool,
 ) -> String {
     let p = data.columns();
-    let sigma = if scale {
-        "let sigma=b.positive(\"sigma\")?;"
-    } else {
-        ""
-    };
-    let arguments = if scale {
-        "&beta,&sigma,data"
-    } else {
-        "&beta,data"
-    };
     let constructor = format!(
         r#"use ::alea::distributions::modeling::regression as regression;
     let data=regression::RegressionData::new({p},vec!{design:?},vec!{observations:?})
         .and_then(|d|d.with_offsets(vec!{offsets:?})).map_err(|_|::alea::model::assembly::AssemblyError::Shape)?;
-    let mut b=::alea::model::assembly::ModelBuilder::new();
-    let mut beta=Vec::with_capacity({p});
-    for j in 0..{p} {{beta.push(b.real(&format!("beta{{j}}"))?.expr());}}
-    {sigma}
-    Ok(Native::new({arguments})?.with_execution(regression::RegressionExecution::{execution:?}))
+    Ok(Native::new(data)?.with_execution(regression::RegressionExecution::{execution:?}))
 "#,
         design = data.design(),
         observations = data.observations(),
@@ -452,10 +445,11 @@ impl NormalRegression {
 /// Rejects wrong coefficient counts/foreign handles and nonrepresentable evaluation.
 pub fn bernoulli_logit_regression(
     builder: &mut ModelBuilder,
-    beta: &[Expr],
+    beta: &[Value],
     data: RegressionData<bool>,
-) -> Result<Expr, E> {
-    builder.primitive(BernoulliLogitRegression::new(beta, data)?)
+) -> Result<Value, E> {
+    check_columns(&data, beta)?;
+    builder.primitive(beta, BernoulliLogitRegression::new(data)?)
 }
 /// Poisson observations with a log-rate link. Offsets are log exposures when used.
 /// Evaluates `y*eta-exp(eta)-ln(y!)` directly, retaining finite log probabilities
@@ -465,10 +459,11 @@ pub fn bernoulli_logit_regression(
 /// Overflowing rates, predictors, sums or scores are numerical errors.
 pub fn poisson_log_regression(
     builder: &mut ModelBuilder,
-    beta: &[Expr],
+    beta: &[Value],
     data: RegressionData<u64>,
-) -> Result<Expr, E> {
-    builder.primitive(PoissonLogRegression::new(beta, data)?)
+) -> Result<Value, E> {
+    check_columns(&data, beta)?;
+    builder.primitive(beta, PoissonLogRegression::new(data)?)
 }
 
 // Separate arrays let coefficient-score SIMD preserve each coordinate's row

@@ -73,7 +73,7 @@ Jacobian, chooses an inference algorithm or runs a sampler. Use the builder
 directly, or `model!(|builder| { ... })`, for explicit/custom declarations.
 
 Arithmetic and Normal/Bernoulli-logit factor constructors accept `f64` literals,
-`Expr`, and borrowed or owned scalar parameter handles. No `.expr()` or
+`Value`, and borrowed or owned scalar parameter handles. No `.expr()` or
 `constant()` call is needed for those arguments. Use floating literals (`0.0`,
 not a count `0`); discrete events remain typed `bool`/`u64`. An existing expression
 is reused, while each literal inserts an ordinary constant node. To deliberately
@@ -158,10 +158,10 @@ parameter measure:
 ```rust
 use alea::{
     distributions::modeling::ModelBuilderExt,
-    model::assembly::{AssemblyError, Expr, ModelBuilder},
+    model::assembly::{AssemblyError, Value, ModelBuilder},
 };
 
-fn component(builder: &mut ModelBuilder, observations: &[f64]) -> Result<Expr, AssemblyError> {
+fn component(builder: &mut ModelBuilder, observations: &[f64]) -> Result<Value, AssemblyError> {
     let mean = builder.real("mean")?;
     let scale = builder.positive("scale")?;
     builder.normal_prior("mean prior", mean, 0.0, 2.0)?;
@@ -236,10 +236,12 @@ counted-loop source lowering and explicit conditional batch rules.
 export preserves `MissingPrimal`. Statistical selections retain inactive
 descriptors but do not require their source primals.
 
-For custom mathematical operations, implement `Primitive`: declare logical
-arguments, retain immutable data, provide separate execution-local workspace and
-delegate fused value/local-score evaluation to your implementation. Register with
-`builder.primitive(operation)`. Registration validates argument counts, shape
+For custom mathematical operations, implement `OperationDescriptor`: retain
+graph-independent immutable data and return a typed `NativeRules` bundle with
+the logical signature, workspace factory and fused value/local-score function.
+Source, scalar preparation and row reporting are independently optional rules.
+Register ordered graph inputs separately with
+`builder.primitive(&inputs, descriptor)`. Registration validates argument counts, shape
 overflow, names and handle ownership. Arbitrary existing `custom` callbacks remain
 supported and are reported as opaque; their semantics are never guessed.
 
@@ -660,11 +662,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut builder = ModelBuilder::new();
     let beta = builder.real("beta")?;
     let data = RegressionData::new(1, vec![1.0; 5], vec![true, false, true, false, true])?;
-    let primitive = BernoulliLogitRegression::new(&[beta.expr()], data)?
+    let primitive = BernoulliLogitRegression::new(data)?
         .with_execution(RegressionExecution::Scalar);
     assert_eq!(primitive.execution_plan().lanes(), 1);
     assert_eq!(primitive.execution_plan().workers(), 1);
-    let term = builder.primitive(primitive)?;
+    let term = builder.primitive(&[beta.expr()], primitive)?;
     builder.likelihood("observations", term)?;
     let model = builder.compile()?;
     assert_eq!(model.expression_count(), 2);

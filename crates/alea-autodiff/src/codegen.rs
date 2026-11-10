@@ -27,6 +27,10 @@ use alea_core::model::assembly::{AssemblyError, CompiledModel};
 /// a finite directional result cannot admit an invalid primal or singular score,
 /// including for a zero direction. This replaces primal-only admission and can
 /// cost additional reverse work; AD side outputs are not an admission oracle.
+/// Compiler-only tensor gradients additionally run the checked tensor pullback
+/// for admission outside AD, reported by `SOURCE_TENSOR_SCORE_VALIDATION`.
+/// That extra evaluation has its own workspace; it does not replace compiler
+/// derivatives or change value-only admission. Its cost has not been benchmarked.
 ///
 /// # Errors
 /// Rejects zero unconstrained dimension and opaque nodes without a Rust primal.
@@ -78,6 +82,27 @@ fn mapped_source_inner(model: &CompiledModel, density: bool) -> Result<String, A
         model.rust_objective_validation()
     };
     let checkpoint = model.rust_first_order_gradient(density)?;
+    let admission = if checkpoint.is_none() {
+        model.rust_tensor_score_validation(density)?
+    } else {
+        None
+    };
+    let tensor_validation = admission.is_some();
+    let admission = if let Some((source, count)) = admission {
+        // Reuse the existing checked composition in its own namespace. Never
+        // differentiate this validator or expose its score as compiler output.
+        format!(
+            "mod __tensor_admission {{ use super::DIMENSION; {}\n\
+             pub(super) fn valid(q:&[f64;DIMENSION])->bool {{\
+             let mut score=[0.0;DIMENSION];\
+             let value=__gradient(q,&mut score,&mut [0.0;{count}],&mut [0.0;{count}],1.0);\
+             value.is_finite() && score.iter().all(|v|v.is_finite()) }} }}\n\
+             pub(super) fn __score_valid(q:&[f64;DIMENSION])->bool {{__tensor_admission::valid(q)}}",
+            source.replace("__WORKSPACE__", &count.to_string())
+        )
+    } else {
+        "pub(super) fn __score_valid(_: &[f64;DIMENSION])->bool { true }".into()
+    };
     let mut template = TEMPLATE.to_owned();
     template = template.replace(
         "__CHECKPOINTED__",
@@ -117,6 +142,11 @@ fn mapped_source_inner(model: &CompiledModel, density: bool) -> Result<String, A
         .replace("__WORKSPACE__", &workspace.to_string())
         .replace("__PRIMAL__", &body)
         .replace("__VALIDATION__", &validation)
+        .replace("__SCORE_VALIDATION__", &admission)
+        .replace(
+            "__TENSOR_SCORE_VALIDATION__",
+            if tensor_validation { "true" } else { "false" },
+        )
         .replace(
             "__PUBLIC_VALUE__",
             if density { "log_density" } else { "value" },
@@ -134,6 +164,9 @@ pub const DIMENSION: usize = __DIMENSION__;
 pub const SOURCE_CHECKPOINTED: bool = __CHECKPOINTED__;
 /// Whether sampling uses an explicit first-order pullback rather than compiler reverse.
 pub const SOURCE_EXPLICIT_FIRST_ORDER: bool = __EXPLICIT_FIRST_ORDER__;
+/// Whether a compiler-only tensor gradient also runs checked pullback admission.
+/// This is extra first-order work, not a switch of the returned derivative route.
+pub const SOURCE_TENSOR_SCORE_VALIDATION: bool = __TENSOR_SCORE_VALIDATION__;
 
 // Each float buffer must stay explicit across nested AD. The generated Enzyme
 // ABI duplicates arguments; a user-facing argument-count convention does not
@@ -147,6 +180,8 @@ pub const SOURCE_EXPLICIT_FIRST_ORDER: bool = __EXPLICIT_FIRST_ORDER__;
         clippy::possible_missing_else, clippy::approx_constant)]
 mod __enzyme {
 use super::DIMENSION;
+
+__SCORE_VALIDATION__
 
 #[::std::autodiff::autodiff_reverse(__gradient, Duplicated, Duplicated, Active)]
 // Numeric literals serialize model data/bounds exactly; they are not approximations
@@ -174,7 +209,7 @@ pub(super) fn __hvp(q: &[f64; DIMENSION], v: &[f64; DIMENSION], g: &mut [f64; DI
     __gradient_jvp(q, v, g, h, work, tangent, reverse, reverse_tangent)
 }
 }
-use __enzyme::{__gradient, __hvp, __hvp_jvp, __log_density};
+use __enzyme::{__gradient, __hvp, __hvp_jvp, __log_density, __score_valid};
 
 fn __valid(q: &[f64; DIMENSION]) -> bool {
     let _ = q;
@@ -182,6 +217,7 @@ fn __valid(q: &[f64; DIMENSION]) -> bool {
 }
 
 fn __first_order_valid(q: &[f64; DIMENSION]) -> bool {
+    if !__score_valid(q) { return false; }
     let mut score = [0.0; DIMENSION];
     let value = __gradient(q, &mut score, &mut [0.0; __WORKSPACE__], &mut [0.0; __WORKSPACE__], 1.0);
     value.is_finite() && score.iter().all(|v| v.is_finite())
@@ -196,7 +232,7 @@ pub fn __PUBLIC_TARGET__() -> impl ::alea::capability::PotentialHessianDerivativ
         DIMENSION,
         |q: &[f64], g: &mut [f64], seed: f64| {
             let q = q.try_into().expect("validated position");
-            if !__valid(q) { g.fill(f64::NAN); return f64::NAN; }
+            if !__valid(q) || !__score_valid(q) { g.fill(f64::NAN); return f64::NAN; }
             __gradient(q, g.try_into().expect("validated gradient"), &mut [0.0; __WORKSPACE__], &mut [0.0; __WORKSPACE__], seed)
         },
         |q: &[f64], v: &[f64], out: &mut [f64]| {

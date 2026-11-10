@@ -102,6 +102,7 @@ impl CompiledModel {
                 Op::Multiply(a, b) => format!("n{a} * n{b}"),
                 Op::Exp(a) => format!("n{a}.exp()"),
                 Op::Log(a) => format!("n{a}.ln()"),
+                Op::Region(_) => return Err(AssemblyError::MissingPrimal { node: i }),
                 Op::Factor { inputs, .. } => {
                     let primal = self
                         .primal_source(i)

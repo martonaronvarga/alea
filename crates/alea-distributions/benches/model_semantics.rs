@@ -2,7 +2,7 @@
 //! native primitive/kernel. No reimplemented probability or sampler arithmetic.
 use alea_core::model::{
     ConstrainedModel,
-    assembly::{CompiledModel, ModelBuilder, Primitive},
+    assembly::{CompiledModel, ModelBuilder},
 };
 use alea_distributions::modeling::regression::{NormalRegression, RegressionData};
 use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
@@ -15,11 +15,11 @@ fn build(data: RegressionData<f64>, semantic: bool) -> CompiledModel {
         b.real("slope").unwrap().expr(),
     ];
     let sigma = b.positive("sigma").unwrap();
-    let primitive = NormalRegression::new(&beta, &sigma, data).unwrap();
+    let primitive = NormalRegression::new(data).unwrap();
+    let inputs = [&beta[..], &[sigma.expr()]].concat();
     let f = if semantic {
-        b.primitive(primitive).unwrap()
+        b.primitive(&inputs, primitive).unwrap()
     } else {
-        let inputs = primitive.inputs().to_vec();
         let scratch = primitive.workspace();
         b.custom_with_scratch(&inputs, scratch, move |x, g, scratch| {
             primitive.evaluate(x, g, scratch)

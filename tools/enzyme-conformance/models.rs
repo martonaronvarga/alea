@@ -1,4 +1,5 @@
 use alea::distributions::modeling::{bernoulli_logit, normal};
+use alea::model::assembly::{NativeRules, OperationDescriptor, SourceBody, SourceRule};
 use alea::{
     model::assembly::{AssemblyError, CompiledModel, ModelBuilder},
     transform::Transform,
@@ -22,6 +23,169 @@ pub fn polynomial() -> Result<CompiledModel, AssemblyError> {
     let c = b.constant(-0.01)?;
     let fourth = b.multiply(c, fourth)?;
     b.factor(fourth)?;
+    b.compile()
+}
+
+// Deterministic route controls, not probability laws or another model registry.
+#[derive(Clone, Copy)]
+pub enum RouteCompanion {
+    None,
+    Trusted,
+    Checkpoint,
+    Opaque,
+    TrustedAndOpaque,
+    MissingPrimal,
+}
+
+struct RouteTrusted;
+impl RouteTrusted {
+    fn signature(&self) -> alea::model::assembly::PrimitiveSignature {
+        use alea::model::assembly::{ArgumentShape, PrimitiveArgument, PrimitiveSignature};
+        PrimitiveSignature {
+            name: "route trusted score control",
+            arguments: vec![
+                PrimitiveArgument {
+                    name: "left",
+                    shape: ArgumentShape::Scalar,
+                },
+                PrimitiveArgument {
+                    name: "right",
+                    shape: ArgumentShape::Scalar,
+                },
+            ],
+            probability: None,
+        }
+    }
+    /// Native kernel workspace.
+    pub fn workspace(&self) {}
+    /// Native kernel evaluate.
+    pub fn evaluate(&self, x: &[f64], g: &mut [f64], _: &mut ()) -> Result<f64, AssemblyError> {
+        // A finite primal with a deliberately invalid supplied score. This
+        // sentinel probes admission, not differentiation of a discontinuity.
+        g[0] = if x[0] == 2. { f64::NAN } else { x[1] };
+        g[1] = x[0];
+        Ok(x[0] * x[1])
+    }
+    fn source_rule(&self) -> Option<fn(&Self) -> String> {
+        Some(|_| "x[0]*x[1]".into())
+    }
+    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
+        Some(|_| "g[0]=if x[0]==2. {f64::NAN} else {x[1]};g[1]=x[0];x[0]*x[1]".into())
+    }
+}
+impl OperationDescriptor for RouteTrusted {
+    type Workspace = ();
+    fn rules(&self) -> NativeRules<Self> {
+        let mut rules = NativeRules::new(self.signature(), Self::workspace, Self::evaluate);
+        let body = self.source_rule().map(SourceBody::Generated);
+        rules.source = body.map(|body| SourceRule {
+            body,
+            gradient: self.source_gradient_rule(),
+            workspace: 0,
+        });
+        rules
+    }
+}
+
+pub fn route_isolation(
+    companion: RouteCompanion,
+    selected_a: bool,
+) -> Result<CompiledModel, AssemblyError> {
+    use alea::model::tensor::*;
+    let mut b = ModelBuilder::new();
+    let x = b.real("x")?.expr();
+    let mut a = b.region();
+    let left = a.input("left", Shape::scalar())?;
+    let right = a.input("right", Shape::scalar())?;
+    let product = a.binary(BinaryOp::Multiply, left, right)?;
+    let absolute = a.unary(UnaryOp::Sqrt, product)?;
+    let a = b.apply_region(&[x, x], a.compile(absolute)?.bind(&[])?)?;
+    // These synthetic deterministic factors use statistical selection solely
+    // as a reachability control; no posterior/propriety claim is made.
+    b.likelihood("A", a)?;
+    if matches!(
+        companion,
+        RouteCompanion::Trusted | RouteCompanion::TrustedAndOpaque
+    ) {
+        let term = b.primitive(&([x, x]), RouteTrusted)?;
+        b.prior("trusted B", term)?;
+    }
+    if matches!(companion, RouteCompanion::Checkpoint) {
+        let mut body = b.region();
+        let carry = body.input("carry", Shape::scalar())?;
+        let _row = body.input("row", Shape::scalar())?;
+        let gain = body.input("gain", Shape::scalar())?;
+        let next = body.binary(BinaryOp::Add, carry, gain)?;
+        let body = body.compile(next)?.bind(&[])?;
+        let mut t = b.region();
+        let initial = t.input("initial", Shape::scalar())?;
+        let gain = t.input("gain", Shape::scalar())?;
+        let rows = t.constant(Shape::new(vec![65])?, vec![0.; 65])?;
+        let result = t.checkpointed_scan(initial, rows, &[gain], body)?;
+        let term = b.apply_region(&[x, x], t.compile(result)?.bind(&[])?)?;
+        b.prior("checkpoint B", term)?;
+    }
+    if matches!(
+        companion,
+        RouteCompanion::Opaque | RouteCompanion::TrustedAndOpaque | RouteCompanion::MissingPrimal
+    ) {
+        let callback = |x: &[f64], g: &mut [f64]| {
+            g[0] = 2. * x[0] * x[1];
+            g[1] = x[0] * x[0];
+            Ok(x[0] * x[1] * x[0])
+        };
+        let term = if matches!(companion, RouteCompanion::MissingPrimal) {
+            b.custom(&[x, x], callback)?
+        } else {
+            b.custom_with_primal(&[x, x], "x[0]*x[1]*x[0]", callback)?
+        };
+        b.prior("opaque B", term)?;
+    }
+    let model = b.compile()?;
+    if selected_a {
+        model.select_likelihood()
+    } else {
+        Ok(model)
+    }
+}
+
+pub fn tensor_score_admission() -> Result<CompiledModel, AssemblyError> {
+    use alea::model::tensor::*;
+    let branch = |singular: bool| -> Result<_, AssemblyError> {
+        let mut t = ModelBuilder::new().region();
+        let x = t.input("x", Shape::scalar())?;
+        let squared = t.binary(BinaryOp::Multiply, x, x)?;
+        let root = t.unary(UnaryOp::Sqrt, squared)?;
+        let result = if singular {
+            root
+        } else {
+            let zero = t.constant(Shape::scalar(), vec![0.])?;
+            // Zero reverse seed and a statically inactive singular derivative
+            // are both legitimate native cases. Rejecting every sqrt(0)
+            // encountered in the forward pass would break these semantics.
+            let masked = t.binary(BinaryOp::Multiply, root, zero)?;
+            let immutable = t.unary(UnaryOp::Sqrt, zero)?;
+            let inert = t.binary(BinaryOp::Add, masked, immutable)?;
+            t.binary(BinaryOp::Add, squared, inert)?
+        };
+        t.compile(result)?.bind(&[])
+    };
+    let mut t = ModelBuilder::new().region();
+    let x = t.input("x", Shape::scalar())?;
+    let choose = t.input("choose", Shape::scalar())?;
+    let zero = t.constant(Shape::scalar(), vec![0.])?;
+    let result = t.cond(
+        choose,
+        zero,
+        Comparison::Greater,
+        &[x],
+        branch(true)?,
+        branch(false)?,
+    )?;
+    let mut b = ModelBuilder::new();
+    let inputs = [b.real("x")?.expr(), b.real("choose")?.expr()];
+    let term = b.apply_region(&inputs, t.compile(result)?.bind(&[])?)?;
+    b.factor(term)?;
     b.compile()
 }
 
@@ -181,17 +345,23 @@ pub fn normal_vector(observed: bool) -> Result<CompiledModel, AssemblyError> {
             let offset = b.constant((i % 3) as f64 / 4.)?;
             locations.push(b.add(mu, offset)?);
         }
-        b.primitive(NormalBatch::observed(
-            (0..129).map(|i| (i % 7) as f64 / 3. - 1.).collect(),
-            &locations,
-            &[sigma],
-        )?)?
+        b.primitive(
+            &[&locations[..], &[sigma][..]].concat(),
+            NormalBatch::observed(
+                (0..129).map(|i| (i % 7) as f64 / 3. - 1.).collect(),
+                locations.len(),
+                1,
+            )?,
+        )?
     } else {
         let mut events = Vec::new();
         for i in 0..5 {
             events.push(b.real(&format!("event{i}"))?.expr());
         }
-        b.primitive(NormalBatch::new(&events, &[mu], &[sigma])?)?
+        b.primitive(
+            &[&events[..], &[mu][..], &[sigma][..]].concat(),
+            NormalBatch::new([events.len(), 1, 1])?,
+        )?
     };
     b.likelihood("data", term)?;
     b.compile()
@@ -264,7 +434,7 @@ pub fn tensor_checkpoint_broadcast() -> Result<CompiledModel, AssemblyError> {
 }
 fn tensor_broadcast_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError> {
     use alea::model::tensor::*;
-    let mut t = TensorBuilder::new();
+    let mut t = ModelBuilder::new().region();
     let q = t.input("q", Shape::new(vec![2])?)?;
     // The left map has TWO contributing axes, while the right map repeats
     // entries of the same input. Keep the explicit gather as an irregular-map
@@ -284,7 +454,7 @@ fn tensor_broadcast_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyEr
     let binding = t.compile(result)?.bind(&[])?;
     let mut b = ModelBuilder::new();
     let q = [b.real("a")?.expr(), b.real("b")?.expr()];
-    let term = b.primitive(TensorFactor::new(binding, &q)?)?;
+    let term = b.apply_region(&q, binding)?;
     b.potential("objective", term)?;
     b.compile()
 }
@@ -292,11 +462,11 @@ pub fn tensor_checkpoint_matrix() -> Result<CompiledModel, AssemblyError> {
     tensor_matrix_policy(true)
 }
 fn checkpoint_identity(
-    t: &mut alea::model::tensor::TensorBuilder,
-    value: alea::model::tensor::Value,
-) -> Result<alea::model::tensor::Value, AssemblyError> {
+    t: &mut alea::model::tensor::RegionBuilder,
+    value: alea::model::assembly::Value,
+) -> Result<alea::model::assembly::Value, AssemblyError> {
     use alea::model::tensor::*;
-    let mut body = TensorBuilder::new();
+    let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", Shape::scalar())?;
     let _row = body.input("row", Shape::scalar())?;
     let body = body.compile(carry)?.bind(&[])?;
@@ -305,7 +475,7 @@ fn checkpoint_identity(
 }
 fn tensor_matrix_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError> {
     use alea::model::tensor::*;
-    let mut t = TensorBuilder::new();
+    let mut t = ModelBuilder::new().region();
     let q = t.input("q", Shape::new(vec![2, 1])?)?;
     let matrix = t.data("matrix", Shape::new(vec![2, 2])?)?;
     let means = t.matmul(matrix, q)?;
@@ -323,7 +493,7 @@ fn tensor_matrix_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError
         .bind(&[("matrix", &[1., 0.5, -0.5, 1.5])])?;
     let mut b = ModelBuilder::new();
     let q = [b.real("a")?.expr(), b.real("b")?.expr()];
-    let term = b.primitive(TensorFactor::new(binding, &q)?)?;
+    let term = b.apply_region(&q, binding)?;
     b.potential("objective", term)?;
     b.compile()
 }
@@ -350,14 +520,14 @@ pub fn tensor_checkpoint_mixed() -> Result<CompiledModel, AssemblyError> {
 }
 pub fn tensor_checkpoint_activity() -> Result<CompiledModel, AssemblyError> {
     use alea::model::tensor::*;
-    let mut body = TensorBuilder::new();
+    let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", Shape::scalar())?;
     let _row = body.input("row", Shape::scalar())?;
     let gain = body.input("gain", Shape::scalar())?;
     let root = body.unary(UnaryOp::Sqrt, carry)?;
     let next = body.binary(BinaryOp::Add, root, gain)?;
     let body = body.compile(next)?.bind(&[])?;
-    let mut t = TensorBuilder::new();
+    let mut t = ModelBuilder::new().region();
     let gain = t.input("gain", Shape::scalar())?;
     let zero = t.constant(Shape::scalar(), vec![0.])?;
     let rows = t.constant(Shape::new(vec![3])?, vec![0.; 3])?;
@@ -365,7 +535,7 @@ pub fn tensor_checkpoint_activity() -> Result<CompiledModel, AssemblyError> {
     let binding = t.compile(result)?.bind(&[])?;
     let mut b = ModelBuilder::new();
     let gain = b.real("gain")?.expr();
-    let term = b.primitive(TensorFactor::new(binding, &[gain])?)?;
+    let term = b.apply_region(&[gain], binding)?;
     b.potential("objective", term)?;
     b.compile()
 }
@@ -377,7 +547,7 @@ pub fn tensor_checkpoint_constant() -> Result<CompiledModel, AssemblyError> {
 }
 fn tensor_checkpoint_immutable_policy(variable: bool) -> Result<CompiledModel, AssemblyError> {
     use alea::model::tensor::*;
-    let mut t = TensorBuilder::new();
+    let mut t = ModelBuilder::new().region();
     let gain = t.input("gain", Shape::scalar())?;
     let alias = t.reshape(gain, Shape::new(vec![1])?)?;
     let data = t.data("data", Shape::new(vec![4])?)?;
@@ -395,13 +565,13 @@ fn tensor_checkpoint_immutable_policy(variable: bool) -> Result<CompiledModel, A
     let binding = t.compile(result)?.bind(&[("data", &[0., 1., 4., 9.])])?;
     let mut b = ModelBuilder::new();
     let gain = b.real("gain")?.expr();
-    let term = b.primitive(TensorFactor::new(binding, &[gain])?)?;
+    let term = b.apply_region(&[gain], binding)?;
     b.potential("objective", term)?;
     b.compile()
 }
 pub fn tensor_checkpoint_vector() -> Result<CompiledModel, AssemblyError> {
     use alea::model::tensor::*;
-    let mut body = TensorBuilder::new();
+    let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", Shape::new(vec![2])?)?;
     let row = body.input("row", Shape::scalar())?;
     let gain = body.input("gain", Shape::scalar())?;
@@ -409,7 +579,7 @@ pub fn tensor_checkpoint_vector() -> Result<CompiledModel, AssemblyError> {
     let shifted = body.binary(BinaryOp::Add, scaled, row)?;
     let next = body.unary(UnaryOp::Tanh, shifted)?;
     let body = body.compile(next)?.bind(&[])?;
-    let mut t = TensorBuilder::new();
+    let mut t = ModelBuilder::new().region();
     let initial = t.input("initial", Shape::new(vec![2])?)?;
     let gain = t.input("gain", Shape::scalar())?;
     let rows = t.constant(Shape::new(vec![65])?, vec![0.1; 65])?;
@@ -422,13 +592,13 @@ pub fn tensor_checkpoint_vector() -> Result<CompiledModel, AssemblyError> {
         b.real("b")?.expr(),
         b.real("gain")?.expr(),
     ];
-    let term = b.primitive(TensorFactor::new(binding, &q)?)?;
+    let term = b.apply_region(&q, binding)?;
     b.potential("objective", term)?;
     b.compile()
 }
 pub fn tensor_checkpoint_routes() -> Result<CompiledModel, AssemblyError> {
     use alea::model::tensor::*;
-    let mut body = TensorBuilder::new();
+    let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", Shape::scalar())?;
     let row = body.input("row", Shape::scalar())?;
     let bias = body.input("bias", Shape::scalar())?;
@@ -439,7 +609,7 @@ pub fn tensor_checkpoint_routes() -> Result<CompiledModel, AssemblyError> {
     let next = body.binary(BinaryOp::Add, carry, row)?;
     let next = body.binary(BinaryOp::Add, next, bias)?;
     let body = body.compile(next)?.bind(&[])?;
-    let mut t = TensorBuilder::new();
+    let mut t = ModelBuilder::new().region();
     let initial = t.input("initial", Shape::scalar())?;
     let rows = t.input("rows", Shape::new(vec![3])?)?;
     let gain = t.input("gain", Shape::scalar())?;
@@ -451,7 +621,7 @@ pub fn tensor_checkpoint_routes() -> Result<CompiledModel, AssemblyError> {
     let q: Vec<_> = (0..5)
         .map(|i| b.real(&format!("q{i}")).map(|v| v.expr()))
         .collect::<Result<_, _>>()?;
-    let term = b.primitive(TensorFactor::new(binding, &q)?)?;
+    let term = b.apply_region(&q, binding)?;
     b.potential("objective", term)?;
     b.compile()
 }
@@ -461,7 +631,7 @@ fn tensor_control_steps(
     mixed: bool,
 ) -> Result<CompiledModel, AssemblyError> {
     use alea::model::tensor::*;
-    let mut body = TensorBuilder::new();
+    let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", Shape::scalar())?;
     let row = body.input("row", Shape::scalar())?;
     let gain = body.input("gain", Shape::scalar())?;
@@ -469,7 +639,7 @@ fn tensor_control_steps(
     let next = body.binary(BinaryOp::Add, scaled, row)?;
     let body = body.compile(next)?.bind(&[])?;
     fn branch(negative: bool) -> Result<BoundProgram, AssemblyError> {
-        let mut b = TensorBuilder::new();
+        let mut b = ModelBuilder::new().region();
         let x = b.input("x", Shape::scalar())?;
         let x = if negative {
             b.unary(UnaryOp::Neg, x)?
@@ -479,7 +649,7 @@ fn tensor_control_steps(
         let y = b.unary(UnaryOp::Log, x)?;
         b.compile(y)?.bind(&[])
     }
-    let mut t = TensorBuilder::new();
+    let mut t = ModelBuilder::new().region();
     let initial = t.input("initial", Shape::scalar())?;
     let gain = t.input("gain", Shape::scalar())?;
     let xs = t.data("xs", Shape::new(vec![steps])?)?;
@@ -506,7 +676,7 @@ fn tensor_control_steps(
         b.real("initial")?.expr()
     };
     let q = [initial, b.real("gain")?.expr()];
-    let term = b.primitive(TensorFactor::new(binding, &q)?)?;
+    let term = b.apply_region(&q, binding)?;
     let term = if mixed {
         let zero = b.constant(0.)?;
         let one = b.constant(1.)?;
@@ -527,15 +697,15 @@ pub fn tensor_checkpoint_empty() -> Result<CompiledModel, AssemblyError> {
     tensor_empty_policy(true)
 }
 fn tensor_empty_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError> {
-    use alea::model::tensor::{Comparison, Shape, TensorBuilder, TensorFactor, UnaryOp};
+    use alea::model::tensor::{Comparison, Shape, UnaryOp};
     let branch = |log: bool| -> Result<_, AssemblyError> {
-        let mut b = TensorBuilder::new();
+        let mut b = ModelBuilder::new().region();
         let x = b.input("x", Shape::scalar())?;
         let value = if log { b.unary(UnaryOp::Log, x)? } else { x };
         let result = b.gather(value, Shape::new(vec![0])?, vec![])?;
         b.compile(result)?.bind(&[])
     };
-    let mut t = TensorBuilder::new();
+    let mut t = ModelBuilder::new().region();
     let x = t.input("x", Shape::scalar())?;
     let zero = t.constant(Shape::scalar(), vec![0.])?;
     let chosen = t.cond(
@@ -555,13 +725,47 @@ fn tensor_empty_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError>
     let binding = t.compile(out)?.bind(&[])?;
     let mut b = ModelBuilder::new();
     let x = b.real("x")?.expr();
-    let term = b.primitive(TensorFactor::new(binding, &[x])?)?;
+    let term = b.apply_region(&[x], binding)?;
     b.potential("objective", term)?;
     b.compile()
 }
 pub fn all() -> Result<Vec<(&'static str, CompiledModel)>, AssemblyError> {
     let mut models = vec![
         ("polynomial", polynomial()?),
+        ("route_alone", route_isolation(RouteCompanion::None, false)?),
+        ("tensor_score_admission", tensor_score_admission()?),
+        (
+            "route_trusted",
+            route_isolation(RouteCompanion::Trusted, false)?,
+        ),
+        (
+            "route_checkpoint",
+            route_isolation(RouteCompanion::Checkpoint, false)?,
+        ),
+        (
+            "route_opaque",
+            route_isolation(RouteCompanion::Opaque, false)?,
+        ),
+        (
+            "route_trusted_opaque",
+            route_isolation(RouteCompanion::TrustedAndOpaque, false)?,
+        ),
+        (
+            "route_selected_trusted",
+            route_isolation(RouteCompanion::Trusted, true)?,
+        ),
+        (
+            "route_selected_checkpoint",
+            route_isolation(RouteCompanion::Checkpoint, true)?,
+        ),
+        (
+            "route_selected_opaque",
+            route_isolation(RouteCompanion::Opaque, true)?,
+        ),
+        (
+            "route_selected_missing",
+            route_isolation(RouteCompanion::MissingPrimal, true)?,
+        ),
         ("native_normal_batch", native_batch(0)?),
         ("native_logit_batch", native_batch(1)?),
         ("native_poisson_batch", native_batch(2)?),

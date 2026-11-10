@@ -183,7 +183,8 @@ fn build_model_with_execution(
                 let data = RegressionData::new(columns, design, input.y.clone())
                     .map_err(|_| AssemblyError::Shape)?;
                 let likelihood = b.primitive(
-                    NormalRegression::new(&coefficients, &sigma, data)?.with_execution(execution),
+                    &[&coefficients[..], &[sigma.expr()]].concat(),
+                    NormalRegression::new(data)?.with_execution(execution),
                 )?;
                 b.likelihood("normal observations", likelihood)?;
             } else {
@@ -191,7 +192,8 @@ fn build_model_with_execution(
                 let data = RegressionData::new(columns, input.x.clone(), observations)
                     .map_err(|_| AssemblyError::Shape)?;
                 let likelihood = b.primitive(
-                    BernoulliLogitRegression::new(&coefficients, data)?.with_execution(execution),
+                    &coefficients,
+                    BernoulliLogitRegression::new(data)?.with_execution(execution),
                 )?;
                 b.likelihood("bernoulli observations", likelihood)?;
             }

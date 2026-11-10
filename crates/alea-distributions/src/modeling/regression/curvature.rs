@@ -29,29 +29,25 @@ pub struct GlmLikelihood {
 impl GlmLikelihood {
     /// Builds a Bernoulli-logit likelihood on real coefficients in column order.
     /// # Errors
-    /// Preserves native data, handle and packed-storage validation errors.
+    /// Preserves native data and packed-storage validation errors.
     pub fn bernoulli_logit(data: RegressionData<bool>) -> Result<Self, E> {
-        let coefficients = handles(data.columns())?;
-        let primitive = BernoulliLogitRegression::new(&coefficients, data)?;
+        let dimension = data.columns();
+        let primitive = BernoulliLogitRegression::new(data)?;
         let workspace = primitive.workspace();
         Ok(Self::new(
             Family::Bernoulli(primitive),
             workspace,
-            coefficients.len(),
+            dimension,
         ))
     }
     /// Builds a Poisson-log likelihood; offsets remain log exposures.
     /// # Errors
     /// Preserves native data/count precision and packed-storage validation errors.
     pub fn poisson_log(data: RegressionData<u64>) -> Result<Self, E> {
-        let coefficients = handles(data.columns())?;
-        let primitive = PoissonLogRegression::new(&coefficients, data)?;
+        let dimension = data.columns();
+        let primitive = PoissonLogRegression::new(data)?;
         let workspace = primitive.workspace();
-        Ok(Self::new(
-            Family::Poisson(primitive),
-            workspace,
-            coefficients.len(),
-        ))
+        Ok(Self::new(Family::Poisson(primitive), workspace, dimension))
     }
     fn new(family: Family, evaluation: LinkRegressionWorkspace, dimension: usize) -> Self {
         Self {
@@ -85,12 +81,6 @@ impl GlmLikelihood {
         }
         Ok(())
     }
-}
-fn handles(dimension: usize) -> Result<Vec<Expr>, E> {
-    let mut builder = ModelBuilder::new();
-    (0..dimension)
-        .map(|i| builder.real(&format!("coefficient{i}")).map(|p| p.expr()))
-        .collect()
 }
 impl TargetSpace for GlmLikelihood {
     type Error = E;

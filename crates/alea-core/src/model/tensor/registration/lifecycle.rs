@@ -181,7 +181,7 @@ mod tests {
     use alea_math::buffer::OwnedBuffer;
     use std::{
         panic::{AssertUnwindSafe, catch_unwind},
-        sync::atomic::AtomicUsize,
+        sync::atomic::{AtomicUsize, Ordering},
     };
 
     #[derive(Default)]
@@ -198,7 +198,7 @@ mod tests {
     // context-local scratch and VJP uses that residual once without replay.
     fn definition() -> (TensorProgram, Arc<Controls>) {
         let control = Arc::new(Controls::default());
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", Shape::scalar()).unwrap();
         let weights = b.data("weights", Shape::new(vec![2]).unwrap()).unwrap();
         let yes = b
@@ -214,10 +214,10 @@ mod tests {
         let signature = Signature {
             inputs: inputs
                 .iter()
-                .map(|v| Type::of(b.node(*v).unwrap()))
+                .map(|v| BlockType::of(b.node(*v).unwrap()))
                 .collect(),
-            output: Type {
-                dtype: DType::Real,
+            output: BlockType {
+                dtype: ElementType::Real,
                 shape: Shape::scalar(),
             },
             scratch: 1,
@@ -286,7 +286,7 @@ mod tests {
 
     #[test]
     fn binding_rules_reject_dynamic_dependencies_bad_arguments_and_extent_before_graph_mutation() {
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", Shape::scalar()).unwrap();
         let data = b.data("data", Shape::scalar()).unwrap();
         let derived_data = b.unary(UnaryOp::Neg, data).unwrap();
@@ -299,9 +299,9 @@ mod tests {
             let nodes = b.nodes.len();
             let result = b.register(
                 Signature {
-                    inputs: vec![Type::of(b.node(input).unwrap())],
-                    output: Type {
-                        dtype: DType::Real,
+                    inputs: vec![BlockType::of(b.node(input).unwrap())],
+                    output: BlockType {
+                        dtype: ElementType::Real,
                         shape: Shape::scalar(),
                     },
                     scratch: 0,
@@ -333,9 +333,9 @@ mod tests {
         let output = b
             .register(
                 Signature {
-                    inputs: vec![Type::of(b.node(constant).unwrap())],
-                    output: Type {
-                        dtype: DType::Real,
+                    inputs: vec![BlockType::of(b.node(constant).unwrap())],
+                    output: BlockType {
+                        dtype: ElementType::Real,
                         shape: Shape::scalar(),
                     },
                     scratch: 0,
@@ -625,14 +625,14 @@ mod tests {
 
     #[test]
     fn scalar_adapter_rejects_vector_one_and_accepts_empty_coordinate_space() {
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("empty", Shape::new(vec![0]).unwrap()).unwrap();
         let sum = b.sum(x).unwrap();
         let p = b.compile(sum).unwrap();
         let target = p.native_target(&[]).unwrap();
         assert_eq!(target.dimension(), 0);
         assert_eq!(target.logp_grad(&[], &mut []).unwrap(), 0.);
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("one", Shape::new(vec![1]).unwrap()).unwrap();
         let p = b.compile(x).unwrap();
         assert!(matches!(p.native_target(&[]), Err(E::Shape)));

@@ -45,8 +45,7 @@ fn residual_layout(p: &Plan, active: &[bool], full: &[usize]) -> Result<Residual
             continue;
         }
         match &n.op {
-            #[cfg(test)]
-            Op::Prototype(_) => return Err(E::MissingPrimal { node: i }),
+            Op::Registered(_) => return Err(E::MissingPrimal { node: i }),
             Op::Unary(op, v) => match op {
                 UnaryOp::Neg => {}
                 UnaryOp::Exp | UnaryOp::Tanh | UnaryOp::Sqrt => mark(Value {
@@ -303,7 +302,6 @@ impl BoundProgram {
     }
     fn pullback_with_activity(&self, name: &str, inputs: &[bool]) -> Result<PullbackSource, E> {
         let p = &self.plan;
-        #[cfg(test)]
         if let Some(node) = registration::missing_source(p) {
             return Err(E::MissingPrimal { node });
         }
@@ -353,8 +351,7 @@ impl BoundProgram {
             let base = adjoints[i];
             let len = n.shape.elements;
             match &n.op {
-                #[cfg(test)]
-                Op::Prototype(_) => return Err(E::MissingPrimal { node: i }),
+                Op::Registered(_) => return Err(E::MissingPrimal { node: i }),
                 Op::Input(j) => {
                     let input = &p.inputs[*j];
                     writeln!(
@@ -696,7 +693,7 @@ mod tests {
     #[test]
     fn source_residuals_retain_only_values_read_by_the_pullback() {
         let n = 17;
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", Shape::new(vec![n]).unwrap()).unwrap();
         let mut out = x;
         for _ in 0..32 {
@@ -708,7 +705,7 @@ mod tests {
         assert_eq!(source.residuals, n);
         assert!(binding.plan.source_slots > 32 * n);
 
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", Shape::new(vec![n]).unwrap()).unwrap();
         let exponential = b.unary(UnaryOp::Exp, x).unwrap();
         let alias = b
@@ -741,7 +738,7 @@ mod tests {
     #[test]
     fn source_adjoints_exclude_immutable_ranges_and_share_aliases() {
         for len in [0, 1, 257, 10_000] {
-            let mut b = TensorBuilder::new();
+            let mut b = RegionBuilder::new();
             let x = b.input("x", Shape::scalar()).unwrap();
             let alias = b.reshape(x, Shape::new(vec![1]).unwrap()).unwrap();
             let data = b.data("data", Shape::new(vec![len]).unwrap()).unwrap();

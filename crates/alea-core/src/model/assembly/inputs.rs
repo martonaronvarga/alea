@@ -1,6 +1,7 @@
 //! Cold ergonomic inputs; the compiled operation tape is unchanged.
 use super::{
-    AssemblyError, Expr, ModelBuilder, Op, Parameter, Positive, Real, UnitInterval, VectorParameter,
+    AssemblyError, ModelBuilder, Op, Parameter, Positive, Real, UnitInterval, Value,
+    VectorParameter,
 };
 use crate::transform::Transform;
 
@@ -11,7 +12,7 @@ use crate::transform::Transform;
 #[non_exhaustive]
 pub enum ScalarInput {
     /// An existing expression, checked for builder ownership before use.
-    Expression(Expr),
+    Expression(Value),
     /// A finite constant, inserted as an ordinary constant node on use.
     Constant(f64),
 }
@@ -20,13 +21,13 @@ impl From<f64> for ScalarInput {
         Self::Constant(value)
     }
 }
-impl From<Expr> for ScalarInput {
-    fn from(value: Expr) -> Self {
+impl From<Value> for ScalarInput {
+    fn from(value: Value) -> Self {
         Self::Expression(value)
     }
 }
-impl From<&Expr> for ScalarInput {
-    fn from(value: &Expr) -> Self {
+impl From<&Value> for ScalarInput {
+    fn from(value: &Value) -> Self {
         Self::Expression(*value)
     }
 }
@@ -45,7 +46,7 @@ impl ModelBuilder {
     /// Existing expressions are reused; literals add a constant node.
     /// # Errors
     /// Rejects foreign handles or nonfinite literals before graph mutation.
-    pub fn expression(&mut self, value: impl Into<ScalarInput>) -> Result<Expr, AssemblyError> {
+    pub fn expression(&mut self, value: impl Into<ScalarInput>) -> Result<Value, AssemblyError> {
         let [value] = self.inputs([value.into()])?;
         Ok(value)
     }
@@ -59,7 +60,7 @@ impl ModelBuilder {
     pub fn inputs<const N: usize>(
         &mut self,
         values: [ScalarInput; N],
-    ) -> Result<[Expr; N], AssemblyError> {
+    ) -> Result<[Value; N], AssemblyError> {
         for value in &values {
             match value {
                 ScalarInput::Expression(expr) => {

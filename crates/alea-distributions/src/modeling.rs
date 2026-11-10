@@ -8,7 +8,7 @@ use crate::{
 };
 use alea_core::{
     distribution::{ParameterScore, ScalarEventScore},
-    model::assembly::{AssemblyError as E, Expr, ModelBuilder, Parameter, Positive, ScalarInput},
+    model::assembly::{AssemblyError as E, ModelBuilder, Parameter, Positive, ScalarInput, Value},
 };
 pub use builder::ModelBuilderExt;
 pub use normal::{NormalBatch, NormalBatchWorkspace, NormalFactor};
@@ -19,9 +19,8 @@ fn error(e: impl std::error::Error + Send + Sync + 'static) -> E {
 // owns a cache; native setup/heap storage stays outside the float-arena receipt.
 fn cached_primitive_source(native: &str, constructor: &str) -> String {
     format!(
-        r#"use ::alea::model::assembly::Primitive as _;
-type Native={native};
-::std::thread_local! {{static CACHE: ::std::cell::RefCell<Option<(Native,<Native as ::alea::model::assembly::Primitive>::Workspace)>> = const {{::std::cell::RefCell::new(None)}};}}
+        r#"type Native={native};
+::std::thread_local! {{static CACHE: ::std::cell::RefCell<Option<(Native,<Native as ::alea::model::assembly::OperationDescriptor>::Workspace)>> = const {{::std::cell::RefCell::new(None)}};}}
 fn prepare()->Result<Native,::alea::model::assembly::AssemblyError> {{{constructor}}}
 CACHE.try_with(|cache| {{
     let Ok(mut cache)=cache.try_borrow_mut() else {{return f64::NAN}};
@@ -42,10 +41,10 @@ CACHE.try_with(|cache| {{
 /// derivative failures are preserved at evaluation time.
 pub fn continuous<D, F>(
     builder: &mut ModelBuilder,
-    event: Expr,
-    parameters: &[Expr],
+    event: Value,
+    parameters: &[Value],
     construct: F,
-) -> Result<Expr, E>
+) -> Result<Value, E>
 where
     D: ScalarEventScore + ParameterScore + 'static,
     F: Fn(&[f64]) -> Result<D, D::Error> + Send + Sync + 'static,
@@ -78,9 +77,9 @@ where
 pub fn observation<D, F, O>(
     builder: &mut ModelBuilder,
     event: O,
-    parameters: &[Expr],
+    parameters: &[Value],
     construct: F,
-) -> Result<Expr, E>
+) -> Result<Value, E>
 where
     D: ParameterScore + 'static,
     O: std::borrow::Borrow<D::Event> + Send + Sync + 'static,
@@ -103,9 +102,9 @@ pub fn normal(
     event: impl Into<ScalarInput>,
     location: impl Into<ScalarInput>,
     scale: impl Into<ScalarInput>,
-) -> Result<Expr, E> {
+) -> Result<Value, E> {
     let [event, location, scale] = builder.inputs([event.into(), location.into(), scale.into()])?;
-    builder.primitive(NormalFactor::new(event, location, scale))
+    builder.primitive(&[event, location, scale], NormalFactor::new())
 }
 /// Sum of Normal log densities with scalar broadcasting along one observation
 /// axis. Each nonempty argument has length one or the common batch length.
@@ -116,11 +115,14 @@ pub fn normal(
 /// all scalar law checks and local-score failures remain visible at evaluation.
 pub fn normal_batch(
     builder: &mut ModelBuilder,
-    events: &[Expr],
-    locations: &[Expr],
-    scales: &[Expr],
-) -> Result<Expr, E> {
-    builder.primitive(NormalBatch::new(events, locations, scales)?)
+    events: &[Value],
+    locations: &[Value],
+    scales: &[Value],
+) -> Result<Value, E> {
+    builder.primitive(
+        &[events, locations, scales].concat(),
+        NormalBatch::new([(events).len(), (locations).len(), (scales).len()])?,
+    )
 }
 /// Convenience observation with a support-typed positive scale handle.
 /// # Errors
@@ -130,7 +132,7 @@ pub fn normal_observation(
     event: f64,
     location: impl Into<ScalarInput>,
     scale: &Parameter<Positive>,
-) -> Result<Expr, E> {
+) -> Result<Value, E> {
     let event = builder.constant(event)?;
     normal(builder, event, location, scale.expr())
 }
@@ -142,7 +144,7 @@ pub fn bernoulli_logit(
     builder: &mut ModelBuilder,
     event: bool,
     logit: impl Into<ScalarInput>,
-) -> Result<Expr, E> {
+) -> Result<Value, E> {
     let logit = builder.expression(logit)?;
     let primal = if event {
         "let z = x[0]; if z >= 0.0 { -(-z).exp().ln_1p() } else { z - z.exp().ln_1p() }"
@@ -163,9 +165,9 @@ pub fn bernoulli_logit(
 pub fn wiener4(
     builder: &mut ModelBuilder,
     event: WienerObservation,
-    parameters: [Expr; 4],
+    parameters: [Value; 4],
     options: WienerOptions,
-) -> Result<Expr, E> {
+) -> Result<Value, E> {
     builder.custom(&parameters, move |x, g| {
         let p = Wiener4Params::with_params(x[0], x[1], x[2], x[3]).map_err(error)?;
         let result = Wiener4.try_fused(&event, &p, options).map_err(error)?;

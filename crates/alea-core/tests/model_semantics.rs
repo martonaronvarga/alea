@@ -1,8 +1,9 @@
+use alea_core::model::assembly::{NativeRules, OperationDescriptor};
 use alea_core::model::{
     ConstrainedModel,
     assembly::{
-        ArgumentShape, AssemblyError, Expr, ModelBuilder, OperationKind, Primitive,
-        PrimitiveArgument, PrimitiveSignature,
+        ArgumentShape, AssemblyError, ModelBuilder, OperationKind, PrimitiveArgument,
+        PrimitiveSignature, Value,
     },
 };
 use std::sync::{
@@ -11,15 +12,10 @@ use std::sync::{
 };
 
 struct Square {
-    inputs: [Expr; 1],
     width: usize,
     workspaces: Arc<AtomicUsize>,
 }
-impl Primitive for Square {
-    type Workspace = usize;
-    fn inputs(&self) -> &[Expr] {
-        &self.inputs
-    }
+impl Square {
     fn signature(&self) -> PrimitiveSignature {
         PrimitiveSignature {
             name: "square",
@@ -30,11 +26,18 @@ impl Primitive for Square {
             probability: None,
         }
     }
-    fn workspace(&self) -> usize {
+    /// Native kernel workspace.
+    pub fn workspace(&self) -> usize {
         self.workspaces.fetch_add(1, Ordering::Relaxed);
         0
     }
-    fn evaluate(&self, x: &[f64], g: &mut [f64], calls: &mut usize) -> Result<f64, AssemblyError> {
+    /// Native kernel evaluate.
+    pub fn evaluate(
+        &self,
+        x: &[f64],
+        g: &mut [f64],
+        calls: &mut usize,
+    ) -> Result<f64, AssemblyError> {
         *calls += 1; // Scratch may change, but must not change mathematical results.
         if x[0] == 15. {
             return Ok(0.); // Incomplete derivative, rejected by admission.
@@ -49,29 +52,34 @@ impl Primitive for Square {
         Ok(x[0] * x[0])
     }
 }
+impl OperationDescriptor for Square {
+    type Workspace = usize;
+    fn rules(&self) -> NativeRules<Self> {
+        NativeRules::new(self.signature(), Self::workspace, Self::evaluate)
+    }
+}
 
 #[test]
 fn registration_validates_before_workspace_creation_and_retains_typed_identity() {
     let mut b = ModelBuilder::new();
     let x = b.real("x").unwrap().expr();
     let workspaces = Arc::new(AtomicUsize::new(0));
-    let square = |input, width| Square {
-        inputs: [input],
+    let square = |width| Square {
         width,
         workspaces: Arc::clone(&workspaces),
     };
     assert!(matches!(
-        b.primitive(square(x, 2)),
+        b.primitive(&[x], square(2)),
         Err(AssemblyError::Shape)
     ));
     let mut other = ModelBuilder::new();
     let foreign = other.real("x").unwrap().expr();
     assert!(matches!(
-        b.primitive(square(foreign, 1)),
+        b.primitive(&[foreign], square(1)),
         Err(AssemblyError::ForeignHandle)
     ));
     assert_eq!(workspaces.load(Ordering::Relaxed), 0);
-    let f = b.primitive(square(x, 1)).unwrap();
+    let f = b.primitive(&[x], square(1)).unwrap();
     b.likelihood("term", f).unwrap();
     b.factor(f).unwrap(); // Multiplicity is part of the density, not deduplicated.
     let model = b.compile().unwrap();
@@ -98,11 +106,13 @@ fn primitive_failures_and_unwind_leave_live_output_untouched_and_scratch_reusabl
     let mut b = ModelBuilder::new();
     let x = b.real("x").unwrap().expr();
     let f = b
-        .primitive(Square {
-            inputs: [x],
-            width: 1,
-            workspaces: Arc::default(),
-        })
+        .primitive(
+            &[x],
+            Square {
+                width: 1,
+                workspaces: Arc::default(),
+            },
+        )
         .unwrap();
     b.factor(f).unwrap();
     let model = b.compile().unwrap();
@@ -131,7 +141,7 @@ fn primitive_failures_and_unwind_leave_live_output_untouched_and_scratch_reusabl
 
 #[test]
 fn scopes_compose_reusable_functions_and_restore_names_after_errors_and_unwinding() {
-    fn component(b: &mut ModelBuilder) -> Result<Expr, AssemblyError> {
+    fn component(b: &mut ModelBuilder) -> Result<Value, AssemblyError> {
         let p = b.real("mean")?;
         b.prior("prior", p.expr())?;
         Ok(p.expr())
@@ -195,22 +205,25 @@ fn scoped_vector_defaults_do_not_merge_unrelated_dimensions_or_geometry_blocks()
 #[test]
 fn malformed_signatures_reject_names_and_shape_overflow_before_lowering() {
     struct Bad {
-        inputs: [Expr; 1],
         signature: PrimitiveSignature,
     }
-    impl Primitive for Bad {
-        type Workspace = ();
-        fn inputs(&self) -> &[Expr] {
-            &self.inputs
-        }
+    impl Bad {
         fn signature(&self) -> PrimitiveSignature {
             self.signature.clone()
         }
-        fn workspace(&self) {
+        /// Native kernel workspace.
+        pub fn workspace(&self) {
             panic!("invalid metadata must reject before workspace construction")
         }
-        fn evaluate(&self, _: &[f64], _: &mut [f64], _: &mut ()) -> Result<f64, AssemblyError> {
+        /// Native kernel evaluate.
+        pub fn evaluate(&self, _: &[f64], _: &mut [f64], _: &mut ()) -> Result<f64, AssemblyError> {
             panic!("invalid metadata must never execute")
+        }
+    }
+    impl OperationDescriptor for Bad {
+        type Workspace = ();
+        fn rules(&self) -> NativeRules<Self> {
+            NativeRules::new(self.signature(), Self::workspace, Self::evaluate)
         }
     }
     let valid = PrimitiveSignature {
@@ -249,13 +262,7 @@ fn malformed_signatures_reject_names_and_shape_overflow_before_lowering() {
     });
     cases.push(s);
     for signature in cases {
-        assert!(
-            b.primitive(Bad {
-                inputs: [x],
-                signature
-            })
-            .is_err()
-        );
+        assert!(b.primitive(&[x], Bad { signature }).is_err());
     }
     assert_eq!(b.compile().unwrap().expression_count(), 1);
 }
@@ -287,4 +294,78 @@ fn inspection_preserves_all_scalar_dependencies_constants_and_repeated_inputs() 
     assert_eq!(nodes[6].operation, OperationKind::Opaque);
     assert!(nodes.iter().all(|n| n.active));
     assert_eq!(model.source_capabilities().missing_primals, [opaque]);
+}
+
+#[test]
+fn native_rule_bundles_are_graph_independent_and_graph_edges_own_aliases() {
+    #[derive(Clone)]
+    struct Affine {
+        // Immutable typed data never becomes an expression or an f64 cotangent.
+        count: u64,
+        calls: Arc<AtomicUsize>,
+    }
+    impl OperationDescriptor for Affine {
+        type Workspace = (usize, bool);
+        fn rules(&self) -> NativeRules<Self> {
+            NativeRules::new(
+                PrimitiveSignature {
+                    name: "native-only affine",
+                    arguments: vec![PrimitiveArgument {
+                        name: "operands",
+                        shape: ArgumentShape::Vector(2),
+                    }],
+                    probability: None,
+                },
+                |_| (0, false),
+                |descriptor, x, g, work| {
+                    assert_eq!(descriptor.count, (1_u64 << 53) + 1);
+                    descriptor.calls.fetch_add(1, Ordering::Relaxed);
+                    work.0 += 1;
+                    work.1 = true;
+                    g.copy_from_slice(&[2., 3.]);
+                    Ok(2. * x[0] + 3. * x[1])
+                },
+            )
+        }
+    }
+    let calls = Arc::new(AtomicUsize::new(0));
+    let descriptor = Affine {
+        count: (1_u64 << 53) + 1,
+        calls: Arc::clone(&calls),
+    };
+    let mut first = ModelBuilder::new();
+    let x = first.real("x").unwrap().expr();
+    let root = first.primitive(&[x, x], descriptor.clone()).unwrap();
+    first.potential("linear", root).unwrap();
+    let first = first.compile().unwrap();
+    let mut second = ModelBuilder::new();
+    let a = second.real("a").unwrap().expr();
+    let b = second.real("b").unwrap().expr();
+    let other = second.primitive(&[b, a], descriptor).unwrap();
+    second.potential("linear", other).unwrap();
+    let second = second.compile().unwrap();
+    assert_eq!(first.graph().last().unwrap().inputs, [x, x]);
+    assert_eq!(second.graph().last().unwrap().inputs, [b, a]);
+    for model in [&first, &second] {
+        assert!(!model.source_capabilities().supports_rust_primal());
+        assert!(matches!(
+            model.rust_primal(),
+            Err(AssemblyError::MissingPrimal { .. })
+        ));
+    }
+    let mut g = [91.];
+    assert_eq!(first.logp_grad(&[2.], &mut g).unwrap(), 10.);
+    assert_eq!(g, [5.]);
+    let mut h = [91.; 2];
+    assert_eq!(second.logp_grad(&[2., 7.], &mut h).unwrap(), 20.);
+    assert_eq!(h, [3., 2.]);
+    assert_eq!(calls.load(Ordering::Relaxed), 2);
+    let allocation = allocation_counter::measure(|| {
+        for _ in 0..16 {
+            assert_eq!(first.logp_grad(&[2.], &mut g).unwrap(), 10.);
+            assert_eq!(second.logp_grad(&[2., 7.], &mut h).unwrap(), 20.);
+        }
+    });
+    assert_eq!(allocation.count_total, 0);
+    assert_eq!(calls.load(Ordering::Relaxed), 34);
 }

@@ -1,12 +1,13 @@
 //! Checkpoint replay through lazy regions, including row-input pullbacks.
-use alea_core::model::tensor::{BinaryOp, BoundProgram, Comparison, Shape, TensorBuilder, UnaryOp};
+use alea_core::model::assembly::ModelBuilder;
+use alea_core::model::tensor::{BinaryOp, BoundProgram, Comparison, Shape, UnaryOp};
 
 fn shape(axes: &[usize]) -> Shape {
     Shape::new(axes.to_vec()).unwrap()
 }
 
 fn branch(negative: bool) -> BoundProgram {
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let carry = b.input("carry", shape(&[16])).unwrap();
     let row = b.input("row", shape(&[16])).unwrap();
     let gain = b.input("gain", Shape::scalar()).unwrap();
@@ -22,7 +23,7 @@ fn branch(negative: bool) -> BoundProgram {
 }
 
 fn recurrence(steps: usize, checkpointed: bool) -> BoundProgram {
-    let mut body = TensorBuilder::new();
+    let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", shape(&[16])).unwrap();
     let row = body.input("row", shape(&[16])).unwrap();
     let gain = body.input("gain", Shape::scalar()).unwrap();
@@ -39,7 +40,7 @@ fn recurrence(steps: usize, checkpointed: bool) -> BoundProgram {
         )
         .unwrap();
     let body = body.compile(out).unwrap().bind(&[]).unwrap();
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let initial = b.input("initial", shape(&[16])).unwrap();
     let gain = b.input("gain", Shape::scalar()).unwrap();
     let rows = b.input("rows", shape(&[steps, 16])).unwrap();
@@ -105,7 +106,7 @@ fn segment_replay_preserves_lazy_branch_paths_row_gradients_zero_trips_and_reuse
 fn retained_and_replayed_scans_preserve_finite_primal_singular_vjp_admission_and_recovery() {
     for steps in [1, 65, 1025] {
         for checkpointed in [false, true] {
-            let mut body = TensorBuilder::new();
+            let mut body = ModelBuilder::new().region();
             let carry = body.input("carry", Shape::scalar()).unwrap();
             let row = body.input("row", Shape::scalar()).unwrap();
             let root = body.unary(UnaryOp::Sqrt, carry).unwrap();
@@ -117,7 +118,7 @@ fn retained_and_replayed_scans_preserve_finite_primal_singular_vjp_admission_and
             }
             let body = body.compile(next).unwrap().bind(&[]).unwrap();
             let retained = steps * body.workspace_bytes();
-            let mut b = TensorBuilder::new();
+            let mut b = ModelBuilder::new().region();
             let initial = b.input("initial", Shape::scalar()).unwrap();
             let rows = b.constant(shape(&[steps]), vec![0.; steps]).unwrap();
             let result = if checkpointed {

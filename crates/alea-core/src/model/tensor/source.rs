@@ -58,11 +58,10 @@ impl BoundProgram {
     }
     pub(super) fn function_source(&self, name: &str) -> String {
         let p = &self.plan;
-        #[cfg(test)]
         if registration::missing_source(p).is_some() {
-            // This old infallible API cannot advertise a native-only prototype
-            // as supported source. Its Primitive hook returns None below.
-            return "compile_error!(\"native-only R0 block has no source lowering\");".into();
+            // This old infallible API cannot advertise a native-only operation
+            // as supported source. Its OperationDescriptor hook returns None below.
+            return "compile_error!(\"native-only block has no source lowering\");".into();
         }
         let failure = "*valid=false; return;";
         let mut source = format!(
@@ -116,8 +115,7 @@ impl BoundProgram {
                 continue;
             }
             match &node.op {
-                #[cfg(test)]
-                Op::Prototype(_) => unreachable!("native-only prototype rejected before emission"),
+                Op::Registered(_) => unreachable!("native-only operation rejected before emission"),
                 Op::Input(_) | Op::Data(_) | Op::Constant(_) | Op::Alias(_) => {
                     unreachable!("borrowed nodes emitted above")
                 }

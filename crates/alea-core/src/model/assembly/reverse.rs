@@ -1,18 +1,19 @@
 //! Compile derivative edges once. Keep the semantic/forward tape untouched:
 //! even constant/inactive derivatives do not authorize skipping primal admission.
-use super::Op;
+use super::{AssemblyError, Op};
 
 enum Edge {
     Parameter(usize, usize),
     Add(usize, usize),
     Multiply(usize, usize, usize),
     Log(usize, usize),
+    Region(usize),
     Local(usize, Box<[(usize, usize)]>),
 }
 
 pub(super) struct Plan(Vec<Edge>);
 impl Plan {
-    pub(super) fn new(nodes: &[Op]) -> Self {
+    pub(super) fn new(nodes: &[Op]) -> (Self, Vec<bool>) {
         let mut dynamic = vec![false; nodes.len()];
         for (i, op) in nodes.iter().enumerate() {
             dynamic[i] = match op {
@@ -21,6 +22,7 @@ impl Plan {
                 Op::Add(a, b) | Op::Multiply(a, b) => dynamic[*a] || dynamic[*b],
                 Op::Exp(a) | Op::Log(a) => dynamic[*a],
                 Op::Factor { inputs, .. } => inputs.iter().any(|i| dynamic[*i]),
+                Op::Region(call) => call.inputs.iter().any(|i| dynamic[*i]),
             };
         }
         let mut edges = Vec::new();
@@ -30,6 +32,8 @@ impl Plan {
             match op {
                 Op::Parameter(s) => edges.push(Edge::Parameter(i, *s)),
                 Op::Constant(_) => {}
+                Op::Region(_) if dynamic[i] => edges.push(Edge::Region(i)),
+                Op::Region(_) => {}
                 Op::Add(a, b) => {
                     for &out in [a, b] {
                         if dynamic[out] {
@@ -67,7 +71,7 @@ impl Plan {
                 }
             }
         }
-        Self(edges)
+        (Self(edges), dynamic)
     }
     pub(super) fn apply<const FILTERED: bool>(
         &self,
@@ -76,18 +80,21 @@ impl Plan {
         locals: &[f64],
         gradient: &mut [f64],
         active: Option<&[bool]>,
-    ) {
+        mut region: impl FnMut(usize, &mut [f64]) -> Result<(), AssemblyError>,
+    ) -> Result<(), AssemblyError> {
         for edge in &self.0 {
             let (Edge::Parameter(node, _)
             | Edge::Add(node, _)
             | Edge::Multiply(node, _, _)
             | Edge::Log(node, _)
+            | Edge::Region(node)
             | Edge::Local(node, _)) = edge;
             if FILTERED && !active.expect("selected graph")[*node] {
                 continue;
             }
             let a = adjoints[*node];
             match edge {
+                Edge::Region(node) => region(*node, adjoints)?,
                 Edge::Parameter(_, slot) => gradient[*slot] += a,
                 Edge::Add(_, out) => adjoints[*out] += a,
                 Edge::Multiply(_, out, other) => adjoints[*out] += a * values[*other],
@@ -120,6 +127,7 @@ impl Plan {
                 }
             }
         }
+        Ok(())
     }
 }
 
@@ -203,6 +211,7 @@ mod tests {
                 match op {
                     Op::Parameter(s) => a[*s] += seed,
                     Op::Constant(_) => {}
+                    Op::Region(_) => unreachable!(),
                     Op::Add(x, y) => {
                         expected[*x] += seed;
                         expected[*y] += seed;
@@ -220,7 +229,17 @@ mod tests {
                     }
                 }
             }
-            Plan::new(&nodes).apply::<false>(&values, &mut actual, &locals, &mut b, None);
+            Plan::new(&nodes)
+                .0
+                .apply::<false>(
+                    &values,
+                    &mut actual,
+                    &locals,
+                    &mut b,
+                    None,
+                    |_, _| unreachable!(),
+                )
+                .unwrap();
             assert_eq!(a.map(f64::to_bits), b.map(f64::to_bits), "round={round}");
         }
     }

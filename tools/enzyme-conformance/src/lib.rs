@@ -14,6 +14,16 @@ macro_rules! generated {
 }
 generated!(
     polynomial,
+    route_alone,
+    tensor_score_admission,
+    route_trusted,
+    route_checkpoint,
+    route_opaque,
+    route_trusted_opaque,
+    route_selected_trusted,
+    route_selected_checkpoint,
+    route_selected_opaque,
+    route_selected_missing,
     native_normal_batch,
     native_logit_batch,
     native_poisson_batch,

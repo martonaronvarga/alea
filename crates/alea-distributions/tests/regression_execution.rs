@@ -1,5 +1,5 @@
 use alea_core::{
-    model::assembly::{AssemblyError as E, ModelBuilder, Primitive},
+    model::assembly::{AssemblyError as E, ModelBuilder, OperationDescriptor},
     target::LogDensityGradient,
 };
 use alea_distributions::modeling::regression::*;
@@ -26,17 +26,13 @@ fn close(a: f64, b: f64, tolerance: f64) {
 #[test]
 fn standard_arithmetic_is_opt_in_and_cancellation_is_not_accuracy_equivalent() {
     for execution in [RegressionExecution::Auto, RegressionExecution::Scalar] {
-        let mut b = ModelBuilder::new();
-        let beta: Vec<_> = (0..3)
-            .map(|j| b.real(&format!("b{j}")).unwrap().expr())
-            .collect();
         // Exact predictor is 1: all inputs and products are exactly representable.
         // Ordinary ordered addition loses the middle term, not a tail of a law.
         let data = RegressionData::new(3, [1e16, 1., -1e16].repeat(5), vec![true; 5]).unwrap();
-        let reference = BernoulliLogitRegression::new(&beta, data.clone())
+        let reference = BernoulliLogitRegression::new(data.clone())
             .unwrap()
             .with_execution(execution);
-        let standard = BernoulliLogitRegression::new(&beta, data)
+        let standard = BernoulliLogitRegression::new(data)
             .unwrap()
             .with_arithmetic(RegressionArithmetic::Standard)
             .with_execution(execution);
@@ -61,8 +57,7 @@ fn standard_arithmetic_is_opt_in_and_cancellation_is_not_accuracy_equivalent() {
         assert!((rv - sv).abs() > 1.);
         assert!((rg[1] - sg[1]).abs() > 1.);
         // Never silently export a differently accumulated AD primal/gradient.
-        assert!(standard.source_rule().is_none());
-        assert!(standard.source_gradient_rule().is_none());
+        assert!(standard.rules().source.is_none());
         let rebound = standard
             .with_data(standard.data().clone().with_offsets(vec![0.25; 5]).unwrap())
             .unwrap();
@@ -77,15 +72,13 @@ fn standard_arithmetic_is_opt_in_and_cancellation_is_not_accuracy_equivalent() {
 #[test]
 fn standard_score_reduction_can_lose_a_residual_even_with_exact_predictors() {
     for execution in [RegressionExecution::Auto, RegressionExecution::Scalar] {
-        let mut b = ModelBuilder::new();
-        let beta = [b.real("beta").unwrap().expr()];
         // At beta=0 every predictor is exactly zero and every score multiplier
         // exactly 1/2. Exact gradient is 1e16 + 1 - 1e16 = 1, not zero.
         let d = RegressionData::new(1, vec![2e16, 2., -2e16], vec![true; 3]).unwrap();
-        let reference = BernoulliLogitRegression::new(&beta, d.clone())
+        let reference = BernoulliLogitRegression::new(d.clone())
             .unwrap()
             .with_execution(execution);
-        let standard = BernoulliLogitRegression::new(&beta, d)
+        let standard = BernoulliLogitRegression::new(d)
             .unwrap()
             .with_execution(execution)
             .with_arithmetic(RegressionArithmetic::Standard);
@@ -108,17 +101,12 @@ fn standard_arithmetic_all_families_fd_shapes_allocations_and_rebinding() {
     for execution in [RegressionExecution::Auto, RegressionExecution::Scalar] {
         for rows in [1, 3, 4, 5, 33, 1000, 2500, 5000, 7500, 10000] {
             for columns in [0, 1, 3, 8] {
-                let mut b = ModelBuilder::new();
-                let beta: Vec<_> = (0..columns)
-                    .map(|j| b.real(&format!("b{j}")).unwrap().expr())
-                    .collect();
-                let sigma = b.positive("sigma").unwrap();
                 let q: Vec<_> = (0..columns).map(|j| j as f64 / 32. - 0.125).collect();
                 let nd = data(rows, columns, |i| (i % 7) as f64 / 4. - 0.5);
-                let normal = NormalRegression::new(&beta, &sigma, nd.clone())
+                let normal = NormalRegression::new(nd.clone())
                     .unwrap()
                     .with_execution(execution);
-                let standard = NormalRegression::new(&beta, &sigma, nd)
+                let standard = NormalRegression::new(nd)
                     .unwrap()
                     .with_execution(execution)
                     .with_arithmetic(RegressionArithmetic::Standard);
@@ -132,17 +120,17 @@ fn standard_arithmetic_all_families_fd_shapes_allocations_and_rebinding() {
                 check(normal, standard, &nq);
                 let ld = data(rows, columns, |i| i % 3 != 0);
                 check(
-                    BernoulliLogitRegression::new(&beta, ld.clone())
+                    BernoulliLogitRegression::new(ld.clone())
                         .unwrap()
                         .with_execution(execution),
-                    BernoulliLogitRegression::new(&beta, ld)
+                    BernoulliLogitRegression::new(ld)
                         .unwrap()
                         .with_execution(execution)
                         .with_arithmetic(RegressionArithmetic::Standard),
                     &q,
                 );
                 let pd = data(rows, columns, |i| (i % 4) as u64);
-                let standard = PoissonLogRegression::new(&beta, pd.clone())
+                let standard = PoissonLogRegression::new(pd.clone())
                     .unwrap()
                     .with_arithmetic(RegressionArithmetic::Standard)
                     .with_execution(execution);
@@ -152,7 +140,7 @@ fn standard_arithmetic_all_families_fd_shapes_allocations_and_rebinding() {
                     RegressionArithmetic::Standard
                 );
                 check(
-                    PoissonLogRegression::new(&beta, pd)
+                    PoissonLogRegression::new(pd)
                         .unwrap()
                         .with_execution(execution),
                     standard,
@@ -166,11 +154,7 @@ fn standard_arithmetic_all_families_fd_shapes_allocations_and_rebinding() {
 #[test]
 fn standard_arithmetic_keeps_errors_tail_scores_and_transactional_recovery() {
     for execution in [RegressionExecution::Auto, RegressionExecution::Scalar] {
-        let mut b = ModelBuilder::new();
-        let beta = [b.real("beta").unwrap().expr()];
-        let sigma = b.positive("sigma").unwrap();
         let p = BernoulliLogitRegression::new(
-            &beta,
             RegressionData::new(1, vec![1.; 5], vec![true; 5]).unwrap(),
         )
         .unwrap()
@@ -193,14 +177,11 @@ fn standard_arithmetic_keeps_errors_tail_scores_and_transactional_recovery() {
             p.evaluate(&[40.], &mut g, &mut w).unwrap().to_bits(),
             v.to_bits()
         );
-        let normal = NormalRegression::new(
-            &beta,
-            &sigma,
-            RegressionData::new(1, vec![1.; 5], vec![0.; 5]).unwrap(),
-        )
-        .unwrap()
-        .with_arithmetic(RegressionArithmetic::Standard)
-        .with_execution(execution);
+        let normal =
+            NormalRegression::new(RegressionData::new(1, vec![1.; 5], vec![0.; 5]).unwrap())
+                .unwrap()
+                .with_arithmetic(RegressionArithmetic::Standard)
+                .with_execution(execution);
         let mut nw = normal.workspace();
         let mut ng = [17.; 2];
         for scale in [0., -1., f64::NAN, f64::INFINITY] {
@@ -217,13 +198,11 @@ fn standard_arithmetic_keeps_errors_tail_scores_and_transactional_recovery() {
                 .unwrap()
                 .is_finite()
         );
-        let poisson = PoissonLogRegression::new(
-            &beta,
-            RegressionData::new(1, vec![1.; 5], vec![1; 5]).unwrap(),
-        )
-        .unwrap()
-        .with_arithmetic(RegressionArithmetic::Standard)
-        .with_execution(execution);
+        let poisson =
+            PoissonLogRegression::new(RegressionData::new(1, vec![1.; 5], vec![1; 5]).unwrap())
+                .unwrap()
+                .with_arithmetic(RegressionArithmetic::Standard)
+                .with_execution(execution);
         let mut pw = poisson.workspace();
         let mut pg = [17.];
         assert!(matches!(
@@ -239,48 +218,53 @@ fn standard_arithmetic_keeps_errors_tail_scores_and_transactional_recovery() {
         );
     }
 }
-fn check<P: Primitive>(auto: P, scalar: P, q: &[f64]) {
-    assert_eq!(auto.signature(), scalar.signature());
-    let mut aw = auto.workspace();
-    let mut sw = scalar.workspace();
+fn check<P: OperationDescriptor>(auto: P, scalar: P, q: &[f64]) {
+    let auto_rules = auto.rules();
+    let scalar_rules = scalar.rules();
+    assert_eq!(auto_rules.signature, scalar_rules.signature);
+    let mut aw = (auto_rules.workspace)(&auto);
+    let mut sw = (scalar_rules.workspace)(&scalar);
     let mut ag = vec![0.; q.len()];
     let mut sg = vec![0.; q.len()];
-    let av = auto.evaluate(q, &mut ag, &mut aw).unwrap();
-    let sv = scalar.evaluate(q, &mut sg, &mut sw).unwrap();
+    let av = (auto_rules.evaluate)(&auto, q, &mut ag, &mut aw).unwrap();
+    let sv = (scalar_rules.evaluate)(&scalar, q, &mut sg, &mut sw).unwrap();
     close(av, sv, 3e-12);
     for (&a, &s) in ag.iter().zip(&sg) {
         close(a, s, 3e-12);
     }
     // Each backend must differentiate its own evaluated objective consistently.
-    for (primitive, work, gradient) in [(&auto, &mut aw, &ag), (&scalar, &mut sw, &sg)] {
+    for (primitive, rules, work, gradient) in [
+        (&auto, &auto_rules, &mut aw, &ag),
+        (&scalar, &scalar_rules, &mut sw, &sg),
+    ] {
         for j in 0..q.len() {
             let mut plus = q.to_vec();
             let mut minus = q.to_vec();
             plus[j] += 1e-5;
             minus[j] -= 1e-5;
-            let fd = (primitive
-                .evaluate(&plus, &mut vec![0.; q.len()], work)
-                .unwrap()
-                - primitive
-                    .evaluate(&minus, &mut vec![0.; q.len()], work)
-                    .unwrap())
+            let fd = ((rules.evaluate)(primitive, &plus, &mut vec![0.; q.len()], work).unwrap()
+                - (rules.evaluate)(primitive, &minus, &mut vec![0.; q.len()], work).unwrap())
                 / 2e-5;
             close(fd, gradient[j], 2e-6);
         }
     }
     let allocations = allocation_counter::measure(|| {
         for _ in 0..4 {
-            std::hint::black_box(auto.evaluate(q, &mut ag, &mut aw).unwrap());
-            std::hint::black_box(scalar.evaluate(q, &mut sg, &mut sw).unwrap());
+            std::hint::black_box((auto_rules.evaluate)(&auto, q, &mut ag, &mut aw).unwrap());
+            std::hint::black_box((scalar_rules.evaluate)(&scalar, q, &mut sg, &mut sw).unwrap());
         }
     });
     assert_eq!(allocations.count_total, 0);
     assert_eq!(
-        auto.evaluate(q, &mut ag, &mut aw).unwrap().to_bits(),
+        (auto_rules.evaluate)(&auto, q, &mut ag, &mut aw)
+            .unwrap()
+            .to_bits(),
         av.to_bits()
     );
     assert_eq!(
-        scalar.evaluate(q, &mut sg, &mut sw).unwrap().to_bits(),
+        (scalar_rules.evaluate)(&scalar, q, &mut sg, &mut sw)
+            .unwrap()
+            .to_bits(),
         sv.to_bits()
     );
 }
@@ -289,15 +273,10 @@ fn check<P: Primitive>(auto: P, scalar: P, q: &[f64]) {
 fn all_families_agree_across_dispatch_shapes_tails_and_zero_columns() {
     for rows in [1, 3, 4, 5, 7, 8, 9, 33, 1_000, 10_000] {
         for columns in [0, 1, 3, 4, 5, 9] {
-            let mut b = ModelBuilder::new();
-            let beta: Vec<_> = (0..columns)
-                .map(|j| b.real(&format!("b{j}")).unwrap().expr())
-                .collect();
-            let sigma = b.positive("sigma").unwrap();
             let q: Vec<_> = (0..columns).map(|j| j as f64 / 32. - 0.125).collect();
             let nd = data(rows, columns, |i| (i % 7) as f64 / 4. - 0.5);
-            let auto = NormalRegression::new(&beta, &sigma, nd.clone()).unwrap();
-            let scalar = NormalRegression::new(&beta, &sigma, nd)
+            let auto = NormalRegression::new(nd.clone()).unwrap();
+            let scalar = NormalRegression::new(nd)
                 .unwrap()
                 .with_execution(RegressionExecution::Scalar);
             let mut nq = q.clone();
@@ -305,16 +284,16 @@ fn all_families_agree_across_dispatch_shapes_tails_and_zero_columns() {
             check(auto, scalar, &nq);
             let ld = data(rows, columns, |i| i % 3 != 0);
             check(
-                BernoulliLogitRegression::new(&beta, ld.clone()).unwrap(),
-                BernoulliLogitRegression::new(&beta, ld)
+                BernoulliLogitRegression::new(ld.clone()).unwrap(),
+                BernoulliLogitRegression::new(ld)
                     .unwrap()
                     .with_execution(RegressionExecution::Scalar),
                 &q,
             );
             let pd = data(rows, columns, |i| (i % 4) as u64);
             check(
-                PoissonLogRegression::new(&beta, pd.clone()).unwrap(),
-                PoissonLogRegression::new(&beta, pd)
+                PoissonLogRegression::new(pd.clone()).unwrap(),
+                PoissonLogRegression::new(pd)
                     .unwrap()
                     .with_execution(RegressionExecution::Scalar),
                 &q,
@@ -330,9 +309,7 @@ fn plans_are_inspectable_through_graph_descriptors_and_rebinding_preserves_polic
         let beta = [b.real("beta").unwrap().expr()];
         let sigma = b.positive("sigma").unwrap();
         let d = RegressionData::new(1, vec![1.; 5], vec![0.; 5]).unwrap();
-        let p = NormalRegression::new(&beta, &sigma, d)
-            .unwrap()
-            .with_execution(execution);
+        let p = NormalRegression::new(d).unwrap().with_execution(execution);
         let plan = p.execution_plan();
         assert_eq!(plan.execution(), execution);
         assert_eq!(
@@ -351,7 +328,9 @@ fn plans_are_inspectable_through_graph_descriptors_and_rebinding_preserves_polic
         } else {
             assert!(plan.lanes() >= 1);
         }
-        let root = b.primitive(p).unwrap();
+        let root = b
+            .primitive(&[&beta[..], &[sigma.expr()]].concat(), p)
+            .unwrap();
         b.likelihood("y", root).unwrap();
         let m = b.compile().unwrap();
         let source = m.rust_primal().unwrap();
@@ -414,20 +393,14 @@ fn plans_are_inspectable_through_graph_descriptors_and_rebinding_preserves_polic
 
 #[test]
 fn link_rebindings_rebuild_packing_without_resetting_scalar_dispatch() {
-    let mut b = ModelBuilder::new();
-    let beta = [b.real("beta").unwrap().expr()];
-    let logit = BernoulliLogitRegression::new(
-        &beta,
-        RegressionData::new(1, vec![1.; 5], vec![true; 5]).unwrap(),
-    )
-    .unwrap()
-    .with_execution(RegressionExecution::Scalar);
-    let poisson = PoissonLogRegression::new(
-        &beta,
-        RegressionData::new(1, vec![1.; 5], vec![2; 5]).unwrap(),
-    )
-    .unwrap()
-    .with_execution(RegressionExecution::Scalar);
+    let logit =
+        BernoulliLogitRegression::new(RegressionData::new(1, vec![1.; 5], vec![true; 5]).unwrap())
+            .unwrap()
+            .with_execution(RegressionExecution::Scalar);
+    let poisson =
+        PoissonLogRegression::new(RegressionData::new(1, vec![1.; 5], vec![2; 5]).unwrap())
+            .unwrap()
+            .with_execution(RegressionExecution::Scalar);
     let logit = logit
         .with_data(logit.data().clone().with_offsets(vec![0.5; 5]).unwrap())
         .unwrap();
@@ -448,15 +421,9 @@ fn link_rebindings_rebuild_packing_without_resetting_scalar_dispatch() {
 
 #[test]
 fn compressed_normal_rebinding_refreshes_response_offset_and_design_and_keeps_errors() {
-    let mut b = ModelBuilder::new();
-    let beta = [b.real("beta").unwrap().expr()];
-    let sigma = b.positive("sigma").unwrap();
-    let original = NormalRegression::new(
-        &beta,
-        &sigma,
-        RegressionData::new(1, vec![1.; 1000], vec![0.; 1000]).unwrap(),
-    )
-    .unwrap();
+    let original =
+        NormalRegression::new(RegressionData::new(1, vec![1.; 1000], vec![0.; 1000]).unwrap())
+            .unwrap();
     let replacement = original
         .with_data(
             RegressionData::new(1, vec![2.; 1000], vec![3.; 1000])
@@ -491,7 +458,7 @@ fn compressed_normal_rebinding_refreshes_response_offset_and_design_and_keeps_er
             value.to_bits()
         );
         let mut rows = vec![0.; 1000];
-        let rule = model.batch_rule().unwrap();
+        let rule = model.rules().batch.unwrap();
         (rule.evaluate)(model, &[0.25, 1.], &mut rows, &mut model.batch_workspace()).unwrap();
         close(value, rows.iter().sum(), 3e-12);
     }
@@ -500,16 +467,10 @@ fn compressed_normal_rebinding_refreshes_response_offset_and_design_and_keeps_er
 #[test]
 fn both_dispatch_modes_keep_tail_scores_domain_errors_and_recovery() {
     for execution in [RegressionExecution::Auto, RegressionExecution::Scalar] {
-        let mut b = ModelBuilder::new();
-        let beta = [b.real("beta").unwrap().expr()];
-        let sigma = b.positive("sigma").unwrap();
-        let normal = NormalRegression::new(
-            &beta,
-            &sigma,
-            RegressionData::new(1, vec![1.; 5], vec![0.; 5]).unwrap(),
-        )
-        .unwrap()
-        .with_execution(execution);
+        let normal =
+            NormalRegression::new(RegressionData::new(1, vec![1.; 5], vec![0.; 5]).unwrap())
+                .unwrap()
+                .with_execution(execution);
         let mut w = normal.workspace();
         let mut g = [0.; 2];
         let good = normal.evaluate(&[0.2, 1.], &mut g, &mut w).unwrap();
@@ -534,7 +495,6 @@ fn both_dispatch_modes_keep_tail_scores_domain_errors_and_recovery() {
         assert_eq!(g.map(f64::to_bits), bits);
 
         let logit = BernoulliLogitRegression::new(
-            &beta,
             RegressionData::new(1, vec![1.; 5], vec![true; 5]).unwrap(),
         )
         .unwrap()
@@ -551,12 +511,10 @@ fn both_dispatch_modes_keep_tail_scores_domain_errors_and_recovery() {
                 .is_finite()
         );
 
-        let poisson = PoissonLogRegression::new(
-            &beta,
-            RegressionData::new(1, vec![1.; 5], vec![2; 5]).unwrap(),
-        )
-        .unwrap()
-        .with_execution(execution);
+        let poisson =
+            PoissonLogRegression::new(RegressionData::new(1, vec![1.; 5], vec![2; 5]).unwrap())
+                .unwrap()
+                .with_execution(execution);
         let mut w = poisson.workspace();
         assert!(matches!(
             poisson.evaluate(&[800.], &mut g, &mut w),

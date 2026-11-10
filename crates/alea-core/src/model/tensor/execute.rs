@@ -74,18 +74,16 @@ pub(super) fn workspace_bytes(p: &Plan) -> Result<usize, E> {
     bytes = add(bytes, p.nodes.len())?; // Cached reverse schedule eligibility.
     bytes = add(bytes, mul(p.nodes.len(), size_of::<Range<usize>>())?)?;
     bytes = add(bytes, mul(p.data.len(), size_of::<Arc<[f64]>>())?)?;
-    #[cfg(test)]
-    {
+    if let Some(last) = p.last_native_block() {
         bytes = add(
             bytes,
-            mul(p.nodes.len(), size_of::<Option<registration::Work>>())?,
+            mul(last + 1, size_of::<Option<registration::Work>>())?,
         )?;
-        for (i, node) in p.nodes.iter().enumerate() {
+        for (i, node) in p.nodes[..=last].iter().enumerate() {
             if p.active[i]
-                && let Op::Prototype(op) = &node.op
-                && let registration::Operation::Native(call) = &**op
+                && let Some(call) = node.native_block()
             {
-                bytes = add(bytes, mul(call.workspace_elements()?, size_of::<f64>())?)?;
+                bytes = add(bytes, call.workspace_bytes())?;
             }
         }
     }
@@ -154,10 +152,23 @@ pub struct TensorWorkspace {
     // the old snapshot is dropped. Arc identity remains valid until refreshed.
     data: Vec<Arc<[f64]>>,
     regions: Vec<Option<RegionWork>>,
-    #[cfg(test)]
-    prototype: Vec<Option<registration::Work>>,
+    blocks: Vec<Option<registration::Work>>,
 }
 impl BoundProgram {
+    pub(in crate::model) fn reverse_point(
+        &self,
+        seed: &[f64],
+        scores: &mut [f64],
+        w: &mut TensorWorkspace,
+    ) -> Result<(), E> {
+        if seed.iter().any(|v| !v.is_finite()) {
+            return Err(E::Numerical);
+        }
+        self.reverse(seed, w)?;
+        scores.copy_from_slice(&w.gradient);
+        Ok(())
+    }
+
     // R0.2b's checked lifecycle owns identity/epoch validation. These private
     // hooks reuse precisely this executor, admission and staging, not a second
     // value/VJP implementation. They are absent from production builds.
@@ -202,12 +213,7 @@ impl BoundProgram {
         &self,
         limit: usize,
     ) -> Result<TensorWorkspace, WorkspaceBudgetError> {
-        if self.workspace_bytes() > limit {
-            return Err(WorkspaceBudgetError {
-                required: self.workspace_bytes(),
-                limit,
-            });
-        }
+        self.check_workspace_limit(limit)?;
         Ok(self.workspace())
     }
     /// Allocates all value/adjoint/control-flow storage once, outside evaluation.
@@ -216,7 +222,7 @@ impl BoundProgram {
     }
     // Specialize derivative activity through region operands, not predicates.
     // Closed data and constant operands must not acquire spurious derivatives.
-    fn workspace_with_activity(&self, inputs: &[bool]) -> TensorWorkspace {
+    pub(in crate::model) fn workspace_with_activity(&self, inputs: &[bool]) -> TensorWorkspace {
         let p = &self.plan;
         let mut differential = vec![false; p.nodes.len()];
         let mut regions = Vec::with_capacity(p.nodes.len());
@@ -359,19 +365,17 @@ impl BoundProgram {
             adjoint_ranges,
             data: self.data.clone(),
             regions,
-            #[cfg(test)]
-            prototype: p
-                .nodes
-                .iter()
-                .enumerate()
-                .map(|(i, n)| match &n.op {
-                    Op::Prototype(op) if p.active[i] => match &**op {
-                        registration::Operation::Native(call) => Some(call.workspace()),
-                        registration::Operation::Data(_) => None,
-                    },
-                    _ => None,
-                })
-                .collect(),
+            blocks: p.last_native_block().map_or_else(Vec::new, |last| {
+                p.nodes[..=last]
+                    .iter()
+                    .zip(&p.active)
+                    .map(|(node, &active)| {
+                        active
+                            .then(|| node.native_block().map(registration::Call::workspace))
+                            .flatten()
+                    })
+                    .collect()
+            }),
         }
     }
     fn validate(&self, x: &[f64], w: &TensorWorkspace) -> Result<(), E> {
@@ -463,14 +467,14 @@ impl BoundProgram {
                 continue;
             }
             match &node.op {
-                #[cfg(test)]
-                Op::Prototype(op) => match &**op {
+                Op::Registered(op) => match &**op {
                     registration::Operation::Data(_) => continue,
                     registration::Operation::Native(call) => call.forward(
                         &p.nodes,
                         node,
                         &mut w.values,
-                        w.prototype[i].as_mut().expect("registered block workspace"),
+                        w.blocks[i].as_mut().expect("registered block workspace"),
+                        #[cfg(test)]
                         self.preparation(i),
                     )?,
                 },
@@ -655,18 +659,18 @@ impl BoundProgram {
                     .copy_from_slice(&w.adjoints[start..start + node.shape.elements]);
             }
             match &node.op {
-                #[cfg(test)]
-                Op::Prototype(op) => match &**op {
+                Op::Registered(op) => match &**op {
                     registration::Operation::Data(_) => {}
                     registration::Operation::Native(call) => {
                         let base = adjoint_start::<PLANNED>(p, starts, i);
-                        let work = w.prototype[i].as_mut().expect("registered block workspace");
+                        let work = w.blocks[i].as_mut().expect("registered block workspace");
                         call.reverse(
                             &p.nodes,
                             &w.values,
                             &w.adjoints[base..base + node.shape.elements],
                             &w.values[node.range()],
                             work,
+                            #[cfg(test)]
                             self.preparation(i),
                         )?;
                         call.accumulate(work, |input, scores| {
@@ -1107,7 +1111,7 @@ mod tests {
     #[test]
     fn scalar_regions_decline_layouts_larger_than_the_storage_they_save() {
         for len in [1, 10_000] {
-            let mut b = TensorBuilder::new();
+            let mut b = RegionBuilder::new();
             let shape = Shape::new(vec![len]).unwrap();
             let x = b.input("x", shape.clone()).unwrap();
             let data = b.constant(shape, vec![0.5; len]).unwrap();
@@ -1141,7 +1145,7 @@ mod tests {
             #[cfg(feature = "openblas")]
             MatrixKernel::Blas,
         ] {
-            let mut b = TensorBuilder::new();
+            let mut b = RegionBuilder::new();
             let x = b.input("x", Shape::new(vec![2, 2]).unwrap()).unwrap();
             let old = b.matmul(x, x).unwrap();
             let mut b = b.with_matrix_kernel(kernel);
@@ -1165,7 +1169,7 @@ mod tests {
     #[test]
     fn backward_live_intervals_reuse_alias_classes_without_changing_scores_or_errors() {
         let n = 8193;
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", Shape::new(vec![n, 1]).unwrap()).unwrap();
         let scale = b
             .constant(Shape::new(vec![1, 1]).unwrap(), vec![0.5])

@@ -5,14 +5,14 @@ use super::*;
 /// conditional observations, not inferred marginal leave-out units. Construction
 /// preserves mathematical structure until an existing native law is selected.
 pub struct LinearPredictor<Y> {
-    coefficients: Box<[Expr]>,
+    coefficients: Box<[Value]>,
     data: RegressionData<Y>,
 }
 impl<Y> RegressionData<Y> {
     /// Describes an affine observation map without creating per-row expressions.
     /// # Errors
     /// Rejects coefficient-count mismatch. Ownership is checked during lowering.
-    pub fn linear_map(self, coefficients: &[Expr]) -> Result<LinearPredictor<Y>, E> {
+    pub fn linear_map(self, coefficients: &[Value]) -> Result<LinearPredictor<Y>, E> {
         check_columns(&self, coefficients)?;
         Ok(LinearPredictor {
             coefficients: coefficients.into(),
@@ -23,10 +23,11 @@ impl<Y> RegressionData<Y> {
 /// Typed conditional log-probability map awaiting a sum reduction. Lowering
 /// selects the law's existing fused native implementation and CPU plan; it does
 /// not transform arbitrary closures or add priors, roles or Jacobians.
-pub struct ObservationMap<P: Primitive> {
+pub struct ObservationMap<P: OperationDescriptor> {
+    inputs: Box<[Value]>,
     primitive: P,
 }
-impl<P: Primitive> ObservationMap<P> {
+impl<P: OperationDescriptor> ObservationMap<P> {
     /// Retained semantic descriptor, including data, shape and selected CPU plan.
     pub fn primitive(&self) -> &P {
         &self.primitive
@@ -35,8 +36,8 @@ impl<P: Primitive> ObservationMap<P> {
     /// Explicitly attach the result as a named likelihood using the builder.
     /// # Errors
     /// Preserves primitive ownership/signature/registration errors.
-    pub fn sum_log_prob(self, builder: &mut ModelBuilder) -> Result<Expr, E> {
-        builder.primitive(self.primitive)
+    pub fn sum_log_prob(self, builder: &mut ModelBuilder) -> Result<Value, E> {
+        builder.primitive(&self.inputs, self.primitive)
     }
 }
 impl LinearPredictor<bool> {
@@ -45,7 +46,8 @@ impl LinearPredictor<bool> {
     /// Preserves native descriptor validation errors.
     pub fn bernoulli_logit(self) -> Result<ObservationMap<BernoulliLogitRegression>, E> {
         Ok(ObservationMap {
-            primitive: BernoulliLogitRegression::new(&self.coefficients, self.data)?,
+            inputs: self.coefficients,
+            primitive: BernoulliLogitRegression::new(self.data)?,
         })
     }
 }
@@ -55,7 +57,8 @@ impl LinearPredictor<u64> {
     /// Preserves native count precision and descriptor validation errors.
     pub fn poisson_log(self) -> Result<ObservationMap<PoissonLogRegression>, E> {
         Ok(ObservationMap {
-            primitive: PoissonLogRegression::new(&self.coefficients, self.data)?,
+            inputs: self.coefficients,
+            primitive: PoissonLogRegression::new(self.data)?,
         })
     }
 }
@@ -67,8 +70,11 @@ impl LinearPredictor<f64> {
         self,
         scale: &Parameter<Positive>,
     ) -> Result<ObservationMap<NormalRegression>, E> {
+        let mut inputs = self.coefficients.into_vec();
+        inputs.push(scale.expr());
         Ok(ObservationMap {
-            primitive: NormalRegression::new(&self.coefficients, scale, self.data)?,
+            inputs: inputs.into(),
+            primitive: NormalRegression::new(self.data)?,
         })
     }
 }

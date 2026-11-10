@@ -3,7 +3,7 @@ use alea::distributions::{
     modeling,
     wiener::{WienerObservation, WienerOptions},
 };
-use alea::model::assembly::{CompiledModel, Expr, ModelBuilder};
+use alea::model::assembly::{CompiledModel, ModelBuilder, Value};
 
 #[derive(Clone, Copy)]
 pub enum Observation {
@@ -16,10 +16,10 @@ pub enum Observation {
         event: WienerObservation,
     },
 }
-fn factor(b: &mut ModelBuilder, x: Expr) {
+fn factor(b: &mut ModelBuilder, x: Value) {
     b.factor(x).unwrap();
 }
-fn normal_prior(b: &mut ModelBuilder, x: Expr, mean: f64, scale: f64) {
+fn normal_prior(b: &mut ModelBuilder, x: Value, mean: f64, scale: f64) {
     let m = b.constant(mean).unwrap();
     let s = b.constant(scale).unwrap();
     let p = modeling::normal(b, x, m, s).unwrap();
@@ -47,7 +47,7 @@ pub fn regression(data: &[(f64, f64)]) -> CompiledModel {
     .unwrap();
     b.compile().unwrap()
 }
-fn hierarchy_base() -> (ModelBuilder, Vec<Expr>) {
+fn hierarchy_base() -> (ModelBuilder, Vec<Value>) {
     let mut b = ModelBuilder::new();
     let mu = b.real("mu").unwrap();
     let tau = b.positive("tau").unwrap();

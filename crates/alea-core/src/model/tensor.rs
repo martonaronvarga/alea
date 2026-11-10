@@ -4,28 +4,21 @@
 //! connects scalar results to the existing model tape; no inference algorithm,
 //! probability distribution or parameter chart is reimplemented here.
 use super::assembly::{
-    ArgumentShape, AssemblyError as E, Expr, Primitive, PrimitiveArgument, PrimitiveSignature,
+    ArgumentShape, AssemblyError as E, PrimitiveArgument, PrimitiveSignature, Value,
+    next_value_owner,
 };
-use std::{
-    ops::Range,
-    sync::{
-        Arc,
-        atomic::{AtomicU64, Ordering},
-    },
-};
+use crate::model::assembly::{NativeRules, OperationDescriptor, SourceBody, SourceRule};
+use std::{ops::Range, sync::Arc};
 mod execute;
 mod fusion;
 mod kernels;
 mod pullback;
-// R0's private boundary experiment uses this graph/executor, not a second IR.
-// It is not a shipping operation API and has no production layout/dispatch cost.
-#[cfg(test)]
 mod registration;
 mod source;
 pub use alea_math::gemm::MatrixKernel;
 pub use execute::TensorWorkspace;
+pub use registration::{BlockInputs, BlockRules, BlockType, BlockVjp, ElementType};
 
-static NEXT: AtomicU64 = AtomicU64::new(1);
 /// Validated dense row-major tensor shape. An empty axis list is a scalar;
 /// zero-length axes are allowed. Shapes are fixed throughout one compiled plan.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,12 +58,6 @@ impl Shape {
     pub fn elements(&self) -> usize {
         self.elements
     }
-}
-/// Owner-checked SSA value, never an index into mutable execution state.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Value {
-    owner: u64,
-    node: usize,
 }
 /// Elementwise elementary operation. Domain errors remain explicit; no clipping.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -119,7 +106,6 @@ pub enum TensorOperation {
     Matmul,
     Cond,
     Scan,
-    #[cfg(test)]
     Registered,
 }
 /// Cold SSA node description; input handles preserve sharing and order.
@@ -233,8 +219,7 @@ struct Scan {
     checkpointed: bool,
 }
 enum Op {
-    #[cfg(test)]
-    Prototype(Box<registration::Operation>),
+    Registered(Box<registration::Operation>),
     Input(usize),
     Data(usize),
     Constant(Arc<[f64]>),
@@ -261,20 +246,26 @@ struct Node {
 }
 impl Node {
     fn range(&self) -> Range<usize> {
-        #[cfg(test)]
         if self.discrete() {
             return self.start..self.start;
         }
         self.start..self.start + self.shape.elements
     }
-    #[cfg(test)]
     fn discrete(&self) -> bool {
-        matches!(&self.op, Op::Prototype(op) if matches!(&**op, registration::Operation::Data(_)))
+        matches!(&self.op, Op::Registered(op) if matches!(&**op, registration::Operation::Data(_)))
+    }
+    fn native_block(&self) -> Option<&registration::Call> {
+        match &self.op {
+            Op::Registered(op) => match &**op {
+                registration::Operation::Native(call) => Some(call),
+                registration::Operation::Data(_) => None,
+            },
+            _ => None,
+        }
     }
     fn inputs(&self) -> Vec<Value> {
         match &self.op {
-            #[cfg(test)]
-            Op::Prototype(op) => op.inputs().to_vec(),
+            Op::Registered(op) => op.inputs().to_vec(),
             Op::Input(_) | Op::Data(_) | Op::Constant(_) => vec![],
             Op::Unary(_, a) | Op::Sum(a) | Op::Alias(a) | Op::Gather(a, _) => vec![*a],
             Op::Binary(b) => vec![b.a, b.b],
@@ -311,10 +302,18 @@ struct Plan {
     source_slots: usize,
     execution: Option<Box<fusion::Schedule>>,
 }
+impl Plan {
+    fn last_native_block(&self) -> Option<usize> {
+        self.nodes
+            .iter()
+            .zip(&self.active)
+            .rposition(|(node, &active)| active && node.native_block().is_some())
+    }
+}
 /// Construction of shape-checked, deterministic tensor/control-flow regions.
 /// No global AD stack is used. Builder identities and escaped values are never recycled.
 #[must_use]
-pub struct TensorBuilder {
+pub struct RegionBuilder {
     owner: u64,
     nodes: Vec<Node>,
     inputs: Vec<Input>,
@@ -323,26 +322,10 @@ pub struct TensorBuilder {
     slots: usize,
     matrix_kernel: MatrixKernel,
 }
-impl Default for TensorBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-impl TensorBuilder {
-    /// Creates a separate lexical SSA region. Use explicit operands for composition.
-    pub fn new() -> Self {
-        let mut owner = NEXT.load(Ordering::Relaxed);
-        loop {
-            let next = owner
-                .checked_add(1)
-                .expect("tensor identity space exhausted");
-            match NEXT.compare_exchange_weak(owner, next, Ordering::Relaxed, Ordering::Relaxed) {
-                Ok(_) => break,
-                Err(actual) => owner = actual,
-            }
-        }
+impl RegionBuilder {
+    pub(super) fn new() -> Self {
         Self {
-            owner,
+            owner: next_value_owner(),
             nodes: vec![],
             inputs: vec![],
             data: vec![],
@@ -366,9 +349,15 @@ impl TensorBuilder {
         }
         self.nodes.get(value.node).ok_or(E::ForeignHandle)
     }
+    /// Shape of a value declared or computed in this region.
+    /// # Errors
+    /// Rejects values from a different scope.
+    pub fn value_shape(&self, value: Value) -> Result<&Shape, E> {
+        Ok(&self.node(value)?.shape)
+    }
+
     fn real_node(&self, value: Value) -> Result<&Node, E> {
         let node = self.node(value)?;
-        #[cfg(test)]
         if node.discrete() {
             return Err(E::Shape);
         }
@@ -376,13 +365,11 @@ impl TensorBuilder {
     }
     fn push(&mut self, shape: Shape, op: Op) -> Result<Value, E> {
         let start = self.slots;
-        let elements = shape.elements;
-        #[cfg(test)]
-        let elements = if matches!(&op, Op::Prototype(p) if matches!(&**p, registration::Operation::Data(_)))
+        let elements = if matches!(&op, Op::Registered(p) if matches!(&**p, registration::Operation::Data(_)))
         {
             0
         } else {
-            elements
+            shape.elements
         };
         let slots = start.checked_add(elements).ok_or(E::Shape)?;
         if slots > isize::MAX as usize / size_of::<f64>() {
@@ -652,7 +639,6 @@ impl TensorBuilder {
             }
         }
         let steps = data.axes[0];
-        #[cfg(test)]
         if checkpointed && steps != 0 && registration::blocks_replay(&body.plan) {
             return Err(E::Shape);
         }
@@ -792,8 +778,7 @@ impl TensorProgram {
             inputs: n.inputs(),
             active: self.plan.active[i],
             operation: match &n.op {
-                #[cfg(test)]
-                Op::Prototype(op) => match &**op {
+                Op::Registered(op) => match &**op {
                     registration::Operation::Data(_) => TensorOperation::Constant,
                     registration::Operation::Native(_) => TensorOperation::Registered,
                 },
@@ -817,9 +802,24 @@ impl BoundProgram {
     pub fn dimension(&self) -> usize {
         self.plan.dimension
     }
+    pub(super) fn input_shapes(&self) -> impl ExactSizeIterator<Item = &Shape> {
+        self.plan.inputs.iter().map(|input| &input.shape)
+    }
     /// Shape of the result, independent of the current binding values.
     pub fn output_shape(&self) -> &Shape {
         &self.plan.nodes[self.plan.output.node].shape
+    }
+    /// Checks this immutable target's per-execution native workspace budget
+    /// before graph registration allocates its scratch. Rebinding keeps shape
+    /// and plan, hence this estimate; concurrent chains require separate budgets.
+    /// # Errors
+    /// Reports required/allowed bytes without allocating execution frames.
+    pub fn check_workspace_limit(&self, limit: usize) -> Result<(), WorkspaceBudgetError> {
+        let required = self.workspace_bytes();
+        if required > limit {
+            return Err(WorkspaceBudgetError { required, limit });
+        }
+        Ok(())
     }
     /// Returns a new same-plan snapshot, preserving all unchanged data arrays.
     /// Nested regions have their own bindings; pass parent data as operands when
@@ -852,74 +852,55 @@ impl BoundProgram {
 }
 /// Scalar-result tensor region lowered as one native model primitive. Arbitrary
 /// tensor results remain available through BoundProgram's value/VJP interface.
-pub struct TensorFactor {
+pub(super) struct TensorFactor {
     binding: BoundProgram,
-    inputs: Box<[Expr]>,
 }
 impl TensorFactor {
     /// Describes a scalar deterministic region; it adds no probability role or chart.
     /// # Errors
-    /// Rejects non-scalar output or mismatched flattened expression count.
-    pub fn new(binding: BoundProgram, inputs: &[Expr]) -> Result<Self, E> {
-        if binding.output_shape() != &Shape::scalar() || binding.dimension() != inputs.len() {
+    /// Rejects non-scalar output. Registration separately checks the flattened
+    /// graph input count against the immutable binding dimension.
+    pub(super) fn new(binding: BoundProgram) -> Result<Self, E> {
+        if binding.output_shape() != &Shape::scalar() {
             return Err(E::Shape);
         }
-        Ok(Self {
-            binding,
-            inputs: inputs.into(),
-        })
+        Ok(Self { binding })
     }
     /// Immutable program/data snapshot for inspection and same-plan rebinding.
-    pub fn binding(&self) -> &BoundProgram {
+    pub(super) fn binding(&self) -> &BoundProgram {
         &self.binding
-    }
-    /// Checks this immutable target's per-execution native workspace budget
-    /// before graph registration allocates its scratch. Rebinding keeps shape
-    /// and plan, hence this estimate; concurrent chains require separate budgets.
-    /// # Errors
-    /// Reports required/allowed bytes without allocating execution frames.
-    pub fn check_workspace_limit(&self, limit: usize) -> Result<(), WorkspaceBudgetError> {
-        let required = self.binding.workspace_bytes();
-        if required > limit {
-            return Err(WorkspaceBudgetError { required, limit });
-        }
-        Ok(())
     }
     /// Same-shape named data replacement, suitable for CompiledModel::rebind.
     /// # Errors
     /// Preserves BoundProgram's binding validation errors.
-    pub fn with_data(&self, name: &str, values: &[f64]) -> Result<Self, E> {
+    pub(super) fn with_data(&self, name: &str, values: &[f64]) -> Result<Self, E> {
         Ok(Self {
             binding: self.binding.rebind(name, values)?,
-            inputs: self.inputs.clone(),
         })
     }
 }
-impl Primitive for TensorFactor {
-    type Workspace = TensorWorkspace;
-    fn inputs(&self) -> &[Expr] {
-        &self.inputs
-    }
+impl TensorFactor {
     fn signature(&self) -> PrimitiveSignature {
         PrimitiveSignature {
             name: "tensor_region",
             arguments: vec![PrimitiveArgument {
                 name: "inputs",
-                shape: ArgumentShape::Vector(self.inputs.len()),
+                shape: ArgumentShape::Vector(self.binding.dimension()),
             }],
             probability: None,
         }
     }
-    fn workspace(&self) -> Self::Workspace {
+    /// Native kernel workspace.
+    pub fn workspace(&self) -> TensorWorkspace {
         self.binding.workspace()
     }
-    fn evaluate(&self, x: &[f64], g: &mut [f64], w: &mut Self::Workspace) -> Result<f64, E> {
+    /// Native kernel evaluate.
+    pub fn evaluate(&self, x: &[f64], g: &mut [f64], w: &mut TensorWorkspace) -> Result<f64, E> {
         let mut out = [0.];
         self.binding.value_and_vjp(x, &[1.], &mut out, g, w)?;
         Ok(out[0])
     }
     fn source_rule(&self) -> Option<fn(&Self) -> String> {
-        #[cfg(test)]
         if registration::missing_source(&self.binding.plan).is_some() {
             return None;
         }
@@ -927,6 +908,19 @@ impl Primitive for TensorFactor {
     }
     fn source_workspace(&self) -> usize {
         self.binding.plan.source_slots
+    }
+}
+impl OperationDescriptor for TensorFactor {
+    type Workspace = TensorWorkspace;
+    fn rules(&self) -> NativeRules<Self> {
+        let mut rules = NativeRules::new(self.signature(), Self::workspace, Self::evaluate);
+        let body = self.source_rule().map(SourceBody::Generated);
+        rules.source = body.map(|body| SourceRule {
+            body,
+            gradient: None,
+            workspace: self.source_workspace(),
+        });
+        rules
     }
 }
 fn broadcast(a: &Shape, b: &Shape) -> Result<Shape, E> {

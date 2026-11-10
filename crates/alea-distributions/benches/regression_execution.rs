@@ -1,11 +1,11 @@
 //! Forced legal CPU candidates, not a sampler/Stan benchmark. Construction and
 //! retained fused evaluations are separate; mathematical kernels are not copied.
-use alea_core::model::assembly::{ModelBuilder, Primitive};
+use alea_core::model::assembly::OperationDescriptor;
 use alea_distributions::modeling::regression::*;
 use criterion::{Criterion, Throughput, criterion_group, criterion_main};
 use std::{hint::black_box, time::Duration};
 
-fn family<P: Primitive>(
+fn family<P: OperationDescriptor>(
     c: &mut Criterion,
     name: &str,
     rows: usize,
@@ -33,9 +33,10 @@ fn family<P: Primitive>(
     let mut reference: Option<(f64, Vec<f64>)> = None;
     for mode in variants {
         let primitive = prepare(mode);
-        let mut work = primitive.workspace();
+        let primitive_rules = primitive.rules();
+        let mut work = (primitive_rules.workspace)(&primitive);
         let mut gradient = vec![0.; q.len()];
-        let value = primitive.evaluate(q, &mut gradient, &mut work).unwrap();
+        let value = (primitive_rules.evaluate)(&primitive, q, &mut gradient, &mut work).unwrap();
         if let Some((expected, score)) = &reference {
             assert!((value - expected).abs() <= 3e-12 * (1. + expected.abs()));
             for (actual, expected) in gradient.iter().zip(score) {
@@ -47,9 +48,13 @@ fn family<P: Primitive>(
         evaluation.bench_function(format!("{mode:?}"), |b| {
             b.iter(|| {
                 black_box(
-                    primitive
-                        .evaluate(black_box(q), black_box(&mut gradient), &mut work)
-                        .unwrap(),
+                    (primitive_rules.evaluate)(
+                        &primitive,
+                        black_box(q),
+                        black_box(&mut gradient),
+                        &mut work,
+                    )
+                    .unwrap(),
                 )
             })
         });
@@ -64,7 +69,7 @@ fn family<P: Primitive>(
 
 // Same public primitive and fused numerical formulas; only accumulation changes.
 // Kept in this existing bench target rather than adding another runner.
-fn arithmetic_family<P: Primitive>(
+fn arithmetic_family<P: OperationDescriptor>(
     c: &mut Criterion,
     name: &str,
     rows: usize,
@@ -73,7 +78,8 @@ fn arithmetic_family<P: Primitive>(
     q: &[f64],
 ) {
     let reference = prepare(RegressionArithmetic::Compensated);
-    let mut rw = reference.workspace();
+    let reference_rules = reference.rules();
+    let mut rw = (reference_rules.workspace)(&reference);
     let mut rg = vec![0.; q.len()];
     let mut group = c.benchmark_group(format!("regression_arithmetic/{name}/{rows}/{columns}"));
     group.throughput(Throughput::Elements(1));
@@ -90,7 +96,8 @@ fn arithmetic_family<P: Primitive>(
     };
     for policy in variants {
         let primitive = prepare(policy);
-        let mut w = primitive.workspace();
+        let primitive_rules = primitive.rules();
+        let mut w = (primitive_rules.workspace)(&primitive);
         let mut g = vec![0.; q.len()];
         let mut value_error = 0_f64;
         let mut score_error = 0_f64;
@@ -99,8 +106,8 @@ fn arithmetic_family<P: Primitive>(
             for (j, x) in probe.iter_mut().enumerate() {
                 *x += 0.025 * ((state + 3 * j) as f64).sin();
             }
-            let rv = reference.evaluate(&probe, &mut rg, &mut rw).unwrap();
-            let v = primitive.evaluate(&probe, &mut g, &mut w).unwrap();
+            let rv = (reference_rules.evaluate)(&reference, &probe, &mut rg, &mut rw).unwrap();
+            let v = (primitive_rules.evaluate)(&primitive, &probe, &mut g, &mut w).unwrap();
             value_error = value_error.max((v - rv).abs());
             assert!((v - rv).abs() <= 3e-11 * (1. + rv.abs()));
             for (&a, &r) in g.iter().zip(&rg) {
@@ -111,8 +118,7 @@ fn arithmetic_family<P: Primitive>(
         group.bench_function(format!("{policy:?}"), |b| {
             b.iter(|| {
                 black_box(
-                    primitive
-                        .evaluate(black_box(q), black_box(&mut g), &mut w)
+                    (primitive_rules.evaluate)(&primitive, black_box(q), black_box(&mut g), &mut w)
                         .unwrap(),
                 )
             })
@@ -148,11 +154,6 @@ fn benchmark(c: &mut Criterion) {
     };
     for &rows in sizes {
         for &columns in dimensions {
-            let mut builder = ModelBuilder::new();
-            let beta: Vec<_> = (0..columns)
-                .map(|j| builder.real(&format!("b{j}")).unwrap().expr())
-                .collect();
-            let sigma = builder.positive("sigma").unwrap();
             let design: Vec<_> = (0..rows)
                 .flat_map(|i| (0..columns).map(move |j| ((i + 3 * j) % 13) as f64 / 16. - 0.375))
                 .collect();
@@ -181,7 +182,7 @@ fn benchmark(c: &mut Criterion) {
                     rows,
                     columns,
                     |policy| {
-                        NormalRegression::new(&beta, &sigma, normal.clone())
+                        NormalRegression::new(normal.clone())
                             .unwrap()
                             .with_arithmetic(policy)
                     },
@@ -193,7 +194,7 @@ fn benchmark(c: &mut Criterion) {
                     rows,
                     columns,
                     |policy| {
-                        BernoulliLogitRegression::new(&beta, logit.clone())
+                        BernoulliLogitRegression::new(logit.clone())
                             .unwrap()
                             .with_arithmetic(policy)
                     },
@@ -205,7 +206,7 @@ fn benchmark(c: &mut Criterion) {
                     rows,
                     columns,
                     |policy| {
-                        PoissonLogRegression::new(&beta, poisson.clone())
+                        PoissonLogRegression::new(poisson.clone())
                             .unwrap()
                             .with_arithmetic(policy)
                     },
@@ -213,7 +214,7 @@ fn benchmark(c: &mut Criterion) {
                 );
                 continue;
             }
-            let plan = NormalRegression::new(&beta, &sigma, normal.clone()).unwrap();
+            let plan = NormalRegression::new(normal.clone()).unwrap();
             eprintln!("native regression plan: {:?}", plan.execution_plan());
             family(
                 c,
@@ -221,7 +222,7 @@ fn benchmark(c: &mut Criterion) {
                 rows,
                 columns,
                 |mode| {
-                    NormalRegression::new(&beta, &sigma, normal.clone())
+                    NormalRegression::new(normal.clone())
                         .unwrap()
                         .with_execution(mode)
                 },
@@ -233,7 +234,7 @@ fn benchmark(c: &mut Criterion) {
                 rows,
                 columns,
                 |mode| {
-                    BernoulliLogitRegression::new(&beta, logit.clone())
+                    BernoulliLogitRegression::new(logit.clone())
                         .unwrap()
                         .with_execution(mode)
                 },
@@ -245,7 +246,7 @@ fn benchmark(c: &mut Criterion) {
                 rows,
                 columns,
                 |mode| {
-                    PoissonLogRegression::new(&beta, poisson.clone())
+                    PoissonLogRegression::new(poisson.clone())
                         .unwrap()
                         .with_execution(mode)
                 },

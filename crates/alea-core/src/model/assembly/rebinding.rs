@@ -1,6 +1,7 @@
 //! Consuming, transactional descriptor rebinding. Never mutate a borrowed target.
-use super::{AssemblyError, CompiledModel, Expr, Op, Primitive, PrimitiveMetadata};
-use std::{fmt, sync::Arc};
+use super::primitives::{Registration, ReportingConstraint};
+use super::{AssemblyError, CompiledModel, Op, OperationDescriptor, Value};
+use std::fmt;
 
 /// Failed rebinding retains the unchanged model and original typed error.
 pub struct RebindError {
@@ -27,16 +28,45 @@ impl std::error::Error for RebindError {
     }
 }
 impl CompiledModel {
+    /// Replaces named data in a registered region with a same-shape snapshot.
+    /// # Errors
+    /// Returns the original model on a wrong handle or invalid replacement.
+    pub fn rebind_region(
+        mut self,
+        value: Value,
+        name: &str,
+        values: &[f64],
+    ) -> Result<Self, RebindError> {
+        if value.owner == self.owner
+            && let Some(Op::Region(call)) = self.nodes.get_mut(value.node)
+        {
+            return match call.binding.rebind(name, values) {
+                Ok(binding) => {
+                    call.binding = binding;
+                    Ok(self)
+                }
+                Err(source) => Err(RebindError {
+                    model: Box::new(self),
+                    source,
+                }),
+            };
+        }
+        self.rebind(value, |region: &crate::model::tensor::TensorFactor| {
+            region.with_data(name, values)
+        })
+    }
+
     /// Replaces immutable data without rebuilding topology. Consumes the model:
-    /// no existing target/phase cache may survive a changed density. Inputs and
-    /// the full signature must remain identical. External generated code must be
+    /// no existing target/phase cache may survive a changed density. The graph's
+    /// ordered inputs stay fixed and the full signature must remain identical.
+    /// External generated code must be
     /// rebuilt from the new source; already compiled functions are not mutated.
     /// # Errors
     /// Returns the original model on a foreign/wrong-type handle, construction
     /// error or signature/layout change. Panics propagate and consume the model.
-    pub fn rebind<P: Primitive>(
+    pub fn rebind<P: OperationDescriptor>(
         mut self,
-        expression: Expr,
+        expression: Value,
         update: impl FnOnce(&P) -> Result<P, AssemblyError>,
     ) -> Result<Self, RebindError> {
         let prepare = || {
@@ -50,32 +80,13 @@ impl CompiledModel {
             let old = &self.primitives[index].1;
             let old_descriptor = old.descriptor::<P>().ok_or(AssemblyError::Shape)?;
             let new = update(old_descriptor)?;
-            let signature = new.signature();
-            if new.inputs() != old_descriptor.inputs() || signature != *old.signature() {
+            let rules = new.rules();
+            if rules.signature != *old.signature() {
                 return Err(AssemblyError::Shape);
             }
-            let static_source = new.rust_primal();
-            let owned_source = new.source_rule();
-            let source_gradient = new.source_gradient_rule();
-            let source_workspace = new.source_workspace();
-            let preparation = new.scalar_preparation();
-            if preparation
-                .as_ref()
-                .is_some_and(|p| p.argument >= new.inputs().len())
-            {
-                return Err(AssemblyError::Shape);
-            }
-            let preparation_metadata = preparation.as_ref().map(|p| super::prepare::Rule {
-                argument: p.argument,
-                prepare: p.prepare,
-            });
-            if source_workspace > isize::MAX as usize / size_of::<f64>() {
-                return Err(AssemblyError::Shape);
-            }
-            let batch = new.batch_rule();
-            if let Some(rule) = &batch {
-                rule.validate()?;
-            }
+            let Op::Factor { inputs, .. } = &self.nodes[expression.node] else {
+                unreachable!("registered primitive")
+            };
             let old_units = {
                 let tape = self
                     .workspace
@@ -86,48 +97,25 @@ impl CompiledModel {
                     .ok()
                     .map(|i| tape.batch_rules[i].1)
             };
-            if batch.as_ref().map(|rule| rule.units) != old_units {
-                return Err(AssemblyError::Shape);
-            }
-            let mut work = new.workspace();
-            let batch = batch.map(|rule| (rule, new.batch_workspace()));
-            let descriptor = Arc::new(new);
-            let executable = Arc::clone(&descriptor);
-            let source_gradient = source_gradient.map(|rule| {
-                let descriptor = Arc::clone(&descriptor);
-                Box::new(move || rule(&descriptor)) as Box<super::SourceCallback>
-            });
-            let callback: Box<super::Callback> =
-                Box::new(move |x, g, prepared| match (&preparation, prepared) {
-                    (Some(rule), Some(value)) => {
-                        (rule.evaluate)(&executable, x, g, &mut work, value)
-                    }
-                    _ => executable.evaluate(x, g, &mut work),
-                });
-            let batch = batch.map(|(rule, mut workspace)| {
-                let descriptor = Arc::clone(&descriptor);
-                let callback: Box<super::BatchCallback> =
-                    Box::new(move |x, out| (rule.evaluate)(&descriptor, x, out, &mut workspace));
-                (expression.node, rule.units, callback)
-            });
-            let owned_source = owned_source.map(|source| {
-                let descriptor = Arc::clone(&descriptor);
-                let source: Box<super::SourceCallback> = Box::new(move || source(&descriptor));
-                source
-            });
-            Ok((
-                index,
-                PrimitiveMetadata {
-                    signature,
-                    descriptor,
-                    source_workspace,
-                    preparation: preparation_metadata,
-                    source_gradient,
-                },
+            let Registration {
+                metadata,
                 callback,
                 batch,
-                static_source,
-                owned_source,
+                primal,
+                source,
+            } = Registration::prepare(
+                new,
+                rules,
+                inputs.len(),
+                ReportingConstraint::SameUnits(old_units),
+            )?;
+            Ok((
+                index,
+                metadata,
+                callback,
+                batch.map(|(units, callback)| (expression.node, units, callback)),
+                primal,
+                source,
             ))
         };
         let (index, descriptor, callback, batch, static_source, owned_source) = match prepare() {

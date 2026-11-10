@@ -90,6 +90,8 @@ def cargo_route_receipts(path):
     Pure C/L requests that the current exporter cannot honor remain unsupported.
     Hybrid curvature resolves to original compiler reverse with its separate
     first-order admission route; it is not checkpointed higher differentiation.
+    Compiler-only tensor derivatives can also have explicit checked admission
+    (resolved L, admission H, no checkpoint); preserve that extra-work distinction.
     """
     rows = {}
     prefix = 'ALEA_BASELINE_ROUTE_V1\t'
@@ -114,13 +116,15 @@ def cargo_route_receipts(path):
         if ((requested == 'N' and (admission != 'N' or checkpoint != 'false'))
                 or (requested != 'N' and admission == 'N')
                 or (checkpoint == 'true' and order != 'value' and admission != 'H')
-                or (order == 'first' and (resolved != admission or admission == 'none'))
+                or (order == 'first' and (admission == 'none' or
+                    (resolved != admission and not (resolved == 'L' and admission == 'H' and checkpoint == 'false'))))
                 or (requested != 'N' and order == 'value' and (resolved not in {'C','L'} or admission != 'none'))
                 or (requested != 'N' and order in {'hvp','third'} and admission == 'none')
                 or (requested == 'N' and order == 'value' and resolved != 'N')
                 or (requested != 'N' and order in {'hvp','third'} and resolved not in {'C','L'})
                 or (requested == 'N' and order in {'hvp','third'} and (resolved != 'none' or status != 'unsupported'))
-                or (status in {'supported','failed'} and requested != admission)):
+                or (status in {'supported','failed'} and requested != admission
+                    and not (requested == resolved == 'L' and admission == 'H' and checkpoint == 'false'))):
             raise ValueError('contradictory baseline route or derivative order')
         row = dict(fixture=fixture, requested_route=requested, resolved_route=resolved,
             order=order, arithmetic=arithmetic, provider=provider,

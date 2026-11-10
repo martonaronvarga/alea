@@ -1,6 +1,7 @@
 //! Native link-regression descriptors, reusing the original fused kernels/laws.
 use super::*;
 use crate::scalar::{BernoulliLogit, PoissonLog};
+use alea_core::model::assembly::{NativeRules, OperationDescriptor, SourceBody, SourceRule};
 
 /// Execution-local scratch for native link-regression primitives.
 pub struct LinkRegressionWorkspace {
@@ -8,7 +9,6 @@ pub struct LinkRegressionWorkspace {
 }
 /// Fixed-design Bernoulli-logit batch, with original bool observations/offsets.
 pub struct BernoulliLogitRegression {
-    inputs: Box<[Expr]>,
     data: RegressionData<bool>,
     pub(super) design: kernels::Design,
 }
@@ -17,7 +17,6 @@ pub struct BernoulliLogitRegression {
 /// statistics; numerical-limit states retain the original fused row evaluation.
 /// Row reporting and generated source always retain the original observations.
 pub struct PoissonLogRegression {
-    inputs: Box<[Expr]>,
     data: RegressionData<u64>,
     pub(super) design: kernels::Design,
     normalizers: Vec<f64>,
@@ -26,15 +25,11 @@ pub struct PoissonLogRegression {
 impl BernoulliLogitRegression {
     /// Prepares the existing native batch kernel without adding priors/intercepts.
     /// # Errors
-    /// Rejects coefficient-count mismatch or unrepresentable packed storage.
-    pub fn new(inputs: &[Expr], data: RegressionData<bool>) -> Result<Self, E> {
-        check_columns(&data, inputs)?;
+    /// Rejects unrepresentable packed storage. Graph registration separately
+    /// checks coefficient count and ownership.
+    pub fn new(data: RegressionData<bool>) -> Result<Self, E> {
         let design = kernels::Design::new(&data)?;
-        Ok(Self {
-            inputs: inputs.into(),
-            data,
-            design,
-        })
+        Ok(Self { data, design })
     }
     /// Original typed observations, design and offsets.
     pub fn data(&self) -> &RegressionData<bool> {
@@ -65,7 +60,7 @@ impl BernoulliLogitRegression {
         if data.rows() != self.data.rows() || data.columns() != self.data.columns() {
             return Err(E::Shape);
         }
-        Ok(Self::new(&self.inputs, data)?
+        Ok(Self::new(data)?
             .with_execution(self.execution_plan().execution())
             .with_arithmetic(self.execution_plan().arithmetic()))
     }
@@ -73,9 +68,9 @@ impl BernoulliLogitRegression {
 impl PoissonLogRegression {
     /// Prepares row kernels, log-factorial constants and eligible sufficient statistics.
     /// # Errors
-    /// Rejects shape mismatch, counts above 2^53 or packed-storage overflow.
-    pub fn new(inputs: &[Expr], data: RegressionData<u64>) -> Result<Self, E> {
-        check_columns(&data, inputs)?;
+    /// Rejects counts above 2^53 or packed-storage overflow. Graph registration
+    /// separately checks coefficient count and ownership.
+    pub fn new(data: RegressionData<u64>) -> Result<Self, E> {
         let mut normalizers = Vec::with_capacity(data.rows());
         for (index, &y) in data.observations.iter().enumerate() {
             if y > 1 << 53 {
@@ -86,7 +81,6 @@ impl PoissonLogRegression {
         let design = kernels::Design::new(&data)?;
         let statistics = super::poisson_statistics::PoissonStatistics::new(&data, &normalizers);
         Ok(Self {
-            inputs: inputs.into(),
             data,
             design,
             normalizers,
@@ -122,7 +116,7 @@ impl PoissonLogRegression {
         if data.rows() != self.data.rows() || data.columns() != self.data.columns() {
             return Err(E::Shape);
         }
-        Ok(Self::new(&self.inputs, data)?
+        Ok(Self::new(data)?
             .with_execution(self.execution_plan().execution())
             .with_arithmetic(self.execution_plan().arithmetic()))
     }
@@ -147,15 +141,12 @@ fn signature(
         }),
     }
 }
-impl Primitive for BernoulliLogitRegression {
-    type Workspace = LinkRegressionWorkspace;
-    fn batch_workspace(&self) -> Self::Workspace {
+impl BernoulliLogitRegression {
+    /// Native kernel batch workspace.
+    pub fn batch_workspace(&self) -> LinkRegressionWorkspace {
         LinkRegressionWorkspace {
             scores: Scores::new(0),
         }
-    }
-    fn inputs(&self) -> &[Expr] {
-        &self.inputs
     }
     fn signature(&self) -> PrimitiveSignature {
         signature(
@@ -165,13 +156,20 @@ impl Primitive for BernoulliLogitRegression {
             Support::Finite { outcomes: 2 },
         )
     }
-    fn workspace(&self) -> Self::Workspace {
+    /// Native kernel workspace.
+    pub fn workspace(&self) -> LinkRegressionWorkspace {
         LinkRegressionWorkspace {
             scores: Scores::new(self.data.columns),
         }
     }
-    fn evaluate(&self, x: &[f64], g: &mut [f64], w: &mut Self::Workspace) -> Result<f64, E> {
-        if x.len() != self.inputs.len() || g.len() != x.len() || w.scores.sums.len() != x.len() {
+    /// Native kernel evaluate.
+    pub fn evaluate(
+        &self,
+        x: &[f64],
+        g: &mut [f64],
+        w: &mut LinkRegressionWorkspace,
+    ) -> Result<f64, E> {
+        if x.len() != self.data.columns || g.len() != x.len() || w.scores.sums.len() != x.len() {
             return Err(E::Shape);
         }
         self.design.plan.dispatch(LogitEval {
@@ -186,7 +184,7 @@ impl Primitive for BernoulliLogitRegression {
         Some(BatchRule {
             units: self.data.rows(),
             evaluate: |this, x, out, _| {
-                if x.len() != this.inputs.len() || out.len() != this.data.rows() {
+                if x.len() != this.data.columns || out.len() != this.data.rows() {
                     return Err(E::Shape);
                 }
                 for (i, out) in out.iter_mut().enumerate() {
@@ -213,20 +211,31 @@ impl Primitive for BernoulliLogitRegression {
                 &this.data,
                 "BernoulliLogitRegression",
                 this.execution_plan().execution(),
-                false,
             )
         })
     }
 }
-impl Primitive for PoissonLogRegression {
+impl OperationDescriptor for BernoulliLogitRegression {
     type Workspace = LinkRegressionWorkspace;
-    fn batch_workspace(&self) -> Self::Workspace {
+    fn rules(&self) -> NativeRules<Self> {
+        let mut rules = NativeRules::new(self.signature(), Self::workspace, Self::evaluate);
+        rules.batch_workspace = Self::batch_workspace;
+        rules.batch = self.batch_rule();
+        let body = self.source_rule().map(SourceBody::Generated);
+        rules.source = body.map(|body| SourceRule {
+            body,
+            gradient: self.source_gradient_rule(),
+            workspace: 0,
+        });
+        rules
+    }
+}
+impl PoissonLogRegression {
+    /// Native kernel batch workspace.
+    pub fn batch_workspace(&self) -> LinkRegressionWorkspace {
         LinkRegressionWorkspace {
             scores: Scores::new(0),
         }
-    }
-    fn inputs(&self) -> &[Expr] {
-        &self.inputs
     }
     fn signature(&self) -> PrimitiveSignature {
         signature(
@@ -236,13 +245,20 @@ impl Primitive for PoissonLogRegression {
             Support::Count,
         )
     }
-    fn workspace(&self) -> Self::Workspace {
+    /// Native kernel workspace.
+    pub fn workspace(&self) -> LinkRegressionWorkspace {
         LinkRegressionWorkspace {
             scores: Scores::new(self.data.columns),
         }
     }
-    fn evaluate(&self, x: &[f64], g: &mut [f64], w: &mut Self::Workspace) -> Result<f64, E> {
-        if x.len() != self.inputs.len() || g.len() != x.len() || w.scores.sums.len() != x.len() {
+    /// Native kernel evaluate.
+    pub fn evaluate(
+        &self,
+        x: &[f64],
+        g: &mut [f64],
+        w: &mut LinkRegressionWorkspace,
+    ) -> Result<f64, E> {
+        if x.len() != self.data.columns || g.len() != x.len() || w.scores.sums.len() != x.len() {
             return Err(E::Shape);
         }
         if let Some(statistics) = &self.statistics {
@@ -279,7 +295,7 @@ impl Primitive for PoissonLogRegression {
         Some(BatchRule {
             units: self.data.rows(),
             evaluate: |this, x, out, _| {
-                if x.len() != this.inputs.len() || out.len() != this.data.rows() {
+                if x.len() != this.data.columns || out.len() != this.data.rows() {
                     return Err(E::Shape);
                 }
                 for (i, out) in out.iter_mut().enumerate() {
@@ -305,9 +321,23 @@ impl Primitive for PoissonLogRegression {
                 &this.data,
                 "PoissonLogRegression",
                 this.execution_plan().execution(),
-                false,
             )
         })
+    }
+}
+impl OperationDescriptor for PoissonLogRegression {
+    type Workspace = LinkRegressionWorkspace;
+    fn rules(&self) -> NativeRules<Self> {
+        let mut rules = NativeRules::new(self.signature(), Self::workspace, Self::evaluate);
+        rules.batch_workspace = Self::batch_workspace;
+        rules.batch = self.batch_rule();
+        let body = self.source_rule().map(SourceBody::Generated);
+        rules.source = body.map(|body| SourceRule {
+            body,
+            gradient: self.source_gradient_rule(),
+            workspace: 0,
+        });
+        rules
     }
 }
 fn source<Y: std::fmt::Debug>(data: &RegressionData<Y>, event: &str, law: &str) -> String {
@@ -334,14 +364,18 @@ fn source<Y: std::fmt::Debug>(data: &RegressionData<Y>, event: &str, law: &str) 
 mod execution_tests {
     use super::*;
 
-    fn compare_result<P: Primitive>(
+    fn compare_result<P: OperationDescriptor>(
         p: &P,
         x: &[f64],
         fresh: impl FnOnce(&mut [f64]) -> Result<f64, E>,
     ) {
         let mut a = vec![19.; x.len()];
         let mut b = a.clone();
-        match (p.evaluate(x, &mut a, &mut p.workspace()), fresh(&mut b)) {
+        let rules = p.rules();
+        match (
+            (rules.evaluate)(p, x, &mut a, &mut (rules.workspace)(p)),
+            fresh(&mut b),
+        ) {
             (Ok(a_value), Ok(b_value)) => {
                 assert_eq!(a_value.to_bits(), b_value.to_bits());
                 assert_eq!(
@@ -358,26 +392,17 @@ mod execution_tests {
     fn tail_only_selection_preserves_fresh_dispatch_bits_errors_and_scale_limits() {
         for rows in 1..kernels::TILE {
             for columns in 0..kernels::TILE {
-                let mut b = ModelBuilder::new();
-                let beta: Vec<_> = (0..columns)
-                    .map(|j| b.real(&format!("b{j}")).unwrap().expr())
-                    .collect();
-                let sigma = b.positive("sigma").unwrap();
                 let normal = NormalRegression::new(
-                    &beta,
-                    &sigma,
                     RegressionData::new(columns, vec![1.; rows * columns], vec![0.5; rows])
                         .unwrap(),
                 )
                 .unwrap();
                 let logit = BernoulliLogitRegression::new(
-                    &beta,
                     RegressionData::new(columns, vec![1.; rows * columns], vec![true; rows])
                         .unwrap(),
                 )
                 .unwrap();
                 let poisson = PoissonLogRegression::new(
-                    &beta,
                     RegressionData::new(columns, vec![1.; rows * columns], vec![2; rows]).unwrap(),
                 )
                 .unwrap();
@@ -434,16 +459,16 @@ mod execution_tests {
         }
     }
 
-    fn compare<P: Primitive>(
+    fn compare<P: OperationDescriptor>(
         primitive: &P,
         x: &[f64],
         fresh: impl FnOnce(&mut [f64]) -> Result<f64, E>,
     ) {
         let mut a = vec![0.; x.len()];
         let mut b = a.clone();
-        let cached = primitive
-            .evaluate(x, &mut a, &mut primitive.workspace())
-            .unwrap();
+        let rules = primitive.rules();
+        let cached =
+            (rules.evaluate)(primitive, x, &mut a, &mut (rules.workspace)(primitive)).unwrap();
         let original = fresh(&mut b).unwrap();
         assert_eq!(cached.to_bits(), original.to_bits());
         assert_eq!(
@@ -455,16 +480,8 @@ mod execution_tests {
     #[test]
     fn cached_default_preserves_original_fresh_dispatch_bits_for_all_families() {
         for rows in [1, 4, 7, 1_000] {
-            let mut builder = ModelBuilder::new();
-            let beta = [
-                builder.real("a").unwrap().expr(),
-                builder.real("b").unwrap().expr(),
-            ];
-            let sigma = builder.positive("sigma").unwrap();
             let design: Vec<_> = (0..rows).flat_map(|i| [1., (i % 7) as f64 / 8.]).collect();
             let mut normal = NormalRegression::new(
-                &beta,
-                &sigma,
                 RegressionData::new(2, design.clone(), vec![0.5; rows]).unwrap(),
             )
             .unwrap();
@@ -482,7 +499,6 @@ mod execution_tests {
                 })
             });
             let logit = BernoulliLogitRegression::new(
-                &beta,
                 RegressionData::new(2, design.clone(), vec![true; rows]).unwrap(),
             )
             .unwrap();
@@ -495,11 +511,9 @@ mod execution_tests {
                     scores: &mut Scores::new(2),
                 })
             });
-            let poisson = PoissonLogRegression::new(
-                &beta,
-                RegressionData::new(2, design, vec![2; rows]).unwrap(),
-            )
-            .unwrap();
+            let poisson =
+                PoissonLogRegression::new(RegressionData::new(2, design, vec![2; rows]).unwrap())
+                    .unwrap();
             compare(&poisson, &[0.2, -0.3], |g| {
                 pulp::Arch::new().dispatch(PoissonEval {
                     data: &poisson.data,

@@ -4,7 +4,7 @@ use super::{
     regression::{self, RegressionData},
 };
 use alea_core::model::assembly::{
-    AssemblyError, Expr, ModelBuilder, Parameter, Positive, ScalarInput,
+    AssemblyError, ModelBuilder, Parameter, Positive, ScalarInput, Value,
 };
 
 /// Distribution conveniences for [`ModelBuilder`], also imported by Alea's prelude.
@@ -78,8 +78,8 @@ pub trait ModelBuilderExt {
         &mut self,
         name: &str,
         observations: &[f64],
-        locations: &[Expr],
-        scales: &[Expr],
+        locations: &[Value],
+        scales: &[Value],
     ) -> Result<(), AssemblyError>;
 
     /// Attaches the existing fused Normal regression likelihood; no priors,
@@ -89,7 +89,7 @@ pub trait ModelBuilderExt {
     fn normal_regression_likelihood(
         &mut self,
         name: &str,
-        beta: &[Expr],
+        beta: &[Value],
         scale: &Parameter<Positive>,
         data: RegressionData<f64>,
     ) -> Result<(), AssemblyError>;
@@ -100,7 +100,7 @@ pub trait ModelBuilderExt {
     fn bernoulli_logit_regression_likelihood(
         &mut self,
         name: &str,
-        beta: &[Expr],
+        beta: &[Value],
         data: RegressionData<bool>,
     ) -> Result<(), AssemblyError>;
 
@@ -111,7 +111,7 @@ pub trait ModelBuilderExt {
     fn poisson_log_regression_likelihood(
         &mut self,
         name: &str,
-        beta: &[Expr],
+        beta: &[Value],
         data: RegressionData<u64>,
     ) -> Result<(), AssemblyError>;
 }
@@ -162,17 +162,18 @@ impl ModelBuilderExt for ModelBuilder {
         &mut self,
         name: &str,
         observations: &[f64],
-        locations: &[Expr],
-        scales: &[Expr],
+        locations: &[Value],
+        scales: &[Value],
     ) -> Result<(), AssemblyError> {
-        let primitive = super::NormalBatch::observed(observations.to_vec(), locations, scales)?;
-        let factor = self.primitive(primitive)?;
+        let primitive =
+            super::NormalBatch::observed(observations.to_vec(), (locations).len(), (scales).len())?;
+        let factor = self.primitive(&[locations, scales].concat(), primitive)?;
         self.likelihood(name, factor)
     }
     fn normal_regression_likelihood(
         &mut self,
         name: &str,
-        beta: &[Expr],
+        beta: &[Value],
         scale: &Parameter<Positive>,
         data: RegressionData<f64>,
     ) -> Result<(), AssemblyError> {
@@ -182,7 +183,7 @@ impl ModelBuilderExt for ModelBuilder {
     fn bernoulli_logit_regression_likelihood(
         &mut self,
         name: &str,
-        beta: &[Expr],
+        beta: &[Value],
         data: RegressionData<bool>,
     ) -> Result<(), AssemblyError> {
         let factor = regression::bernoulli_logit_regression(self, beta, data)?;
@@ -191,7 +192,7 @@ impl ModelBuilderExt for ModelBuilder {
     fn poisson_log_regression_likelihood(
         &mut self,
         name: &str,
-        beta: &[Expr],
+        beta: &[Value],
         data: RegressionData<u64>,
     ) -> Result<(), AssemblyError> {
         let factor = regression::poisson_log_regression(self, beta, data)?;

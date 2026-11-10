@@ -1,3 +1,4 @@
+use alea_core::model::assembly::OperationDescriptor;
 use alea_core::{
     model::assembly::{CompiledModel, ModelBuilder},
     target::LogDensityGradient,
@@ -78,12 +79,11 @@ fn poisson_tiles_match_single_rows_finite_differences_and_recover_without_alloca
 
 #[test]
 fn prepared_poisson_rebinding_refreshes_all_statistics_and_keeps_row_reporting() {
-    use alea_core::model::assembly::Primitive;
+    use OperationDescriptor;
     use alea_distributions::modeling::regression::{PoissonLogRegression, RegressionExecution};
-    let mut builder = ModelBuilder::new();
-    let beta = builder.real("beta").unwrap().expr();
+
     let original = RegressionData::new(1, vec![1.; 129], vec![2; 129]).unwrap();
-    let descriptor = PoissonLogRegression::new(&[beta], original)
+    let descriptor = PoissonLogRegression::new(original)
         .unwrap()
         .with_execution(RegressionExecution::Scalar);
     let mut original_gradient = [0.];
@@ -91,7 +91,7 @@ fn prepared_poisson_rebinding_refreshes_all_statistics_and_keeps_row_reporting()
         .evaluate(&[0.2], &mut original_gradient, &mut descriptor.workspace())
         .unwrap();
     let mut original_rows = vec![0.; 129];
-    (descriptor.batch_rule().unwrap().evaluate)(
+    (descriptor.rules().batch.unwrap().evaluate)(
         &descriptor,
         &[0.2],
         &mut original_rows,
@@ -119,7 +119,7 @@ fn prepared_poisson_rebinding_refreshes_all_statistics_and_keeps_row_reporting()
     .with_offsets((0..129).map(|i| (i % 3) as f64 / 11.).collect())
     .unwrap();
     let rebound = descriptor.with_data(changed.clone()).unwrap();
-    let fresh = PoissonLogRegression::new(&[beta], changed)
+    let fresh = PoissonLogRegression::new(changed)
         .unwrap()
         .with_execution(RegressionExecution::Scalar);
     let mut w = rebound.workspace();
@@ -139,7 +139,7 @@ fn prepared_poisson_rebinding_refreshes_all_statistics_and_keeps_row_reporting()
         }
     }
     let value = rebound.evaluate(&[0.2], &mut g, &mut w).unwrap();
-    let rule = rebound.batch_rule().unwrap();
+    let rule = rebound.rules().batch.unwrap();
     assert_eq!(rule.units, 129);
     let mut out = vec![0.; 129];
     (rule.evaluate)(&rebound, &[0.2], &mut out, &mut rebound.batch_workspace()).unwrap();

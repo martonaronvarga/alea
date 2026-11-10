@@ -1,9 +1,6 @@
 use alea_core::model::{
     assembly::{AssemblyError as E, ModelBuilder},
-    tensor::{
-        BinaryOp as B, Comparison, Shape, TensorBuilder, TensorFactor, TensorOperation,
-        UnaryOp as U,
-    },
+    tensor::{BinaryOp as B, Comparison, Shape, TensorOperation, UnaryOp as U},
 };
 use alea_core::target::LogDensityGradient;
 
@@ -22,15 +19,11 @@ fn tensor_target_budget_rejects_before_allocation_and_counts_control_flow_frames
             assert_eq!(error.limit, bytes - 1);
         });
         assert_eq!(measured.count_total, 0);
-        let mut builder = ModelBuilder::new();
-        let inputs: Vec<_> = (0..program.dimension())
-            .map(|i| builder.real(&format!("x{i}")).unwrap().expr())
-            .collect();
-        let factor = TensorFactor::new(program.clone(), &inputs).unwrap();
+
         assert_eq!(
             allocation_counter::measure(|| {
-                assert!(factor.check_workspace_limit(bytes - 1).is_err());
-                factor.check_workspace_limit(bytes).unwrap();
+                assert!(program.check_workspace_limit(bytes - 1).is_err());
+                program.check_workspace_limit(bytes).unwrap();
             })
             .count_total,
             0
@@ -96,7 +89,7 @@ fn check_vjp(program: &alea_core::model::tensor::BoundProgram, x: &[f64], seed: 
 
 #[test]
 fn broadcast_rank_three_gather_and_shared_reshape_have_correct_reverse_maps() {
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let x = b.input("x", shape(&[2, 1, 3])).unwrap();
     let y = b.input("y", shape(&[1, 4, 1])).unwrap();
     let product = b.binary(B::Multiply, x, y).unwrap();
@@ -121,7 +114,7 @@ fn regular_broadcast_matches_explicit_gathers_without_reordering_scores() {
     for op in [B::Add, B::Subtract, B::Multiply, B::Divide] {
         for n in [2, 683] {
             let build = |expand: bool| {
-                let mut b = TensorBuilder::new();
+                let mut b = ModelBuilder::new().region();
                 let mut a = b.input("a", shape(&[n, 1, 3])).unwrap();
                 let mut r = b.input("r", shape(&[1, 2, 1])).unwrap();
                 if expand {
@@ -175,7 +168,7 @@ fn regular_broadcast_matches_explicit_gathers_without_reordering_scores() {
 #[test]
 fn broadcast_source_is_compact_and_rebinding_preserves_error_staging() {
     let build = |n| {
-        let mut b = TensorBuilder::new();
+        let mut b = ModelBuilder::new().region();
         let a = b.input("a", shape(&[2, 1])).unwrap();
         let r = b.data("r", shape(&[n])).unwrap();
         let out = b.binary(B::Divide, a, r).unwrap();
@@ -211,7 +204,7 @@ fn broadcast_source_is_compact_and_rebinding_preserves_error_staging() {
 #[test]
 fn empty_broadcasts_do_not_address_inputs_or_adjoint_ranges() {
     for reverse in [false, true] {
-        let mut b = TensorBuilder::new();
+        let mut b = ModelBuilder::new().region();
         let empty = b.input("empty", shape(&[0, 3])).unwrap();
         let full = b.constant(shape(&[3]), vec![1., 2., 3.]).unwrap();
         let (a, r) = if reverse {
@@ -228,7 +221,7 @@ fn empty_broadcasts_do_not_address_inputs_or_adjoint_ranges() {
 
 #[test]
 fn matrix_block_vjp_matches_finite_differences_and_exact_product() {
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let a = b.input("a", shape(&[2, 3])).unwrap();
     let c = b.input("b", shape(&[3, 2])).unwrap();
     let out = b.matmul(a, c).unwrap();
@@ -257,7 +250,7 @@ fn matrix_kernel_policies_preserve_products_vjps_aliases_and_error_recovery() {
         #[cfg(feature = "openblas")]
         MatrixKernel::Blas,
     ] {
-        let mut b = TensorBuilder::new();
+        let mut b = ModelBuilder::new().region();
         let a = b.input("a", shape(&[2, 3])).unwrap();
         let r = b.data("r", shape(&[3, 2])).unwrap();
         let out = b.matmul_with_kernel(a, r, kernel).unwrap();
@@ -287,7 +280,7 @@ fn matrix_kernel_policies_preserve_products_vjps_aliases_and_error_recovery() {
         assert_eq!(g, [4., 8., 12., 4., 8., 12.]);
 
         for shared in [false, true] {
-            let mut b = TensorBuilder::new();
+            let mut b = ModelBuilder::new().region();
             let a = b.input("a", shape(&[2, 2])).unwrap();
             let r = if shared {
                 b.reshape(a, shape(&[2, 2])).unwrap()
@@ -330,7 +323,7 @@ fn matrix_kernel_rectangular_and_empty_products_match_reference() {
             #[cfg(feature = "openblas")]
             MatrixKernel::Blas,
         ] {
-            let mut b = TensorBuilder::new();
+            let mut b = ModelBuilder::new().region();
             let a = b.input("a", shape(&[m, k])).unwrap();
             let r = b.input("r", shape(&[k, n])).unwrap();
             let out = b.matmul_with_kernel(a, r, kernel).unwrap();
@@ -354,7 +347,7 @@ fn matrix_vector_specialization_preserves_ordered_compensated_bits_and_aliases()
     use alea_math::numeric::CompensatedSum;
     for rows in [0, 1, 7, 33] {
         for cols in [0, 1, 3, 8, 17] {
-            let mut b = TensorBuilder::new();
+            let mut b = ModelBuilder::new().region();
             let a = b.input("a", shape(&[rows, cols])).unwrap();
             let x = b.input("x", shape(&[cols, 1])).unwrap();
             let out = b.matmul(a, x).unwrap();
@@ -398,7 +391,7 @@ fn matrix_vector_specialization_preserves_ordered_compensated_bits_and_aliases()
             );
         }
     }
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let a = b.input("a", shape(&[1, 3])).unwrap();
     let x = b.reshape(a, shape(&[3, 1])).unwrap();
     let out = b.matmul(a, x).unwrap();
@@ -406,7 +399,7 @@ fn matrix_vector_specialization_preserves_ordered_compensated_bits_and_aliases()
     check_vjp(&p, &[0.2, -0.5, 0.7], &[0.3]);
 }
 fn log_region(negative: bool) -> alea_core::model::tensor::BoundProgram {
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let x = b.input("x", Shape::scalar()).unwrap();
     let x = if negative {
         b.unary(U::Neg, x).unwrap()
@@ -418,7 +411,7 @@ fn log_region(negative: bool) -> alea_core::model::tensor::BoundProgram {
 }
 #[test]
 fn condition_is_lazy_in_both_passes_and_failures_do_not_publish_or_poison_recovery() {
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let x = b.input("x", Shape::scalar()).unwrap();
     let zero = b.constant(Shape::scalar(), vec![0.]).unwrap();
     let out = b
@@ -458,7 +451,7 @@ fn condition_is_lazy_in_both_passes_and_failures_do_not_publish_or_poison_recove
 
 #[test]
 fn selected_intermediate_overflow_cannot_be_hidden_by_a_finite_final_expression_or_zero_seed() {
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let x = b.input("x", Shape::scalar()).unwrap();
     let huge = b.unary(U::Exp, x).unwrap();
     let negative = b.unary(U::Neg, huge).unwrap();
@@ -486,7 +479,7 @@ fn selected_intermediate_overflow_cannot_be_hidden_by_a_finite_final_expression_
 
 #[test]
 fn repeated_gathers_obey_seed_linearity_without_differentiating_inactive_singular_data() {
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let x = b.input("x", shape(&[3])).unwrap();
     let gathered = b.gather(x, shape(&[4]), vec![2, 0, 2, 1]).unwrap();
     let square = b.binary(B::Multiply, gathered, gathered).unwrap();
@@ -525,7 +518,7 @@ fn repeated_gathers_obey_seed_linearity_without_differentiating_inactive_singula
     }
     // Native built-in VJPs skip a zero seed at a singular point; an opaque
     // supplied local score must instead be admitted even with a zero seed.
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let x = b.input("x", Shape::scalar()).unwrap();
     let root = b.unary(U::Sqrt, x).unwrap();
     let p = b.compile(root).unwrap().bind(&[]).unwrap();
@@ -544,14 +537,14 @@ fn repeated_gathers_obey_seed_linearity_without_differentiating_inactive_singula
     assert_eq!((out, g), ([2.], [0.25]));
 }
 fn recurrence(steps: usize) -> alea_core::model::tensor::BoundProgram {
-    let mut body = TensorBuilder::new();
+    let mut body = ModelBuilder::new().region();
     let c = body.input("carry", shape(&[2])).unwrap();
     let row = body.input("row", shape(&[2])).unwrap();
     let factor = body.input("factor", Shape::scalar()).unwrap();
     let scaled = body.binary(B::Multiply, c, factor).unwrap();
     let next = body.binary(B::Add, scaled, row).unwrap();
     let body = body.compile(next).unwrap().bind(&[]).unwrap();
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let initial = b.input("initial", shape(&[2])).unwrap();
     let factor = b.input("factor", Shape::scalar()).unwrap();
     let xs = b.data("observations", shape(&[steps, 2])).unwrap();
@@ -594,7 +587,7 @@ fn checkpointed_scan_preserves_nonlinear_vjp_rebinding_errors_and_allocation_bud
     // to disappear from the enclosing workspace.
     for steps in [257, 1025] {
         let width = 16;
-        let mut body = TensorBuilder::new();
+        let mut body = ModelBuilder::new().region();
         let carry = body.input("carry", shape(&[width])).unwrap();
         let row = body.input("row", shape(&[width])).unwrap();
         let gain = body.input("gain", Shape::scalar()).unwrap();
@@ -609,7 +602,7 @@ fn checkpointed_scan_preserves_nonlinear_vjp_rebinding_errors_and_allocation_bud
         let next = body.unary(U::Tanh, next).unwrap();
         let body = body.compile(next).unwrap().bind(&[]).unwrap();
         let retained_body_bytes = steps * body.workspace_bytes();
-        let mut builder = TensorBuilder::new();
+        let mut builder = ModelBuilder::new().region();
         let initial = builder.input("initial", shape(&[width])).unwrap();
         let gain = builder.input("gain", Shape::scalar()).unwrap();
         let rows = builder.data("rows", shape(&[steps, width])).unwrap();
@@ -619,7 +612,7 @@ fn checkpointed_scan_preserves_nonlinear_vjp_rebinding_errors_and_allocation_bud
         let plan = builder.compile(end).unwrap();
         let data: Vec<_> = (0..steps * width).map(|i| (i % 13) as f64 / 16.).collect();
         let bound = plan.bind(&[("rows", &data)]).unwrap();
-        let mut plain = TensorBuilder::new();
+        let mut plain = ModelBuilder::new().region();
         let initial = plain.input("initial", shape(&[width])).unwrap();
         let gain = plain.input("gain", Shape::scalar()).unwrap();
         let rows = plain.data("rows", shape(&[steps, width])).unwrap();
@@ -720,9 +713,9 @@ fn checkpointed_scan_preserves_nonlinear_vjp_rebinding_errors_and_allocation_bud
 #[test]
 fn checkpoint_replay_keeps_first_iteration_activity_and_singular_gradient_errors() {
     let steps = 1025;
-    let mut body = TensorBuilder::new();
+    let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", Shape::scalar()).unwrap();
-    body.input("row", Shape::scalar()).unwrap();
+    let _ = body.input("row", Shape::scalar()).unwrap();
     let gain = body.input("gain", Shape::scalar()).unwrap();
     let root = body.unary(U::Sqrt, carry).unwrap();
     let mut next = body.binary(B::Add, root, gain).unwrap();
@@ -731,7 +724,7 @@ fn checkpoint_replay_keeps_first_iteration_activity_and_singular_gradient_errors
     }
     let body = body.compile(next).unwrap().bind(&[]).unwrap();
     let full = steps * body.workspace_bytes();
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let gain = b.input("gain", Shape::scalar()).unwrap();
     let zero = b.constant(Shape::scalar(), vec![0.]).unwrap();
     let rows = b.data("rows", shape(&[steps])).unwrap();
@@ -771,7 +764,7 @@ fn checkpoint_replay_keeps_first_iteration_activity_and_singular_gradient_errors
 #[test]
 fn cached_bindings_and_sparse_adjoints_refresh_after_failure_and_snapshot_drop() {
     for n in [0, 1, 33, 129] {
-        let mut t = TensorBuilder::new();
+        let mut t = ModelBuilder::new().region();
         let x = t.input("x", Shape::scalar()).unwrap();
         let weights = t.data("weights", shape(&[n])).unwrap();
         let product = t.binary(B::Multiply, x, weights).unwrap();
@@ -821,7 +814,7 @@ fn cached_bindings_and_sparse_adjoints_refresh_after_failure_and_snapshot_drop()
 
 #[test]
 fn binding_snapshots_share_plan_and_rebinding_requires_consuming_the_compiled_model() {
-    let mut t = TensorBuilder::new();
+    let mut t = ModelBuilder::new().region();
     let x = t.input("x", shape(&[3])).unwrap();
     let data = t.data("weights", shape(&[3])).unwrap();
     let out = t.binary(B::Multiply, x, data).unwrap();
@@ -845,21 +838,16 @@ fn binding_snapshots_share_plan_and_rebinding_requires_consuming_the_compiled_mo
         b.real("b").unwrap().expr(),
         b.real("c").unwrap().expr(),
     ];
-    let factor = b
-        .primitive(TensorFactor::new(old, &inputs).unwrap())
-        .unwrap();
+    let factor = b.apply_region(&inputs, old).unwrap();
     b.potential("objective", factor).unwrap();
     let model = b.compile().unwrap();
     let source = model.rust_primal().unwrap();
-    let error = model
-        .rebind::<TensorFactor>(factor, |p| p.with_data("weights", &[0.]))
-        .err()
-        .unwrap();
+    let error = model.rebind_region(factor, "weights", &[0.]).err().unwrap();
     assert!(matches!(error.source, E::Shape));
     assert_eq!(error.model.rust_primal().unwrap(), source);
     let model = error
         .model
-        .rebind::<TensorFactor>(factor, |p| p.with_data("weights", &[3., 2., 1.]))
+        .rebind_region(factor, "weights", &[3., 2., 1.])
         .unwrap();
     assert_ne!(model.rust_primal().unwrap(), source);
     let target = model.into_target().unwrap();
@@ -870,7 +858,7 @@ fn binding_snapshots_share_plan_and_rebinding_requires_consuming_the_compiled_mo
 #[test]
 fn admission_checks_owners_shapes_empty_tensors_and_dead_operations() {
     assert!(Shape::new(vec![usize::MAX, 2]).is_err());
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let x = b.input("x", shape(&[0, 3])).unwrap();
     let zero = b.sum(x).unwrap();
     let unused = b.constant(Shape::scalar(), vec![-1.]).unwrap();
@@ -883,18 +871,40 @@ fn admission_checks_owners_shapes_empty_tensors_and_dead_operations() {
         .evaluate(&[], &mut out, &mut program.workspace())
         .unwrap();
     assert_eq!(out, [0.]);
-    let mut b = TensorBuilder::new();
+    let mut model = ModelBuilder::new();
+    let scalar = model.constant(1.).unwrap();
+    let mut b = model.region();
     let local = b.input("x", shape(&[2])).unwrap();
-    let mut other = TensorBuilder::new();
+    let mut other = model.region();
     let foreign = other.input("x", shape(&[2])).unwrap();
+    assert_eq!(b.value_shape(local).unwrap(), &shape(&[2]));
+    assert!(matches!(b.value_shape(scalar), Err(E::ForeignHandle)));
+    assert!(matches!(model.factor(local), Err(E::ForeignHandle)));
     assert!(matches!(
         b.binary(B::Add, local, foreign),
         Err(E::ForeignHandle)
     ));
     assert!(b.reshape(local, shape(&[3])).is_err());
     assert!(b.gather(local, shape(&[1]), vec![2]).is_err());
+    let nonscalar = other.compile(foreign).unwrap().bind(&[]).unwrap();
+    assert!(matches!(
+        model.apply_region(&[scalar, scalar], nonscalar),
+        Err(E::Shape)
+    ));
     let result = b.sum(local).unwrap();
     let program = b.compile(result).unwrap().bind(&[]).unwrap();
+    assert!(matches!(
+        model.apply_region(&[scalar], program.clone()),
+        Err(E::Shape)
+    ));
+    assert!(matches!(
+        model.apply_region(&[scalar, local], program.clone()),
+        Err(E::ForeignHandle)
+    ));
+    let applied = model
+        .apply_region(&[scalar, scalar], program.clone())
+        .unwrap();
+    model.factor(applied).unwrap();
     let mut out = [19.];
     let mut g = [20.; 2];
     let mut w = program.workspace();
@@ -920,14 +930,14 @@ fn elementary_block_pullbacks_cover_all_operations_and_scalar_broadcast_reductio
         U::Cos,
         U::Sqrt,
     ] {
-        let mut b = TensorBuilder::new();
+        let mut b = ModelBuilder::new().region();
         let x = b.input("x", shape(&[3])).unwrap();
         let result = b.unary(op, x).unwrap();
         let p = b.compile(result).unwrap().bind(&[]).unwrap();
         check_vjp(&p, &[0.2, 0.7, 1.4], &[0.3, -0.2, 0.9]);
     }
     for op in [B::Add, B::Subtract, B::Multiply, B::Divide] {
-        let mut b = TensorBuilder::new();
+        let mut b = ModelBuilder::new().region();
         let x = b.input("x", shape(&[3])).unwrap();
         let y = b.input("y", Shape::scalar()).unwrap();
         let result = b.binary(op, x, y).unwrap();
@@ -938,7 +948,7 @@ fn elementary_block_pullbacks_cover_all_operations_and_scalar_broadcast_reductio
 
 #[test]
 fn empty_matrix_does_no_outer_loop_work_and_empty_scan_metadata_overflow_is_rejected() {
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let a = b.input("a", shape(&[usize::MAX, 0])).unwrap();
     let c = b.input("b", shape(&[0, 0])).unwrap();
     let result = b.matmul(a, c).unwrap();
@@ -947,11 +957,11 @@ fn empty_matrix_does_no_outer_loop_work_and_empty_scan_metadata_overflow_is_reje
         .unwrap();
     assert!(!p.rust_function().contains("for row"));
 
-    let mut body = TensorBuilder::new();
+    let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", shape(&[0])).unwrap();
-    body.input("row", shape(&[0])).unwrap();
+    let _ = body.input("row", shape(&[0])).unwrap();
     let body = body.compile(carry).unwrap().bind(&[]).unwrap();
-    let mut outer = TensorBuilder::new();
+    let mut outer = ModelBuilder::new().region();
     let carry = outer.input("carry", shape(&[0])).unwrap();
     let xs = outer.data("xs", shape(&[usize::MAX, 0])).unwrap();
     assert!(matches!(outer.scan(carry, xs, &[], body), Err(E::Shape)));
@@ -959,11 +969,11 @@ fn empty_matrix_does_no_outer_loop_work_and_empty_scan_metadata_overflow_is_reje
 
 #[test]
 fn non_differentiable_data_and_predicates_do_not_acquire_spurious_singular_derivatives() {
-    let mut branch = TensorBuilder::new();
+    let mut branch = ModelBuilder::new().region();
     let data = branch.input("data", Shape::scalar()).unwrap();
     let root = branch.unary(U::Sqrt, data).unwrap();
     let branch = branch.compile(root).unwrap().bind(&[]).unwrap();
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let x = b.input("x", Shape::scalar()).unwrap();
     let data = b.data("data", Shape::scalar()).unwrap();
     let zero = b.constant(Shape::scalar(), vec![0.]).unwrap();
@@ -982,13 +992,13 @@ fn non_differentiable_data_and_predicates_do_not_acquire_spurious_singular_deriv
     check_vjp(&p, &[1.], &[1.]);
     check_vjp(&p, &[-1.], &[1.]);
 
-    let mut body = TensorBuilder::new();
+    let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", Shape::scalar()).unwrap();
     let row = body.input("row", Shape::scalar()).unwrap();
     let root = body.unary(U::Sqrt, carry).unwrap();
     let next = body.binary(B::Add, root, row).unwrap();
     let body = body.compile(next).unwrap().bind(&[]).unwrap();
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let zero = b.constant(Shape::scalar(), vec![0.]).unwrap();
     let xs = b.input("xs", shape(&[3])).unwrap();
     let result = b.scan(zero, xs, &[], body).unwrap();
@@ -1003,7 +1013,7 @@ fn specialized_binary_blocks_preserve_scalar_bits_for_aliases_broadcasts_and_ina
     let seeds = [0.3, 0., -0.7, 1.];
     for op in [B::Add, B::Subtract, B::Multiply, B::Divide] {
         for case in 0..6 {
-            let mut b = TensorBuilder::new();
+            let mut b = ModelBuilder::new().region();
             let (a, r, q, amap, rmap) = match case {
                 0 => (
                     b.input("a", shape(&[4])).unwrap(),
@@ -1091,7 +1101,7 @@ fn specialized_binary_blocks_preserve_scalar_bits_for_aliases_broadcasts_and_ina
             );
         }
     }
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let x = b.input("x", shape(&[4])).unwrap();
     let alias = b.reshape(x, shape(&[4])).unwrap();
     let square = b.binary(B::Multiply, x, alias).unwrap();
@@ -1104,4 +1114,149 @@ fn specialized_binary_blocks_preserve_scalar_bits_for_aliases_broadcasts_and_ina
     for (g, x) in g.into_iter().zip(q) {
         assert_eq!(g.to_bits(), ((1. + x) + x).to_bits());
     }
+}
+
+#[test]
+fn model_block_edges_share_forward_residuals_and_accumulate_consumer_seeds() {
+    use alea_core::model::{
+        ConstrainedModel,
+        assembly::OperationKind,
+        tensor::{BlockRules, BlockType, ElementType},
+    };
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+
+    #[derive(Default)]
+    struct Calls {
+        forward: AtomicUsize,
+        reverse: AtomicUsize,
+    }
+
+    let calls = Arc::new(Calls::default());
+    let mut model = ModelBuilder::new();
+    let x = model.real("x").unwrap().expr();
+    let mut region = model.region();
+    let input = region.input("x", Shape::scalar()).unwrap();
+    let count = region
+        .count_data(Shape::scalar(), vec![(1 << 53) + 1])
+        .unwrap();
+    let enabled = region.boolean_data(Shape::scalar(), vec![true]).unwrap();
+    let index = region.indices(Shape::scalar(), vec![1], 2).unwrap();
+    let output = region
+        .register_block(
+            &[input, count, enabled, index],
+            Arc::clone(&calls),
+            BlockRules {
+                inputs: [
+                    ElementType::Real,
+                    ElementType::Count,
+                    ElementType::Bool,
+                    ElementType::Index,
+                ]
+                .map(|dtype| BlockType {
+                    dtype,
+                    shape: Shape::scalar(),
+                })
+                .into(),
+                output: shape(&[2]),
+                workspace: |_| (0_u64, false),
+                heap_bytes: 0,
+                forward: |calls, inputs, out, state| {
+                    calls.forward.fetch_add(1, Ordering::Relaxed);
+                    state.0 = inputs.counts(1)?[0];
+                    state.1 = inputs.booleans(2)?[0];
+                    let i = inputs.indices(3)?[0];
+                    let x = inputs.real(0)?[0];
+                    if x < 0. {
+                        return Err(E::Numerical);
+                    }
+                    out[1 - i] = 2. * x;
+                    out[i] = 3. * x;
+                    Ok(())
+                },
+                vjp: Some(|calls, _, _, seed, scores, state| {
+                    calls.reverse.fetch_add(1, Ordering::Relaxed);
+                    assert_eq!(*state, ((1 << 53) + 1, true));
+                    assert_eq!(scores.len(), 1);
+                    scores[0] = 2. * seed[0] + 3. * seed[1];
+                    Ok(())
+                }),
+            },
+        )
+        .unwrap();
+    let bound = region.compile(output).unwrap().bind(&[]).unwrap();
+    let block = model.call_region(&[x], bound).unwrap();
+    assert_eq!(model.value_shape(block).unwrap(), shape(&[2]));
+    assert!(matches!(model.factor(block), Err(E::Shape)));
+    let left = model.sum_value(block).unwrap();
+    let right = model.sum_value(block).unwrap();
+    let root = model.add(left, right).unwrap();
+    model.potential("native block", root).unwrap();
+    let square = model.multiply(x, x).unwrap();
+    let prior = model.multiply(-1., square).unwrap();
+    model.prior("scalar prior", prior).unwrap();
+    let model = model.compile().unwrap();
+    let consumers = model
+        .graph()
+        .filter(|node| node.operation == OperationKind::Region && node.inputs == [block])
+        .count();
+    assert_eq!(consumers, 2);
+    assert!(!model.source_capabilities().supports_rust_primal());
+    assert!(matches!(model.rust_primal(), Err(E::MissingPrimal { .. })));
+
+    let mut gradient = [42.];
+    assert!(matches!(
+        model.logp_grad(&[-1.], &mut gradient),
+        Err(E::Numerical)
+    ));
+    assert_eq!(gradient, [42.]);
+    let measured = allocation_counter::measure(|| {
+        assert_eq!(model.logp_grad(&[2.], &mut gradient).unwrap(), 16.);
+    });
+    assert_eq!(measured.count_total, 0);
+    assert_eq!(gradient, [6.]);
+    assert_eq!(calls.forward.load(Ordering::Relaxed), 2);
+    assert_eq!(calls.reverse.load(Ordering::Relaxed), 1);
+    let prior = model.select_prior().unwrap();
+    assert!(prior.source_capabilities().supports_rust_primal());
+    assert_eq!(prior.logp_grad(&[-1.], &mut gradient).unwrap(), -1.);
+    assert_eq!(gradient, [2.]);
+    assert_eq!(calls.forward.load(Ordering::Relaxed), 2);
+}
+
+#[test]
+fn model_matrix_edges_preserve_parameter_chart_and_rebind_named_data() {
+    use alea_core::model::ConstrainedModel;
+
+    let mut model = ModelBuilder::new();
+    let beta = model.real_vector("beta", &["a", "b"]).unwrap();
+    let beta = model.vector_value(&beta, shape(&[2, 1])).unwrap();
+    let design = {
+        let mut region = model.region();
+        let x = region.data("X", shape(&[2, 2])).unwrap();
+        region
+            .compile(x)
+            .unwrap()
+            .bind(&[("X", &[1., 2., 3., 4.])])
+            .unwrap()
+    };
+    let design = model.call_region(&[], design).unwrap();
+    let eta = model.matmul(design, beta).unwrap();
+    let eta = model.reshape(eta, shape(&[2])).unwrap();
+    let root = model.sum_value(eta).unwrap();
+    model.factor(root).unwrap();
+    let model = model.compile().unwrap();
+    let mut g = [0.; 2];
+    assert_eq!(model.logp_grad(&[2., 3.], &mut g).unwrap(), 26.);
+    assert_eq!(g, [4., 6.]);
+    let err = model.rebind_region(design, "X", &[0.]).err().unwrap();
+    assert!(matches!(err.source, E::Shape));
+    let model = err
+        .model
+        .rebind_region(design, "X", &[1., 0., 0., 1.])
+        .unwrap();
+    assert_eq!(model.logp_grad(&[2., 3.], &mut g).unwrap(), 5.);
+    assert_eq!(g, [1., 1.]);
 }

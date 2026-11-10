@@ -15,6 +15,7 @@ use std::{
 };
 
 mod batch;
+mod blocks;
 mod factors;
 mod inputs;
 mod pointwise;
@@ -29,14 +30,36 @@ pub use factors::{FactorMetadata, FactorRole};
 pub use inputs::ScalarInput;
 pub use pointwise::{PointwiseError, PointwiseLikelihood, PredictiveUnit};
 pub use primitives::{
-    ArgumentShape, BatchEvaluator, BatchRule, GraphNode, OperationKind, PreparedEvaluator,
-    Primitive, PrimitiveArgument, PrimitiveMetadata, PrimitiveSignature, ProbabilitySemantics,
-    ScalarPreparation, SourceCapabilities,
+    ArgumentShape, BatchEvaluator, BatchRule, GraphNode, NativeEvaluator, NativeRules,
+    OperationDescriptor, OperationKind, PreparedEvaluator, PrimitiveArgument, PrimitiveMetadata,
+    PrimitiveSignature, ProbabilitySemantics, ScalarPreparation, SourceBody, SourceCapabilities,
+    SourceRule,
 };
 pub use rebinding::RebindError;
 pub use scope::ModelScope;
 
-static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
+static NEXT_VALUE_OWNER: AtomicU64 = AtomicU64::new(1);
+
+pub(super) fn next_value_owner() -> u64 {
+    // The fetch_update -> try_update rename is newer than the MSRV. Spell
+    // out its same checked retry loop to support both compiler generations.
+    let mut owner = NEXT_VALUE_OWNER.load(Ordering::Relaxed);
+    loop {
+        let next = owner
+            .checked_add(1)
+            .expect("value identity space exhausted");
+        match NEXT_VALUE_OWNER.compare_exchange_weak(
+            owner,
+            next,
+            Ordering::Relaxed,
+            Ordering::Relaxed,
+        ) {
+            Ok(_) => break,
+            Err(actual) => owner = actual,
+        }
+    }
+    owner
+}
 /// Unconstrained real scalar parameter marker.
 #[derive(Debug, Clone, Copy)]
 pub enum Real {}
@@ -105,34 +128,34 @@ impl VectorDomain for DynamicDomain {
 pub struct VectorParameter<S: VectorDomain> {
     marker: PhantomData<S>,
     transform: Transform,
-    expressions: Vec<Expr>,
+    expressions: Vec<Value>,
 }
 impl<S: VectorDomain> VectorParameter<S> {
     /// The validated chart, including runtime dimensions and geometric domain.
     pub fn transform(&self) -> Transform {
         self.transform
     }
-    pub fn expressions(&self) -> &[Expr] {
+    pub fn expressions(&self) -> &[Value] {
         &self.expressions
     }
 }
-/// A read-only scalar expression belonging to one model builder.
+/// A read-only value belonging to one model or lexical region.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[must_use]
-pub struct Expr {
-    owner: u64,
-    node: usize,
+pub struct Value {
+    pub(super) owner: u64,
+    pub(super) node: usize,
 }
 /// A support-typed handle. Handles cannot create mutable aliases of chain state.
 #[derive(Debug, Clone, Copy)]
 #[must_use]
 pub struct Parameter<S> {
-    expression: Expr,
+    expression: Value,
     slot: usize,
     marker: PhantomData<S>,
 }
 impl<S> Parameter<S> {
-    pub fn expr(&self) -> Expr {
+    pub fn expr(&self) -> Value {
         self.expression
     }
     pub fn slot(&self) -> usize {
@@ -189,6 +212,7 @@ enum Op {
     Multiply(usize, usize),
     Exp(usize),
     Log(usize),
+    Region(Box<blocks::Call>),
     Factor {
         inputs: Box<[usize]>,
         callback: usize,
@@ -215,6 +239,7 @@ pub struct ModelBuilder {
     // Semantic descriptors are cold; never increase the hot Op stride.
     primitives: Vec<(usize, PrimitiveMetadata)>,
     namespace: String,
+    block_count: usize,
 }
 impl Default for ModelBuilder {
     fn default() -> Self {
@@ -223,25 +248,8 @@ impl Default for ModelBuilder {
 }
 impl ModelBuilder {
     pub fn new() -> Self {
-        // The fetch_update -> try_update rename is newer than the MSRV. Spell
-        // out its same checked retry loop to support both compiler generations.
-        let mut owner = NEXT_MODEL.load(Ordering::Relaxed);
-        loop {
-            let next = owner
-                .checked_add(1)
-                .expect("model identity space exhausted");
-            match NEXT_MODEL.compare_exchange_weak(
-                owner,
-                next,
-                Ordering::Relaxed,
-                Ordering::Relaxed,
-            ) {
-                Ok(_) => break,
-                Err(actual) => owner = actual,
-            }
-        }
         Self {
-            owner,
+            owner: next_value_owner(),
             nodes: Vec::new(),
             transforms: Vec::new(),
             coordinates: Vec::new(),
@@ -255,17 +263,44 @@ impl ModelBuilder {
             batch_rules: Vec::new(),
             primitives: Vec::new(),
             namespace: String::new(),
+            block_count: 0,
         }
     }
-    fn push(&mut self, op: Op) -> Expr {
+    /// Starts a lexical region with its own values and explicit inputs.
+    pub fn region(&self) -> super::tensor::RegionBuilder {
+        super::tensor::RegionBuilder::new()
+    }
+
+    /// Applies an immutable scalar-result region to ordered scalar values.
+    /// Captures follow the region's flattened input order. Repeated values
+    /// contribute once per input slot to the same model adjoint.
+    /// # Errors
+    /// Rejects foreign captures, a mismatched input count or a non-scalar result.
+    pub fn apply_region(
+        &mut self,
+        captures: &[Value],
+        binding: super::tensor::BoundProgram,
+    ) -> Result<Value, AssemblyError> {
+        self.primitive(captures, super::tensor::TensorFactor::new(binding)?)
+    }
+
+    fn push(&mut self, op: Op) -> Value {
         let node = self.nodes.len();
         self.nodes.push(op);
-        Expr {
+        Value {
             owner: self.owner,
             node,
         }
     }
-    fn index(&self, x: Expr) -> Result<usize, AssemblyError> {
+    fn index(&self, x: Value) -> Result<usize, AssemblyError> {
+        let index = self.value_index(x)?;
+        if matches!(&self.nodes[index], Op::Region(call) if !call.binding.output_shape().axes().is_empty())
+        {
+            return Err(AssemblyError::Shape);
+        }
+        Ok(index)
+    }
+    fn value_index(&self, x: Value) -> Result<usize, AssemblyError> {
         if x.owner != self.owner || x.node >= self.nodes.len() {
             Err(AssemblyError::ForeignHandle)
         } else {
@@ -382,7 +417,7 @@ impl ModelBuilder {
     }
     /// # Errors
     /// Rejects non-finite constants.
-    pub fn constant(&mut self, x: f64) -> Result<Expr, AssemblyError> {
+    pub fn constant(&mut self, x: f64) -> Result<Value, AssemblyError> {
         if !x.is_finite() {
             return Err(AssemblyError::Numerical);
         }
@@ -395,7 +430,7 @@ impl ModelBuilder {
         &mut self,
         a: impl Into<ScalarInput>,
         b: impl Into<ScalarInput>,
-    ) -> Result<Expr, AssemblyError> {
+    ) -> Result<Value, AssemblyError> {
         let [a, b] = self.inputs([a.into(), b.into()])?;
         Ok(self.push(Op::Add(a.node, b.node)))
     }
@@ -406,19 +441,19 @@ impl ModelBuilder {
         &mut self,
         a: impl Into<ScalarInput>,
         b: impl Into<ScalarInput>,
-    ) -> Result<Expr, AssemblyError> {
+    ) -> Result<Value, AssemblyError> {
         let [a, b] = self.inputs([a.into(), b.into()])?;
         Ok(self.push(Op::Multiply(a.node, b.node)))
     }
     /// # Errors
     /// Rejects foreign handles/nonfinite literals. Runtime overflow is a typed evaluation failure.
-    pub fn exp(&mut self, a: impl Into<ScalarInput>) -> Result<Expr, AssemblyError> {
+    pub fn exp(&mut self, a: impl Into<ScalarInput>) -> Result<Value, AssemblyError> {
         let a = self.expression(a)?;
         Ok(self.push(Op::Exp(a.node)))
     }
     /// # Errors
     /// Rejects foreign handles/nonfinite literals. Runtime non-positive input is an evaluation error.
-    pub fn log(&mut self, a: impl Into<ScalarInput>) -> Result<Expr, AssemblyError> {
+    pub fn log(&mut self, a: impl Into<ScalarInput>) -> Result<Value, AssemblyError> {
         let a = self.expression(a)?;
         Ok(self.push(Op::Log(a.node)))
     }
@@ -432,10 +467,10 @@ impl ModelBuilder {
     /// and nonrepresentable evaluation. No output derivatives are published on error.
     pub fn linear_combination(
         &mut self,
-        inputs: &[Expr],
+        inputs: &[Value],
         coefficients: &[f64],
         offset: f64,
-    ) -> Result<Expr, AssemblyError> {
+    ) -> Result<Value, AssemblyError> {
         if inputs.len() != coefficients.len() {
             return Err(AssemblyError::Shape);
         }
@@ -461,7 +496,7 @@ impl ModelBuilder {
     /// callback must fill every derivative and preserve the mathematical model.
     /// # Errors
     /// Rejects foreign handles or overflowing derivative storage dimensions.
-    pub fn custom<F>(&mut self, inputs: &[Expr], callback: F) -> Result<Expr, AssemblyError>
+    pub fn custom<F>(&mut self, inputs: &[Value], callback: F) -> Result<Value, AssemblyError>
     where
         F: Fn(&[f64], &mut [f64]) -> Result<f64, AssemblyError> + Send + Sync + 'static,
     {
@@ -480,10 +515,10 @@ impl ModelBuilder {
     /// Rejects foreign handles or overflowing derivative storage dimensions.
     pub fn custom_with_scratch<W, F>(
         &mut self,
-        inputs: &[Expr],
+        inputs: &[Value],
         mut scratch: W,
         callback: F,
-    ) -> Result<Expr, AssemblyError>
+    ) -> Result<Value, AssemblyError>
     where
         W: Send + Sync + 'static,
         F: Fn(&[f64], &mut [f64], &mut W) -> Result<f64, AssemblyError> + Send + Sync + 'static,
@@ -503,10 +538,10 @@ impl ModelBuilder {
     /// Rejects foreign handles or overflowing derivative storage dimensions.
     pub fn custom_with_primal<F>(
         &mut self,
-        inputs: &[Expr],
+        inputs: &[Value],
         primal: &'static str,
         callback: F,
-    ) -> Result<Expr, AssemblyError>
+    ) -> Result<Value, AssemblyError>
     where
         F: Fn(&[f64], &mut [f64]) -> Result<f64, AssemblyError> + Send + Sync + 'static,
     {
@@ -514,10 +549,10 @@ impl ModelBuilder {
     }
     fn custom_node<F>(
         &mut self,
-        inputs: &[Expr],
+        inputs: &[Value],
         mut callback: F,
         primal: Option<&'static str>,
-    ) -> Result<Expr, AssemblyError>
+    ) -> Result<Value, AssemblyError>
     where
         F: FnMut(&[f64], &mut [f64]) -> Result<f64, AssemblyError> + Send + Sync + 'static,
     {
@@ -525,16 +560,24 @@ impl ModelBuilder {
     }
     fn custom_prepared_node<F>(
         &mut self,
-        inputs: &[Expr],
+        inputs: &[Value],
         callback: F,
         primal: Option<&'static str>,
-    ) -> Result<Expr, AssemblyError>
+    ) -> Result<Value, AssemblyError>
     where
         F: FnMut(&[f64], &mut [f64], Option<f64>) -> Result<f64, AssemblyError>
             + Send
             + Sync
             + 'static,
     {
+        self.custom_erased_node(inputs, Box::new(callback), primal)
+    }
+    fn custom_erased_node(
+        &mut self,
+        inputs: &[Value],
+        callback: Box<Callback>,
+        primal: Option<&'static str>,
+    ) -> Result<Value, AssemblyError> {
         let inputs = inputs
             .iter()
             .map(|x| self.index(*x))
@@ -545,7 +588,7 @@ impl ModelBuilder {
             .ok_or(AssemblyError::Shape)?;
         self.max_inputs = self.max_inputs.max(inputs.len());
         let callback_index = self.callbacks.len();
-        self.callbacks.push(Box::new(callback));
+        self.callbacks.push(callback);
         let expression = self.push(Op::Factor {
             inputs: inputs.into_boxed_slice(),
             callback: callback_index,
@@ -559,7 +602,7 @@ impl ModelBuilder {
     /// Declares a log factor (normalized prior/likelihood or explicit potential).
     /// # Errors
     /// Rejects a foreign expression.
-    pub fn factor(&mut self, log_factor: Expr) -> Result<(), AssemblyError> {
+    pub fn factor(&mut self, log_factor: Value) -> Result<(), AssemblyError> {
         let i = self.index(log_factor)?;
         self.factors.push(i);
         self.factor_metadata.push(FactorMetadata::unclassified());
@@ -570,7 +613,7 @@ impl ModelBuilder {
     /// Propagates the factor-construction error at the first failing observation.
     pub fn plate<T, F>(&mut self, data: &[T], mut factor: F) -> Result<(), AssemblyError>
     where
-        F: FnMut(&mut Self, usize, &T) -> Result<Expr, AssemblyError>,
+        F: FnMut(&mut Self, usize, &T) -> Result<Value, AssemblyError>,
     {
         for (i, row) in data.iter().enumerate() {
             let x = factor(self, i, row)?;
@@ -581,7 +624,7 @@ impl ModelBuilder {
     /// Reduces a tuple/plate of deterministic expressions to their sum.
     /// # Errors
     /// Rejects foreign handles.
-    pub fn sum(&mut self, values: &[Expr]) -> Result<Expr, AssemblyError> {
+    pub fn sum(&mut self, values: &[Value]) -> Result<Value, AssemblyError> {
         for &value in values {
             self.index(value)?;
         }
@@ -616,9 +659,18 @@ impl ModelBuilder {
             return Err(AssemblyError::Empty);
         }
         let layout = ParameterLayout::new(self.transforms)?;
-        let reverse = reverse::Plan::new(&self.nodes);
+        let (reverse, dynamic) = reverse::Plan::new(&self.nodes);
         let preparation = prepare::Plan::new(&self.nodes, &self.primitives, self.callbacks.len());
+        let blocks = self
+            .nodes
+            .iter()
+            .filter_map(|node| match node {
+                Op::Region(call) => Some(call.workspace(&dynamic)),
+                _ => None,
+            })
+            .collect();
         let workspace = RefCell::new(PlanWorkspace {
+            blocks,
             callbacks: self.callbacks,
             batch_rules: self.batch_rules,
             values: vec![0.0; self.nodes.len()],
@@ -647,6 +699,7 @@ impl ModelBuilder {
     }
 }
 struct PlanWorkspace {
+    blocks: Vec<blocks::Work>,
     callbacks: Vec<Box<Callback>>,
     batch_rules: Vec<(usize, usize, Box<BatchCallback>)>,
     values: Vec<f64>,
@@ -782,6 +835,7 @@ impl CompiledModel {
             adjoints,
             locals,
             gradient,
+            blocks,
             ..
         } = &mut *work;
         adjoints.fill(0.0);
@@ -797,7 +851,13 @@ impl CompiledModel {
             locals,
             gradient,
             self.active_nodes.as_deref(),
-        );
+            |node, adjoints| {
+                let Op::Region(call) = &self.nodes[node] else {
+                    unreachable!()
+                };
+                call.reverse(&self.nodes, adjoints, blocks, node)
+            },
+        )?;
         let total = total.total();
         if !total.is_finite() || gradient.iter().any(|x| !x.is_finite()) {
             return Err(AssemblyError::Numerical);
@@ -818,6 +878,7 @@ impl CompiledModel {
             inputs,
             callbacks,
             preparation,
+            blocks,
             ..
         } = work;
         if let Some(preparation) = preparation {
@@ -828,6 +889,12 @@ impl CompiledModel {
                 continue;
             }
             values[i] = match op {
+                Op::Region(call) => {
+                    let Some(value) = call.forward(&self.nodes, values, blocks)? else {
+                        continue;
+                    };
+                    value
+                }
                 Op::Parameter(s) => q[*s],
                 Op::Constant(x) => *x,
                 Op::Add(a, b) => values[*a] + values[*b],

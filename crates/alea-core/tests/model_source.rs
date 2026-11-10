@@ -34,6 +34,53 @@ fn source_rejects_opaque_nodes_without_silently_using_their_vjp() {
 }
 
 #[test]
+fn selected_out_missing_source_and_invalid_scores_do_not_poison_an_aliased_factor() {
+    use alea_core::target::LogDensityGradient;
+    let mut b = ModelBuilder::new();
+    let x = b.real("x").unwrap().expr();
+    let a = b
+        .custom_with_primal(&[x, x], "x[0]*x[1]*x[0]", |x, g| {
+            g[0] = 2. * x[0] * x[1];
+            g[1] = x[0] * x[0];
+            Ok(x[0] * x[1] * x[0])
+        })
+        .unwrap();
+    b.likelihood("A", a).unwrap();
+    let missing = b
+        .custom(&[x], |_, g| {
+            g[0] = f64::NAN;
+            Ok(1.) // Finite primal is not sufficient admission.
+        })
+        .unwrap();
+    b.prior("B", missing).unwrap();
+    let model = b.compile().unwrap();
+    assert_eq!(model.source_capabilities().missing_primals, [missing]);
+    assert!(matches!(
+        model.rust_primal(),
+        Err(AssemblyError::MissingPrimal { .. })
+    ));
+    let native = model.into_target().unwrap();
+    let mut gradient = [41.];
+    assert!(native.logp_grad(&[0.5], &mut gradient).is_err());
+    assert_eq!(gradient, [41.]);
+    let selected = native.into_model().select_likelihood().unwrap();
+    assert!(selected.source_capabilities().supports_rust_primal());
+    assert!(selected.rust_primal().is_ok());
+    assert!(selected.rust_first_order_gradient(true).unwrap().is_none());
+    let target = selected.into_target().unwrap();
+    for x in [-2., 0., 0.5, 2.] {
+        // Dyadic inputs make these independent polynomial answers exact.
+        assert_eq!(target.logp_grad(&[x], &mut gradient).unwrap(), x * x * x);
+        assert_eq!(gradient, [3. * x * x]);
+    }
+    let before = gradient;
+    assert!(target.logp_grad(&[f64::NAN], &mut gradient).is_err());
+    assert_eq!(gradient, before);
+    assert_eq!(target.logp_grad(&[0.5], &mut gradient).unwrap(), 0.125);
+    assert_eq!(gradient, [0.75]);
+}
+
+#[test]
 fn emission_is_deterministic_preserves_shared_factors_and_ignores_metadata_as_code() {
     fn source() -> String {
         let mut b = ModelBuilder::new();

@@ -828,21 +828,14 @@ mod tests {
     #[test]
     fn native_batch_reporting_does_not_allocate_unused_coefficient_scores() {
         use super::super::*;
-        let mut b = ModelBuilder::new();
-        let beta: Vec<_> = (0..64)
-            .map(|j| b.real(&format!("b{j}")).unwrap().expr())
-            .collect();
-        let sigma = b.positive("sigma").unwrap();
+
         let data = RegressionData::new(64, vec![1.; 128], vec![0., 1.]).unwrap();
-        let normal = NormalRegression::new(&beta, &sigma, data.clone()).unwrap();
-        let logit = BernoulliLogitRegression::new(
-            &beta,
-            data.with_observations(vec![false, true]).unwrap(),
-        )
-        .unwrap();
-        let poisson =
-            PoissonLogRegression::new(&beta, data.with_observations(vec![0_u64, 2]).unwrap())
+        let normal = NormalRegression::new(data.clone()).unwrap();
+        let logit =
+            BernoulliLogitRegression::new(data.with_observations(vec![false, true]).unwrap())
                 .unwrap();
+        let poisson =
+            PoissonLogRegression::new(data.with_observations(vec![0_u64, 2]).unwrap()).unwrap();
         assert_eq!(
             allocation_counter::measure(|| {
                 std::hint::black_box(normal.batch_workspace());

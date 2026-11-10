@@ -1,38 +1,43 @@
-//! R0.2a/b private, test-only registration/lifecycle proof on the existing SSA.
-//! No second graph/executor, probability law, source rule or public API is added.
-//! R0.4 decides whether/how these boundaries become production interfaces.
+//! Checked typed registration for native operations on the region SSA.
 use super::*;
+use std::any::Any;
+
+#[cfg(test)]
 mod lifecycle;
+#[cfg(test)]
 mod observations;
 
 // Use the existing non-recycled tensor identity space, never allocation addresses.
+#[cfg(test)]
 fn identity() -> u64 {
-    NEXT.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_add(1))
-        .expect("tensor identity space exhausted")
+    next_value_owner()
 }
 
+#[cfg(test)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct BindingId(u64);
 
 // Binding-dependent preparations are immutable and separate from Work's
 // parameter-dependent residual/scratch. Clones retain the same snapshot identity.
+#[cfg(test)]
 pub(super) struct BindingState {
     id: BindingId,
     prepared: Box<[Option<Arc<[f64]>>]>,
 }
+#[cfg(test)]
 pub(super) fn bind_snapshot(plan: Arc<Plan>, data: Vec<Arc<[f64]>>) -> Result<BoundProgram, E> {
     let mut prepared = Vec::with_capacity(plan.nodes.len());
     for (i, node) in plan.nodes.iter().enumerate() {
         let rule = match &node.op {
-            Op::Prototype(op) if plan.active[i] => match &**op {
-                Operation::Native(call) => call.kernel.binding.as_ref(),
+            Op::Registered(op) if plan.active[i] => match &**op {
+                Operation::Native(call) => call.binding.as_ref(),
                 Operation::Data(_) => None,
             },
             _ => None,
         };
         let value = if let Some(rule) = rule {
             let mut output = vec![f64::NAN; rule.elements];
-            let Op::Prototype(op) = &node.op else {
+            let Op::Registered(op) = &node.op else {
                 unreachable!()
             };
             (rule.prepare)(
@@ -62,34 +67,39 @@ pub(super) fn bind_snapshot(plan: Arc<Plan>, data: Vec<Arc<[f64]>>) -> Result<Bo
         }),
     })
 }
+#[cfg(test)]
 impl BoundProgram {
     pub(super) fn preparation(&self, node: usize) -> &[f64] {
         self.snapshot.prepared[node].as_deref().unwrap_or(&[])
     }
 }
 
+/// Storage type of a block argument. Only real values have cotangents.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum DType {
+pub enum ElementType {
     Real,
     Bool,
     Count,
     Index,
 }
+/// Fixed shape and element type required by a block rule.
 #[derive(Clone, Debug, PartialEq, Eq)]
-struct Type {
-    dtype: DType,
-    shape: Shape,
+pub struct BlockType {
+    /// Storage type of each element.
+    pub dtype: ElementType,
+    /// Row-major extents of the argument.
+    pub shape: Shape,
 }
-impl Type {
+impl BlockType {
     fn of(node: &Node) -> Self {
         let dtype = match &node.op {
-            Op::Prototype(op) => match &**op {
-                Operation::Data(Data::Bool(_)) => DType::Bool,
-                Operation::Data(Data::Count(_)) => DType::Count,
-                Operation::Data(Data::Index(_)) => DType::Index,
-                Operation::Native(_) => DType::Real,
+            Op::Registered(op) => match &**op {
+                Operation::Data(Data::Bool(_)) => ElementType::Bool,
+                Operation::Data(Data::Count(_)) => ElementType::Count,
+                Operation::Data(Data::Index(_)) => ElementType::Index,
+                Operation::Native(_) => ElementType::Real,
             },
-            _ => DType::Real,
+            _ => ElementType::Real,
         };
         Self {
             dtype,
@@ -114,21 +124,55 @@ impl Data {
 
 // Descriptors contain types/configuration, never graph handles. Registration
 // resolves their edges and prepares the native rule only AFTER structural checks.
+/// Native block rules with an immutable descriptor and a typed execution workspace.
+pub struct BlockRules<D, W> {
+    /// Ordered argument types, including discrete data without cotangent slots.
+    pub inputs: Vec<BlockType>,
+    /// Shape of the real result.
+    pub output: Shape,
+    /// Creates private workspace for each execution frame.
+    pub workspace: fn(&D) -> W,
+    /// Additional heap bytes owned by the workspace, excluding allocator metadata.
+    pub heap_bytes: usize,
+    /// Writes every element of the result.
+    pub forward: fn(&D, BlockInputs<'_>, &mut [f64], &mut W) -> Result<(), E>,
+    /// Optional reverse rule. Writes contributions for real arguments in order.
+    pub vjp: Option<BlockVjp<D, W>>,
+}
+
+/// Reverse rule receiving the primal output and its cotangent seed. Real argument
+/// contributions are flattened in argument order, including repeated inputs.
+pub type BlockVjp<D, W> =
+    fn(&D, BlockInputs<'_>, &[f64], &[f64], &mut [f64], &mut W) -> Result<(), E>;
+
+type Workspace = dyn Any + Send + Sync;
+type ErasedForward =
+    dyn Fn(BlockInputs<'_>, &mut [f64], &mut Workspace) -> Result<(), E> + Send + Sync;
+type ErasedVjp = dyn Fn(BlockInputs<'_>, &[f64], &[f64], &mut [f64], &mut Workspace) -> Result<(), E>
+    + Send
+    + Sync;
+
+#[cfg(test)]
 struct Signature {
-    inputs: Vec<Type>,
-    output: Type,
+    inputs: Vec<BlockType>,
+    output: BlockType,
     scratch: usize,
 }
-type Forward = dyn Fn(Inputs<'_>, &mut [f64], &mut [f64]) -> Result<(), E> + Send + Sync;
+#[cfg(test)]
+type Forward = dyn Fn(BlockInputs<'_>, &mut [f64], &mut [f64]) -> Result<(), E> + Send + Sync;
+#[cfg(test)]
 type Vjp =
-    dyn Fn(Inputs<'_>, &[f64], &[f64], &mut [f64], &mut [f64]) -> Result<(), E> + Send + Sync;
+    dyn Fn(BlockInputs<'_>, &[f64], &[f64], &mut [f64], &mut [f64]) -> Result<(), E> + Send + Sync;
+#[cfg(test)]
 struct Kernel {
     forward: Box<Forward>,
     // An optional native VJP implies neither JVP, source nor higher derivatives.
     vjp: Option<Box<Vjp>>,
     binding: Option<BindingRule>,
 }
+#[cfg(test)]
 type Prepare = dyn Fn(BindingInputs<'_>, &mut [f64]) -> Result<(), E> + Send + Sync;
+#[cfg(test)]
 struct BindingRule {
     // Logical argument positions, independent of graph handles. Only direct
     // immutable data/constants may be read during this bounded binding proof.
@@ -136,18 +180,21 @@ struct BindingRule {
     elements: usize,
     prepare: Box<Prepare>,
 }
+#[cfg(test)]
 enum BindingValue<'a> {
     Real(&'a [f64]),
     Bool(&'a [bool]),
     Count(&'a [u64]),
     Index(&'a [usize]),
 }
+#[cfg(test)]
 struct BindingInputs<'a> {
     call: &'a [Value],
     rule: &'a BindingRule,
     nodes: &'a [Node],
     data: &'a [Arc<[f64]>],
 }
+#[cfg(test)]
 impl BindingInputs<'_> {
     fn get(&self, i: usize) -> Result<BindingValue<'_>, E> {
         let argument = *self.rule.arguments.get(i).ok_or(E::Shape)?;
@@ -155,7 +202,7 @@ impl BindingInputs<'_> {
         match &node.op {
             Op::Data(i) => Ok(BindingValue::Real(&self.data[*i])),
             Op::Constant(v) => Ok(BindingValue::Real(v)),
-            Op::Prototype(op) => match &**op {
+            Op::Registered(op) => match &**op {
                 Operation::Data(Data::Bool(v)) => Ok(BindingValue::Bool(v)),
                 Operation::Data(Data::Count(v)) => Ok(BindingValue::Count(v)),
                 Operation::Data(Data::Index(v)) => Ok(BindingValue::Index(v)),
@@ -169,9 +216,13 @@ pub(super) struct Call {
     inputs: Box<[Value]>,
     contributions: Box<[Range<usize>]>,
     scores: usize,
-    scratch: usize,
+    workspace_bytes: usize,
     output: usize,
-    kernel: Kernel,
+    workspace: Box<dyn Fn() -> Box<Workspace> + Send + Sync>,
+    forward: Box<ErasedForward>,
+    vjp: Option<Box<ErasedVjp>>,
+    #[cfg(test)]
+    binding: Option<BindingRule>,
 }
 pub(super) enum Operation {
     Data(Data),
@@ -186,47 +237,60 @@ impl Operation {
     }
 }
 
-// Typed immutable views. Counts/indices are NEVER rounded through f64, and no
-// cotangent slots exist for them. A bad callback access remains a typed error.
-struct Inputs<'a> {
+/// Read-only block arguments in call order. Discrete inputs keep their original
+/// storage types and do not receive cotangents.
+pub struct BlockInputs<'a> {
     arguments: &'a [Value],
     nodes: &'a [Node],
     values: &'a [f64],
+    #[cfg(test)]
     prepared: &'a [f64],
 }
-impl Inputs<'_> {
+impl BlockInputs<'_> {
     fn node(&self, i: usize) -> Result<&Node, E> {
         let v = self.arguments.get(i).ok_or(E::Shape)?;
         self.nodes.get(v.node).ok_or(E::Shape)
     }
-    fn real(&self, i: usize) -> Result<&[f64], E> {
+    /// Returns the real block at this argument position.
+    /// # Errors
+    /// Rejects a wrong argument position or element type.
+    pub fn real(&self, i: usize) -> Result<&[f64], E> {
         let n = self.node(i)?;
         if n.discrete() {
             return Err(E::Shape);
         }
         self.values.get(n.range()).ok_or(E::Shape)
     }
-    fn booleans(&self, i: usize) -> Result<&[bool], E> {
+    /// Returns the Boolean block at this argument position.
+    /// # Errors
+    /// Rejects a wrong argument position or element type.
+    pub fn booleans(&self, i: usize) -> Result<&[bool], E> {
         match &self.node(i)?.op {
-            Op::Prototype(op) => match &**op {
+            Op::Registered(op) => match &**op {
                 Operation::Data(Data::Bool(v)) => Ok(v),
                 _ => Err(E::Shape),
             },
             _ => Err(E::Shape),
         }
     }
-    fn counts(&self, i: usize) -> Result<&[u64], E> {
+    /// Returns the count block at this argument position.
+    /// # Errors
+    /// Rejects a wrong argument position or element type.
+    pub fn counts(&self, i: usize) -> Result<&[u64], E> {
         match &self.node(i)?.op {
-            Op::Prototype(op) => match &**op {
+            Op::Registered(op) => match &**op {
                 Operation::Data(Data::Count(v)) => Ok(v),
                 _ => Err(E::Shape),
             },
             _ => Err(E::Shape),
         }
     }
-    fn indices(&self, i: usize) -> Result<&[usize], E> {
+    /// Returns the index block at this argument position.
+    /// # Errors
+    /// Rejects a wrong argument position or element type.
+    pub fn indices(&self, i: usize) -> Result<&[usize], E> {
         match &self.node(i)?.op {
-            Op::Prototype(op) => match &**op {
+            Op::Registered(op) => match &**op {
                 Operation::Data(Data::Index(v)) => Ok(v),
                 _ => Err(E::Shape),
             },
@@ -239,26 +303,91 @@ fn extent(a: usize, b: usize) -> Result<usize, E> {
         .filter(|&v| v <= isize::MAX as usize / size_of::<f64>())
         .ok_or(E::Shape)
 }
-impl TensorBuilder {
-    fn typed_data(&mut self, shape: Shape, data: Data) -> Result<Value, E> {
-        if data.len() != shape.elements {
-            return Err(E::Shape);
-        }
-        self.push(shape, Op::Prototype(Box::new(Operation::Data(data))))
+fn checked_workspace_bytes<W>(elements: usize, heap_bytes: usize) -> Result<usize, E> {
+    (elements * size_of::<f64>())
+        .checked_add(size_of::<W>())
+        .and_then(|bytes| bytes.checked_add(heap_bytes))
+        .filter(|&bytes| bytes <= isize::MAX as usize)
+        .ok_or(E::Shape)
+}
+impl RegionBuilder {
+    /// Adds immutable Boolean data with the supplied shape.
+    /// # Errors
+    /// Rejects a shape that disagrees with the value count.
+    pub fn boolean_data(&mut self, shape: Shape, values: Vec<bool>) -> Result<Value, E> {
+        self.typed_data(shape, Data::Bool(values.into_boxed_slice()))
     }
-    fn indices(&mut self, shape: Shape, values: Vec<usize>, bound: usize) -> Result<Value, E> {
-        if values.iter().any(|&i| i >= bound) {
-            return Err(E::Shape);
-        }
-        self.typed_data(shape, Data::Index(values.into_boxed_slice()))
+
+    /// Adds immutable counts without a conversion through floating point.
+    /// # Errors
+    /// Rejects a shape that disagrees with the value count.
+    pub fn count_data(&mut self, shape: Shape, values: Vec<u64>) -> Result<Value, E> {
+        self.typed_data(shape, Data::Count(values.into_boxed_slice()))
     }
-    fn register(
+
+    /// Registers an operation with ordered, whole-value inputs and a real output.
+    /// # Errors
+    /// Rejects foreign handles, type or shape mismatches and workspace overflow.
+    pub fn register_block<D, W>(
         &mut self,
-        signature: Signature,
         inputs: &[Value],
-        prepare: impl FnOnce() -> Result<Kernel, E>,
-    ) -> Result<Value, E> {
-        if inputs.len() != signature.inputs.len() || signature.output.dtype != DType::Real {
+        descriptor: D,
+        rules: BlockRules<D, W>,
+    ) -> Result<Value, E>
+    where
+        D: Send + Sync + 'static,
+        W: Send + Sync + 'static,
+    {
+        let (scores, contributions) =
+            self.check_block_edges(inputs, &rules.inputs, &rules.output)?;
+        let elements = extent(scores, rules.output.elements)?;
+        let workspace_bytes = checked_workspace_bytes::<W>(elements, rules.heap_bytes)?;
+        let descriptor = Arc::new(descriptor);
+        let forward_descriptor = Arc::clone(&descriptor);
+        let workspace_descriptor = Arc::clone(&descriptor);
+        let output = rules.output.elements;
+        self.push(
+            rules.output,
+            Op::Registered(Box::new(Operation::Native(Call {
+                inputs: inputs.into(),
+                contributions: contributions.into_boxed_slice(),
+                scores,
+                workspace_bytes,
+                output,
+                workspace: Box::new(move || Box::new((rules.workspace)(&workspace_descriptor))),
+                forward: Box::new(move |inputs, output, workspace| {
+                    (rules.forward)(
+                        &forward_descriptor,
+                        inputs,
+                        output,
+                        workspace.downcast_mut::<W>().expect("typed workspace"),
+                    )
+                }),
+                vjp: rules.vjp.map(|rule| -> Box<ErasedVjp> {
+                    Box::new(move |inputs, primal, seed, scores, workspace| {
+                        rule(
+                            &descriptor,
+                            inputs,
+                            primal,
+                            seed,
+                            scores,
+                            workspace.downcast_mut::<W>().expect("typed workspace"),
+                        )
+                    })
+                }),
+                #[cfg(test)]
+                binding: None,
+            }))),
+        )
+    }
+
+    fn check_block_edges(
+        &self,
+        inputs: &[Value],
+        types: &[BlockType],
+        output: &Shape,
+    ) -> Result<(usize, Vec<Range<usize>>), E> {
+        if inputs.len() != types.len() {
             return Err(E::Shape);
         }
         // Check ALL handles before types or executing user preparation.
@@ -267,22 +396,54 @@ impl TensorBuilder {
         }
         let mut scores = 0;
         let mut contributions = Vec::with_capacity(inputs.len());
-        for (&input, expected) in inputs.iter().zip(&signature.inputs) {
-            let actual = Type::of(self.node(input)?);
+        for (&input, expected) in inputs.iter().zip(types) {
+            let actual = BlockType::of(self.node(input)?);
             if &actual != expected {
                 return Err(E::Shape);
             }
             let start = scores;
-            if actual.dtype == DType::Real {
+            if actual.dtype == ElementType::Real {
                 scores = extent(scores, actual.shape.elements)?;
             }
             contributions.push(start..scores);
         }
-        extent(self.slots, signature.output.shape.elements)?;
-        extent(
-            extent(scores, signature.scratch)?,
-            signature.output.shape.elements,
-        )?;
+        extent(self.slots, output.elements)?;
+        Ok((scores, contributions))
+    }
+
+    fn typed_data(&mut self, shape: Shape, data: Data) -> Result<Value, E> {
+        if data.len() != shape.elements {
+            return Err(E::Shape);
+        }
+        self.push(shape, Op::Registered(Box::new(Operation::Data(data))))
+    }
+    /// Adds immutable indices, checking each against the exclusive upper bound.
+    /// # Errors
+    /// Rejects an out-of-bounds index or a shape mismatch.
+    pub fn indices(&mut self, shape: Shape, values: Vec<usize>, bound: usize) -> Result<Value, E> {
+        if values.iter().any(|&i| i >= bound) {
+            return Err(E::Shape);
+        }
+        self.typed_data(shape, Data::Index(values.into_boxed_slice()))
+    }
+    #[cfg(test)]
+    fn register(
+        &mut self,
+        signature: Signature,
+        inputs: &[Value],
+        prepare: impl FnOnce() -> Result<Kernel, E>,
+    ) -> Result<Value, E> {
+        if signature.output.dtype != ElementType::Real {
+            return Err(E::Shape);
+        }
+        let (scores, _) =
+            self.check_block_edges(inputs, &signature.inputs, &signature.output.shape)?;
+        let heap_bytes = signature
+            .scratch
+            .checked_mul(size_of::<f64>())
+            .ok_or(E::Shape)?;
+        let elements = extent(scores, signature.output.shape.elements)?;
+        checked_workspace_bytes::<Vec<f64>>(elements, heap_bytes)?;
         let kernel = prepare()?;
         if let Some(rule) = &kernel.binding {
             extent(0, rule.elements)?;
@@ -294,35 +455,67 @@ impl TensorBuilder {
                 }
             }
         }
-        self.push(
-            signature.output.shape.clone(),
-            Op::Prototype(Box::new(Operation::Native(Call {
-                inputs: inputs.into(),
-                contributions: contributions.into_boxed_slice(),
-                scores,
+        let Kernel {
+            forward,
+            vjp,
+            binding,
+        } = kernel;
+        struct Fixture {
+            forward: Box<Forward>,
+            vjp: Option<Box<Vjp>>,
+            scratch: usize,
+        }
+        let has_vjp = vjp.is_some();
+        let value = self.register_block(
+            inputs,
+            Fixture {
+                forward,
+                vjp,
                 scratch: signature.scratch,
-                output: signature.output.shape.elements,
-                kernel,
-            }))),
-        )
+            },
+            BlockRules {
+                inputs: signature.inputs,
+                output: signature.output.shape,
+                workspace: |fixture| vec![0.; fixture.scratch],
+                heap_bytes,
+                forward: |fixture, inputs, output, workspace| {
+                    (fixture.forward)(inputs, output, workspace)
+                },
+                vjp: has_vjp.then_some(
+                    |fixture: &Fixture, inputs, primal, seed, scores, workspace: &mut Vec<f64>| {
+                        fixture.vjp.as_ref().expect("fixture VJP")(
+                            inputs, primal, seed, scores, workspace,
+                        )
+                    },
+                ),
+            },
+        )?;
+        let Op::Registered(operation) = &mut self.nodes[value.node].op else {
+            unreachable!()
+        };
+        let Operation::Native(call) = operation.as_mut() else {
+            unreachable!()
+        };
+        call.binding = binding;
+        Ok(value)
     }
 }
 
 pub(super) struct Work {
-    scratch: Vec<f64>,
+    scratch: Box<Workspace>,
     contributions: Vec<f64>,
     seed: Vec<f64>,
 }
 impl Call {
     pub(super) fn workspace(&self) -> Work {
         Work {
-            scratch: vec![0.; self.scratch],
+            scratch: (self.workspace)(),
             contributions: vec![0.; self.scores],
             seed: vec![0.; self.output],
         }
     }
-    pub(super) fn workspace_elements(&self) -> Result<usize, E> {
-        extent(extent(self.scores, self.scratch)?, self.output)
+    pub(super) fn workspace_bytes(&self) -> usize {
+        self.workspace_bytes
     }
     pub(super) fn forward(
         &self,
@@ -330,20 +523,21 @@ impl Call {
         node: &Node,
         values: &mut [f64],
         w: &mut Work,
-        prepared: &[f64],
+        #[cfg(test)] prepared: &[f64],
     ) -> Result<(), E> {
         let (before, after) = values.split_at_mut(node.start);
         let output = &mut after[..self.output];
         output.fill(f64::NAN);
-        (self.kernel.forward)(
-            Inputs {
+        (self.forward)(
+            BlockInputs {
                 arguments: &self.inputs,
                 nodes,
                 values: before,
+                #[cfg(test)]
                 prepared,
             },
             output,
-            &mut w.scratch,
+            w.scratch.as_mut(),
         )
     }
     pub(super) fn reverse(
@@ -353,26 +547,26 @@ impl Call {
         seed: &[f64],
         primal: &[f64],
         w: &mut Work,
-        prepared: &[f64],
+        #[cfg(test)] prepared: &[f64],
     ) -> Result<(), E> {
         let vjp = self
-            .kernel
             .vjp
             .as_ref()
             .ok_or_else(|| E::Factor(Box::new(MissingVjp)))?;
         w.seed.copy_from_slice(seed);
         w.contributions.fill(f64::NAN);
         vjp(
-            Inputs {
+            BlockInputs {
                 arguments: &self.inputs,
                 nodes,
                 values,
+                #[cfg(test)]
                 prepared,
             },
             primal,
             &w.seed,
             &mut w.contributions,
-            &mut w.scratch,
+            w.scratch.as_mut(),
         )?;
         if w.contributions.iter().any(|v| !v.is_finite()) {
             return Err(E::Numerical);
@@ -396,7 +590,7 @@ struct MissingVjp;
 pub(super) fn missing_source(plan: &Plan) -> Option<usize> {
     plan.nodes.iter().enumerate().find_map(|(i, node)| {
         let missing = match &node.op {
-            Op::Prototype(_) => true,
+            Op::Registered(_) => true,
             Op::Cond(c) => {
                 missing_source(&c.yes.plan).is_some() || missing_source(&c.no.plan).is_some()
             }
@@ -412,7 +606,7 @@ pub(super) fn blocks_replay(plan: &Plan) -> bool {
     plan.nodes.iter().enumerate().any(|(i, node)| {
         plan.active[i]
             && match &node.op {
-                Op::Prototype(op) => matches!(&**op, Operation::Native(_)),
+                Op::Registered(op) => matches!(&**op, Operation::Native(_)),
                 Op::Cond(c) => blocks_replay(&c.yes.plan) || blocks_replay(&c.no.plan),
                 Op::Scan(s) => s.steps != 0 && blocks_replay(&s.body.plan),
                 _ => false,
@@ -423,18 +617,18 @@ pub(super) fn blocks_replay(plan: &Plan) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::AtomicUsize;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     fn shape(n: usize) -> Shape {
         Shape::new(vec![n]).unwrap()
     }
-    fn ty(dtype: DType, shape: Shape) -> Type {
-        Type { dtype, shape }
+    fn ty(dtype: ElementType, shape: Shape) -> BlockType {
+        BlockType { dtype, shape }
     }
     fn unary_signature(n: usize) -> Signature {
         Signature {
-            inputs: vec![ty(DType::Real, shape(n))],
-            output: ty(DType::Real, shape(n)),
+            inputs: vec![ty(ElementType::Real, shape(n))],
+            output: ty(ElementType::Real, shape(n)),
             scratch: 1,
         }
     }
@@ -455,7 +649,7 @@ mod tests {
         i % 3 != 1 && i.is_multiple_of(2) && i.is_multiple_of(5)
     }
     fn model(n: usize) -> (TensorProgram, Arc<AtomicUsize>) {
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", shape(n)).unwrap();
         let neg = b.unary(UnaryOp::Neg, x).unwrap();
         let squared = b.binary(BinaryOp::Multiply, neg, neg).unwrap();
@@ -497,16 +691,16 @@ mod tests {
         let count = Arc::clone(&calls);
         let signature = Signature {
             inputs: [
-                DType::Real,
-                DType::Real,
-                DType::Bool,
-                DType::Count,
-                DType::Index,
+                ElementType::Real,
+                ElementType::Real,
+                ElementType::Bool,
+                ElementType::Count,
+                ElementType::Index,
             ]
             .into_iter()
             .map(|dtype| ty(dtype, shape(n)))
             .collect(),
-            output: ty(DType::Real, shape(n)),
+            output: ty(ElementType::Real, shape(n)),
             scratch: 1,
         };
         let result = b
@@ -583,7 +777,7 @@ mod tests {
                 .nodes
                 .iter()
                 .find_map(|node| match &node.op {
-                    Op::Prototype(op) => match &**op {
+                    Op::Registered(op) => match &**op {
                         Operation::Native(call) => Some(call),
                         _ => None,
                     },
@@ -671,9 +865,9 @@ mod tests {
                 let params: Vec<_> = (0..n)
                     .map(|i| builder.real(&format!("x{i}")).unwrap().expr())
                     .collect();
-                let factor = TensorFactor::new(p.clone(), &params).unwrap();
+                let factor = TensorFactor::new(p.clone()).unwrap();
                 assert!(factor.source_rule().is_none());
-                let root = builder.primitive(factor).unwrap();
+                let root = builder.primitive(&params, factor).unwrap();
                 builder.potential("deterministic", root).unwrap();
                 let model = builder.compile().unwrap();
                 let mut expected_gradient = vec![0.; n];
@@ -709,7 +903,7 @@ mod tests {
     #[test]
     fn registration_rejects_foreign_dtype_shape_arity_and_overflow_before_preparation_or_mutation()
     {
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", shape(3)).unwrap();
         let other = b.input("other", shape(2)).unwrap();
         let same_elements = b.input("matrix", Shape::new(vec![1, 3]).unwrap()).unwrap();
@@ -717,7 +911,7 @@ mod tests {
         let mask = b
             .typed_data(shape(3), Data::Bool(vec![true; 3].into()))
             .unwrap();
-        let foreign = TensorBuilder::new().input("foreign", shape(3)).unwrap();
+        let foreign = RegionBuilder::new().input("foreign", shape(3)).unwrap();
         let calls = AtomicUsize::new(0);
         for (args, foreign_error) in [
             (vec![foreign], true),
@@ -764,7 +958,7 @@ mod tests {
             Err(E::Shape)
         ));
         let mut bad = unary_signature(3);
-        bad.output.dtype = DType::Bool;
+        bad.output.dtype = ElementType::Bool;
         assert!(matches!(
             b.register(bad, &[x], || {
                 calls.fetch_add(1, Ordering::Relaxed);
@@ -775,8 +969,11 @@ mod tests {
         // The same handle in two REAL positions is legal; a repeated handle
         // cannot pretend to satisfy an INDEX argument with identical shape.
         let bad = Signature {
-            inputs: vec![ty(DType::Real, shape(3)), ty(DType::Index, shape(3))],
-            output: ty(DType::Real, shape(3)),
+            inputs: vec![
+                ty(ElementType::Real, shape(3)),
+                ty(ElementType::Index, shape(3)),
+            ],
+            output: ty(ElementType::Real, shape(3)),
             scratch: 0,
         };
         assert!(matches!(
@@ -817,12 +1014,12 @@ mod tests {
         inputs[..3].copy_from_slice(&[1., 2., 3.]);
         p.evaluate(&inputs, &mut out, &mut p.workspace()).unwrap();
         assert_eq!(out, [1., 2., 3.]);
-        let mut large = TensorBuilder::new();
+        let mut large = RegionBuilder::new();
         let n = isize::MAX as usize / size_of::<f64>() / 2 + 1;
         let huge = large.input("huge", shape(n)).unwrap(); // Metadata only, no dense allocation.
         let sig = Signature {
-            inputs: vec![ty(DType::Real, shape(n)); 2],
-            output: ty(DType::Real, Shape::scalar()),
+            inputs: vec![ty(ElementType::Real, shape(n)); 2],
+            output: ty(ElementType::Real, Shape::scalar()),
             scratch: 0,
         };
         assert!(matches!(
@@ -836,7 +1033,7 @@ mod tests {
 
     #[test]
     fn discrete_data_cannot_leak_into_real_builtins_or_get_rounded() {
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let scalar = Shape::scalar();
         let count = b
             .typed_data(scalar.clone(), Data::Count(vec![u64::MAX].into()))
@@ -866,14 +1063,14 @@ mod tests {
             Err(E::Shape)
         ));
         assert_eq!((b.nodes.len(), b.slots), before);
-        assert_eq!(Type::of(b.node(count).unwrap()).shape, scalar);
+        assert_eq!(BlockType::of(b.node(count).unwrap()).shape, scalar);
         let sig = Signature {
             inputs: vec![
-                ty(DType::Count, scalar.clone()),
-                ty(DType::Bool, scalar.clone()),
-                ty(DType::Index, scalar.clone()),
+                ty(ElementType::Count, scalar.clone()),
+                ty(ElementType::Bool, scalar.clone()),
+                ty(ElementType::Index, scalar.clone()),
             ],
-            output: ty(DType::Real, scalar),
+            output: ty(ElementType::Real, scalar),
             scratch: 0,
         };
         let y = b
@@ -901,7 +1098,7 @@ mod tests {
             .unwrap();
         assert_eq!(out, [1.]);
         assert_eq!(g, [0.]);
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let v = b
             .typed_data(Shape::scalar(), Data::Bool(vec![true].into()))
             .unwrap();
@@ -913,7 +1110,7 @@ mod tests {
         let mode = Arc::new(AtomicUsize::new(0));
         let f = Arc::clone(&mode);
         let r = Arc::clone(&mode);
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", shape(1)).unwrap();
         let y = b
             .register(unary_signature(1), &[x], || {
@@ -976,7 +1173,7 @@ mod tests {
 
     #[test]
     fn missing_vjp_is_structural_not_a_fake_zero_gradient_or_source_capability() {
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", shape(1)).unwrap();
         let y = b
             .register(unary_signature(1), &[x], || {
@@ -1005,9 +1202,9 @@ mod tests {
         assert!(p.rust_function().contains("compile_error!"));
         let mut model = super::super::super::assembly::ModelBuilder::new();
         let x = model.real("x").unwrap().expr();
-        let factor = TensorFactor::new(p, &[x]).unwrap();
+        let factor = TensorFactor::new(p).unwrap();
         assert!(factor.source_rule().is_none());
-        let root = model.primitive(factor).unwrap();
+        let root = model.primitive(&[x], factor).unwrap();
         model.potential("deterministic", root).unwrap();
         assert!(matches!(
             model.compile().unwrap().rust_primal_with_workspace(),
@@ -1020,15 +1217,15 @@ mod tests {
      {
         let mode = Arc::new(AtomicUsize::new(1));
         let calls = Arc::new(AtomicUsize::new(0));
-        let mut branch = TensorBuilder::new();
+        let mut branch = RegionBuilder::new();
         let x = branch.input("x", Shape::scalar()).unwrap();
         let flag = Arc::clone(&mode);
         let count = Arc::clone(&calls);
         let out = branch
             .register(
                 Signature {
-                    inputs: vec![ty(DType::Real, Shape::scalar())],
-                    output: ty(DType::Real, Shape::scalar()),
+                    inputs: vec![ty(ElementType::Real, Shape::scalar())],
+                    output: ty(ElementType::Real, Shape::scalar()),
                     scratch: 0,
                 },
                 &[x],
@@ -1049,10 +1246,10 @@ mod tests {
             )
             .unwrap();
         let yes = branch.compile(out).unwrap().bind(&[]).unwrap();
-        let mut branch = TensorBuilder::new();
+        let mut branch = RegionBuilder::new();
         let x = branch.input("x", Shape::scalar()).unwrap();
         let no = branch.compile(x).unwrap().bind(&[]).unwrap();
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", Shape::scalar()).unwrap();
         let zero = b.constant(Shape::scalar(), vec![0.]).unwrap();
         let out = b.cond(x, zero, Comparison::Greater, &[x], yes, no).unwrap();
@@ -1090,19 +1287,19 @@ mod tests {
 
     #[test]
     fn unqualified_opaque_callbacks_cannot_be_silently_checkpoint_replayed() {
-        let mut body = TensorBuilder::new();
+        let mut body = RegionBuilder::new();
         let carry = body.input("carry", Shape::scalar()).unwrap();
-        body.input("row", Shape::scalar()).unwrap();
+        let _ = body.input("row", Shape::scalar()).unwrap();
         let signature = Signature {
-            inputs: vec![ty(DType::Real, Shape::scalar())],
-            output: ty(DType::Real, Shape::scalar()),
+            inputs: vec![ty(ElementType::Real, Shape::scalar())],
+            output: ty(ElementType::Real, Shape::scalar()),
             scratch: 0,
         };
         let output = body
             .register(signature, &[carry], || Ok(identity()))
             .unwrap();
         let body = body.compile(output).unwrap().bind(&[]).unwrap();
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let initial = b.input("initial", Shape::scalar()).unwrap();
         let xs = b.constant(shape(128), vec![0.; 128]).unwrap();
         let before = (b.nodes.len(), b.slots);
@@ -1120,14 +1317,7 @@ mod tests {
             .unwrap();
         assert_eq!(out, [0.75]);
         assert_eq!(g, [2.]);
-        let factor = TensorFactor::new(
-            p.clone(),
-            &[crate::model::assembly::ModelBuilder::new()
-                .real("x")
-                .unwrap()
-                .expr()],
-        )
-        .unwrap();
+        let factor = TensorFactor::new(p.clone()).unwrap();
         assert!(factor.source_rule().is_none());
         assert!(matches!(
             p.pullback_source("nested_opaque"),
@@ -1137,11 +1327,11 @@ mod tests {
 
     #[test]
     fn repeated_argument_contributions_keep_declared_order_before_graph_accumulation() {
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", Shape::scalar()).unwrap();
         let signature = Signature {
-            inputs: vec![ty(DType::Real, Shape::scalar()); 3],
-            output: ty(DType::Real, Shape::scalar()),
+            inputs: vec![ty(ElementType::Real, Shape::scalar()); 3],
+            output: ty(ElementType::Real, Shape::scalar()),
             scratch: 0,
         };
         let y = b

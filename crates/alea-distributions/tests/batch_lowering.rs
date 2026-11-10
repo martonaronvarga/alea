@@ -101,7 +101,7 @@ fn model(
     family: usize,
 ) -> (
     alea_core::model::assembly::CompiledModel,
-    alea_core::model::assembly::Expr,
+    alea_core::model::assembly::Value,
 ) {
     let mut b = ModelBuilder::new();
     let beta = [b.real("a").unwrap().expr(), b.real("b").unwrap().expr()];

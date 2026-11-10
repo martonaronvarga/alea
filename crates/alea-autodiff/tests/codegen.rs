@@ -57,24 +57,23 @@ fn native_first_order_rules_do_not_claim_checkpointing_or_replace_higher_ad() {
 
 #[test]
 fn checkpoint_higher_derivatives_keep_the_qualified_compiler_reverse() {
-    use alea_core::model::tensor::{Shape, TensorBuilder, TensorFactor};
-    let mut body = TensorBuilder::new();
+    use alea_core::model::tensor::Shape;
+    let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", Shape::scalar()).unwrap();
-    body.input("row", Shape::scalar()).unwrap();
+    let _ = body.input("row", Shape::scalar()).unwrap();
     let body = body.compile(carry).unwrap().bind(&[]).unwrap();
-    let mut t = TensorBuilder::new();
+    let mut t = ModelBuilder::new().region();
     let input = t.input("input", Shape::scalar()).unwrap();
     let rows = t.constant(Shape::new(vec![0]).unwrap(), vec![]).unwrap();
     let output = t.checkpointed_scan(input, rows, &[], body).unwrap();
     let binding = t.compile(output).unwrap().bind(&[]).unwrap();
     let mut b = ModelBuilder::new();
     let x = b.real("x").unwrap().expr();
-    let term = b
-        .primitive(TensorFactor::new(binding, &[x]).unwrap())
-        .unwrap();
+    let term = b.apply_region(&[x], binding).unwrap();
     b.factor(term).unwrap();
     let source = enzyme_source(&b.compile().unwrap()).unwrap();
     assert!(source.contains("SOURCE_CHECKPOINTED: bool = true"));
+    assert!(source.contains("SOURCE_TENSOR_SCORE_VALIDATION: bool = false"));
     assert!(source.contains("__higher_gradient(q, g, work, reverse, 1.0)"));
     assert!(source.contains("g.iter().any(|v|!v.is_finite()) || a.iter().any(|v|!v.is_finite())"));
     assert!(!source.contains("g.iter().chain(a.iter())"));
@@ -84,5 +83,47 @@ fn checkpoint_higher_derivatives_keep_the_qualified_compiler_reverse() {
             .matches("!__valid(q) || !__first_order_valid(q)")
             .count(),
         2
+    );
+}
+
+#[test]
+fn compiler_tensor_scores_have_separate_checked_admission_without_changing_value_or_route() {
+    use alea_core::model::tensor::{BinaryOp, Shape, UnaryOp};
+    let mut t = ModelBuilder::new().region();
+    let x = t.input("x", Shape::scalar()).unwrap();
+    let square = t.binary(BinaryOp::Multiply, x, x).unwrap();
+    let root = t.unary(UnaryOp::Sqrt, square).unwrap();
+    let mut b = ModelBuilder::new();
+    let x = b.real("x").unwrap().expr();
+    let term = b
+        .apply_region(&[x], t.compile(root).unwrap().bind(&[]).unwrap())
+        .unwrap();
+    b.factor(term).unwrap();
+    let model = b.compile().unwrap();
+    assert!(model.rust_first_order_gradient(true).unwrap().is_none());
+    let (guard, slots) = model.rust_tensor_score_validation(true).unwrap().unwrap();
+    assert!(slots > 0);
+    assert!(guard.contains("fn __tensor"));
+    for source in [
+        enzyme_source(&model).unwrap(),
+        alea_autodiff::codegen::enzyme_objective_source(&model).unwrap(),
+    ] {
+        assert!(source.contains("SOURCE_EXPLICIT_FIRST_ORDER: bool = false"));
+        assert!(source.contains("SOURCE_TENSOR_SCORE_VALIDATION: bool = true"));
+        assert!(source.contains("mod __tensor_admission"));
+        assert!(source.contains("!__valid(q) || !__score_valid(q)"));
+        assert!(source.contains("if !__score_valid(q) { return false; }"));
+        // Value-only uses only rounded chart/primal admission.
+        assert!(source.contains("!__valid(q) { f64::NAN } else { __log_density(q) }"));
+    }
+    let mut plain = ModelBuilder::new();
+    let x = plain.real("x").unwrap().expr();
+    plain.factor(x).unwrap();
+    let plain = plain.compile().unwrap();
+    assert!(plain.rust_tensor_score_validation(true).unwrap().is_none());
+    assert!(
+        enzyme_source(&plain)
+            .unwrap()
+            .contains("SOURCE_TENSOR_SCORE_VALIDATION: bool = false")
     );
 }

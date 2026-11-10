@@ -1,7 +1,8 @@
 use alea_core::model::assembly::{
-    ArgumentShape, AssemblyError as E, BatchRule, Expr, ModelBuilder, Primitive, PrimitiveArgument,
+    ArgumentShape, AssemblyError as E, BatchRule, ModelBuilder, PrimitiveArgument,
     PrimitiveSignature, ScalarPreparation,
 };
+use alea_core::model::assembly::{NativeRules, OperationDescriptor, SourceBody, SourceRule};
 use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
@@ -61,14 +62,9 @@ fn fixed_argument_packets_preserve_aliases_score_admission_and_failure_recovery(
     }
 }
 struct Prepared {
-    input: [Expr; 1],
     bias: f64,
 }
-impl Primitive for Prepared {
-    type Workspace = ();
-    fn inputs(&self) -> &[Expr] {
-        &self.input
-    }
+impl Prepared {
     fn signature(&self) -> PrimitiveSignature {
         PrimitiveSignature {
             name: "prepared",
@@ -79,14 +75,16 @@ impl Primitive for Prepared {
             probability: None,
         }
     }
-    fn workspace(&self) {}
+    /// Native kernel workspace.
+    pub fn workspace(&self) {}
     fn source_rule(&self) -> Option<fn(&Self) -> String> {
         Some(|this| format!("x[0]+{:?}_f64", this.bias))
     }
     fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
         Some(|this| format!("g[0]=1.;x[0]+{:?}_f64", this.bias))
     }
-    fn evaluate(&self, x: &[f64], g: &mut [f64], _: &mut ()) -> Result<f64, E> {
+    /// Native kernel evaluate.
+    pub fn evaluate(&self, x: &[f64], g: &mut [f64], _: &mut ()) -> Result<f64, E> {
         g[0] = 1.;
         Ok(x[0] + self.bias)
     }
@@ -104,24 +102,28 @@ impl Primitive for Prepared {
         })
     }
 }
+impl OperationDescriptor for Prepared {
+    type Workspace = ();
+    fn rules(&self) -> NativeRules<Self> {
+        let mut rules = NativeRules::new(self.signature(), Self::workspace, Self::evaluate);
+        rules.preparation = self.scalar_preparation();
+        let body = self.source_rule().map(SourceBody::Generated);
+        rules.source = body.map(|body| SourceRule {
+            body,
+            gradient: self.source_gradient_rule(),
+            workspace: 0,
+        });
+        rules
+    }
+}
 
 #[test]
 fn shared_preparation_refreshes_after_input_changes_selection_and_rebinding() {
     use alea_core::model::ConstrainedModel;
     let mut b = ModelBuilder::new();
     let x = b.real("x").unwrap().expr();
-    let a = b
-        .primitive(Prepared {
-            input: [x],
-            bias: 0.,
-        })
-        .unwrap();
-    let c = b
-        .primitive(Prepared {
-            input: [x],
-            bias: 1.,
-        })
-        .unwrap();
+    let a = b.primitive(&[x], Prepared { bias: 0. }).unwrap();
+    let c = b.primitive(&[x], Prepared { bias: 1. }).unwrap();
     b.prior("a", a).unwrap();
     b.likelihood("c", c).unwrap();
     let model = b.compile().unwrap();
@@ -141,12 +143,7 @@ fn shared_preparation_refreshes_after_input_changes_selection_and_rebinding() {
             .contains("g[0]=1.;x[0]+0.0_f64")
     );
     let model = model
-        .rebind::<Prepared>(a, |p| {
-            Ok(Prepared {
-                input: p.input,
-                bias: 2.,
-            })
-        })
+        .rebind::<Prepared>(a, |_| Ok(Prepared { bias: 2. }))
         .unwrap();
     let mut g = [17.];
     assert_eq!(model.logp_grad(&[1.], &mut g).unwrap(), 5.);
@@ -162,12 +159,7 @@ fn shared_preparation_refreshes_after_input_changes_selection_and_rebinding() {
     let _unused = builder.real("unused").unwrap();
     let constant = builder.constant(2.).unwrap();
     for bias in [0., 1.] {
-        let factor = builder
-            .primitive(Prepared {
-                input: [constant],
-                bias,
-            })
-            .unwrap();
+        let factor = builder.primitive(&[constant], Prepared { bias }).unwrap();
         builder.factor(factor).unwrap();
     }
     let model = builder.compile().unwrap();
@@ -182,14 +174,9 @@ fn shared_preparation_refreshes_after_input_changes_selection_and_rebinding() {
 }
 
 struct Buffered {
-    input: [Expr; 1],
     slots: usize,
 }
-impl Primitive for Buffered {
-    type Workspace = ();
-    fn inputs(&self) -> &[Expr] {
-        &self.input
-    }
+impl Buffered {
     fn signature(&self) -> PrimitiveSignature {
         PrimitiveSignature {
             name: "buffered",
@@ -200,8 +187,10 @@ impl Primitive for Buffered {
             probability: None,
         }
     }
-    fn workspace(&self) {}
-    fn evaluate(&self, x: &[f64], g: &mut [f64], _: &mut ()) -> Result<f64, E> {
+    /// Native kernel workspace.
+    pub fn workspace(&self) {}
+    /// Native kernel evaluate.
+    pub fn evaluate(&self, x: &[f64], g: &mut [f64], _: &mut ()) -> Result<f64, E> {
         g[0] = 1.;
         Ok(x[0])
     }
@@ -212,30 +201,30 @@ impl Primitive for Buffered {
         Some(|_| "scratch[0]=x[0]; scratch[0]".into())
     }
 }
+impl OperationDescriptor for Buffered {
+    type Workspace = ();
+    fn rules(&self) -> NativeRules<Self> {
+        let mut rules = NativeRules::new(self.signature(), Self::workspace, Self::evaluate);
+        let body = self.source_rule().map(SourceBody::Generated);
+        rules.source = body.map(|body| SourceRule {
+            body,
+            gradient: None,
+            workspace: self.source_workspace(),
+        });
+        rules
+    }
+}
 
 #[test]
 fn source_workspace_is_checked_combined_selected_and_rebound_without_evaluating() {
     let mut b = ModelBuilder::new();
     let x = b.real("x").unwrap().expr();
     assert!(matches!(
-        b.primitive(Buffered {
-            input: [x],
-            slots: usize::MAX
-        }),
+        b.primitive(&[x], Buffered { slots: usize::MAX }),
         Err(E::Shape)
     ));
-    let a = b
-        .primitive(Buffered {
-            input: [x],
-            slots: 2,
-        })
-        .unwrap();
-    let c = b
-        .primitive(Buffered {
-            input: [x],
-            slots: 3,
-        })
-        .unwrap();
+    let a = b.primitive(&[x], Buffered { slots: 2 }).unwrap();
+    let c = b.primitive(&[x], Buffered { slots: 3 }).unwrap();
     b.prior("prior", a).unwrap();
     b.likelihood("likelihood", c).unwrap();
     let model = b.compile().unwrap();
@@ -254,23 +243,13 @@ fn source_workspace_is_checked_combined_selected_and_rebound_without_evaluating(
     );
     assert_eq!(model.rust_objective_primal_with_workspace().unwrap().1, 7);
     let model = model
-        .rebind::<Buffered>(a, |p| {
-            Ok(Buffered {
-                input: p.input,
-                slots: 4,
-            })
-        })
+        .rebind::<Buffered>(a, |_| Ok(Buffered { slots: 4 }))
         .unwrap();
     assert_eq!(model.rust_primal_with_workspace().unwrap().1, 9);
     // Both individually legal buffers together exceed the addressable byte size.
     let max = isize::MAX as usize / size_of::<f64>();
     let model = model
-        .rebind::<Buffered>(a, |p| {
-            Ok(Buffered {
-                input: p.input,
-                slots: max - 2,
-            })
-        })
+        .rebind::<Buffered>(a, |_| Ok(Buffered { slots: max - 2 }))
         .unwrap();
     assert!(matches!(model.rust_primal_with_workspace(), Err(E::Shape)));
     assert_eq!(
@@ -285,15 +264,11 @@ fn source_workspace_is_checked_combined_selected_and_rebound_without_evaluating(
 }
 
 struct Rule {
-    inputs: [Expr; 1],
     exports: Arc<AtomicUsize>,
+    workspaces: Arc<AtomicUsize>,
     units: usize,
 }
-impl Primitive for Rule {
-    type Workspace = ();
-    fn inputs(&self) -> &[Expr] {
-        &self.inputs
-    }
+impl Rule {
     fn signature(&self) -> PrimitiveSignature {
         PrimitiveSignature {
             name: "rule",
@@ -304,8 +279,12 @@ impl Primitive for Rule {
             probability: None,
         }
     }
-    fn workspace(&self) {}
-    fn evaluate(&self, x: &[f64], g: &mut [f64], _: &mut ()) -> Result<f64, E> {
+    /// Native kernel workspace.
+    pub fn workspace(&self) {
+        self.workspaces.fetch_add(1, Ordering::Relaxed);
+    }
+    /// Native kernel evaluate.
+    pub fn evaluate(&self, x: &[f64], g: &mut [f64], _: &mut ()) -> Result<f64, E> {
         g[0] = 1.;
         Ok(x[0])
     }
@@ -335,53 +314,78 @@ impl Primitive for Rule {
         })
     }
 }
+impl OperationDescriptor for Rule {
+    type Workspace = ();
+    fn rules(&self) -> NativeRules<Self> {
+        let mut rules = NativeRules::new(self.signature(), Self::workspace, Self::evaluate);
+        rules.batch = self.batch_rule();
+        let body = self.source_rule().map(SourceBody::Generated);
+        rules.source = body.map(|body| SourceRule {
+            body,
+            gradient: None,
+            workspace: 0,
+        });
+        rules
+    }
+}
 #[test]
 fn generated_sources_are_lazy_and_batch_failures_preserve_outputs_and_typed_causes() {
     let exports = Arc::new(AtomicUsize::new(0));
+    let workspaces = Arc::new(AtomicUsize::new(0));
     let mut b = ModelBuilder::new();
     let x = b.real("x").unwrap().expr();
     assert!(matches!(
-        b.primitive(Rule {
-            inputs: [x],
-            exports: Arc::clone(&exports),
-            units: usize::MAX
-        }),
+        b.primitive(
+            &[x],
+            Rule {
+                exports: Arc::clone(&exports),
+                workspaces: Arc::clone(&workspaces),
+                units: usize::MAX
+            }
+        ),
         Err(E::Shape)
     ));
+    assert_eq!(workspaces.load(Ordering::Relaxed), 0);
     let f = b
-        .primitive(Rule {
-            inputs: [x],
-            exports: Arc::clone(&exports),
-            units: 2,
-        })
+        .primitive(
+            &[x],
+            Rule {
+                exports: Arc::clone(&exports),
+                workspaces: Arc::clone(&workspaces),
+                units: 2,
+            },
+        )
         .unwrap();
     b.likelihood("rows", f).unwrap();
     let model = b.compile().unwrap();
     assert!(model.source_capabilities().missing_primals.is_empty());
     assert_eq!(exports.load(Ordering::Relaxed), 0);
+    assert_eq!(workspaces.load(Ordering::Relaxed), 2);
     let source = model.rust_primal().unwrap();
     assert_eq!(exports.load(Ordering::Relaxed), 1);
     let failed = model
         .rebind::<Rule>(f, |p| {
             Ok(Rule {
-                inputs: p.inputs,
                 exports: Arc::clone(&p.exports),
+                workspaces: Arc::clone(&p.workspaces),
                 units: 3,
             })
         })
         .err()
         .unwrap();
     assert!(matches!(failed.source, E::Shape));
+    assert_eq!(workspaces.load(Ordering::Relaxed), 2);
     let model = *failed.model;
     let model = model
         .rebind::<Rule>(f, |p| {
             Ok(Rule {
-                inputs: p.inputs,
                 exports: Arc::clone(&p.exports),
+                workspaces: Arc::clone(&p.workspaces),
                 units: 2,
             })
         })
         .unwrap();
+    assert_eq!(workspaces.load(Ordering::Relaxed), 4);
     assert_eq!(exports.load(Ordering::Relaxed), 1);
     assert_eq!(model.rust_primal().unwrap(), source);
     let report = model.batch_likelihood().unwrap();

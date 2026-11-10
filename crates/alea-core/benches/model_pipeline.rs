@@ -14,7 +14,10 @@ fn builder(rows: usize, batch: bool) -> ModelBuilder {
     let y: Vec<_> = (0..rows).map(|i| (i % 17) as f64 / 8. - 1.).collect();
     if batch {
         let f = b
-            .primitive(NormalBatch::observed(y, &[mu], &[sigma]).unwrap())
+            .primitive(
+                &[&[mu][..], &[sigma][..]].concat(),
+                NormalBatch::observed(y, 1, 1).unwrap(),
+            )
             .unwrap();
         b.likelihood("observations", f).unwrap();
     } else {
@@ -51,7 +54,10 @@ fn pipeline(c: &mut Criterion) {
                 }
                 if batch {
                     let factor = b
-                        .primitive(NormalBatch::new(&events, &[zero], &[scale]).unwrap())
+                        .primitive(
+                            &[&events[..], &[zero][..], &[scale][..]].concat(),
+                            NormalBatch::new([events.len(), 1, 1]).unwrap(),
+                        )
                         .unwrap();
                     b.prior("conditionals", factor).unwrap();
                 }

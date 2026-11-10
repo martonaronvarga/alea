@@ -2,11 +2,12 @@
 mod batch;
 use super::{E, error};
 use crate::scalar::Normal;
+use alea_core::model::assembly::{NativeRules, OperationDescriptor, SourceBody, SourceRule};
 use alea_core::{
     distribution::{EventShape, ReferenceMeasure, Support},
     model::assembly::{
-        ArgumentShape, BatchRule, Expr, Primitive, PrimitiveArgument, PrimitiveSignature,
-        ProbabilitySemantics, ScalarPreparation,
+        ArgumentShape, BatchRule, PrimitiveArgument, PrimitiveSignature, ProbabilitySemantics,
+        ScalarPreparation,
     },
 };
 pub use batch::{NormalBatch, NormalBatchWorkspace};
@@ -16,24 +17,20 @@ pub(super) const NORMAL_PRIMAL: &str = "if x[2] <= 0.0 { return f64::NAN; }\nlet
 /// location and standard deviation; constants remain ordinary graph nodes.
 /// This describes a density operation, not a declaration of a generative site.
 #[derive(Debug, Clone)]
-pub struct NormalFactor {
-    inputs: [Expr; 3],
+pub struct NormalFactor;
+impl NormalFactor {
+    /// Describes the Normal density independently of graph inputs. Supply event,
+    /// location and scale, in that order, at graph registration.
+    pub fn new() -> Self {
+        Self
+    }
+}
+impl Default for NormalFactor {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 impl NormalFactor {
-    /// Describes `Normal(location, scale)` evaluated at `event`. Handles are
-    /// owner-checked when registered with [`alea_core::model::assembly::ModelBuilder::primitive`].
-    /// Parameter values and numerical failures retain the existing Normal checks.
-    pub fn new(event: Expr, location: Expr, scale: Expr) -> Self {
-        Self {
-            inputs: [event, location, scale],
-        }
-    }
-}
-impl Primitive for NormalFactor {
-    type Workspace = ();
-    fn inputs(&self) -> &[Expr] {
-        &self.inputs
-    }
     fn signature(&self) -> PrimitiveSignature {
         PrimitiveSignature {
             name: "normal",
@@ -51,7 +48,8 @@ impl Primitive for NormalFactor {
             }),
         }
     }
-    fn workspace(&self) {}
+    /// Native kernel workspace.
+    pub fn workspace(&self) {}
     fn scalar_preparation(&self) -> Option<ScalarPreparation<Self>> {
         Some(ScalarPreparation {
             argument: 2,
@@ -69,7 +67,8 @@ impl Primitive for NormalFactor {
             },
         })
     }
-    fn evaluate(&self, x: &[f64], g: &mut [f64], _: &mut ()) -> Result<f64, E> {
+    /// Native kernel evaluate.
+    pub fn evaluate(&self, x: &[f64], g: &mut [f64], _: &mut ()) -> Result<f64, E> {
         if x.len() != 3 || g.len() != 3 {
             return Err(E::Shape);
         }
@@ -97,5 +96,20 @@ impl Primitive for NormalFactor {
                 Ok(())
             },
         })
+    }
+}
+impl OperationDescriptor for NormalFactor {
+    type Workspace = ();
+    fn rules(&self) -> NativeRules<Self> {
+        let mut rules = NativeRules::new(self.signature(), Self::workspace, Self::evaluate);
+        rules.batch = self.batch_rule();
+        rules.preparation = self.scalar_preparation();
+        let body = self.rust_primal().map(SourceBody::Static);
+        rules.source = body.map(|body| SourceRule {
+            body,
+            gradient: self.source_gradient_rule(),
+            workspace: 0,
+        });
+        rules
     }
 }

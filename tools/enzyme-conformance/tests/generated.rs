@@ -14,6 +14,299 @@ fn close(actual: f64, expected: f64, tolerance: f64) {
     );
 }
 
+fn record_nonfinite<T: std::fmt::Debug>(
+    failures: &mut Vec<String>,
+    operation: &str,
+    x: f64,
+    result: Result<T, alea::autodiff::autodiff::AutodiffError>,
+) {
+    if !matches!(
+        result,
+        Err(alea::autodiff::autodiff::AutodiffError::NonFinite)
+    ) {
+        failures.push(format!("{operation} invalid={x} result={result:?}"));
+    }
+}
+
+#[test]
+fn unrelated_trusted_or_checkpoint_factor_preserves_compiler_reverse() {
+    use models::{RouteCompanion as B, route_isolation};
+    for (companion, selected, explicit, checkpoint) in [
+        (B::None, false, false, false),
+        (B::Trusted, false, true, false),
+        (B::Checkpoint, false, true, true),
+        (B::Opaque, false, false, false),
+        (B::TrustedAndOpaque, false, true, false),
+        (B::Trusted, true, false, false),
+        (B::Checkpoint, true, false, false),
+        (B::Opaque, true, false, false),
+        (B::MissingPrimal, true, false, false),
+    ] {
+        let model = route_isolation(companion, selected).unwrap();
+        assert!(model.source_capabilities().supports_rust_primal());
+        let (a_index, a) = model
+            .graph()
+            .enumerate()
+            .find(|(_, n)| n.factors.iter().any(|f| f.name() == Some("A")))
+            .unwrap();
+        assert!(a.active);
+        assert_eq!(a.inputs.len(), 2);
+        assert_eq!(a.inputs[0], a.inputs[1]);
+        let plan = model.rust_first_order_gradient(true).unwrap();
+        assert_eq!(plan.is_some(), explicit);
+        if let Some((source, _, actual_checkpoint)) = plan {
+            assert_eq!(actual_checkpoint, checkpoint);
+            // The checked tensor helper admits local scores, but compiler
+            // reverse supplies A's gradient in every composed route.
+            assert!(source.contains(&format!("fn __tensor{a_index}(")));
+            assert!(source.contains(&format!("__factor_reverse{a_index},")));
+            assert!(source.contains(&format!("__factor_reverse{a_index}((&*args)")));
+            if checkpoint {
+                let b = model
+                    .graph()
+                    .position(|node| {
+                        node.factors
+                            .iter()
+                            .any(|f| f.name() == Some("checkpoint B"))
+                    })
+                    .unwrap();
+                assert!(source.contains(&format!("fn __tensor{b}(")));
+                assert!(!source.contains(&format!("__factor_reverse{b},")));
+            }
+            if matches!(companion, B::TrustedAndOpaque) {
+                let opaque = model
+                    .graph()
+                    .position(|n| n.factors.iter().any(|f| f.name() == Some("opaque B")))
+                    .unwrap();
+                // The same composition still compiler-differentiates the
+                // opaque source leaf; it must not borrow its native callback.
+                assert!(source.contains(&format!("__factor_reverse{opaque},")));
+            }
+        }
+    }
+    let missing = route_isolation(B::MissingPrimal, false).unwrap();
+    assert!(!missing.source_capabilities().supports_rust_primal());
+    assert!(matches!(
+        missing.rust_primal(),
+        Err(alea::model::assembly::AssemblyError::MissingPrimal { .. })
+    ));
+    assert!(matches!(
+        missing.rust_tensor_score_validation(true),
+        Err(alea::model::assembly::AssemblyError::MissingPrimal { .. })
+    ));
+}
+
+#[test]
+fn compiler_tensor_admission_preserves_zero_seeds_inactive_scores_and_lazy_branches() {
+    use alea::autodiff::autodiff::AutodiffError;
+    use generated::tensor_score_admission as model;
+    const {
+        assert!(!model::SOURCE_EXPLICIT_FIRST_ORDER);
+        assert!(model::SOURCE_TENSOR_SCORE_VALIDATION);
+    }
+    fn check(target: impl PotentialHessianDerivative<Error = AutodiffError>) {
+        let native = models::tensor_score_admission()
+            .unwrap()
+            .into_target()
+            .unwrap();
+        for x in [0_f64, -0., -1.5, 0.25] {
+            let mut g = [41.; 2];
+            let q = [x, -1.];
+            close(native.logp_grad(&q, &mut g).unwrap(), x * x, 1e-12);
+            assert_eq!(g, [2. * x, 0.]);
+            close(target.logp_grad(&q, &mut g).unwrap(), x * x, 1e-12);
+            assert_eq!(g, [2. * x, 0.]);
+            target.potential_hvp(&q, &[0.5, 1.], &mut g).unwrap();
+            assert_eq!(g, [-1., 0.]);
+            let mut h = [41.; 4];
+            let mut d = [41.; 8];
+            target
+                .potential_hessian_and_derivatives(&q, &mut h, &mut d)
+                .unwrap();
+            assert_eq!(h, [-2., 0., 0., 0.]);
+            assert_eq!(d, [0.; 8]);
+        }
+        let q = [0., 1.];
+        let mut g = [41.; 2];
+        assert!(native.logp_grad(&q, &mut g).is_err());
+        assert_eq!(g, [41.; 2]);
+        assert_eq!(model::log_density(&q), 0.);
+        assert!(matches!(
+            target.logp_grad(&q, &mut g),
+            Err(AutodiffError::NonFinite)
+        ));
+        for v in [[0., 0.], [1., 0.]] {
+            assert!(matches!(
+                target.potential_hvp(&q, &v, &mut g),
+                Err(AutodiffError::NonFinite)
+            ));
+        }
+        assert!(matches!(
+            target.potential_hessian_and_derivatives(&q, &mut [41.; 4], &mut [41.; 8]),
+            Err(AutodiffError::NonFinite)
+        ));
+        close(target.logp_grad(&[1.5, 1.], &mut g).unwrap(), 1.5, 1e-12);
+        assert_eq!(g, [1., 0.]);
+        close(target.logp_grad(&[0., -1.], &mut g).unwrap(), 0., 1e-12);
+        assert_eq!(g, [0., 0.]);
+    }
+    check(model::target());
+    check(model::composition::objective());
+}
+
+fn check_isolated_route(
+    label: &str,
+    target: impl PotentialHessianDerivative<Error = alea::autodiff::autodiff::AutodiffError>,
+    value_only: fn(&[f64; 1]) -> f64,
+    companion: models::RouteCompanion,
+    selected: bool,
+    flags: (bool, bool, bool),
+) {
+    use models::{RouteCompanion as B, route_isolation};
+    let trusted = !selected && matches!(companion, B::Trusted | B::TrustedAndOpaque);
+    let opaque = !selected && matches!(companion, B::Opaque | B::TrustedAndOpaque);
+    let checkpoint = !selected && matches!(companion, B::Checkpoint);
+    assert_eq!(
+        flags,
+        (trusted || checkpoint, checkpoint, !trusted && !checkpoint)
+    );
+    // A finite value remains valid when its derivative is singular. The extra
+    // score validator belongs to derivative entries only.
+    assert_eq!(value_only(&[0.]), 0.);
+    let native = route_isolation(companion, selected)
+        .unwrap()
+        .into_target()
+        .unwrap();
+    let answer = |x: f64| {
+        // Independent deterministic oracle: A = sqrt(x*x), trusted B =
+        // x*x, opaque B = x^3, checkpoint B = x + 65*x. No sampler here.
+        let t = f64::from(trusted);
+        let o = f64::from(opaque);
+        let c = f64::from(checkpoint);
+        (
+            x.abs() + t * x * x + o * x * x * x + 66. * c * x,
+            x.signum() + 2. * t * x + 3. * o * x * x + 66. * c,
+            -2. * t - 6. * o * x,
+            -6. * o,
+        )
+    };
+    for x in [-1.5, -0.4, 0.25, 1.5] {
+        let (value, gradient, hessian, third) = answer(x);
+        let mut g = [41.];
+        close(native.logp_grad(&[x], &mut g).unwrap(), value, 2e-12);
+        close(g[0], gradient, 2e-12);
+        close(target.logp_grad(&[x], &mut g).unwrap(), value, 2e-12);
+        close(g[0], gradient, 2e-12);
+        for step in [1e-4, 1e-5, 1e-6] {
+            let fd = (answer(x + step).0 - answer(x - step).0) / (2. * step);
+            close(g[0], fd, 2e-8);
+        }
+        for direction in [0., 0.3, -1.] {
+            target.potential_hvp(&[x], &[direction], &mut g).unwrap();
+            close(g[0], hessian * direction, 2e-11);
+        }
+        let mut h = [41.];
+        let mut d = [41.];
+        target
+            .potential_hessian_and_derivatives(&[x], &mut h, &mut d)
+            .unwrap();
+        close(h[0], hessian, 2e-11);
+        close(d[0], third, 2e-11);
+    }
+    if selected {
+        let mut g = [41.];
+        // Excluded B's invalid-score sentinel must not poison A.
+        close(target.logp_grad(&[2.], &mut g).unwrap(), 2., 2e-12);
+        close(g[0], 1., 2e-12);
+        target.potential_hvp(&[2.], &[0.], &mut g).unwrap();
+        close(g[0], 0., 2e-12);
+    }
+    // Collect admission failures so an incorrect successful gradient cannot
+    // hide curvature admission or recovery at the same point. These remain
+    // ordinary failing assertions if any derivative admission regresses.
+    let mut failures = Vec::new();
+    for x in [f64::NAN, f64::INFINITY]
+        .into_iter()
+        .chain(trusted.then_some(2.))
+        .chain([0.])
+    {
+        let mut g = [41.];
+        assert!(native.logp_grad(&[x], &mut g).is_err());
+        assert_eq!(g, [41.]); // Native target stages caller outputs.
+        record_nonfinite(&mut failures, "gradient", x, target.logp_grad(&[x], &mut g));
+        for direction in [0., 1.] {
+            record_nonfinite(
+                &mut failures,
+                &format!("HVP direction={direction}"),
+                x,
+                target.potential_hvp(&[x], &[direction], &mut g),
+            );
+        }
+        record_nonfinite(
+            &mut failures,
+            "Hessian/third",
+            x,
+            target.potential_hessian_and_derivatives(&[x], &mut g, &mut [41.]),
+        );
+        // Raw generated outputs are disposable after error, but successful
+        // recovery must overwrite them with the complete independent answer.
+        let (value, score, hessian, third) = answer(1.5);
+        close(target.logp_grad(&[1.5], &mut g).unwrap(), value, 2e-12);
+        close(g[0], score, 2e-12);
+        close(native.logp_grad(&[1.5], &mut g).unwrap(), value, 2e-12);
+        close(g[0], score, 2e-12);
+        target.potential_hvp(&[1.5], &[1.], &mut g).unwrap();
+        close(g[0], hessian, 2e-11);
+        let mut d = [41.];
+        target
+            .potential_hessian_and_derivatives(&[1.5], &mut g, &mut d)
+            .unwrap();
+        close(g[0], hessian, 2e-11);
+        close(d[0], third, 2e-11);
+    }
+    assert!(failures.is_empty(), "{label}:\n{}", failures.join("\n"));
+}
+macro_rules! isolated_route_case {
+    ($module:ident, $b:ident, $selected:expr) => {
+        #[test]
+        fn $module() {
+            check_isolated_route(
+                stringify!($module),
+                generated::$module::target(),
+                generated::$module::log_density,
+                models::RouteCompanion::$b,
+                $selected,
+                (
+                    generated::$module::SOURCE_EXPLICIT_FIRST_ORDER,
+                    generated::$module::SOURCE_CHECKPOINTED,
+                    generated::$module::SOURCE_TENSOR_SCORE_VALIDATION,
+                ),
+            );
+            check_isolated_route(
+                concat!(stringify!($module), " objective"),
+                generated::$module::composition::objective(),
+                generated::$module::composition::value,
+                models::RouteCompanion::$b,
+                $selected,
+                (
+                    generated::$module::composition::SOURCE_EXPLICIT_FIRST_ORDER,
+                    generated::$module::composition::SOURCE_CHECKPOINTED,
+                    generated::$module::composition::SOURCE_TENSOR_SCORE_VALIDATION,
+                ),
+            );
+        }
+    };
+}
+isolated_route_case!(route_alone, None, false);
+isolated_route_case!(route_trusted, Trusted, false);
+isolated_route_case!(route_checkpoint, Checkpoint, false);
+isolated_route_case!(route_opaque, Opaque, false);
+isolated_route_case!(route_trusted_opaque, TrustedAndOpaque, false);
+isolated_route_case!(route_selected_trusted, Trusted, true);
+isolated_route_case!(route_selected_checkpoint, Checkpoint, true);
+isolated_route_case!(route_selected_opaque, Opaque, true);
+isolated_route_case!(route_selected_missing, MissingPrimal, true);
+
 #[test]
 fn nonzero_third_derivatives_match_independent_polynomial() {
     let t = generated::polynomial::target();
@@ -305,8 +598,10 @@ fn tensor_regions_match_native_scores_and_finite_difference_curvature() {
 
 #[test]
 fn broadcast_aliases_have_independent_quartic_derivatives_on_both_source_routes() {
-    assert!(!generated::tensor_broadcast::SOURCE_CHECKPOINTED);
-    assert!(generated::tensor_checkpoint_broadcast::SOURCE_CHECKPOINTED);
+    const {
+        assert!(!generated::tensor_broadcast::SOURCE_CHECKPOINTED);
+        assert!(generated::tensor_checkpoint_broadcast::SOURCE_CHECKPOINTED);
+    }
     fn check(target: impl PotentialHessianDerivative) {
         for [a, b] in [[0., 0.], [0.25, -0.5], [-1., 2.]] {
             let norm = a * a + b * b;

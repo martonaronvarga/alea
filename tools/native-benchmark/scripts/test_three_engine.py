@@ -93,6 +93,13 @@ class ThreeEngineTests(unittest.TestCase):
             report=bench.cargo_bench_report(root)
             self.assertEqual(report['cells'][0]['status'],'run-failed')
             self.assertEqual(report['route_inventory'][0]['status'],'failed')
+            log.write_text(receipt('L','L','first','H','false','supported',
+                                   'compiler derivative with extra checked tensor admission')
+                + receipt('L','L','hvp','H','false','supported'))
+            report=bench.cargo_bench_report(root)
+            self.assertEqual(report['route_inventory'][0]['resolved_route'],'L')
+            self.assertEqual(report['route_inventory'][0]['first_order_admission_route'],'H')
+            self.assertEqual(report['route_inventory'][1]['status'],'supported')
             log.write_text('old log without route receipts')
             report=bench.cargo_bench_report(root)
             self.assertEqual(report['route_inventory'],[])
@@ -100,6 +107,8 @@ class ThreeEngineTests(unittest.TestCase):
             for bad in [planned + planned,
                         receipt('H','H','hvp','H','true','supported'),
                         receipt('C','H','first','H','true','supported'),
+                        receipt('C','C','first','H','false','supported'),
+                        receipt('L','L','first','H','true','supported'),
                         planned.replace('fixture-default','standard'),
                         planned.replace('\trust\t','\tfaer\t'),
                         receipt('H','H','first','H','true','not-run',''),

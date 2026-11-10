@@ -3,13 +3,13 @@
 use alea_core::model::{
     ConstrainedModel,
     assembly::{CompiledModel, ModelBuilder},
-    tensor::{BinaryOp as B, BoundProgram, MatrixKernel, Shape, TensorBuilder, TensorFactor},
+    tensor::{BinaryOp as B, BoundProgram, MatrixKernel, Shape},
 };
 use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use std::time::Duration;
 
 fn region(n: usize) -> BoundProgram {
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let slope = b.input("slope", Shape::scalar()).unwrap();
     let weights = b.data("weights", Shape::new(vec![n]).unwrap()).unwrap();
     let product = b.binary(B::Multiply, slope, weights).unwrap();
@@ -27,8 +27,7 @@ fn assembled(n: usize, block: bool) -> CompiledModel {
     let mut b = ModelBuilder::new();
     let slope = b.real("slope").unwrap().expr();
     let result = if block {
-        b.primitive(TensorFactor::new(region(n), &[slope]).unwrap())
-            .unwrap()
+        b.apply_region(&[slope], region(n)).unwrap()
     } else {
         let offset = b.constant(0.125).unwrap();
         let terms: Vec<_> = (0..n)
@@ -58,7 +57,7 @@ fn matrix_kernels(c: &mut Criterion) {
             #[cfg(feature = "openblas")]
             MatrixKernel::Blas,
         ] {
-            let mut b = TensorBuilder::new();
+            let mut b = ModelBuilder::new().region();
             let a = b.input("a", Shape::new(vec![n, n]).unwrap()).unwrap();
             let r = b.input("r", Shape::new(vec![n, n]).unwrap()).unwrap();
             let out = b.matmul_with_kernel(a, r, kernel).unwrap();
@@ -144,7 +143,7 @@ fn benchmark(c: &mut Criterion) {
     }
 }
 fn broadcast_region(n: usize) -> BoundProgram {
-    let mut b = TensorBuilder::new();
+    let mut b = ModelBuilder::new().region();
     let column = b.input("column", Shape::new(vec![n, 1]).unwrap()).unwrap();
     let row = b.input("row", Shape::new(vec![8]).unwrap()).unwrap();
     let product = b.binary(B::Multiply, column, row).unwrap();

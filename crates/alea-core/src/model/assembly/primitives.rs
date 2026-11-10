@@ -2,7 +2,7 @@
 //!
 //! Descriptors and signatures are cold immutable data. Their presence is not a
 //! proof of normalization, a generative ordering, or support for another backend.
-use super::{AssemblyError, CompiledModel, Expr, ModelBuilder, Op};
+use super::{AssemblyError, CompiledModel, ModelBuilder, Op, Value};
 use crate::distribution::{EventShape, ReferenceMeasure, Support};
 use std::{any::Any, sync::Arc};
 
@@ -89,95 +89,111 @@ impl PrimitiveSignature {
         Ok(())
     }
 }
-/// Immutable mathematical operation with fused value/local-score evaluation.
-///
-/// Implementations retain their typed arguments and data, and lower through the
-/// same checked tape as custom callbacks. Inputs/semantics must stay fixed.
-/// `evaluate` must overwrite every derivative and depend only on inputs and
-/// immutable data, never previous scratch contents. No sampling, pointwise or
-/// higher-derivative capability follows automatically from this trait.
-pub trait Primitive: Send + Sync + 'static {
-    /// Per-execution mutable scratch; never stored in the semantic descriptor.
+/// Graph-independent operation descriptor with a typed native rule bundle.
+/// Descriptors contain immutable configuration/data, never model value handles.
+/// Graph calls supply their ordered edges separately. Rules declare capabilities;
+/// native first-order evaluation implies no source, JVP or higher derivatives.
+pub trait OperationDescriptor: Send + Sync + Sized + 'static {
+    /// Execution-local mutable scratch, never part of shared descriptor data.
     type Workspace: Send + Sync + 'static;
-    /// Flattened constrained expression arguments.
-    fn inputs(&self) -> &[Expr];
-    /// Logical mathematical meaning of the arguments and scalar result.
-    fn signature(&self) -> PrimitiveSignature;
-    /// Allocates/initializes scratch at construction, not during evaluation.
-    fn workspace(&self) -> Self::Workspace;
-    /// Optional pure scalar preparation shared by identical inputs of the same
-    /// primitive type. The callback must preserve ALL ordinary evaluation checks
-    /// and error ordering; a cached value does not authorize skipping admission.
-    fn scalar_preparation(&self) -> Option<ScalarPreparation<Self>>
-    where
-        Self: Sized,
-    {
-        None
-    }
-    /// Scratch for conditional row reporting. Defaults to ordinary evaluation
-    /// scratch; primitives whose row rule needs less storage may specialize it.
-    fn batch_workspace(&self) -> Self::Workspace {
-        self.workspace()
-    }
-    /// Fused scalar value and local derivatives in flattened input order.
-    /// # Errors
-    /// Preserves the primitive's numerical and structural failures as typed errors.
-    fn evaluate(
-        &self,
-        inputs: &[f64],
-        gradient: &mut [f64],
-        workspace: &mut Self::Workspace,
-    ) -> Result<f64, AssemblyError>;
-    /// Optional trusted Rust primal, with the same contract as
-    /// [`ModelBuilder::custom_with_primal`]. This is not a generated HVP promise.
-    fn rust_primal(&self) -> Option<&'static str> {
-        None
-    }
-    /// Optional lazy data-specialized Rust source rule. Overrides the static
-    /// source; called only during export, never retained evaluation/construction.
-    fn source_rule(&self) -> Option<fn(&Self) -> String>
-    where
-        Self: Sized,
-    {
-        None
-    }
-    /// Optional trusted FIRST-ORDER value/local-score source. The body receives
-    /// `x`, `g`, and `scratch`, returns the value, and must overwrite every score.
-    /// Return NaN on failure; all native primal and score admission must remain.
-    /// The ordinary scalar primal is still required for higher derivatives.
-    /// This rule is never differentiated to obtain HVPs or third derivatives.
-    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String>
-    where
-        Self: Sized,
-    {
-        None
-    }
-    /// Number of mutable `f64` scratch elements required by the Rust source.
-    /// When nonzero, the source receives `scratch: &mut [f64]` of this length.
-    /// It must initialize every element before reading it, independently of prior
-    /// calls. Export keeps this buffer explicit so compiler AD knows its type.
-    /// This is separate from the native evaluation workspace.
-    fn source_workspace(&self) -> usize {
-        0
-    }
-    /// Explicit conditional pointwise decomposition, never inferred from shape.
-    fn batch_rule(&self) -> Option<BatchRule<Self>>
-    where
-        Self: Sized,
-    {
-        None
+    /// Resolves immutable signature and optional rules without evaluating data or
+    /// allocating execution workspaces. Source generation remains lazy.
+    fn rules(&self) -> NativeRules<Self>;
+}
+/// Fused native scalar value/local-score rule. Every score must be overwritten;
+/// admission and staged publication remain the executor's responsibility.
+pub type NativeEvaluator<D> = fn(
+    &D,
+    &[f64],
+    &mut [f64],
+    &mut <D as OperationDescriptor>::Workspace,
+) -> Result<f64, AssemblyError>;
+/// Typed rules erased once after graph/layout validation. The fused native rule
+/// uses existing typed workspaces and must preserve all local score checks,
+/// including zero downstream cotangents. Optional fields are the capability
+/// authority; no support booleans or inferred probability/replay guarantees.
+pub struct NativeRules<D: OperationDescriptor> {
+    /// Argument layout and declared probability semantics.
+    pub signature: PrimitiveSignature,
+    /// Allocates native scratch after structural validation.
+    pub workspace: fn(&D) -> D::Workspace,
+    /// Allocates reporting scratch only when a reporting rule is present.
+    pub batch_workspace: fn(&D) -> D::Workspace,
+    /// Fused value and local scores in graph-call input order.
+    pub evaluate: NativeEvaluator<D>,
+    /// Optional pure scalar preparation; never an admission waiver.
+    pub preparation: Option<ScalarPreparation<D>>,
+    /// Explicit conditional row reporting.
+    pub batch: Option<BatchRule<D>>,
+    /// Trusted source lowering, independently optional from native evaluation.
+    pub source: Option<SourceRule<D>>,
+}
+impl<D: OperationDescriptor> NativeRules<D> {
+    /// Creates native-only rules. Reporting uses the ordinary workspace factory
+    /// unless explicitly specialized. No source or replay capability is inferred.
+    pub fn new(
+        signature: PrimitiveSignature,
+        workspace: fn(&D) -> D::Workspace,
+        evaluate: NativeEvaluator<D>,
+    ) -> Self {
+        Self {
+            signature,
+            workspace,
+            batch_workspace: workspace,
+            evaluate,
+            preparation: None,
+            batch: None,
+            source: None,
+        }
     }
 }
+/// Trusted Rust source body, rendered only when source export is requested.
+pub enum SourceBody<D> {
+    /// Static application-supplied body, with the custom-primal trust contract.
+    Static(&'static str),
+    /// Immutable-data-specialized body; not called by registration/evaluation.
+    Generated(fn(&D) -> String),
+}
+impl<D> SourceBody<D> {
+    /// Renders the trusted body. This does not validate arbitrary Rust or claim
+    /// differentiation support on any particular compiler.
+    pub fn render(&self, descriptor: &D) -> String {
+        match self {
+            Self::Static(body) => (*body).into(),
+            Self::Generated(render) => render(descriptor),
+        }
+    }
+}
+/// Optional trusted source capability. The ordinary primal remains the source
+/// of compiler higher derivatives; a supplied first-order rule is never
+/// differentiated for curvature. Every call initializes its own float scratch.
+pub struct SourceRule<D> {
+    /// Ordinary scalar primal with native value/domain semantics.
+    pub body: SourceBody<D>,
+    /// Optional FIRST-ORDER fused value/local scores, preserving admission.
+    pub gradient: Option<fn(&D) -> String>,
+    /// Explicit source scratch extent in f64 elements, checked at registration.
+    pub workspace: usize,
+}
 /// Author-supplied conditional pointwise decomposition of a summed primitive.
-pub type BatchEvaluator<P> =
-    fn(&P, &[f64], &mut [f64], &mut <P as Primitive>::Workspace) -> Result<(), AssemblyError>;
+pub type BatchEvaluator<P> = fn(
+    &P,
+    &[f64],
+    &mut [f64],
+    &mut <P as OperationDescriptor>::Workspace,
+) -> Result<(), AssemblyError>;
 /// Optional local evaluation using a shared, pure scalar calculation.
-pub type PreparedEvaluator<P> =
-    fn(&P, &[f64], &mut [f64], &mut <P as Primitive>::Workspace, f64) -> Result<f64, AssemblyError>;
+pub type PreparedEvaluator<P> = fn(
+    &P,
+    &[f64],
+    &mut [f64],
+    &mut <P as OperationDescriptor>::Workspace,
+    f64,
+) -> Result<f64, AssemblyError>;
 /// A trusted preparation rule. `prepare` must depend only on its argument and
 /// have no side effects. Nonfinite results remain scratch: `evaluate` must admit
 /// or reject them exactly as ordinary evaluation would, at the original node.
-pub struct ScalarPreparation<P: Primitive> {
+pub struct ScalarPreparation<P: OperationDescriptor> {
     /// Flattened scalar input index.
     pub argument: usize,
     /// Pure preparation, e.g. the logarithm of a shared Normal scale.
@@ -186,13 +202,13 @@ pub struct ScalarPreparation<P: Primitive> {
     pub evaluate: PreparedEvaluator<P>,
 }
 /// A fixed-size rule for a primitive's conditional row values.
-pub struct BatchRule<P: Primitive> {
+pub struct BatchRule<P: OperationDescriptor> {
     /// Number of entries in fixed row order.
     pub units: usize,
     /// Writes every entry. Reporting stages/validates outputs before publication.
     pub evaluate: BatchEvaluator<P>,
 }
-impl<P: Primitive> BatchRule<P> {
+impl<P: OperationDescriptor> BatchRule<P> {
     pub(super) fn validate(&self) -> Result<(), AssemblyError> {
         if self.units > isize::MAX as usize / size_of::<super::BatchUnit>() {
             return Err(AssemblyError::Shape);
@@ -213,34 +229,65 @@ impl PrimitiveMetadata {
     pub fn signature(&self) -> &PrimitiveSignature {
         &self.signature
     }
+    /// Immutable program and data of a registered scalar-result region.
+    pub fn region_binding(&self) -> Option<&crate::model::tensor::BoundProgram> {
+        self.descriptor::<crate::model::tensor::TensorFactor>()
+            .map(crate::model::tensor::TensorFactor::binding)
+    }
+
     /// Recovers a concrete descriptor without interpreting source strings or
     /// guessing an operation from its user-supplied factor name.
-    pub fn descriptor<P: Primitive>(&self) -> Option<&P> {
+    pub fn descriptor<P: Any>(&self) -> Option<&P> {
         self.descriptor.downcast_ref()
     }
 }
-impl ModelBuilder {
-    /// Validates and lowers an immutable semantic primitive using existing
-    /// callbacks and chain-local scratch. Retains its typed descriptor outside
-    /// the hot operation tape; no extra runtime graph traversal is introduced.
-    /// No prior, likelihood role, transform or Jacobian is inferred.
-    /// # Errors
-    /// Rejects foreign handles, malformed argument layouts/names, or overflowing
-    /// storage before adding a node. Workspace construction panics propagate.
-    pub fn primitive<P: Primitive>(&mut self, primitive: P) -> Result<Expr, AssemblyError> {
-        let signature = primitive.signature();
-        signature.validate(primitive.inputs().len())?;
-        for &input in primitive.inputs() {
-            self.index(input)?;
-        }
-        let primal = primitive.rust_primal();
-        let source = primitive.source_rule();
-        let source_gradient = primitive.source_gradient_rule();
-        let source_workspace = primitive.source_workspace();
-        let preparation = primitive.scalar_preparation();
+/// Prepared once after structural validation; native and source rules share this
+/// path at construction and replacement. No graph mutation precedes preparation.
+pub(super) struct Registration {
+    pub metadata: PrimitiveMetadata,
+    pub callback: Box<super::Callback>,
+    pub batch: Option<(usize, Box<super::BatchCallback>)>,
+    pub primal: Option<&'static str>,
+    pub source: Option<Box<super::SourceCallback>>,
+}
+pub(super) enum ReportingConstraint {
+    New,
+    SameUnits(Option<usize>),
+}
+impl Registration {
+    pub fn prepare<P: OperationDescriptor>(
+        primitive: P,
+        rules: NativeRules<P>,
+        input_count: usize,
+        reporting: ReportingConstraint,
+    ) -> Result<Self, AssemblyError> {
+        let NativeRules {
+            signature,
+            workspace,
+            batch_workspace,
+            evaluate,
+            preparation,
+            batch,
+            source,
+        } = rules;
+        signature.validate(input_count)?;
+        let source_workspace = source.as_ref().map_or(0, |rule| rule.workspace);
+        let (primal, source, source_gradient) = match source {
+            None => (None, None, None),
+            Some(SourceRule {
+                body: SourceBody::Static(body),
+                gradient,
+                ..
+            }) => (Some(body), None, gradient),
+            Some(SourceRule {
+                body: SourceBody::Generated(body),
+                gradient,
+                ..
+            }) => (None, Some(body), gradient),
+        };
         if preparation
             .as_ref()
-            .is_some_and(|p| p.argument >= primitive.inputs().len())
+            .is_some_and(|p| p.argument >= input_count)
         {
             return Err(AssemblyError::Shape);
         }
@@ -251,51 +298,88 @@ impl ModelBuilder {
         if source_workspace > isize::MAX as usize / size_of::<f64>() {
             return Err(AssemblyError::Shape);
         }
-        let batch = primitive.batch_rule();
         if let Some(rule) = &batch {
             rule.validate()?;
         }
-        let batch = batch.map(|rule| (rule, primitive.batch_workspace()));
-        let mut workspace = primitive.workspace();
+        if let ReportingConstraint::SameUnits(units) = reporting
+            && batch.as_ref().map(|rule| rule.units) != units
+        {
+            return Err(AssemblyError::Shape);
+        }
+        let batch = batch.map(|rule| (rule, batch_workspace(&primitive)));
+        let mut workspace = workspace(&primitive);
         let descriptor = Arc::new(primitive);
         let executable = Arc::clone(&descriptor);
         let source_gradient = source_gradient.map(|rule| {
             let descriptor = Arc::clone(&descriptor);
             Box::new(move || rule(&descriptor)) as Box<super::SourceCallback>
         });
-        let expression = self.custom_prepared_node(
-            descriptor.inputs(),
-            move |x, g, prepared| match (&preparation, prepared) {
+        let callback: Box<super::Callback> =
+            Box::new(move |x, g, prepared| match (&preparation, prepared) {
                 (Some(rule), Some(value)) => {
                     (rule.evaluate)(&executable, x, g, &mut workspace, value)
                 }
-                _ => executable.evaluate(x, g, &mut workspace),
-            },
-            primal,
-        )?;
-        if let Some(source) = source {
+                _ => evaluate(&executable, x, g, &mut workspace),
+            });
+        let batch = batch.map(|(rule, mut workspace)| {
             let descriptor = Arc::clone(&descriptor);
-            self.generated_primals
-                .push((expression.node, Box::new(move || source(&descriptor))));
-        }
-        if let Some((rule, mut workspace)) = batch {
+            let callback: Box<super::BatchCallback> =
+                Box::new(move |x, out| (rule.evaluate)(&descriptor, x, out, &mut workspace));
+            (rule.units, callback)
+        });
+        let source = source.map(|rule| {
             let descriptor = Arc::clone(&descriptor);
-            self.batch_rules.push((
-                expression.node,
-                rule.units,
-                Box::new(move |x, out| (rule.evaluate)(&descriptor, x, out, &mut workspace)),
-            ));
-        }
-        self.primitives.push((
-            expression.node,
-            PrimitiveMetadata {
+            Box::new(move || rule(&descriptor)) as Box<super::SourceCallback>
+        });
+        Ok(Self {
+            metadata: PrimitiveMetadata {
                 signature,
                 descriptor,
                 source_workspace,
                 preparation: preparation_metadata,
                 source_gradient,
             },
-        ));
+            callback,
+            batch,
+            primal,
+            source,
+        })
+    }
+}
+impl ModelBuilder {
+    /// Validates and lowers an immutable semantic primitive using existing
+    /// callbacks and chain-local scratch. Retains its typed descriptor outside
+    /// the hot operation tape; no extra runtime graph traversal is introduced.
+    /// No prior, likelihood role, transform or Jacobian is inferred.
+    /// # Errors
+    /// Rejects foreign handles, malformed argument layouts/names, or overflowing
+    /// storage before adding a node. Workspace construction panics propagate.
+    pub fn primitive<P: OperationDescriptor>(
+        &mut self,
+        inputs: &[Value],
+        primitive: P,
+    ) -> Result<Value, AssemblyError> {
+        // Check edges before any rule can allocate a workspace or execute.
+        let rules = primitive.rules();
+        rules.signature.validate(inputs.len())?;
+        for &input in inputs {
+            self.index(input)?;
+        }
+        let Registration {
+            metadata,
+            callback,
+            batch,
+            primal,
+            source,
+        } = Registration::prepare(primitive, rules, inputs.len(), ReportingConstraint::New)?;
+        let expression = self.custom_erased_node(inputs, callback, primal)?;
+        if let Some(source) = source {
+            self.generated_primals.push((expression.node, source));
+        }
+        if let Some((units, callback)) = batch {
+            self.batch_rules.push((expression.node, units, callback));
+        }
+        self.primitives.push((expression.node, metadata));
         Ok(expression)
     }
 }
@@ -320,16 +404,20 @@ pub enum OperationKind {
     Primitive,
     /// Custom callback without a semantic descriptor.
     Opaque,
+    /// Whole-value native region call.
+    Region,
 }
 /// Read-only cold graph snapshot entry. Inspecting the graph allocates input
 /// handle vectors; retained model evaluation never constructs these entries.
 pub struct GraphNode<'a> {
     /// Owner-checked handle usable when matching descriptor inputs to nodes.
-    pub expression: Expr,
+    pub expression: Value,
+    /// Fixed shape of the output, including rank-zero scalars.
+    pub shape: crate::model::tensor::Shape,
     /// Execution operation.
     pub operation: OperationKind,
     /// Arguments in original order, including repeated shared expressions.
-    pub inputs: Vec<Expr>,
+    pub inputs: Vec<Value>,
     /// Literal value for a constant node, absent otherwise.
     pub constant: Option<f64>,
     /// Semantic identity/data for a registered primitive; absent for opaque nodes.
@@ -346,7 +434,7 @@ pub struct GraphNode<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceCapabilities {
     /// Active callback nodes missing a trusted Rust primal, in graph order.
-    pub missing_primals: Vec<Expr>,
+    pub missing_primals: Vec<Value>,
 }
 impl SourceCapabilities {
     /// All active nodes have source-lowering support.
@@ -371,6 +459,7 @@ impl CompiledModel {
                 Op::Multiply(a, b) => (OperationKind::Multiply, vec![*a, *b], None),
                 Op::Exp(a) => (OperationKind::Exp, vec![*a], None),
                 Op::Log(a) => (OperationKind::Log, vec![*a], None),
+                Op::Region(call) => (OperationKind::Region, call.inputs.to_vec(), None),
                 Op::Factor { inputs, .. } => (
                     if primitive.is_some() {
                         OperationKind::Primitive
@@ -382,14 +471,18 @@ impl CompiledModel {
                 ),
             };
             GraphNode {
-                expression: Expr {
+                expression: Value {
                     owner: self.owner,
                     node,
+                },
+                shape: match op {
+                    Op::Region(call) => call.binding.output_shape().clone(),
+                    _ => crate::model::tensor::Shape::scalar(),
                 },
                 operation,
                 inputs: inputs
                     .into_iter()
-                    .map(|node| Expr {
+                    .map(|node| Value {
                         owner: self.owner,
                         node,
                     })
@@ -415,10 +508,10 @@ impl CompiledModel {
                 .iter()
                 .enumerate()
                 .filter_map(|(node, op)| {
-                    (matches!(op, Op::Factor { .. })
+                    (matches!(op, Op::Factor { .. } | Op::Region(_))
                         && self.active_nodes.as_ref().is_none_or(|active| active[node])
                         && !self.has_primal(node))
-                    .then_some(Expr {
+                    .then_some(Value {
                         owner: self.owner,
                         node,
                     })

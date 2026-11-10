@@ -163,6 +163,12 @@
       "promotion_gate": "Broaden independent downstream and numerical qualification, resolve tensor compiler AD and measure kernels before promotion; no inferred generative or speed claims."
     },
     {
+      "path": "crates/alea-core/src/model/assembly/blocks.rs",
+      "profile": "research_component",
+      "summary": "Whole-value model authoring and native region execution.",
+      "promotion_gate": "Broaden independent numerical and downstream validation of whole-value modeling and block rules."
+    },
+    {
       "path": "crates/alea-core/src/model/assembly/factors.rs",
       "profile": "research_component",
       "summary": "Explicit mathematical contract or representation with scoped regression coverage.",
@@ -231,6 +237,12 @@
       "profile": "research_component",
       "summary": "Fixed-shape tensor/control-flow IR, immutable data rebinding or explicit native batch/source lowering.",
       "promotion_gate": "Broaden independent downstream and numerical qualification, resolve tensor compiler AD and measure kernels before promotion; no inferred generative or speed claims."
+    },
+    {
+      "path": "crates/alea-core/src/model/tensor/registration.rs",
+      "profile": "research_component",
+      "summary": "Typed native block rules, checked workspace layout and discrete immutable arguments.",
+      "promotion_gate": "Broaden independent numerical and downstream validation of whole-value modeling and block rules."
     },
     {
       "path": "crates/alea-core/src/model/tensor/source.rs",
@@ -2496,12 +2508,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl alea_core::model::assembly::Primitive for alea_core::model::tensor::TensorFactor",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
       "item": "impl alea_core::model::assembly::PrimitiveMetadata",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
@@ -2586,25 +2592,25 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl alea_core::model::tensor::BlockInputs<'_>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl alea_core::model::tensor::BoundProgram",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
     {
       "crate": "alea-core",
+      "item": "impl alea_core::model::tensor::RegionBuilder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl alea_core::model::tensor::Shape",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "impl alea_core::model::tensor::TensorBuilder",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "impl alea_core::model::tensor::TensorFactor",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
@@ -2722,11 +2728,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl core::clone::Clone for alea_core::model::assembly::Expr",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
       "item": "impl core::clone::Clone for alea_core::model::assembly::FactorMetadata",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -2826,6 +2827,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::Value",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::clone::Clone for alea_core::model::prediction::PredictiveOrigin",
       "profile": "validated_component_opt_in"
     },
@@ -2834,6 +2841,12 @@
       "item": "impl core::clone::Clone for alea_core::model::tensor::BinaryOp",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::tensor::BlockType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
@@ -2846,6 +2859,12 @@
       "item": "impl core::clone::Clone for alea_core::model::tensor::Comparison",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::tensor::ElementType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
@@ -2868,12 +2887,6 @@
     {
       "crate": "alea-core",
       "item": "impl core::clone::Clone for alea_core::model::tensor::UnaryOp",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "impl core::clone::Clone for alea_core::model::tensor::Value",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
@@ -2978,11 +2991,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl core::cmp::Eq for alea_core::model::assembly::Expr",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
       "item": "impl core::cmp::Eq for alea_core::model::assembly::FactorMetadata",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -3031,6 +3039,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::Value",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::cmp::Eq for alea_core::model::prediction::PredictiveOrigin",
       "profile": "validated_component_opt_in"
     },
@@ -3042,9 +3056,21 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::tensor::BlockType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::cmp::Eq for alea_core::model::tensor::Comparison",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::tensor::ElementType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
@@ -3061,12 +3087,6 @@
     {
       "crate": "alea-core",
       "item": "impl core::cmp::Eq for alea_core::model::tensor::UnaryOp",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "impl core::cmp::Eq for alea_core::model::tensor::Value",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
@@ -3156,11 +3176,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::Expr",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
       "item": "impl core::cmp::PartialEq for alea_core::model::assembly::FactorMetadata",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -3209,6 +3224,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::Value",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::cmp::PartialEq for alea_core::model::prediction::PredictiveOrigin",
       "profile": "validated_component_opt_in"
     },
@@ -3220,9 +3241,21 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::tensor::BlockType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::cmp::PartialEq for alea_core::model::tensor::Comparison",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::tensor::ElementType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
@@ -3239,12 +3272,6 @@
     {
       "crate": "alea-core",
       "item": "impl core::cmp::PartialEq for alea_core::model::tensor::UnaryOp",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "impl core::cmp::PartialEq for alea_core::model::tensor::Value",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
@@ -3287,9 +3314,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl core::convert::From<&alea_core::model::assembly::Expr> for alea_core::model::assembly::ScalarInput",
+      "item": "impl core::convert::From<&alea_core::model::assembly::Value> for alea_core::model::assembly::ScalarInput",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -3305,9 +3332,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl core::convert::From<alea_core::model::assembly::Expr> for alea_core::model::assembly::ScalarInput",
+      "item": "impl core::convert::From<alea_core::model::assembly::Value> for alea_core::model::assembly::ScalarInput",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -3324,12 +3351,6 @@
       "crate": "alea-core",
       "item": "impl core::default::Default for alea_core::model::assembly::ModelBuilder",
       "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
-      "item": "impl core::default::Default for alea_core::model::tensor::TensorBuilder",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -3480,11 +3501,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl core::fmt::Debug for alea_core::model::assembly::Expr",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
       "item": "impl core::fmt::Debug for alea_core::model::assembly::FactorMetadata",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -3596,6 +3612,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::Value",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::fmt::Debug for alea_core::model::prediction::PredictiveOrigin",
       "profile": "validated_component_opt_in"
     },
@@ -3607,9 +3629,21 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::tensor::BlockType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::fmt::Debug for alea_core::model::tensor::Comparison",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::tensor::ElementType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
@@ -3626,12 +3660,6 @@
     {
       "crate": "alea-core",
       "item": "impl core::fmt::Debug for alea_core::model::tensor::UnaryOp",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "impl core::fmt::Debug for alea_core::model::tensor::Value",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
@@ -3804,11 +3832,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl core::marker::Copy for alea_core::model::assembly::Expr",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
       "item": "impl core::marker::Copy for alea_core::model::assembly::FactorRole",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -3872,6 +3895,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::marker::Copy for alea_core::model::assembly::Value",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::marker::Copy for alea_core::model::prediction::PredictiveOrigin",
       "profile": "validated_component_opt_in"
     },
@@ -3889,6 +3918,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::marker::Copy for alea_core::model::tensor::ElementType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::marker::Copy for alea_core::model::tensor::TensorOperation",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
@@ -3896,12 +3931,6 @@
     {
       "crate": "alea-core",
       "item": "impl core::marker::Copy for alea_core::model::tensor::UnaryOp",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "impl core::marker::Copy for alea_core::model::tensor::Value",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
@@ -3996,11 +4025,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::Expr",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
       "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::FactorMetadata",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -4049,6 +4073,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::Value",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::marker::StructuralPartialEq for alea_core::model::prediction::PredictiveOrigin",
       "profile": "validated_component_opt_in"
     },
@@ -4060,9 +4090,21 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::tensor::BlockType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::marker::StructuralPartialEq for alea_core::model::tensor::Comparison",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::tensor::ElementType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
@@ -4079,12 +4121,6 @@
     {
       "crate": "alea-core",
       "item": "impl core::marker::StructuralPartialEq for alea_core::model::tensor::UnaryOp",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "impl core::marker::StructuralPartialEq for alea_core::model::tensor::Value",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
@@ -4192,6 +4228,18 @@
       "crate": "alea-core",
       "item": "impl<A: core::fmt::Debug + core::error::Error + 'static, B: core::fmt::Debug + core::error::Error + 'static> core::fmt::Debug for alea_core::model::SumModelError<A, B>",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl<D: alea_core::model::assembly::OperationDescriptor> alea_core::model::assembly::NativeRules<D>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl<D> alea_core::model::assembly::SourceBody<D>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
@@ -5263,9 +5311,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub alea_core::model::assembly::GraphNode::expression: alea_core::model::assembly::Expr",
+      "item": "pub alea_core::model::assembly::GraphNode::expression: alea_core::model::assembly::Value",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -5275,9 +5323,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub alea_core::model::assembly::GraphNode::inputs: alloc::vec::Vec<alea_core::model::assembly::Expr>",
+      "item": "pub alea_core::model::assembly::GraphNode::inputs: alloc::vec::Vec<alea_core::model::assembly::Value>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -5290,6 +5338,54 @@
       "item": "pub alea_core::model::assembly::GraphNode::primitive: core::option::Option<&'a alea_core::model::assembly::PrimitiveMetadata>",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::GraphNode::shape: alea_core::model::tensor::Shape",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::NativeRules::batch: core::option::Option<alea_core::model::assembly::BatchRule<D>>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::NativeRules::batch_workspace: fn(&D) -> <D as alea_core::model::assembly::OperationDescriptor>::Workspace",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::NativeRules::evaluate: alea_core::model::assembly::NativeEvaluator<D>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::NativeRules::preparation: core::option::Option<alea_core::model::assembly::ScalarPreparation<D>>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::NativeRules::signature: alea_core::model::assembly::PrimitiveSignature",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::NativeRules::source: core::option::Option<alea_core::model::assembly::SourceRule<D>>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::NativeRules::workspace: fn(&D) -> <D as alea_core::model::assembly::OperationDescriptor>::Workspace",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
@@ -5338,6 +5434,12 @@
       "item": "pub alea_core::model::assembly::OperationKind::Primitive",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::OperationKind::Region",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
@@ -5509,9 +5611,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub alea_core::model::assembly::ScalarInput::Expression(alea_core::model::assembly::Expr)",
+      "item": "pub alea_core::model::assembly::ScalarInput::Expression(alea_core::model::assembly::Value)",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -5533,9 +5635,39 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub alea_core::model::assembly::SourceCapabilities::missing_primals: alloc::vec::Vec<alea_core::model::assembly::Expr>",
+      "item": "pub alea_core::model::assembly::SourceBody::Generated(fn(&D) -> alloc::string::String)",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceBody::Static(&'static str)",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceCapabilities::missing_primals: alloc::vec::Vec<alea_core::model::assembly::Value>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceRule::body: alea_core::model::assembly::SourceBody<D>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceRule::gradient: core::option::Option<fn(&D) -> alloc::string::String>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceRule::workspace: usize",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
@@ -5598,6 +5730,54 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::BlockRules::forward: fn(&D, alea_core::model::tensor::BlockInputs<'_>, &mut [f64], &mut W) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::BlockRules::heap_bytes: usize",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::BlockRules::inputs: alloc::vec::Vec<alea_core::model::tensor::BlockType>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::BlockRules::output: alea_core::model::tensor::Shape",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::BlockRules::vjp: core::option::Option<alea_core::model::tensor::BlockVjp<D, W>>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::BlockRules::workspace: fn(&D) -> W",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::BlockType::dtype: alea_core::model::tensor::ElementType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::BlockType::shape: alea_core::model::tensor::Shape",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub alea_core::model::tensor::Comparison::Greater",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
@@ -5622,15 +5802,39 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::ElementType::Bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::ElementType::Count",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::ElementType::Index",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::ElementType::Real",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub alea_core::model::tensor::TensorNode::active: bool",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
     {
       "crate": "alea-core",
-      "item": "pub alea_core::model::tensor::TensorNode::inputs: alloc::vec::Vec<alea_core::model::tensor::Value>",
+      "item": "pub alea_core::model::tensor::TensorNode::inputs: alloc::vec::Vec<alea_core::model::assembly::Value>",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -5646,9 +5850,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub alea_core::model::tensor::TensorNode::value: alea_core::model::tensor::Value",
+      "item": "pub alea_core::model::tensor::TensorNode::value: alea_core::model::assembly::Value",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -5691,6 +5895,12 @@
       "item": "pub alea_core::model::tensor::TensorOperation::Matmul",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::TensorOperation::Registered",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
@@ -6338,6 +6548,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub enum alea_core::model::assembly::SourceBody<D>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub enum alea_core::model::assembly::UnitInterval",
       "profile": "validated_component_opt_in"
     },
@@ -6362,6 +6578,12 @@
       "item": "pub enum alea_core::model::tensor::Comparison",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub enum alea_core::model::tensor::ElementType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
@@ -7273,9 +7495,15 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::rebind<P: alea_core::model::assembly::Primitive>(self, expression: alea_core::model::assembly::Expr, update: impl core::ops::function::FnOnce(&P) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> core::result::Result<Self, alea_core::model::assembly::RebindError>",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::rebind<P: alea_core::model::assembly::OperationDescriptor>(self, expression: alea_core::model::assembly::Value, update: impl core::ops::function::FnOnce(&P) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> core::result::Result<Self, alea_core::model::assembly::RebindError>",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::rebind_region(self, value: alea_core::model::assembly::Value, name: &str, values: &[f64]) -> core::result::Result<Self, alea_core::model::assembly::RebindError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -7318,6 +7546,12 @@
       "item": "pub fn alea_core::model::assembly::CompiledModel::rust_primal_with_workspace(&self) -> core::result::Result<(alloc::string::String, usize), alea_core::model::assembly::AssemblyError>",
       "profile": "research_utility",
       "promotion_gate": "Broaden independent generated-buffer, compiler-version and custom-primitive conformance; bounded tensor derivative fixtures are not arbitrary-program or statistical qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_tensor_score_validation(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify checked tensor admission independently of compiler derivative conventions, including activity, lazy control flow and recovery; extra first-order validation work is not a speed or arbitrary-callback equivalence guarantee."
     },
     {
       "crate": "alea-core",
@@ -7414,21 +7648,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Expr::clone(&self) -> alea_core::model::assembly::Expr",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Expr::eq(&self, other: &alea_core::model::assembly::Expr) -> bool",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Expr::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::FactorMetadata::clone(&self) -> alea_core::model::assembly::FactorMetadata",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -7477,9 +7696,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::add(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>, b: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::add(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>, b: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -7488,28 +7707,50 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::apply_region(&mut self, captures: &[alea_core::model::assembly::Value], binding: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::call_region(&mut self, inputs: &[alea_core::model::assembly::Value], binding: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ModelBuilder::compile(self) -> core::result::Result<alea_core::model::assembly::CompiledModel, alea_core::model::assembly::AssemblyError>",
       "profile": "validated_component_opt_in"
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::constant(&mut self, x: f64) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::constant(&mut self, x: f64) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::custom<F>(&mut self, inputs: &[alea_core::model::assembly::Expr], callback: F) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError> where F: core::ops::function::Fn(&[f64], &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::constant_block(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<f64>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::custom_with_primal<F>(&mut self, inputs: &[alea_core::model::assembly::Expr], primal: &'static str, callback: F) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError> where F: core::ops::function::Fn(&[f64], &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::custom<F>(&mut self, inputs: &[alea_core::model::assembly::Value], callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where F: core::ops::function::Fn(&[f64], &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::custom_with_scratch<W, F>(&mut self, inputs: &[alea_core::model::assembly::Expr], scratch: W, callback: F) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError> where W: core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64], &mut [f64], &mut W) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::custom_with_primal<F>(&mut self, inputs: &[alea_core::model::assembly::Value], primal: &'static str, callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where F: core::ops::function::Fn(&[f64], &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::custom_with_scratch<W, F>(&mut self, inputs: &[alea_core::model::assembly::Value], scratch: W, callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where W: core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64], &mut [f64], &mut W) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -7518,50 +7759,57 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::exp(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::exp(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::expression(&mut self, value: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::expression(&mut self, value: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::factor(&mut self, log_factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::factor(&mut self, log_factor: alea_core::model::assembly::Value) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::inputs<const N: usize>(&mut self, values: [alea_core::model::assembly::ScalarInput; N]) -> core::result::Result<[alea_core::model::assembly::Expr; N], alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::inputs<const N: usize>(&mut self, values: [alea_core::model::assembly::ScalarInput; N]) -> core::result::Result<[alea_core::model::assembly::Value; N], alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::likelihood(&mut self, name: &str, factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::likelihood(&mut self, name: &str, factor: alea_core::model::assembly::Value) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::linear_combination(&mut self, inputs: &[alea_core::model::assembly::Expr], coefficients: &[f64], offset: f64) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::linear_combination(&mut self, inputs: &[alea_core::model::assembly::Value], coefficients: &[f64], offset: f64) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Native analytic linear combination; generated source is explicitly unavailable. Extend derivative/roundoff and downstream workload evidence before broader qualification."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::log(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::log(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::multiply(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>, b: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::matmul(&mut self, left: alea_core::model::assembly::Value, right: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::multiply(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>, b: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -7570,8 +7818,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::plate<T, F>(&mut self, data: &[T], factor: F) -> core::result::Result<(), alea_core::model::assembly::AssemblyError> where F: core::ops::function::FnMut(&mut Self, usize, &T) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::plate<T, F>(&mut self, data: &[T], factor: F) -> core::result::Result<(), alea_core::model::assembly::AssemblyError> where F: core::ops::function::FnMut(&mut Self, usize, &T) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -7586,21 +7835,21 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::potential(&mut self, name: &str, factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::potential(&mut self, name: &str, factor: alea_core::model::assembly::Value) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::primitive<P: alea_core::model::assembly::Primitive>(&mut self, primitive: P) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::primitive<P: alea_core::model::assembly::OperationDescriptor>(&mut self, inputs: &[alea_core::model::assembly::Value], primitive: P) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::prior(&mut self, name: &str, factor: alea_core::model::assembly::Expr) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::prior(&mut self, name: &str, factor: alea_core::model::assembly::Value) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -7615,14 +7864,39 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::region(&self) -> alea_core::model::tensor::RegionBuilder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + core::marker::Sync + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::reshape(&mut self, value: alea_core::model::assembly::Value, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ModelBuilder::scope(&mut self, name: &str) -> core::result::Result<alea_core::model::assembly::ModelScope<'_>, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::sum(&mut self, values: &[alea_core::model::assembly::Expr]) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::sum(&mut self, values: &[alea_core::model::assembly::Value]) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::sum_value(&mut self, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
@@ -7637,9 +7911,21 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::value_shape(&self, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::tensor::Shape, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ModelBuilder::vector<S: alea_core::model::assembly::VectorDomain>(&mut self, name: &str, dimension: &str, labels: &[&str], block: &str, transform: alea_core::transform::Transform) -> core::result::Result<alea_core::model::assembly::VectorParameter<S>, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::vector_value<S: alea_core::model::assembly::VectorDomain>(&mut self, parameter: &alea_core::model::assembly::VectorParameter<S>, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
@@ -7664,6 +7950,18 @@
       "item": "pub fn alea_core::model::assembly::ModelScope<'_>::drop(&mut self)",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeRules<D>::new(signature: alea_core::model::assembly::PrimitiveSignature, workspace: fn(&D) -> <D as alea_core::model::assembly::OperationDescriptor>::Workspace, evaluate: alea_core::model::assembly::NativeEvaluator<D>) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::OperationDescriptor::rules(&self) -> alea_core::model::assembly::NativeRules<Self>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
@@ -7708,8 +8006,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Parameter<S>::expr(&self) -> alea_core::model::assembly::Expr",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_core::model::assembly::Parameter<S>::expr(&self) -> alea_core::model::assembly::Value",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -7859,72 +8158,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Primitive::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::BatchRule<Self>> where Self: core::marker::Sized",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Primitive::batch_workspace(&self) -> Self::Workspace",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, numerical and platform qualification; no performance or statistical maturity promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Primitive::evaluate(&self, inputs: &[f64], gradient: &mut [f64], workspace: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Primitive::inputs(&self) -> &[alea_core::model::assembly::Expr]",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Primitive::rust_primal(&self) -> core::option::Option<&'static str>",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Primitive::scalar_preparation(&self) -> core::option::Option<alea_core::model::assembly::ScalarPreparation<Self>> where Self: core::marker::Sized",
-      "profile": "research_component",
-      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Primitive::signature(&self) -> alea_core::model::assembly::PrimitiveSignature",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Primitive::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String> where Self: core::marker::Sized",
-      "profile": "research_component",
-      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Primitive::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String> where Self: core::marker::Sized",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Primitive::source_workspace(&self) -> usize",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent generated-buffer, compiler-version and custom-primitive conformance; bounded tensor derivative fixtures are not arbitrary-program or statistical qualification."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Primitive::workspace(&self) -> Self::Workspace",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
-    },
-    {
-      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::PrimitiveArgument::clone(&self) -> alea_core::model::assembly::PrimitiveArgument",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
@@ -7943,9 +8176,15 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::PrimitiveMetadata::descriptor<P: alea_core::model::assembly::Primitive>(&self) -> core::option::Option<&P>",
+      "item": "pub fn alea_core::model::assembly::PrimitiveMetadata::descriptor<P: core::any::Any>(&self) -> core::option::Option<&P>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PrimitiveMetadata::region_binding(&self) -> core::option::Option<&alea_core::model::tensor::BoundProgram>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -8031,27 +8270,27 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ScalarInput::from(value: &alea_core::model::assembly::Expr) -> Self",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
-    },
-    {
-      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ScalarInput::from(value: &alea_core::model::assembly::Parameter<S>) -> Self",
       "profile": "research_component",
       "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ScalarInput::from(value: alea_core::model::assembly::Expr) -> Self",
+      "item": "pub fn alea_core::model::assembly::ScalarInput::from(value: &alea_core::model::assembly::Value) -> Self",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ScalarInput::from(value: alea_core::model::assembly::Parameter<S>) -> Self",
       "profile": "research_component",
       "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ScalarInput::from(value: alea_core::model::assembly::Value) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -8076,6 +8315,12 @@
       "item": "pub fn alea_core::model::assembly::Simplex::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceBody<D>::render(&self, descriptor: &D) -> alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
@@ -8137,6 +8382,24 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Value::clone(&self) -> alea_core::model::assembly::Value",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Value::eq(&self, other: &alea_core::model::assembly::Value) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Value::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::VectorDomain::accepts(transform: alea_core::transform::Transform) -> bool",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -8149,9 +8412,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::VectorParameter<S>::expressions(&self) -> &[alea_core::model::assembly::Expr]",
+      "item": "pub fn alea_core::model::assembly::VectorParameter<S>::expressions(&self) -> &[alea_core::model::assembly::Value]",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -8270,6 +8533,54 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BlockInputs<'_>::booleans(&self, i: usize) -> core::result::Result<&[bool], alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BlockInputs<'_>::counts(&self, i: usize) -> core::result::Result<&[u64], alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BlockInputs<'_>::indices(&self, i: usize) -> core::result::Result<&[usize], alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BlockInputs<'_>::real(&self, i: usize) -> core::result::Result<&[f64], alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BlockType::clone(&self) -> alea_core::model::tensor::BlockType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BlockType::eq(&self, other: &alea_core::model::tensor::BlockType) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BlockType::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BoundProgram::check_workspace_limit(&self, limit: usize) -> core::result::Result<(), alea_core::model::tensor::WorkspaceBudgetError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::BoundProgram::clone(&self) -> alea_core::model::tensor::BoundProgram",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
@@ -8348,6 +8659,144 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::ElementType::clone(&self) -> alea_core::model::tensor::ElementType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::ElementType::eq(&self, other: &alea_core::model::tensor::ElementType) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::ElementType::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::binary(&mut self, kind: alea_core::model::tensor::BinaryOp, a: alea_core::model::assembly::Value, b: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::boolean_data(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<bool>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::checkpointed_scan(&mut self, initial: alea_core::model::assembly::Value, xs: alea_core::model::assembly::Value, captures: &[alea_core::model::assembly::Value], body: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::compile(self, output: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::tensor::TensorProgram, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::cond(&mut self, lhs: alea_core::model::assembly::Value, rhs: alea_core::model::assembly::Value, comparison: alea_core::model::tensor::Comparison, args: &[alea_core::model::assembly::Value], yes: alea_core::model::tensor::BoundProgram, no: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::constant(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<f64>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::count_data(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<u64>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::data(&mut self, name: &str, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::gather(&mut self, value: alea_core::model::assembly::Value, shape: alea_core::model::tensor::Shape, indices: alloc::vec::Vec<usize>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::indices(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<usize>, bound: usize) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::input(&mut self, name: &str, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::matmul(&mut self, a: alea_core::model::assembly::Value, b: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::matmul_with_kernel(&mut self, a: alea_core::model::assembly::Value, b: alea_core::model::assembly::Value, kernel: alea_math::gemm::MatrixKernel) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + core::marker::Sync + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::reshape(&mut self, value: alea_core::model::assembly::Value, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::scan(&mut self, initial: alea_core::model::assembly::Value, xs: alea_core::model::assembly::Value, captures: &[alea_core::model::assembly::Value], body: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::sum(&mut self, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::unary(&mut self, kind: alea_core::model::tensor::UnaryOp, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::value_shape(&self, value: alea_core::model::assembly::Value) -> core::result::Result<&alea_core::model::tensor::Shape, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::with_matrix_kernel(self, kernel: alea_math::gemm::MatrixKernel) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::Shape::axes(&self) -> &[usize]",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
@@ -8385,198 +8834,6 @@
     {
       "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::Shape::scalar() -> Self",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::binary(&mut self, kind: alea_core::model::tensor::BinaryOp, a: alea_core::model::tensor::Value, b: alea_core::model::tensor::Value) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::checkpointed_scan(&mut self, initial: alea_core::model::tensor::Value, xs: alea_core::model::tensor::Value, captures: &[alea_core::model::tensor::Value], body: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify retained/replayed numerical equivalence and memory/CPU tradeoffs; higher-order source tapes remain compiler-owned."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::compile(self, output: alea_core::model::tensor::Value) -> core::result::Result<alea_core::model::tensor::TensorProgram, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::cond(&mut self, lhs: alea_core::model::tensor::Value, rhs: alea_core::model::tensor::Value, comparison: alea_core::model::tensor::Comparison, args: &[alea_core::model::tensor::Value], yes: alea_core::model::tensor::BoundProgram, no: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::constant(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<f64>) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::data(&mut self, name: &str, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::default() -> Self",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::gather(&mut self, value: alea_core::model::tensor::Value, shape: alea_core::model::tensor::Shape, indices: alloc::vec::Vec<usize>) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::input(&mut self, name: &str, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::matmul(&mut self, a: alea_core::model::tensor::Value, b: alea_core::model::tensor::Value) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::matmul_with_kernel(&mut self, a: alea_core::model::tensor::Value, b: alea_core::model::tensor::Value, kernel: alea_math::gemm::MatrixKernel) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::new() -> Self",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::reshape(&mut self, value: alea_core::model::tensor::Value, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::scan(&mut self, initial: alea_core::model::tensor::Value, xs: alea_core::model::tensor::Value, captures: &[alea_core::model::tensor::Value], body: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::sum(&mut self, value: alea_core::model::tensor::Value) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::unary(&mut self, kind: alea_core::model::tensor::UnaryOp, value: alea_core::model::tensor::Value) -> core::result::Result<alea_core::model::tensor::Value, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorBuilder::with_matrix_kernel(self, kernel: alea_math::gemm::MatrixKernel) -> Self",
-      "profile": "research_component",
-      "promotion_gate": "Qualify representative matrix shapes and numerical policies before scheduling or stability promotion; Auto selects availability only, with host-owned provider threading and scratch."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::BatchRule<Self>> where Self: core::marker::Sized",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::batch_workspace(&self) -> Self::Workspace",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, numerical and platform qualification; no performance or statistical maturity promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::binding(&self) -> &alea_core::model::tensor::BoundProgram",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::check_workspace_limit(&self, limit: usize) -> core::result::Result<(), alea_core::model::tensor::WorkspaceBudgetError>",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, numerical and platform qualification; no performance or statistical maturity promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::evaluate(&self, x: &[f64], g: &mut [f64], w: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::inputs(&self) -> &[alea_core::model::assembly::Expr]",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::new(binding: alea_core::model::tensor::BoundProgram, inputs: &[alea_core::model::assembly::Expr]) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::rust_primal(&self) -> core::option::Option<&'static str>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::scalar_preparation(&self) -> core::option::Option<alea_core::model::assembly::ScalarPreparation<Self>> where Self: core::marker::Sized",
-      "profile": "research_component",
-      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::signature(&self) -> alea_core::model::assembly::PrimitiveSignature",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String> where Self: core::marker::Sized",
-      "profile": "research_component",
-      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::source_workspace(&self) -> usize",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent generated-buffer, compiler-version and custom-primitive conformance; bounded tensor derivative fixtures are not arbitrary-program or statistical qualification."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::with_data(&self, name: &str, values: &[f64]) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::TensorFactor::workspace(&self) -> Self::Workspace",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
@@ -8643,24 +8900,6 @@
     {
       "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::UnaryOp::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::Value::clone(&self) -> alea_core::model::tensor::Value",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::Value::eq(&self, other: &alea_core::model::tensor::Value) -> bool",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::Value::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
@@ -9333,9 +9572,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub struct alea_core::model::assembly::BatchRule<P: alea_core::model::assembly::Primitive>",
+      "item": "pub struct alea_core::model::assembly::BatchRule<P: alea_core::model::assembly::OperationDescriptor>",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
@@ -9351,11 +9590,6 @@
     {
       "crate": "alea-core",
       "item": "pub struct alea_core::model::assembly::Coordinate",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub struct alea_core::model::assembly::Expr",
       "profile": "validated_component_opt_in"
     },
     {
@@ -9380,6 +9614,12 @@
       "item": "pub struct alea_core::model::assembly::ModelScope<'a>",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::NativeRules<D: alea_core::model::assembly::OperationDescriptor>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
@@ -9430,15 +9670,27 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub struct alea_core::model::assembly::ScalarPreparation<P: alea_core::model::assembly::Primitive>",
+      "item": "pub struct alea_core::model::assembly::ScalarPreparation<P: alea_core::model::assembly::OperationDescriptor>",
       "profile": "research_component",
-      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
       "item": "pub struct alea_core::model::assembly::SourceCapabilities",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::SourceRule<D>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::Value",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-core",
@@ -9458,25 +9710,37 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub struct alea_core::model::tensor::BlockInputs<'a>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::tensor::BlockRules<D, W>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::tensor::BlockType",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub struct alea_core::model::tensor::BoundProgram",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
     {
       "crate": "alea-core",
+      "item": "pub struct alea_core::model::tensor::RegionBuilder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub struct alea_core::model::tensor::Shape",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub struct alea_core::model::tensor::TensorBuilder",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub struct alea_core::model::tensor::TensorFactor",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
@@ -9495,12 +9759,6 @@
     {
       "crate": "alea-core",
       "item": "pub struct alea_core::model::tensor::TensorWorkspace",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub struct alea_core::model::tensor::Value",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
@@ -9670,9 +9928,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub trait alea_core::model::assembly::Primitive: core::marker::Send + core::marker::Sync + 'static",
+      "item": "pub trait alea_core::model::assembly::OperationDescriptor: core::marker::Send + core::marker::Sync + core::marker::Sized + 'static",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
@@ -9788,9 +10046,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub type alea_core::model::assembly::BatchEvaluator<P> = fn(&P, &[f64], &mut [f64], &mut <P as alea_core::model::assembly::Primitive>::Workspace) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub type alea_core::model::assembly::BatchEvaluator<P> = fn(&P, &[f64], &mut [f64], &mut <P as alea_core::model::assembly::OperationDescriptor>::Workspace) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
@@ -9805,21 +10063,27 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub type alea_core::model::assembly::PreparedEvaluator<P> = fn(&P, &[f64], &mut [f64], &mut <P as alea_core::model::assembly::Primitive>::Workspace, f64) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
+      "item": "pub type alea_core::model::assembly::NativeEvaluator<D> = fn(&D, &[f64], &mut [f64], &mut <D as alea_core::model::assembly::OperationDescriptor>::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
-      "item": "pub type alea_core::model::assembly::Primitive::Workspace: core::marker::Send + core::marker::Sync + 'static",
+      "item": "pub type alea_core::model::assembly::OperationDescriptor::Workspace: core::marker::Send + core::marker::Sync + 'static",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
-      "item": "pub type alea_core::model::tensor::TensorFactor::Workspace = alea_core::model::tensor::TensorWorkspace",
+      "item": "pub type alea_core::model::assembly::PreparedEvaluator<P> = fn(&P, &[f64], &mut [f64], &mut <P as alea_core::model::assembly::OperationDescriptor>::Workspace, f64) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub type alea_core::model::tensor::BlockVjp<D, W> = fn(&D, alea_core::model::tensor::BlockInputs<'_>, &[f64], &[f64], &mut [f64], &mut W) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
     {
       "crate": "alea-core",
@@ -11120,33 +11384,33 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "impl alea_core::model::assembly::primitives::Primitive for alea_distributions::modeling::NormalBatch",
+      "item": "impl alea_core::model::assembly::primitives::OperationDescriptor for alea_distributions::modeling::NormalBatch",
       "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "impl alea_core::model::assembly::primitives::Primitive for alea_distributions::modeling::NormalFactor",
+      "item": "impl alea_core::model::assembly::primitives::OperationDescriptor for alea_distributions::modeling::NormalFactor",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "impl alea_core::model::assembly::primitives::Primitive for alea_distributions::modeling::regression::BernoulliLogitRegression",
+      "item": "impl alea_core::model::assembly::primitives::OperationDescriptor for alea_distributions::modeling::regression::BernoulliLogitRegression",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "impl alea_core::model::assembly::primitives::Primitive for alea_distributions::modeling::regression::NormalRegression",
+      "item": "impl alea_core::model::assembly::primitives::OperationDescriptor for alea_distributions::modeling::regression::NormalRegression",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "impl alea_core::model::assembly::primitives::Primitive for alea_distributions::modeling::regression::PoissonLogRegression",
+      "item": "impl alea_core::model::assembly::primitives::OperationDescriptor for alea_distributions::modeling::regression::PoissonLogRegression",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -12879,6 +13143,12 @@
       "item": "impl core::convert::From<statrs::distribution::students_t::StudentsTError> for alea_distributions::modeling::regression::diagnostics::GaussianIntervalError",
       "profile": "research_component",
       "promotion_gate": "Broaden Gaussian interval, covariance and critical-value qualification across designs/platforms; assumptions and numerical rank/representation limits remain explicit."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "impl core::default::Default for alea_distributions::modeling::NormalFactor",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -14668,9 +14938,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "impl<P: alea_core::model::assembly::primitives::Primitive> alea_distributions::modeling::regression::ObservationMap<P>",
+      "item": "impl<P: alea_core::model::assembly::primitives::OperationDescriptor> alea_distributions::modeling::regression::ObservationMap<P>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, numerical and platform qualification; no performance or statistical maturity promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -15717,9 +15987,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::bernoulli_logit_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::bernoulli_logit_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Value], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
@@ -15741,21 +16011,21 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::normal_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::normal_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Value], scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::normal_vector_likelihood(&mut self, name: &str, observations: &[f64], locations: &[alea_core::model::assembly::Expr], scales: &[alea_core::model::assembly::Expr]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::normal_vector_likelihood(&mut self, name: &str, observations: &[f64], locations: &[alea_core::model::assembly::Value], scales: &[alea_core::model::assembly::Value]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::poisson_log_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::poisson_log_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Value], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
@@ -16228,9 +16498,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::ModelBuilderExt::bernoulli_logit_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::ModelBuilderExt::bernoulli_logit_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Value], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
@@ -16252,51 +16522,39 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::ModelBuilderExt::normal_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::ModelBuilderExt::normal_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Value], scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::ModelBuilderExt::normal_vector_likelihood(&mut self, name: &str, observations: &[f64], locations: &[alea_core::model::assembly::Expr], scales: &[alea_core::model::assembly::Expr]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::ModelBuilderExt::normal_vector_likelihood(&mut self, name: &str, observations: &[f64], locations: &[alea_core::model::assembly::Value], scales: &[alea_core::model::assembly::Value]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::ModelBuilderExt::poisson_log_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::ModelBuilderExt::poisson_log_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Value], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalBatch::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::primitives::BatchRule<Self>>",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::batch_workspace(&self) -> alea_distributions::modeling::NormalBatchWorkspace",
       "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalBatch::batch_workspace(&self) -> Self::Workspace",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::evaluate(&self, x: &[f64], g: &mut [f64], work: &mut alea_distributions::modeling::NormalBatchWorkspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalBatch::evaluate(&self, x: &[f64], g: &mut [f64], work: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::new(lengths: [usize; 3]) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalBatch::inputs(&self) -> &[alea_core::model::assembly::Expr]",
-      "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalBatch::new(events: &[alea_core::model::assembly::Expr], locations: &[alea_core::model::assembly::Expr], scales: &[alea_core::model::assembly::Expr]) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16306,9 +16564,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalBatch::observed(observations: alloc::vec::Vec<f64>, locations: &[alea_core::model::assembly::Expr], scales: &[alea_core::model::assembly::Expr]) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::observed(observations: alloc::vec::Vec<f64>, locations: usize, scales: usize) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16318,21 +16576,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalBatch::signature(&self) -> alea_core::model::assembly::primitives::PrimitiveSignature",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::rules(&self) -> alea_core::model::assembly::primitives::NativeRules<Self>",
       "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalBatch::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
-      "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalBatch::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
-      "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16342,21 +16588,21 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalBatch::workspace(&self) -> Self::Workspace",
+      "item": "pub fn alea_distributions::modeling::NormalBatch::workspace(&self) -> alea_distributions::modeling::NormalBatchWorkspace",
       "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalFactor::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::primitives::BatchRule<Self>>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::NormalFactor::clone(&self) -> alea_distributions::modeling::NormalFactor",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::NormalFactor::default() -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16372,39 +16618,15 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalFactor::inputs(&self) -> &[alea_core::model::assembly::Expr]",
+      "item": "pub fn alea_distributions::modeling::NormalFactor::new() -> Self",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalFactor::new(event: alea_core::model::assembly::Expr, location: alea_core::model::assembly::Expr, scale: alea_core::model::assembly::Expr) -> Self",
+      "item": "pub fn alea_distributions::modeling::NormalFactor::rules(&self) -> alea_core::model::assembly::primitives::NativeRules<Self>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalFactor::rust_primal(&self) -> core::option::Option<&'static str>",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalFactor::scalar_preparation(&self) -> core::option::Option<alea_core::model::assembly::primitives::ScalarPreparation<Self>>",
-      "profile": "research_component",
-      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalFactor::signature(&self) -> alea_core::model::assembly::primitives::PrimitiveSignature",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::NormalFactor::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
-      "profile": "research_component",
-      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16414,15 +16636,15 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::bernoulli_logit(builder: &mut alea_core::model::assembly::ModelBuilder, event: bool, logit: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::bernoulli_logit(builder: &mut alea_core::model::assembly::ModelBuilder, event: bool, logit: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::continuous<D, F>(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_core::model::assembly::Expr, parameters: &[alea_core::model::assembly::Expr], construct: F) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError> where D: alea_core::distribution::ScalarEventScore + alea_core::distribution::ParameterScore + 'static, F: core::ops::function::Fn(&[f64]) -> core::result::Result<D, <D as alea_core::distribution::Distribution>::Error> + core::marker::Send + core::marker::Sync + 'static",
+      "item": "pub fn alea_distributions::modeling::continuous<D, F>(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_core::model::assembly::Value, parameters: &[alea_core::model::assembly::Value], construct: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: alea_core::distribution::ScalarEventScore + alea_core::distribution::ParameterScore + 'static, F: core::ops::function::Fn(&[f64]) -> core::result::Result<D, <D as alea_core::distribution::Distribution>::Error> + core::marker::Send + core::marker::Sync + 'static",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
@@ -16431,39 +16653,33 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::normal(builder: &mut alea_core::model::assembly::ModelBuilder, event: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::normal(builder: &mut alea_core::model::assembly::ModelBuilder, event: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::normal_batch(builder: &mut alea_core::model::assembly::ModelBuilder, events: &[alea_core::model::assembly::Expr], locations: &[alea_core::model::assembly::Expr], scales: &[alea_core::model::assembly::Expr]) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::normal_batch(builder: &mut alea_core::model::assembly::ModelBuilder, events: &[alea_core::model::assembly::Value], locations: &[alea_core::model::assembly::Value], scales: &[alea_core::model::assembly::Value]) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::normal_observation(builder: &mut alea_core::model::assembly::ModelBuilder, event: f64, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::normal_observation(builder: &mut alea_core::model::assembly::ModelBuilder, event: f64, location: impl core::convert::Into<alea_core::model::assembly::inputs::ScalarInput>, scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::observation<D, F, O>(builder: &mut alea_core::model::assembly::ModelBuilder, event: O, parameters: &[alea_core::model::assembly::Expr], construct: F) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError> where D: alea_core::distribution::ParameterScore + 'static, O: core::borrow::Borrow<<D as alea_core::distribution::Distribution>::Event> + core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64]) -> core::result::Result<D, <D as alea_core::distribution::Distribution>::Error> + core::marker::Send + core::marker::Sync + 'static",
+      "item": "pub fn alea_distributions::modeling::observation<D, F, O>(builder: &mut alea_core::model::assembly::ModelBuilder, event: O, parameters: &[alea_core::model::assembly::Value], construct: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: alea_core::distribution::ParameterScore + 'static, O: core::borrow::Borrow<<D as alea_core::distribution::Distribution>::Event> + core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64]) -> core::result::Result<D, <D as alea_core::distribution::Distribution>::Error> + core::marker::Send + core::marker::Sync + 'static",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::primitives::BatchRule<Self>>",
+      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::batch_workspace(&self) -> alea_distributions::modeling::regression::LinkRegressionWorkspace",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::batch_workspace(&self) -> Self::Workspace",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, numerical and platform qualification; no performance or statistical maturity promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16473,9 +16689,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::evaluate(&self, x: &[f64], g: &mut [f64], w: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::evaluate(&self, x: &[f64], g: &mut [f64], w: &mut alea_distributions::modeling::regression::LinkRegressionWorkspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16485,33 +16701,15 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::inputs(&self) -> &[alea_core::model::assembly::Expr]",
+      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::new(data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::new(inputs: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::rules(&self) -> alea_core::model::assembly::primitives::NativeRules<Self>",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::signature(&self) -> alea_core::model::assembly::primitives::PrimitiveSignature",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
-      "profile": "research_component",
-      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16533,9 +16731,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::workspace(&self) -> Self::Workspace",
+      "item": "pub fn alea_distributions::modeling::regression::BernoulliLogitRegression::workspace(&self) -> alea_distributions::modeling::regression::LinkRegressionWorkspace",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16635,15 +16833,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::primitives::BatchRule<Self>>",
+      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::batch_workspace(&self) -> alea_distributions::modeling::regression::NormalRegressionWorkspace",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::batch_workspace(&self) -> Self::Workspace",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, numerical and platform qualification; no performance or statistical maturity promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16653,9 +16845,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::evaluate(&self, x: &[f64], g: &mut [f64], workspace: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::evaluate(&self, x: &[f64], g: &mut [f64], workspace: &mut alea_distributions::modeling::regression::NormalRegressionWorkspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16665,33 +16857,15 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::inputs(&self) -> &[alea_core::model::assembly::Expr]",
+      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::new(data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::new(beta: &[alea_core::model::assembly::Expr], sigma: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::rules(&self) -> alea_core::model::assembly::primitives::NativeRules<Self>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::signature(&self) -> alea_core::model::assembly::primitives::PrimitiveSignature",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
-      "profile": "research_component",
-      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16713,9 +16887,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::workspace(&self) -> Self::Workspace",
+      "item": "pub fn alea_distributions::modeling::regression::NormalRegression::workspace(&self) -> alea_distributions::modeling::regression::NormalRegressionWorkspace",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16725,21 +16899,15 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::ObservationMap<P>::sum_log_prob(self, builder: &mut alea_core::model::assembly::ModelBuilder) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::regression::ObservationMap<P>::sum_log_prob(self, builder: &mut alea_core::model::assembly::ModelBuilder) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, numerical and platform qualification; no performance or statistical maturity promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::batch_rule(&self) -> core::option::Option<alea_core::model::assembly::primitives::BatchRule<Self>>",
+      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::batch_workspace(&self) -> alea_distributions::modeling::regression::LinkRegressionWorkspace",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::batch_workspace(&self) -> Self::Workspace",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, numerical and platform qualification; no performance or statistical maturity promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16749,9 +16917,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::evaluate(&self, x: &[f64], g: &mut [f64], w: &mut Self::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::evaluate(&self, x: &[f64], g: &mut [f64], w: &mut alea_distributions::modeling::regression::LinkRegressionWorkspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16761,33 +16929,15 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::inputs(&self) -> &[alea_core::model::assembly::Expr]",
+      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::new(data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::new(inputs: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::rules(&self) -> alea_core::model::assembly::primitives::NativeRules<Self>",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::signature(&self) -> alea_core::model::assembly::primitives::PrimitiveSignature",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::source_gradient_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
-      "profile": "research_component",
-      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
-    },
-    {
-      "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::source_rule(&self) -> core::option::Option<fn(&Self) -> alloc::string::String>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16809,9 +16959,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::workspace(&self) -> Self::Workspace",
+      "item": "pub fn alea_distributions::modeling::regression::PoissonLogRegression::workspace(&self) -> alea_distributions::modeling::regression::LinkRegressionWorkspace",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",
@@ -16863,9 +17013,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::RegressionData<Y>::linear_map(self, coefficients: &[alea_core::model::assembly::Expr]) -> core::result::Result<alea_distributions::modeling::regression::LinearPredictor<Y>, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<Y>::linear_map(self, coefficients: &[alea_core::model::assembly::Value]) -> core::result::Result<alea_distributions::modeling::regression::LinearPredictor<Y>, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, numerical and platform qualification; no performance or statistical maturity promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
@@ -17139,9 +17289,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::bernoulli_logit_regression(builder: &mut alea_core::model::assembly::ModelBuilder, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::regression::bernoulli_logit_regression(builder: &mut alea_core::model::assembly::ModelBuilder, beta: &[alea_core::model::assembly::Value], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
@@ -17439,20 +17589,21 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::normal_regression(builder: &mut alea_core::model::assembly::ModelBuilder, beta: &[alea_core::model::assembly::Expr], sigma: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::regression::normal_regression(builder: &mut alea_core::model::assembly::ModelBuilder, beta: &[alea_core::model::assembly::Value], sigma: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::regression::poisson_log_regression(builder: &mut alea_core::model::assembly::ModelBuilder, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::modeling::regression::poisson_log_regression(builder: &mut alea_core::model::assembly::ModelBuilder, beta: &[alea_core::model::assembly::Value], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::modeling::wiener4(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_distributions::prelude::WienerObservation, parameters: [alea_core::model::assembly::Expr; 4], options: alea_distributions::prelude::WienerOptions) -> core::result::Result<alea_core::model::assembly::Expr, alea_core::model::assembly::AssemblyError>",
-      "profile": "validated_component_reference"
+      "item": "pub fn alea_distributions::modeling::wiener4(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_distributions::prelude::WienerObservation, parameters: [alea_core::model::assembly::Value; 4], options: alea_distributions::prelude::WienerOptions) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
@@ -18073,9 +18224,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::prelude::ModelBuilderExt::bernoulli_logit_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::prelude::ModelBuilderExt::bernoulli_logit_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Value], data: alea_distributions::modeling::regression::RegressionData<bool>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
@@ -18097,21 +18248,21 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::prelude::ModelBuilderExt::normal_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::prelude::ModelBuilderExt::normal_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Value], scale: &alea_core::model::assembly::Parameter<alea_core::model::assembly::Positive>, data: alea_distributions::modeling::regression::RegressionData<f64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::prelude::ModelBuilderExt::normal_vector_likelihood(&mut self, name: &str, observations: &[f64], locations: &[alea_core::model::assembly::Expr], scales: &[alea_core::model::assembly::Expr]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::prelude::ModelBuilderExt::normal_vector_likelihood(&mut self, name: &str, observations: &[f64], locations: &[alea_core::model::assembly::Value], scales: &[alea_core::model::assembly::Value]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden broadcast, extreme-value, alias and compiler conformance; no universal batching, numerical-equivalence or speed promotion."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
-      "item": "pub fn alea_distributions::prelude::ModelBuilderExt::poisson_log_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Expr], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_distributions::prelude::ModelBuilderExt::poisson_log_regression_likelihood(&mut self, name: &str, beta: &[alea_core::model::assembly::Value], data: alea_distributions::modeling::regression::RegressionData<u64>) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
     },
     {
       "crate": "alea-distributions",
@@ -22900,9 +23051,9 @@
     },
     {
       "crate": "alea-distributions",
-      "item": "pub struct alea_distributions::modeling::regression::ObservationMap<P: alea_core::model::assembly::primitives::Primitive>",
+      "item": "pub struct alea_distributions::modeling::regression::ObservationMap<P: alea_core::model::assembly::primitives::OperationDescriptor>",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent downstream, numerical and platform qualification; no performance or statistical maturity promotion."
+      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-distributions",

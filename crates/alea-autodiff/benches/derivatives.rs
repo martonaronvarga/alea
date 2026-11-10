@@ -16,7 +16,10 @@ fn derivatives(c: &mut Criterion) {
             let sigma = b.positive("sigma").unwrap().expr();
             if batch {
                 let f = b
-                    .primitive(NormalBatch::observed(vec![0.3; rows], &[mu], &[sigma]).unwrap())
+                    .primitive(
+                        &[&[mu][..], &[sigma][..]].concat(),
+                        NormalBatch::observed(vec![0.3; rows], 1, 1).unwrap(),
+                    )
                     .unwrap();
                 b.factor(f).unwrap();
             } else {

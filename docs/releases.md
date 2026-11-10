@@ -66,7 +66,8 @@ are qualified. See [contracts and qualification](tensor-ir.md).
 
 The development interface adds `alea::model!`, literal/handle scalar inputs, named
 native distribution helpers and named vector conveniences. The explicit builder
-and existing `Expr` calls remain usable. Arithmetic and Normal/Bernoulli-logit
+uses one `Value` handle for scalar assembly and lexical tensor regions. Arithmetic
+and Normal/Bernoulli-logit
 constructor signatures are now generic over checked scalar inputs; code relying
 on implicit `.into()` inference may need to pass the handle directly or supply a
 type annotation. These signature changes require compatibility review before a

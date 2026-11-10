@@ -15,7 +15,7 @@ measurements and broader qualification than a richer representation supplies.
 the checked native per-execution estimate, including retained scan frames and
 both conditional branches. `binding.workspace_with_limit(bytes)` rejects an
 insufficient budget before allocating any execution frames; it returns typed
-required/allowed bytes. `TensorFactor::check_workspace_limit(bytes)` permits the
+required/allowed bytes. `BoundProgram::check_workspace_limit(bytes)` permits the
 same admission before registering a factor into a model. Rebinding keeps the
 fixed plan and its estimate. Budget each simultaneous chain separately.
 
@@ -50,9 +50,12 @@ These are implementation references, not evidence that the systems are identical
 ## Fixed-shape block programming
 
 ```rust
-use alea::model::tensor::{BinaryOp, Shape, TensorBuilder};
+use alea::model::{
+    assembly::ModelBuilder,
+    tensor::{BinaryOp, Shape},
+};
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-let mut b = TensorBuilder::new();
+let mut b = ModelBuilder::new().region();
 let x = b.input("x", Shape::new(vec![3])?)?;
 let w = b.data("weights", Shape::new(vec![3])?)?;
 let product = b.binary(BinaryOp::Multiply, x, w)?;
@@ -86,11 +89,45 @@ trailing-axis broadcasting, full sum, constant-index gather, zero-copy reshape,
 rank-two matrix multiplication, scalar comparison/conditional and fixed-trip scan.
 Reshape aliases both value and adjoint storage. Gather repeats scatter-add in
 reverse. Unreachable operations remain inspectable but do not execute or export.
-Only the scalar result bridge `TensorFactor` connects to `ModelBuilder`; arbitrary
-tensor outputs use `BoundProgram::evaluate` / `value_and_vjp` directly.
-In particular, a tensor-valued predictor cannot currently be passed directly to
-the scalar-expression-based native `NormalBatch`. Tensor execution and native
-batch-likelihood support do not yet imply automatic composition between them.
+`ModelBuilder::call_region` connects whole model values to a region's declared
+inputs. It checks shape and ownership before adding the call. Its result can
+feed multiple consumers, which accumulate their cotangents before one reverse
+call. Matrix products, reshapes and scalar reductions are available directly
+on the model builder. A vector chart can supply a whole value through
+`ModelBuilder::vector_value`.
+
+```rust
+use alea::model::{
+    ConstrainedModel,
+    assembly::ModelBuilder,
+    tensor::Shape,
+};
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+let mut model = ModelBuilder::new();
+let beta = model.real_vector("beta", &["a", "b"])?;
+let beta = model.vector_value(&beta, Shape::new(vec![2, 1])?)?;
+let design = model.constant_block(Shape::new(vec![2, 2])?, vec![1., 2., 3., 4.])?;
+let eta = model.matmul(design, beta)?;
+let total = model.sum_value(eta)?;
+model.factor(total)?;
+let model = model.compile()?;
+let mut gradient = [0.; 2];
+assert_eq!(model.logp_grad(&[2., 3.], &mut gradient)?, 26.);
+assert_eq!(gradient, [4., 6.]);
+# Ok(())
+# }
+```
+
+Use `BlockRules` to register a custom forward rule and an optional native VJP.
+The descriptor carries immutable configuration, and each execution frame owns
+its typed workspace. Region callbacks can read real, Boolean, count and index
+arguments in their original types. VJPs write one contribution per real input
+element in declared argument order, including repeated inputs. Native-only
+callbacks cannot be checkpoint-replayed or exported as Rust source.
+
+Whole-value model calls currently execute natively. Existing scalar-result
+source models use `ModelBuilder::apply_region`. Native `NormalBatch` and
+logit composition with whole tensor predictors remains a separate cutover.
 
 ### Numerical admission is part of the execution contract
 
@@ -258,9 +295,12 @@ zero seeds, empty dimensions and overflow/output-staging recovery are covered.
 ## Structured conditional and loop semantics
 
 ```rust
-use alea::model::tensor::{BinaryOp, Shape, TensorBuilder};
+use alea::model::{
+    assembly::ModelBuilder,
+    tensor::{BinaryOp, Shape},
+};
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-let mut body = TensorBuilder::new();
+let mut body = ModelBuilder::new().region();
 let carry = body.input("carry", Shape::scalar())?;
 let row = body.input("row", Shape::scalar())?;
 let gain = body.input("gain", Shape::scalar())?;
@@ -268,7 +308,7 @@ let scaled = body.binary(BinaryOp::Multiply, carry, gain)?;
 let next = body.binary(BinaryOp::Add, scaled, row)?;
 let body = body.compile(next)?.bind(&[])?;
 
-let mut b = TensorBuilder::new();
+let mut b = ModelBuilder::new().region();
 let initial = b.input("initial", Shape::scalar())?;
 let gain = b.input("gain", Shape::scalar())?;
 let xs = b.data("xs", Shape::new(vec![3])?)?;
@@ -314,13 +354,14 @@ density. External generated functions must be regenerated/recompiled too.
 
 `NormalRegression`, `BernoulliLogitRegression` and `PoissonLogRegression` expose
 `with_data` for fixed-row/fixed-column replacements, retaining typed observations,
-design orientation, coefficients and offsets. `TensorFactor::with_data` rebinds
+design orientation, coefficients and offsets. `CompiledModel::rebind_region` rebinds
 a named tensor binding. Changing parameter layout, dimensions or dependency
 handles requires rebuilding, not pretending it is data-only rebinding.
 
 ## Automatic native batch reporting and source lowering
 
-The primitive author supplies optional `batch_rule` / `source_rule` capabilities.
+The operation author installs optional `NativeRules::batch` and
+`NativeRules::source` capabilities in the typed rule bundle.
 The standard scalar Normal and all three native regression families implement
 these rules. Registration keeps one fused native analytic likelihood/VJP;
 **reporting does not scalarize the sampler's graph**. Pointwise rules reuse Alea's
@@ -433,7 +474,7 @@ nix develop .#autodiff --command rustc --edition 2024 -O -C lto=fat -C embed-bit
 The source boundary now preserves typed storage explicitly:
 
 - `CompiledModel::rust_primal_with_workspace` and its objective counterpart return
-  a body plus a checked `f64` element count. `Primitive::source_workspace` declares
+  a body plus a checked `f64` element count. `SourceRule::workspace` declares
   source-only scratch independently of native evaluation scratch. Combined sizes,
   pruning and consuming rebinding are tested; source formatting remains lazy.
 - Factor arguments and tensor mutable intermediates live in an external float
@@ -961,8 +1002,57 @@ charts use the existing native `Transform::pullback` or
 and absent for objectives. Every local factor score is admitted before graph
 propagation, even if its eventual scalar multiplier is zero.
 
-The generated `SOURCE_CHECKPOINTED` constant reports whether this explicit
-first-order path was selected. Its float-arena extent is checked, but is not a
+First-order derivative selection is factor-local inside a composed model.
+A trusted score rule supplies its own factor's scores. A checkpointed tensor
+uses segmented replay for its own pullback. Ordinary tensors and eligible
+opaque source factors use compiler reverse. Ordinary tensors in a composed
+model still run the checked tensor pullback for local-score admission. The
+executor discards those scores before computing the compiler gradient.
+The Enzyme `route_*` fixtures check the emitted helpers and calls with trusted,
+checkpointed, opaque and excluded companions.
+
+The admission investigation exposed a counterexample: with A equal to
+`sqrt(x*x)`, native evaluation rejects the singular local score at zero, whereas
+the unguarded pinned compiler-only generated target returned value and score zero.
+Inspecting the actual pinned compiler's emitted LLVM IR identifies the mechanism:
+the reverse rule for `sqrt` compares its **input** with zero and selects no
+adjoint increment at zero instead of propagating `seed / (2 * sqrt(input))`.
+The product's reverse then receives zero. This is an explicit branch in generated
+derivative code; it is not evidence that Alea lost the aliased input or that the
+compiler simplified the entire expression to an absolute-value operation. The
+emitted derivative arithmetic also carries LLVM `fast` flags; this inspection
+does not establish that those flags cause the zero-input selection.
+
+Compiler-only tensor derivative entries now run the existing checked tensor
+pullback in a separate admission helper, outside compiler differentiation. The
+helper reuses the scalar composition and tensor VJP; its score is discarded.
+The actual returned gradient and curvature remain compiler-derived. Value-only
+evaluation retains primal admission and can return zero at this point. Hybrid
+first-order entries already admit tensor scores and do not add another helper.
+`SOURCE_TENSOR_SCORE_VALIDATION` reports this extra work separately from
+`SOURCE_EXPLICIT_FIRST_ORDER` and `SOURCE_CHECKPOINTED`. The existing benchmark
+receipt records derivative route L with admission H and an explicit extra-work
+reason, rather than reporting pure compiler execution costs.
+
+The validation adds a complete checked composition evaluation and its scratch
+before each compiler-only tensor gradient, including the first-order check used
+by curvature. Its timing and total process memory have **not been measured**.
+It preserves selected branches, static activity and dynamic zero-seed behavior;
+it does not reject every occurrence of `sqrt(0)` in a forward pass. The source
+rules for arbitrary opaque callbacks remain the author's responsibility, and
+this check does not establish equivalence to a hidden handwritten native VJP.
+
+The existing `route_*` tests cover all nine compositions through both density and
+objective entries, independent nonzero derivatives through third order, invalid
+supplied scores, singular rejection and recovery. The ordinary tensor admission
+fixture additionally tests lazy selection between a singular active root and a
+masked root with zero seed plus an immutable `sqrt(0)`. Admission failures are
+collected until all derivative and recovery checks run. This qualification does
+not extend to different compilers or higher differentiation of a manual VJP.
+
+The generated `SOURCE_EXPLICIT_FIRST_ORDER` constant reports whether this explicit
+first-order path was selected; `SOURCE_CHECKPOINTED` reports tensor checkpointing
+within that path. Its float-arena extent is checked, but is not a
 whole-process memory bound. Original input/output storage and dense active tensor
 adjoints remain; opaque source factors can retain compiler-owned tapes. Replay
 also costs computation: the initial implementation executed five body-primal
@@ -1311,7 +1401,7 @@ passes per gradient trip, establish optimal checkpointing, or qualify higher
 derivatives through the explicit reverse program. The original tested compiler
 reverse remains the HVP/third-order route.
 
-For matrix products, `TensorBuilder::with_matrix_kernel` sets the policy for
+For matrix products, `RegionBuilder::with_matrix_kernel` sets the policy for
 subsequent products in that lexical builder. Existing nodes and child regions
 retain their own policies. Optional `MatrixKernel::Auto` resolves once to an
 available provider, preferring sequential Faer when both providers are enabled.

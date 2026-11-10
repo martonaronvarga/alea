@@ -9,7 +9,7 @@ use alea::distribution::ParameterScore;
 use alea_math::numeric::CompensatedSum;
 
 fn observe<D, F>(
-    builder: &mut TensorBuilder,
+    builder: &mut RegionBuilder,
     events: Vec<D::Event>,
     parameters: &[Value],
     construct: F,
@@ -32,15 +32,15 @@ where
         if node.shape != Shape::scalar() && node.shape != shape {
             return Err(E::Shape);
         }
-        types.push(Type::of(node));
+        types.push(BlockType::of(node));
         lengths.push(node.shape.elements);
     }
     let scores = rows.checked_mul(count).ok_or(E::Shape)?;
     let scratch = extent(scores, count)?;
     let signature = Signature {
         inputs: types,
-        output: Type {
-            dtype: DType::Real,
+        output: BlockType {
+            dtype: ElementType::Real,
             shape,
         },
         scratch,
@@ -104,7 +104,7 @@ mod tests {
         modeling,
         scalar::{BernoulliLogit, Normal},
     };
-    use std::sync::atomic::AtomicUsize;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     fn close(a: f64, b: f64, tol: f64) {
         assert!((a - b).abs() <= tol * (1. + b.abs()), "{a} != {b}");
@@ -123,7 +123,7 @@ mod tests {
     fn build(n: usize, family: u8) -> (TensorProgram, Arc<AtomicUsize>) {
         let (_, events, binary) = data(n);
         let calls = Arc::new(AtomicUsize::new(0));
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let beta = b.input("beta", Shape::new(vec![2, 1]).unwrap()).unwrap();
         let rho = b.input("rho", Shape::scalar()).unwrap();
         let design = b.data("design", Shape::new(vec![n, 2]).unwrap()).unwrap();
@@ -132,9 +132,9 @@ mod tests {
         let mapped = b
             .register(
                 Signature {
-                    inputs: vec![Type::of(b.node(eta).unwrap())],
-                    output: Type {
-                        dtype: DType::Real,
+                    inputs: vec![BlockType::of(b.node(eta).unwrap())],
+                    output: BlockType {
+                        dtype: ElementType::Real,
                         shape: Shape::new(vec![n]).unwrap(),
                     },
                     scratch: 0,
@@ -317,9 +317,9 @@ mod tests {
 
     #[test]
     fn block_shape_admission_empty_maps_extremes_and_failure_recovery() {
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", Shape::new(vec![2, 1]).unwrap()).unwrap();
-        let mut foreign = TensorBuilder::new();
+        let mut foreign = RegionBuilder::new();
         let foreign = foreign.input("x", Shape::scalar()).unwrap();
         let before = b.nodes.len();
         assert!(matches!(
@@ -358,7 +358,7 @@ mod tests {
         }
         // Scalar broadcast and repeated logical arguments must accumulate as
         // separate input occurrences, not overwrite the same destination.
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let mu = b.input("shared", Shape::scalar()).unwrap();
         let value = observe::<Normal, _>(&mut b, vec![0.2, -0.3, 0.7], &[mu, mu], |p| {
             Normal::new(p[0], p[1])
@@ -469,7 +469,7 @@ mod tests {
         }
         let incomplete = Arc::new(AtomicUsize::new(1));
         let flag = Arc::clone(&incomplete);
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", Shape::scalar()).unwrap();
         let value = observe::<FaultyScore, _>(&mut b, vec![true, false], &[x], move |x| {
             Ok(FaultyScore {

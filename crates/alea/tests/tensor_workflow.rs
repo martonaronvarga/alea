@@ -6,7 +6,7 @@ use alea::{
     model::{
         TransformedTarget,
         assembly::{CompiledModel, ModelBuilder},
-        tensor::{BinaryOp, Comparison, Shape, TensorBuilder, TensorFactor},
+        tensor::{BinaryOp, Comparison, Shape},
     },
     sampling::{
         NutsOptions,
@@ -19,14 +19,14 @@ use rand::{SeedableRng, rngs::SmallRng};
 fn target() -> TransformedTarget<CompiledModel> {
     let mut b = ModelBuilder::new();
     let q = b.real("q").unwrap();
-    let mut tensor = TensorBuilder::new();
+    let mut tensor = b.region();
     let x = tensor.input("x", Shape::scalar()).unwrap();
     let weights = tensor
         .data("weights", Shape::new(vec![64]).unwrap())
         .unwrap();
     let product = tensor.binary(BinaryOp::Multiply, x, weights).unwrap();
     let average = tensor.sum(product).unwrap();
-    let mut branch = TensorBuilder::new();
+    let mut branch = b.region();
     let value = branch.input("value", Shape::scalar()).unwrap();
     let identity = branch.compile(value).unwrap().bind(&[]).unwrap();
     let zero = tensor.constant(Shape::scalar(), vec![0.]).unwrap();
@@ -40,7 +40,7 @@ fn target() -> TransformedTarget<CompiledModel> {
             identity,
         )
         .unwrap();
-    let mut body = TensorBuilder::new();
+    let mut body = b.region();
     let carry = body.input("carry", Shape::scalar()).unwrap();
     let row = body.input("row", Shape::scalar()).unwrap();
     let add = body.binary(BinaryOp::Add, carry, row).unwrap();
@@ -52,9 +52,7 @@ fn target() -> TransformedTarget<CompiledModel> {
         .unwrap()
         .bind(&[("weights", &[1. / 64.; 64]), ("rows", &[0.; 3])])
         .unwrap();
-    let mean = b
-        .primitive(TensorFactor::new(program, &[q.expr()]).unwrap())
-        .unwrap();
+    let mean = b.call_region(&[q.expr()], program).unwrap();
     let prior = normal(&mut b, q, 0., 1.).unwrap();
     b.prior("prior", prior).unwrap();
     let likelihood = normal(&mut b, 1., mean, 1.).unwrap();

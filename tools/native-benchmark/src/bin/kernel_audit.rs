@@ -81,7 +81,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let construction_seconds;
     let (seconds, checksum) = match case.as_str() {
         "gemm" | "gemm_faer" | "gemm_blas" => {
-            use alea::model::tensor::{MatrixKernel, Shape, TensorBuilder};
+            use alea::model::tensor::{MatrixKernel, Shape};
             let requested = std::env::var("ALEA_MATRIX_KERNEL").unwrap_or_else(|_| case.clone());
             let kernel = match requested.as_str() {
                 "gemm" | "compensated" => MatrixKernel::Compensated,
@@ -92,7 +92,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 _ => return Err("requested matrix provider was not compiled".into()),
             };
             let count = size.checked_mul(size).ok_or("matrix extent overflow")?;
-            let mut b = TensorBuilder::new();
+            let mut b = ModelBuilder::new().region();
             let a = b.input("a", Shape::new(vec![size, size])?)?;
             let r = b.input("r", Shape::new(vec![size, size])?)?;
             let result = b.matmul_with_kernel(a, r, kernel)?;
@@ -107,7 +107,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             program.value_and_vjp(&x, &seed, &mut out, &mut g, &mut w)?;
             // Full-coordinate admission against the existing compensated IR,
             // outside timing. These dyadic controls are not an accuracy theorem.
-            let mut reference = TensorBuilder::new();
+            let mut reference = ModelBuilder::new().region();
             let a = reference.input("a", Shape::new(vec![size, size])?)?;
             let r = reference.input("r", Shape::new(vec![size, size])?)?;
             let result = reference.matmul(a, r)?;
@@ -139,8 +139,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             (start.elapsed().as_secs_f64(), checksum)
         }
         "tensor_vector" | "tensor_reuse" => {
-            use alea::model::tensor::{BinaryOp, Shape, TensorBuilder, UnaryOp};
-            let mut b = TensorBuilder::new();
+            use alea::model::tensor::{BinaryOp, Shape, UnaryOp};
+            let mut b = ModelBuilder::new().region();
             let input = b.input("input", Shape::new(vec![size])?)?;
             let mut value = input;
             for _ in 0..32 {
@@ -189,9 +189,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             let mut b = ModelBuilder::new();
             let dimension;
             if case.starts_with("tensor") {
-                use alea::model::tensor::{
-                    BinaryOp, Comparison, Shape, TensorBuilder, TensorFactor,
-                };
+                use alea::model::tensor::{BinaryOp, Comparison, Shape};
                 if case == "tensor_scalar" {
                     dimension = 1;
                     let slope = b.real("slope")?.expr();
@@ -206,14 +204,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                 } else if case == "tensor_scan" || case == "tensor_scan_checkpoint" {
                     dimension = 2;
                     let inputs = [b.real("initial")?.expr(), b.real("gain")?.expr()];
-                    let mut body = TensorBuilder::new();
+                    let mut body = b.region();
                     let carry = body.input("carry", Shape::scalar())?;
                     let row = body.input("row", Shape::scalar())?;
                     let gain = body.input("gain", Shape::scalar())?;
                     let scaled = body.binary(BinaryOp::Multiply, carry, gain)?;
                     let next = body.binary(BinaryOp::Add, scaled, row)?;
                     let body = body.compile(next)?.bind(&[])?;
-                    let mut tensor = TensorBuilder::new();
+                    let mut tensor = b.region();
                     let initial = tensor.input("initial", Shape::scalar())?;
                     let gain = tensor.input("gain", Shape::scalar())?;
                     let rows = tensor.data("rows", Shape::new(vec![size])?)?;
@@ -223,17 +221,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                         tensor.scan(initial, rows, &[gain], body)?
                     };
                     let values: Vec<_> = (0..size).map(|i| (i % 17) as f64 / 16.).collect();
-                    let factor = b.primitive(TensorFactor::new(
-                        tensor.compile(end)?.bind(&[("rows", &values)])?,
-                        &inputs,
-                    )?)?;
+                    let factor =
+                        b.apply_region(&inputs, tensor.compile(end)?.bind(&[("rows", &values)])?)?;
                     b.potential("scan", factor)?;
                 } else if case == "tensor_matmul" {
                     dimension = 8;
                     let inputs: Vec<_> = (0..dimension)
                         .map(|j| b.real(&format!("q{j}")).map(|v| v.expr()))
                         .collect::<Result<_, _>>()?;
-                    let mut tensor = TensorBuilder::new();
+                    let mut tensor = b.region();
                     let coefficients =
                         tensor.input("coefficients", Shape::new(vec![dimension, 1])?)?;
                     let design = tensor.data("design", Shape::new(vec![size, dimension])?)?;
@@ -243,22 +239,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let values: Vec<_> = (0..size * dimension)
                         .map(|i| (i % 17) as f64 / 16.)
                         .collect();
-                    let factor = b.primitive(TensorFactor::new(
-                        tensor.compile(sum)?.bind(&[("design", &values)])?,
+                    let factor = b.apply_region(
                         &inputs,
-                    )?)?;
+                        tensor.compile(sum)?.bind(&[("design", &values)])?,
+                    )?;
                     b.potential("matrix", factor)?;
                 } else if case == "tensor_cond" {
                     dimension = 1;
                     let input = b.real("slope")?.expr();
-                    let mut branch = TensorBuilder::new();
+                    let mut branch = b.region();
                     let slope = branch.input("slope", Shape::scalar())?;
                     let weights = branch.data("weights", Shape::new(vec![size])?)?;
                     let product = branch.binary(BinaryOp::Multiply, slope, weights)?;
                     let square = branch.binary(BinaryOp::Multiply, product, product)?;
                     let values: Vec<_> = (0..size).map(|i| (i % 17) as f64 / 16.).collect();
                     let branch = branch.compile(square)?.bind(&[("weights", &values)])?;
-                    let mut tensor = TensorBuilder::new();
+                    let mut tensor = b.region();
                     let slope = tensor.input("slope", Shape::scalar())?;
                     let threshold = tensor.constant(Shape::scalar(), vec![0.045])?;
                     let selected = tensor.cond(
@@ -270,15 +266,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                         branch,
                     )?;
                     let sum = tensor.sum(selected)?;
-                    let factor = b.primitive(TensorFactor::new(
-                        tensor.compile(sum)?.bind(&[])?,
-                        &[input],
-                    )?)?;
+                    let factor = b.apply_region(&[input], tensor.compile(sum)?.bind(&[])?)?;
                     b.potential("branch", factor)?;
                 } else {
                     dimension = 1;
                     let slope = b.real("slope")?.expr();
-                    let mut tensor = TensorBuilder::new();
+                    let mut tensor = b.region();
                     let input = tensor.input("input", Shape::scalar())?;
                     let weights = tensor.data("weights", Shape::new(vec![size])?)?;
                     let product = tensor.binary(BinaryOp::Multiply, input, weights)?;
@@ -294,7 +287,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let sum = tensor.sum(square)?;
                     let values: Vec<_> = (0..size).map(|i| (i % 17) as f64 / 16.).collect();
                     let program = tensor.compile(sum)?.bind(&[("weights", &values)])?;
-                    let factor = b.primitive(TensorFactor::new(program, &[slope])?)?;
+                    let factor = b.apply_region(&[slope], program)?;
                     b.potential("tensor", factor)?;
                 }
             } else if case.starts_with("poisson") {
@@ -323,7 +316,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     RegressionData::new(dimension, x, (0..size).map(|i| (i % 5) as u64).collect())?;
                 let factor = if case == "poisson_scalar" {
                     b.primitive(
-                        PoissonLogRegression::new(&beta, data)?
+                        &beta,
+                        PoissonLogRegression::new(data)?
                             .with_execution(RegressionExecution::Scalar),
                     )?
                 } else {

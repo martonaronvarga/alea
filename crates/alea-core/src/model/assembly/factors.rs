@@ -1,5 +1,5 @@
 //! Statistical factor declarations and explicit, consuming graph selections.
-use super::{AssemblyError, CompiledModel, Expr, ModelBuilder, Op};
+use super::{AssemblyError, CompiledModel, ModelBuilder, Op, Value};
 
 /// Declared statistical meaning. This is a caller contract, not a proof that a
 /// custom callback is normalized or that a posterior is proper.
@@ -41,25 +41,25 @@ impl ModelBuilder {
     /// joint data block; the name alone does not declare a leave-out unit.
     /// # Errors
     /// Rejects foreign handles and empty or duplicate factor names before mutation.
-    pub fn likelihood(&mut self, name: &str, factor: Expr) -> Result<(), AssemblyError> {
+    pub fn likelihood(&mut self, name: &str, factor: Value) -> Result<(), AssemblyError> {
         self.named_factor(name, factor, FactorRole::Likelihood)
     }
     /// Adds a named prior density in the physical parameter measure.
     /// # Errors
     /// Rejects foreign handles and empty or duplicate names before mutation.
-    pub fn prior(&mut self, name: &str, factor: Expr) -> Result<(), AssemblyError> {
+    pub fn prior(&mut self, name: &str, factor: Value) -> Result<(), AssemblyError> {
         self.named_factor(name, factor, FactorRole::Prior)
     }
     /// Adds a named arbitrary penalty/potential, without claiming it is a prior.
     /// # Errors
     /// Rejects foreign handles and empty or duplicate names before mutation.
-    pub fn potential(&mut self, name: &str, factor: Expr) -> Result<(), AssemblyError> {
+    pub fn potential(&mut self, name: &str, factor: Value) -> Result<(), AssemblyError> {
         self.named_factor(name, factor, FactorRole::Potential)
     }
     fn named_factor(
         &mut self,
         name: &str,
-        factor: Expr,
+        factor: Value,
         role: FactorRole,
     ) -> Result<(), AssemblyError> {
         let node = self.index(factor)?;
@@ -188,6 +188,11 @@ impl CompiledModel {
                     active[*b] = true;
                 }
                 Op::Exp(a) | Op::Log(a) => active[*a] = true,
+                Op::Region(call) => {
+                    for input in &call.inputs {
+                        active[*input] = true;
+                    }
+                }
                 Op::Factor { inputs, .. } => {
                     for input in inputs {
                         active[*input] = true;

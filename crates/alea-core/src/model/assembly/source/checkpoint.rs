@@ -1,6 +1,5 @@
 //! Explicit graph reverse composition around rematerialized tensor primitives.
 use super::*;
-use crate::model::tensor::TensorFactor;
 
 fn extent(a: usize, b: usize) -> Result<usize, AssemblyError> {
     a.checked_add(b)
@@ -24,7 +23,7 @@ impl CompiledModel {
         density: bool,
     ) -> Result<Option<(String, usize)>, AssemblyError> {
         Ok(self
-            .rust_composed_gradient(density, false)?
+            .rust_composed_gradient(density, false, false)?
             .map(|(source, workspace, _)| (source, workspace)))
     }
 
@@ -37,23 +36,45 @@ impl CompiledModel {
         &self,
         density: bool,
     ) -> Result<Option<(String, usize, bool)>, AssemblyError> {
-        self.rust_composed_gradient(density, true)
+        self.rust_composed_gradient(density, true, false)
+    }
+
+    /// Emits checked tensor score validation for a compiler-derived gradient.
+    ///
+    /// Compiler derivative conventions can hide a singular local tensor score
+    /// (for example, the pinned sqrt rule supplies zero at zero). This reuses
+    /// the existing explicit tensor pullback and scalar composition for admission
+    /// only. Its returned score must not replace the requested compiler gradient.
+    /// Source-only opaque leaves still require their compiler derivative; this
+    /// does not validate arbitrary handwritten callbacks against their source.
+    /// Returns `None` without an active tensor. Call outside differentiation and
+    /// separately from value-only evaluation. Skip it when the actual first-order
+    /// route already performs explicit tensor pullbacks.
+    /// # Errors
+    /// Preserves missing-primal and checked workspace overflow errors.
+    pub fn rust_tensor_score_validation(
+        &self,
+        density: bool,
+    ) -> Result<Option<(String, usize)>, AssemblyError> {
+        Ok(self
+            .rust_composed_gradient(density, true, true)?
+            .map(|(source, workspace, _)| (source, workspace)))
     }
     fn rust_composed_gradient(
         &self,
         density: bool,
         primitive_rules: bool,
+        tensor_validation: bool,
     ) -> Result<Option<(String, usize, bool)>, AssemblyError> {
         let tensor = |i| {
             self.primitives
                 .binary_search_by_key(&i, |(node, _)| *node)
                 .ok()
-                .and_then(|j| self.primitives[j].1.descriptor::<TensorFactor>())
+                .and_then(|j| self.primitives[j].1.region_binding())
         };
         let retained = |i: usize| self.active_nodes.as_ref().is_none_or(|a| a[i]);
-        let checkpointed = (0..self.nodes.len()).any(|i| {
-            retained(i) && tensor(i).is_some_and(|t| t.binding().has_source_checkpoints())
-        });
+        let checkpointed = (0..self.nodes.len())
+            .any(|i| retained(i) && tensor(i).is_some_and(|t| t.has_source_checkpoints()));
         let native = |i| {
             if primitive_rules {
                 self.primitives
@@ -64,7 +85,13 @@ impl CompiledModel {
                 None
             }
         };
-        if !checkpointed && !(0..self.nodes.len()).any(|i| retained(i) && native(i).is_some()) {
+        if tensor_validation && !(0..self.nodes.len()).any(|i| retained(i) && tensor(i).is_some()) {
+            return Ok(None);
+        }
+        if !tensor_validation
+            && !checkpointed
+            && !(0..self.nodes.len()).any(|i| retained(i) && native(i).is_some())
+        {
             return Ok(None);
         }
         let c = self.layout.constrained_dimension();
@@ -101,6 +128,7 @@ impl CompiledModel {
                 Op::Multiply(a, b) => format!("n[{a}]*n[{b}]"),
                 Op::Exp(a) => format!("n[{a}].exp()"),
                 Op::Log(a) => format!("n[{a}].ln()"),
+                Op::Region(_) => return Err(AssemblyError::MissingPrimal { node: i }),
                 Op::Factor { inputs, .. } => {
                     let primal = self
                         .primal_source(i)
@@ -129,15 +157,18 @@ impl CompiledModel {
                         reverse.insert_str(0, &r);
                         continue;
                     }
+                    let explicit =
+                        tensor(i).is_some_and(|t| tensor_validation || t.has_source_checkpoints());
                     let pullback = tensor(i)
-                        .map(|t| t.binding().pullback_source(&format!("__tensor{i}")))
+                        .map(|t| t.pullback_source(&format!("__tensor{i}")))
                         .transpose()
                         .map_err(|_| AssemblyError::Shape)?;
                     let work = pullback.as_ref().map_or(size, |v| v.workspace.max(size));
                     temporary = temporary.max(extent(extent(d, d)?, extent(work, 1)?)?);
                     if let Some(pullback) = &pullback {
                         source.push_str(&pullback.source);
-                    } else {
+                    }
+                    if !explicit {
                         writeln!(source,"#[::std::autodiff::autodiff_reverse(__factor_reverse{i},Duplicated,Duplicated,Active)]").unwrap();
                     }
                     writeln!(source,"fn __factor{i}(x:&[f64;{d}],scratch:&mut[f64;{size}])->f64 {{let _=&scratch;{primal}}}").unwrap();
@@ -153,8 +184,12 @@ impl CompiledModel {
                         "{{let(args,rest)=temporary.split_at_mut({d});let(scores,work)=rest.split_at_mut({d});{pack}scores.fill(0.0);"
                     );
                     if pullback.is_some() {
-                        write!(r,"let(result,work)=work.split_at_mut(1);let mut valid=true;__tensor{i}(args,&[1.0],result,scores,work,&mut valid);if !valid {{g.fill(f64::NAN);return f64::NAN;}}").unwrap();
-                    } else {
+                        write!(r,"{{let(result,work)=work.split_at_mut(1);let mut valid=true;__tensor{i}(args,&[1.0],result,scores,work,&mut valid);if !valid || scores.iter().any(|v|!v.is_finite()) {{g.fill(f64::NAN);return f64::NAN;}}}}").unwrap();
+                    }
+                    if !explicit {
+                        // A retained tensor still needs checked local-score admission.
+                        // Its explicit scores are discarded before compiler reverse.
+                        r.push_str("scores.fill(0.0);");
                         write!(r,"let(work,shadow)=work.split_at_mut({size});shadow[..{size}].fill(0.0);__factor_reverse{i}((&*args).try_into().expect(\"arguments\"),scores.try_into().expect(\"scores\"),work.try_into().expect(\"workspace\"),(&mut shadow[..{size}]).try_into().expect(\"shadow\"),1.0);").unwrap();
                         temporary = temporary.max(extent(extent(d, d)?, extent(size, size)?)?);
                     }
@@ -186,7 +221,7 @@ impl CompiledModel {
                 }
                 Op::Exp(a) => format!("a[{a}]+=a[{i}]*n[{i}];"),
                 Op::Log(a) => format!("a[{a}]+=a[{i}]/n[{a}];"),
-                Op::Factor { .. } => unreachable!(),
+                Op::Factor { .. } | Op::Region(_) => unreachable!(),
             };
             reverse.insert_str(0, &r);
         }

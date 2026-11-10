@@ -240,7 +240,7 @@ mod tests {
     fn reverse_tiles_preserve_shared_alias_contributions_and_inactive_broadcasts() {
         for scalar_parameter in [false, true] {
             let n = 8193;
-            let mut b = TensorBuilder::new();
+            let mut b = RegionBuilder::new();
             let x = b.input("x", Shape::new(vec![n]).unwrap()).unwrap();
             let scale = if scalar_parameter {
                 b.input("scale", Shape::scalar()).unwrap()
@@ -313,7 +313,7 @@ mod tests {
     #[test]
     fn fused_dags_match_unfused_values_every_score_and_error_admission() {
         for rows in [1, 2, 7, 257, 1025, 4097] {
-            let mut b = TensorBuilder::new();
+            let mut b = RegionBuilder::new();
             let x = b.input("x", Shape::new(vec![rows, 3]).unwrap()).unwrap();
             let bias = b.input("bias", Shape::new(vec![1, 3]).unwrap()).unwrap();
             let scale = b.input("scale", Shape::scalar()).unwrap();
@@ -363,7 +363,7 @@ mod tests {
             // declined by its independently measured working-set policy.
             assert_eq!(fused_source.matches("for j in").count(), 1);
         }
-        let mut b = TensorBuilder::new();
+        let mut b = RegionBuilder::new();
         let x = b.input("x", Shape::new(vec![8193]).unwrap()).unwrap();
         let one = b.constant(Shape::scalar(), vec![1.]).unwrap();
         let huge = b.unary(UnaryOp::Exp, x).unwrap();

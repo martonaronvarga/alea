@@ -1,6 +1,7 @@
 //! One-axis Normal map/reduce, retaining row semantics and native scalar errors.
 use super::*;
 use crate::scalar::{normal_local_scores, normal_standardized_value};
+use alea_core::model::assembly::{NativeRules, OperationDescriptor, SourceBody, SourceRule};
 use alea_math::numeric::CompensatedSum;
 
 /// Independent scalar Normal terms with explicit scalar/vector broadcasting.
@@ -9,7 +10,6 @@ use alea_math::numeric::CompensatedSum;
 /// Row values and broadcast scores use ordered compensated reductions; bitwise
 /// equality with a separately assembled scalar-factor graph is not promised.
 pub struct NormalBatch {
-    inputs: Box<[Expr]>,
     observations: Option<Box<[f64]>>,
     lengths: [usize; 3],
     rows: usize,
@@ -21,23 +21,19 @@ pub struct NormalBatchWorkspace {
     logs: Vec<(Option<u64>, f64)>,
 }
 impl NormalBatch {
-    /// Retains differentiable event, location and scale vectors. Each argument
-    /// must be nonempty and have length one or the maximum supplied length.
+    /// Describes event, location and scale argument lengths, independently of
+    /// graph handles. Each must be nonempty and equal one or the largest length.
     /// # Errors
     /// Rejects incompatible shapes/overflow; ownership is checked on registration.
-    pub fn new(events: &[Expr], locations: &[Expr], scales: &[Expr]) -> Result<Self, E> {
-        Self::build(events, locations, scales, None)
+    pub fn new(lengths: [usize; 3]) -> Result<Self, E> {
+        Self::build(lengths, None)
     }
     /// Captures fixed finite observations without creating constant graph nodes.
-    /// Location and scale inputs each have length one or the observation count.
+    /// Location and scale argument lengths are one or the observation count.
     /// All three scalar scores are still checked, including the fixed event score.
     /// # Errors
     /// Rejects empty/nonfinite observations, incompatible shapes or extent overflow.
-    pub fn observed(
-        observations: Vec<f64>,
-        locations: &[Expr],
-        scales: &[Expr],
-    ) -> Result<Self, E> {
+    pub fn observed(observations: Vec<f64>, locations: usize, scales: usize) -> Result<Self, E> {
         if observations.is_empty() {
             return Err(E::Shape);
         }
@@ -45,19 +41,11 @@ impl NormalBatch {
             return Err(E::Numerical);
         }
         Self::build(
-            &[],
-            locations,
-            scales,
+            [0, locations, scales],
             Some(observations.into_boxed_slice()),
         )
     }
-    fn build(
-        events: &[Expr],
-        locations: &[Expr],
-        scales: &[Expr],
-        observations: Option<Box<[f64]>>,
-    ) -> Result<Self, E> {
-        let lengths = [events.len(), locations.len(), scales.len()];
+    fn build(lengths: [usize; 3], observations: Option<Box<[f64]>>) -> Result<Self, E> {
         let rows = observations
             .as_ref()
             .map_or_else(|| *lengths.iter().max().unwrap_or(&0), |v| v.len());
@@ -76,12 +64,7 @@ impl NormalBatch {
         if count > isize::MAX as usize / size_of::<(Option<u64>, f64)>() {
             return Err(E::Shape);
         }
-        let mut inputs = Vec::with_capacity(count);
-        inputs.extend_from_slice(events);
-        inputs.extend_from_slice(locations);
-        inputs.extend_from_slice(scales);
         Ok(Self {
-            inputs: inputs.into_boxed_slice(),
             observations,
             lengths,
             rows,
@@ -104,11 +87,7 @@ impl NormalBatch {
         if self.observations.is_none() || observations.len() != self.rows {
             return Err(E::Shape);
         }
-        Self::observed(
-            observations,
-            &self.inputs[..self.lengths[1]],
-            &self.inputs[self.lengths[1]..],
-        )
+        Self::observed(observations, self.lengths[1], self.lengths[2])
     }
     fn row(&self, x: &[f64], i: usize) -> [f64; 3] {
         let [e, m, s] = self.lengths;
@@ -244,11 +223,7 @@ impl NormalBatch {
         Ok(value)
     }
 }
-impl Primitive for NormalBatch {
-    type Workspace = NormalBatchWorkspace;
-    fn inputs(&self) -> &[Expr] {
-        &self.inputs
-    }
+impl NormalBatch {
     fn signature(&self) -> PrimitiveSignature {
         PrimitiveSignature {
             name: "normal_batch",
@@ -273,20 +248,28 @@ impl Primitive for NormalBatch {
             }),
         }
     }
-    fn workspace(&self) -> Self::Workspace {
+    /// Native kernel workspace.
+    pub fn workspace(&self) -> NormalBatchWorkspace {
         NormalBatchWorkspace {
-            scores: vec![0.; self.inputs.len()],
+            scores: vec![0.; self.lengths.iter().sum::<usize>()],
             logs: vec![(None, 0.); self.lengths[2]],
         }
     }
-    fn batch_workspace(&self) -> Self::Workspace {
+    /// Native kernel batch workspace.
+    pub fn batch_workspace(&self) -> NormalBatchWorkspace {
         NormalBatchWorkspace {
             scores: Vec::new(),
             logs: Vec::new(),
         }
     }
-    fn evaluate(&self, x: &[f64], g: &mut [f64], work: &mut Self::Workspace) -> Result<f64, E> {
-        if x.len() != self.inputs.len()
+    /// Native kernel evaluate.
+    pub fn evaluate(
+        &self,
+        x: &[f64],
+        g: &mut [f64],
+        work: &mut NormalBatchWorkspace,
+    ) -> Result<f64, E> {
+        if x.len() != self.lengths.iter().sum::<usize>()
             || g.len() != x.len()
             || work.scores.len() != x.len()
             || work.logs.len() != self.lengths[2]
@@ -316,7 +299,7 @@ impl Primitive for NormalBatch {
         Some(BatchRule {
             units: self.rows,
             evaluate: |this, x, out, _| {
-                if x.len() != this.inputs.len() || out.len() != this.rows {
+                if x.len() != this.lengths.iter().sum::<usize>() || out.len() != this.rows {
                     return Err(E::Shape);
                 }
                 for (i, out) in out.iter_mut().enumerate() {
@@ -360,30 +343,30 @@ impl Primitive for NormalBatch {
         Some(|this| {
             let [e, m, _] = this.lengths;
             let constructor = this.observations.as_ref().map_or_else(
-                || {
-                    format!(
-                        "Native::new(&inputs[..{e}],&inputs[{e}..{}],&inputs[{}..])",
-                        e + m,
-                        e + m
-                    )
-                },
-                |y| {
-                    format!(
-                        "Native::observed(vec!{:?},&inputs[..{m}],&inputs[{m}..])",
-                        y
-                    )
-                },
+                || format!("Native::new([{e},{m},{}])", this.lengths[2]),
+                |y| format!("Native::observed(vec!{:?},{m},{})", y, this.lengths[2]),
             );
-            let setup = format!(
-                "let mut b=::alea::model::assembly::ModelBuilder::new();let mut inputs=Vec::with_capacity({});for j in 0..{} {{inputs.push(b.real(&format!(\"input{{j}}\"))?.expr());}}{constructor}",
-                this.inputs.len(),
-                this.inputs.len()
-            );
+            let setup = constructor;
             super::super::cached_primitive_source(
                 "::alea::distributions::modeling::NormalBatch",
                 &setup,
             )
         })
+    }
+}
+impl OperationDescriptor for NormalBatch {
+    type Workspace = NormalBatchWorkspace;
+    fn rules(&self) -> NativeRules<Self> {
+        let mut rules = NativeRules::new(self.signature(), Self::workspace, Self::evaluate);
+        rules.batch_workspace = Self::batch_workspace;
+        rules.batch = self.batch_rule();
+        let body = self.source_rule().map(SourceBody::Generated);
+        rules.source = body.map(|body| SourceRule {
+            body,
+            gradient: self.source_gradient_rule(),
+            workspace: 0,
+        });
+        rules
     }
 }
 
@@ -392,12 +375,8 @@ mod tests {
     use super::*;
     #[test]
     fn packets_preserve_scalar_bits_and_extreme_admission_including_signed_zero() {
-        use alea_core::model::assembly::ModelBuilder;
-        let mut b = ModelBuilder::new();
-        let h = b.real("x").unwrap().expr();
         for rows in [1, 3, 4, 5, 129] {
-            let v = vec![h; rows];
-            let batch = NormalBatch::new(&v, &v, &v).unwrap();
+            let batch = NormalBatch::new([rows, rows, rows]).unwrap();
             for (event, location, scale) in [
                 (0., -0., 1.),
                 (-0., 0., 1.),

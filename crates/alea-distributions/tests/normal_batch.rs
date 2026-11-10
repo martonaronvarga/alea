@@ -2,7 +2,7 @@ use alea_core::{
     distribution::{Distribution, ParameterScore, ScalarEventScore},
     model::{
         ConstrainedModel,
-        assembly::{AssemblyError, ModelBuilder, Primitive},
+        assembly::{AssemblyError, ModelBuilder},
     },
     target::LogDensityGradient,
 };
@@ -102,11 +102,7 @@ fn broadcasting_aliases_packet_tails_and_every_gradient_match_scalar_laws_and_di
 
 #[test]
 fn packet_fallback_preserves_first_typed_error_checks_inactive_scores_and_recovers() {
-    let mut b = ModelBuilder::new();
-    let handles: Vec<_> = (0..15)
-        .map(|i| b.real(&format!("x{i}")).unwrap().expr())
-        .collect();
-    let batch = NormalBatch::new(&handles[..5], &handles[5..10], &handles[10..]).unwrap();
+    let batch = NormalBatch::new([5, 5, 5]).unwrap();
     let mut work = batch.workspace();
     let mut q = vec![0.; 15];
     q[10..].fill(1.);
@@ -121,7 +117,7 @@ fn packet_fallback_preserves_first_typed_error_checks_inactive_scores_and_recove
         q[5] = mu;
         q[10] = sigma;
         q[11] = -1.; // later constructor failure
-        let scalar = NormalFactor::new(handles[0], handles[5], handles[10]);
+        let scalar = NormalFactor::new();
         let expected = scalar
             .evaluate(&[event, mu, sigma], &mut [0.; 3], &mut ())
             .unwrap_err();
@@ -137,7 +133,7 @@ fn packet_fallback_preserves_first_typed_error_checks_inactive_scores_and_recove
         batch.evaluate(&q[..14], &mut [0.; 15], &mut work),
         Err(AssemblyError::Shape)
     ));
-    let shared = NormalBatch::observed(vec![1.; 5], &[handles[0]], &[handles[1]]).unwrap();
+    let shared = NormalBatch::observed(vec![1.; 5], 1, 1).unwrap();
     assert!(
         shared
             .evaluate(&[0., 1e-200], &mut [0.; 2], &mut shared.workspace())
@@ -150,9 +146,7 @@ fn fixed_data_rows_rebinding_source_and_one_scale_jacobian_use_existing_interfac
     let mut b = ModelBuilder::new();
     let mu = b.real("mu").unwrap();
     let sigma = b.positive("sigma").unwrap();
-    let primitive =
-        NormalBatch::observed(vec![-1., 0.5, 2., -0.25, 1.], &[mu.expr()], &[sigma.expr()])
-            .unwrap();
+    let primitive = NormalBatch::observed(vec![-1., 0.5, 2., -0.25, 1.], 1, 1).unwrap();
     assert_eq!(
         allocation_counter::measure(|| {
             std::hint::black_box(primitive.batch_workspace());
@@ -160,7 +154,7 @@ fn fixed_data_rows_rebinding_source_and_one_scale_jacobian_use_existing_interfac
         .count_total,
         0
     );
-    let f = b.primitive(primitive).unwrap();
+    let f = b.primitive(&[mu.expr(), sigma.expr()], primitive).unwrap();
     b.likelihood("data", f).unwrap();
     let model = b.compile().unwrap();
     assert_eq!(model.expression_count(), 3);
