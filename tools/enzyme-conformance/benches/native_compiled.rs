@@ -4,13 +4,53 @@
 #[path = "../models.rs"]
 mod models;
 use alea::{
-    capability::PotentialHessianDerivative,
+    capability::{PotentialHessianDerivative, PotentialHessianVector},
     model::assembly::CompiledModel,
     target::{LogDensityGradient, TargetSpace},
 };
 use alea_enzyme_conformance as generated;
-use criterion::{Criterion, Throughput, criterion_group, criterion_main};
+use criterion::{
+    BenchmarkGroup, Criterion, Throughput, criterion_group, criterion_main, measurement::WallTime,
+};
 use std::hint::black_box;
+
+// The pre-I1.1 exporter omits the separate admission flag entirely.
+const HAS_TENSOR_VALIDATION: bool =
+    tensor_validation_flag(include_str!(concat!(env!("OUT_DIR"), "/polynomial.rs"))).is_some();
+
+const fn tensor_validation_flag(source: &str) -> Option<bool> {
+    let prefix = b"pub const SOURCE_TENSOR_SCORE_VALIDATION: bool = ";
+    let source = source.as_bytes();
+    let mut i = 0;
+    while i + prefix.len() < source.len() {
+        let mut j = 0;
+        while j < prefix.len() && source[i + j] == prefix[j] {
+            j += 1;
+        }
+        if j == prefix.len() {
+            return Some(source[i + j] == b't');
+        }
+        i += 1;
+    }
+    None
+}
+
+// The benchmark uses the generated target through its first-order interface.
+struct FirstOrder<'a, T>(&'a T);
+
+impl<T: TargetSpace> TargetSpace for FirstOrder<'_, T> {
+    type Error = T::Error;
+
+    fn dimension(&self) -> usize {
+        self.0.dimension()
+    }
+}
+
+impl<T: LogDensityGradient> LogDensityGradient for FirstOrder<'_, T> {
+    fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, Self::Error> {
+        self.0.logp_grad(q, g)
+    }
+}
 
 // Tool-local receipts, not another fixture registry or a production planner.
 // Inspect the existing fixtures/exporter; never infer execution from Cargo flags.
@@ -19,15 +59,15 @@ struct Route {
     first: &'static str,
     compiler: &'static str,
     checkpointed: bool,
+    tensor_validation: bool,
 }
 impl Route {
     fn inspect(model: &CompiledModel) -> Self {
         let tensor = model.graph().any(|node| {
             node.active
-                && node.primitive.is_some_and(|p| {
-                    p.descriptor::<alea::model::tensor::TensorFactor>()
-                        .is_some()
-                })
+                && node
+                    .primitive
+                    .is_some_and(|p| p.signature().name == "tensor_region")
         });
         let compiler = if tensor { "L" } else { "C" };
         let explicit = model
@@ -36,6 +76,7 @@ impl Route {
         Self {
             first: if explicit.is_some() { "H" } else { compiler },
             compiler,
+            tensor_validation: HAS_TENSOR_VALIDATION && tensor && explicit.is_none(),
             checkpointed: explicit.is_some_and(|(_, _, checkpointed)| checkpointed),
         }
     }
@@ -51,10 +92,19 @@ impl Route {
         } else {
             self.first
         };
+        let reason = if requested != "N" && order != "value" && self.tensor_validation {
+            format!(
+                "{reason}; extra explicit tensor score validation, compiler derivative unchanged"
+            )
+        } else {
+            reason.to_owned()
+        };
         let admission = if requested == "N" {
             "N"
         } else if order == "value" {
             "none"
+        } else if self.tensor_validation {
+            "H"
         } else {
             self.first
         };
@@ -79,7 +129,7 @@ impl Route {
                 } else {
                     (
                         "not-run",
-                        "planning only; no execution receipt; value-only is not isolated and compiled bench requires PotentialHessianDerivative",
+                        "planning only; no execution receipt; value-only is not isolated",
                     )
                 };
                 self.emit(fixture, requested, order, status, reason);
@@ -92,6 +142,13 @@ macro_rules! flags {
         (
             generated::$module::SOURCE_EXPLICIT_FIRST_ORDER,
             generated::$module::SOURCE_CHECKPOINTED,
+            tensor_validation_flag(include_str!(concat!(
+                env!("OUT_DIR"),
+                "/",
+                stringify!($module),
+                ".rs"
+            )))
+            .unwrap_or(false),
         )
     };
 }
@@ -102,18 +159,48 @@ fn compare<T: PotentialHessianDerivative>(
     native: CompiledModel,
     compiled: T,
     fixture: &str,
-    flags: (bool, bool),
+    flags: (bool, bool, bool),
 ) {
     let route = Route::inspect(&native);
-    assert_eq!(flags, (route.first == "H", route.checkpointed));
+    assert_eq!(
+        flags,
+        (
+            route.first == "H",
+            route.checkpointed,
+            route.tensor_validation
+        )
+    );
     let native = native.into_target().unwrap();
     let n = native.dimension();
     assert_eq!(n, compiled.dimension());
     let q: Vec<_> = (0..n).map(|i| 0.1 + i as f64 * 0.01).collect();
-    let mut a = vec![0.; n];
+    let mut group = c.benchmark_group(format!("native_compiled/{name}"));
+    group.throughput(Throughput::Elements(1));
+    compare_first(
+        &mut group,
+        &native,
+        &FirstOrder(&compiled),
+        &q,
+        route,
+        fixture,
+    );
+    compare_hvp(&mut group, &compiled, &q, route, fixture);
+    compare_third(&mut group, &compiled, &q, route, fixture);
+    group.finish();
+}
+
+fn compare_first<N: LogDensityGradient, T: LogDensityGradient>(
+    group: &mut BenchmarkGroup<'_, WallTime>,
+    native: &N,
+    compiled: &T,
+    q: &[f64],
+    route: Route,
+    fixture: &str,
+) {
+    let mut a = vec![0.; q.len()];
     let mut b = a.clone();
     let va = native
-        .logp_grad(&q, &mut a)
+        .logp_grad(q, &mut a)
         .inspect_err(|_| {
             route.emit(
                 fixture,
@@ -132,7 +219,7 @@ fn compare<T: PotentialHessianDerivative>(
         "native fused preflight executed; not a value-only timing",
     );
     let vb = compiled
-        .logp_grad(&q, &mut b)
+        .logp_grad(q, &mut b)
         .inspect_err(|_| {
             route.emit(
                 fixture,
@@ -157,23 +244,25 @@ fn compare<T: PotentialHessianDerivative>(
         }
     }
     route.emit(fixture, route.first, "first", "supported", "compiled fused preflight executed and matched native; independent oracles live in conformance tests");
-    let mut group = c.benchmark_group(format!("native_compiled/{name}"));
-    group.throughput(Throughput::Elements(1)); // Complete value AND gradient.
     group.bench_function("native_reused", |b| {
-        b.iter(|| black_box(native.logp_grad(black_box(&q), black_box(&mut a)).unwrap()))
+        b.iter(|| black_box(native.logp_grad(black_box(q), black_box(&mut a)).unwrap()))
     });
     group.bench_function("compiled_reused", |b| {
-        b.iter(|| {
-            black_box(
-                compiled
-                    .logp_grad(black_box(&q), black_box(&mut a))
-                    .unwrap(),
-            )
-        })
+        b.iter(|| black_box(compiled.logp_grad(black_box(q), black_box(&mut a)).unwrap()))
     });
-    let direction = vec![0.2; n];
+}
+
+fn compare_hvp<T: PotentialHessianVector>(
+    group: &mut BenchmarkGroup<'_, WallTime>,
+    compiled: &T,
+    q: &[f64],
+    route: Route,
+    fixture: &str,
+) {
+    let direction = vec![0.2; q.len()];
+    let mut a = vec![0.; q.len()];
     compiled
-        .potential_hvp(&q, &direction, &mut a)
+        .potential_hvp(q, &direction, &mut a)
         .inspect_err(|_| {
             route.emit(
                 fixture,
@@ -188,15 +277,25 @@ fn compare<T: PotentialHessianDerivative>(
     group.bench_function("compiled_potential_hvp", |b| {
         b.iter(|| {
             compiled
-                .potential_hvp(black_box(&q), black_box(&direction), black_box(&mut a))
+                .potential_hvp(black_box(q), black_box(&direction), black_box(&mut a))
                 .unwrap();
             black_box(&a);
         })
     });
+}
+
+fn compare_third<T: PotentialHessianDerivative>(
+    group: &mut BenchmarkGroup<'_, WallTime>,
+    compiled: &T,
+    q: &[f64],
+    route: Route,
+    fixture: &str,
+) {
+    let n = q.len();
     let mut h = vec![0.; n * n];
     let mut d = vec![0.; n * n * n];
     compiled
-        .potential_hessian_and_derivatives(&q, &mut h, &mut d)
+        .potential_hessian_and_derivatives(q, &mut h, &mut d)
         .inspect_err(|_| {
             route.emit(
                 fixture,
@@ -212,7 +311,7 @@ fn compare<T: PotentialHessianDerivative>(
         b.iter(|| {
             compiled
                 .potential_hessian_and_derivatives(
-                    black_box(&q),
+                    black_box(q),
                     black_box(&mut h),
                     black_box(&mut d),
                 )
@@ -220,7 +319,6 @@ fn compare<T: PotentialHessianDerivative>(
             black_box((&h, &d));
         })
     });
-    group.finish();
 }
 fn native_compiled(c: &mut Criterion) {
     // All existing definitions appear, even when this benchmark does not run
@@ -231,9 +329,10 @@ fn native_compiled(c: &mut Criterion) {
     // Do not label native-backed source pullbacks as pure compiler AD.
     macro_rules! route {
         ($($module:ident),* $(,)?) => {$(
-            eprintln!("ALEA_SOURCE_ROUTE {} explicit_first_order={} checkpointed={}",
+            eprintln!("ALEA_SOURCE_ROUTE {} explicit_first_order={} checkpointed={} tensor_score_validation={}",
                 stringify!($module), generated::$module::SOURCE_EXPLICIT_FIRST_ORDER,
-                generated::$module::SOURCE_CHECKPOINTED);
+                generated::$module::SOURCE_CHECKPOINTED,
+                flags!($module).2);
         )*};
     }
     route!(
