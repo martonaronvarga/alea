@@ -71,7 +71,8 @@ impl super::SourceCapabilities {
             return Err(AssemblyError::MissingPrimal { node: value.node });
         }
         if matches!(request.order, DerivativeOrder::Hvp | DerivativeOrder::Third)
-            && request.curvature == CurvatureRoute::Unavailable
+            && (request.curvature == CurvatureRoute::Unavailable
+                || !self.unqualified_curvature.is_empty())
         {
             return Err(AssemblyError::UnqualifiedDerivative {
                 order: request.order,

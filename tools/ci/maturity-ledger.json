@@ -6081,6 +6081,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceCapabilities::unqualified_curvature: alloc::vec::Vec<alea_core::model::assembly::Value>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub alea_core::model::assembly::SourceGradient::body: alloc::string::String",
       "profile": "research_component",
       "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."

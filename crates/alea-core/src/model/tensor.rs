@@ -503,9 +503,9 @@ impl RegionBuilder {
     /// Dense product with an explicit execution policy. Faer/BLAS permit
     /// reassociated reductions in both primal and VJP; they do not promise
     /// compensated accuracy or identical trajectories. The default `matmul`
-    /// remains compensated. Source export rejects accelerated providers until
-    /// their source lowering is qualified; it never substitutes compensated
-    /// arithmetic. Shared-storage reverse
+    /// remains compensated. Source value/explicit-first export retains the
+    /// provider; compiler curvature through provider calls is unqualified.
+    /// It never substitutes compensated primal arithmetic. Shared-storage reverse
     /// operands and zero seeds retain the scalar pullback.
     /// Workspace budgets cover Alea-owned buffers, not external provider packing
     /// or thread-local scratch. BLAS thread count must be configured by the host.

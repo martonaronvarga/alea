@@ -77,8 +77,8 @@ This replaces primal-only admission and can cost additional reverse work; it
 does not change the sampling gradient path.
 
 The existing `tensor_matrix` target also contains bounded direct-provider probes.
-They call the checked `alea::math::gemm::try_gemm` adapter; they do not enable
-accelerated tensor source export. Faer primal answers run with the normal feature:
+They call the checked `alea::math::gemm::try_gemm` adapter. Faer primal and
+explicit-first source conformance run with the normal feature:
 
 ```console
 nix develop .#autodiff --command cargo test --manifest-path tools/enzyme-conformance/Cargo.toml --release --locked --features faer --test tensor_matrix
@@ -98,7 +98,26 @@ by its JSON compiler-artifact record with `provider_probe --nocapture`, retainin
 the same loader path. Keep each probe's stdout/stderr and exit status separately.
 The pinned Faer reverse probe currently crashes Enzyme type analysis; the BLAS
 reverse probe cannot link `cblas_dlascl`. Both primals pass independent rectangular
-answers. These negative results do not qualify gradients or expand production
-source support. See [the tensor method specification](../../docs/tensor-ir.md)
+answers. Those negative results do not qualify direct compiler reverse. Separate
+explicit-first source fixtures reuse checked provider calls for both operand
+VJPs without differentiating through the provider. See [the tensor method specification](../../docs/tensor-ir.md)
 for versions, call/ABI visibility and limits. No higher-order derivative or speed
-claim follows; feature forwarding and qualified source lowering remain separate.
+claim follows; feature forwarding and compiler/curvature qualification remain separate.
+
+The combined Faer/LP64-BLAS explicit-first qualification uses existing dependency
+features and the BLAS probe cfg; it does not add a forwarded conformance feature:
+
+```sh
+matrix_pkg=$(nix develop .#blas --command printenv PKG_CONFIG_PATH)
+matrix_lib=$(nix develop .#blas --command printenv LD_LIBRARY_PATH)
+nix develop .#autodiff --command env \
+  RUSTFLAGS='-Zautodiff=Enable -Cembed-bitcode=yes --cfg alea_probe_blas' \
+  PKG_CONFIG_PATH="$matrix_pkg" LD_LIBRARY_PATH="$matrix_lib" \
+  cargo test --manifest-path tools/enzyme-conformance/Cargo.toml --release --locked \
+  --features faer,alea/openblas --test tensor_matrix
+```
+
+Provider fixtures emit value/first entries only. HVP/third requests explicitly
+reject with `UnqualifiedDerivative`; no silent compiler or reference fallback is
+used. The ordinary compensated and mixed-factor compiler controls remain. These
+tests do not qualify provider curvature, arbitrary programs or performance.

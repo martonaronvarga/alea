@@ -852,6 +852,7 @@ pub alea_core::model::assembly::ScalarPreparation::evaluate: alea_core::model::a
 pub alea_core::model::assembly::ScalarPreparation::prepare: fn(f64) -> f64
 pub struct alea_core::model::assembly::SourceCapabilities
 pub alea_core::model::assembly::SourceCapabilities::missing_primals: alloc::vec::Vec<alea_core::model::assembly::Value>
+pub alea_core::model::assembly::SourceCapabilities::unqualified_curvature: alloc::vec::Vec<alea_core::model::assembly::Value>
 impl alea_core::model::assembly::SourceCapabilities
 pub fn alea_core::model::assembly::SourceCapabilities::resolve(&self, request: alea_core::model::assembly::SourceRequest) -> core::result::Result<alea_core::model::assembly::SourceRequest, alea_core::model::assembly::AssemblyError>
 impl alea_core::model::assembly::SourceCapabilities

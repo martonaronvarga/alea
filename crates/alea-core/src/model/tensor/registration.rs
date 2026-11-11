@@ -579,7 +579,19 @@ pub(super) fn missing_source(plan: &Plan) -> Option<usize> {
     plan.nodes.iter().enumerate().find_map(|(i, node)| {
         let missing = match &node.op {
             Op::Registered(_) => true,
-            Op::Matmul { kernel, .. } => *kernel != MatrixKernel::Compensated,
+            #[cfg(feature = "openblas")]
+            Op::Matmul {
+                kernel: MatrixKernel::Blas,
+                m,
+                k,
+                n,
+                ..
+            } => {
+                *m != 0
+                    && *k != 0
+                    && *n != 0
+                    && [*m, *k, *n].into_iter().any(|d| i32::try_from(d).is_err())
+            }
             Op::Cond(c) => {
                 missing_source(&c.yes.plan).is_some() || missing_source(&c.no.plan).is_some()
             }

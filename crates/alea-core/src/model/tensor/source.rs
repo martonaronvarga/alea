@@ -137,7 +137,23 @@ impl BoundProgram {
                 Op::Gather(a, indices) => {
                     writeln!(source,"{{ let indices: [usize; {len}] = {indices:?}; for j in 0..{len} {{n{i}[j]=n{}[indices[j]];}} }}",a.node).unwrap();
                 }
-                Op::Matmul { a, b, m, k, n, .. } => {
+                Op::Matmul {
+                    a,
+                    b,
+                    m,
+                    k,
+                    n,
+                    kernel,
+                } => {
+                    if *kernel != MatrixKernel::Compensated {
+                        writeln!(source, "if !::alea::math::gemm::try_gemm(::alea::math::gemm::MatrixKernel::{kernel:?},n{},n{},n{i},({m},{k},{n}),(false,false),false) {{{failure}}}", a.node,b.node).unwrap();
+                        writeln!(
+                            source,
+                            "if n{i}.iter().any(|v|!v.is_finite()) {{{failure}}}"
+                        )
+                        .unwrap();
+                        continue;
+                    }
                     if *k == 0 {
                         writeln!(source, "n{i}.fill(0.0);").unwrap();
                         continue;

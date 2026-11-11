@@ -394,18 +394,40 @@ ordinary nonfinite admission, typed failures and caller-output staging remain.
 The safe adapter lives in `alea-math::gemm`; core remains free of unsafe code.
 
 Workspace budgets count Alea-owned storage, **not** provider packing buffers,
-thread-local allocations or thread stacks. Source export of Faer/BLAS nodes
-(including `Auto` resolved to either provider) returns `MissingPrimal`; it does
-not silently replace the requested arithmetic. This applies to standalone primal,
-registered scalar-result and explicit pullback routes, including nested branches
-and nonzero scans. Unreachable nodes and zero-trip bodies require no lowering.
-Default compensated source remains supported. `BoundProgram::rust_function`
-now returns `Result<String, AssemblyError>`; callers must handle missing source.
-No separately requested reference-export policy is introduced here. These kernels
-remain native opt-in research components, not a new source-AD capability.
+thread-local allocations or thread stacks. Value and explicit-first source export
+retain the selected Faer/BLAS provider, including resolved `Auto`; they do not
+substitute compensated primal arithmetic. First-order lowering uses the existing
+checked GEMM adapter for the forward product and both accumulating transposed
+operand pullbacks. Aliases and zero seeds retain the ordered scalar pullback,
+matching native admission and accumulation behavior. Every selected provider
+output is finite-checked before a later expression can mask overflow.
 
-The bounded provider probes in the existing Enzyme `tensor_matrix` test use
-`try_gemm` directly, without bypassing production source rejection. On
+Provider factors require explicit first-order composition. This selection is
+factor-local: an ordinary companion tensor keeps compiler reverse plus checked
+score admission. `SourceCapabilities::unqualified_curvature` identifies active
+provider factors; HVP/third `SourceRequest`s return `UnqualifiedDerivative` even
+when `OriginalCompilerReverse` is requested. Use an explicit value/first request,
+not the highest-order convenience exporter. This does not qualify compiler AD
+through provider calls or differentiation of the explicit pullback.
+
+```rust,ignore
+use alea::model::assembly::{CurvatureRoute, DerivativeOrder, SourceMode, SourceRequest};
+let source = alea::autodiff::codegen::source(&model, SourceRequest {
+    mode: SourceMode::Density,
+    order: DerivativeOrder::First,
+    curvature: CurvatureRoute::Unavailable,
+})?;
+```
+
+These rules apply to the existing scalar-result region adapter, including nested
+branches and nonempty scans. Whole-value model edges remain native-only.
+Unreachable nodes and zero-trip bodies require no lowering. Unsupported nonempty
+LP64 dimensions reject with `MissingPrimal` before emission/workspace allocation.
+Default compensated source remains supported. `BoundProgram::rust_function`
+returns `Result<String, AssemblyError>`; no reference-export policy is implied.
+
+The original bounded provider probes in the existing Enzyme `tensor_matrix` test
+use `try_gemm` directly, independently of tensor source lowering. On
 `nightly-2026-06-23` (rustc `4429659e4`, Enzyme 22), release/fat LTO and embedded
 bitcode, a 2×3 by 3×1 product has these outcomes:
 
@@ -429,11 +451,31 @@ These are bounded configuration-specific failures, not proofs that all Faer or
 BLAS differentiation is impossible. Larger/transposed products, other compilers,
 custom-rule composition, higher derivatives and inference are unqualified.
 Primal success and generated derivative code alone are not derivative evidence.
-Production accelerated source export therefore remains explicitly unsupported.
-The test target's opt-in `alea_probe_reverse` and `alea_probe_blas` cfgs isolate
-deliberate failing probes from ordinary conformance. See the existing
+Direct compiler reverse and curvature remain unsupported; the separate explicit
+first-order lowering above avoids these compiler paths.
+The test target's opt-in `alea_probe_reverse` cfg isolates deliberate failing
+reverse probes; `alea_probe_blas` selects the explicit BLAS feature cell. See the existing
 [Enzyme conformance instructions](../tools/enzyme-conformance/README.md) for
 commands; no provider feature-forwarding redesign is implied.
+
+The explicit first-order composition is independently exercised on the same
+pinned compiler for Faer and LP64-BLAS, in density and objective modes. Fixtures
+cover 2×3 by 3×1 and 2×3 by 3×2 products, both active operands, existing adjoints,
+overlapping gathers, shared reshape aliases, a captured inactive matrix, zero
+seeds, empty rows/columns/inner dimensions, both branch paths, ordinary scans and
+checkpointed scans. Independent scalar polynomials and coordinate derivatives
+check every output score. Nonfinite input, finite-primal/VJP overflow, selected
+matrix overflow hidden by a reciprocal or zero weight, and successful recovery
+are checked separately. A mixed `sqrt(s*s)` factor retains its original compiler
+helper and singular-score rejection instead of inheriting the provider route.
+
+Primal and operand VJP calls use the actual selected library. First-only targets
+do not implement curvature capabilities, and unsupported higher source entries
+are not emitted. No new provider shim, custom Enzyme rule, global thread change
+or feature forwarding is introduced. The source-owned arena includes the seed
+copy needed by provider accumulation; provider packing/compiler storage remain
+outside that budget. This is numerical/capability evidence, not timing, general
+program qualification or inference/ESS evidence.
 
 Reference contracts: [Faer matrix multiplication](https://docs.rs/faer/0.24.0/faer/linalg/matmul/fn.matmul.html)
 and [BLAS DGEMM](https://netlib.org/lapack/explore-html/dd/d09/group__gemm_ga1e899f8453bcbfde78e91a86a2dab984.html).
@@ -1595,10 +1637,10 @@ subsequent products in that lexical builder. Existing nodes and child regions
 retain their own policies. Optional `MatrixKernel::Auto` resolves once to an
 available provider, preferring sequential Faer when both providers are enabled.
 It is **availability dispatch**, not a fitted shape/cost model. Opting in permits
-provider reassociation; default construction remains compensated, source export
-rejects accelerated providers rather than substituting portable compensated code,
-and BLAS threads/provider scratch remain
-host-owned. Feature availability alone never changes default arithmetic.
+provider reassociation; default construction remains compensated. Qualified
+value/explicit-first source export preserves the resolved provider and rejects
+unqualified curvature. BLAS threads/provider scratch remain host-owned. Feature
+availability alone never changes default arithmetic.
 
 ### Remote qualification of the adjoint planner
 

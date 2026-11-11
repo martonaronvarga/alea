@@ -259,6 +259,19 @@ fn replay_interval(steps: usize, carry: usize, primal: usize) -> usize {
     usize::try_from(square.isqrt()).map_or(steps, |k| k.clamp(1, steps))
 }
 impl BoundProgram {
+    pub(crate) fn requires_explicit_source(&self) -> bool {
+        self.plan.nodes.iter().enumerate().any(|(i, n)| {
+            self.plan.active[i]
+                && match &n.op {
+                    Op::Matmul { kernel, .. } => *kernel != MatrixKernel::Compensated,
+                    Op::Cond(c) => {
+                        c.yes.requires_explicit_source() || c.no.requires_explicit_source()
+                    }
+                    Op::Scan(s) => s.steps != 0 && s.body.requires_explicit_source(),
+                    _ => false,
+                }
+        })
+    }
     pub(crate) fn has_source_checkpoints(&self) -> bool {
         self.plan.nodes.iter().enumerate().any(|(i, n)| {
             self.plan.active[i]
@@ -432,12 +445,31 @@ impl BoundProgram {
                     m,
                     k,
                     n,
-                    ..
+                    kernel,
                 } => {
-                    if len == 0 {
+                    if len == 0 || *k == 0 {
                         continue;
                     }
-                    writeln!(reverse,"for row in 0..{m} {{for col in 0..{n} {{let s=a[{base}+row*{n}+col]; for j in 0..{k} {{").unwrap();
+                    let accelerated = *kernel != MatrixKernel::Compensated
+                        && (!active[l.node] || !active[r.node] || adjoints[l.node] != adjoints[r.node]);
+                    if accelerated {
+                        extra = extra.max(len);
+                        let left = value_slice_source(p, &offsets, *l);
+                        let right = value_slice_source(p, &offsets, *r);
+                        writeln!(reverse, "if a[{base}..{}].iter().all(|s|*s!=0.0) {{let seeds=&mut extra[..{len}];seeds.copy_from_slice(&a[{base}..{}]);",base+len,base+len).unwrap();
+                        for (enabled, input, destination, count, dimensions, transpose) in [
+                            (active[l.node], &right, adjoints[l.node], m*k, (*m,*n,*k), (false,true)),
+                            (active[r.node], &left, adjoints[r.node], k*n, (*k,*m,*n), (true,false)),
+                        ] {
+                            if enabled {
+                                let (first,second) = if transpose.0 { (input.as_str(), "seeds") } else { ("seeds", input.as_str()) };
+                                writeln!(reverse,"if !::alea::math::gemm::try_gemm(::alea::math::gemm::MatrixKernel::{kernel:?},{first},{second},&mut a[{destination}..{}],{dimensions:?},{transpose:?},true) {{*valid=false;return;}}",destination+count).unwrap();
+                            }
+                        }
+                        reverse.push_str("} else {\n");
+                    }
+                    let skip_zero=if *kernel!=MatrixKernel::Compensated {"if s==0.0 {continue;}"}else{""};
+                    writeln!(reverse,"for row in 0..{m} {{for col in 0..{n} {{let s=a[{base}+row*{n}+col]; {skip_zero} for j in 0..{k} {{").unwrap();
                     if active[l.node] {
                         writeln!(
                             reverse,
@@ -457,6 +489,7 @@ impl BoundProgram {
                         .unwrap();
                     }
                     reverse.push_str("}}}\n");
+                    if accelerated { reverse.push_str("}\n"); }
                 }
                 Op::Cond(c) => {
                     let args: Vec<_> = c.args.iter().map(|v| active[v.node]).collect();
@@ -622,6 +655,17 @@ impl BoundProgram {
     }
 }
 
+fn value_slice_source(p: &Plan, offsets: &[usize], mut v: Value) -> String {
+    let len = p.nodes[v.node].shape.elements;
+    while let Op::Alias(a) = p.nodes[v.node].op {
+        v = a;
+    }
+    match p.nodes[v.node].op {
+        Op::Input(i) => format!("&x[{}..{}]", p.inputs[i].start, p.inputs[i].start + len),
+        Op::Data(_) | Op::Constant(_) => format!("data{}", v.node),
+        _ => format!("&primal[{}..{}]", offsets[v.node], offsets[v.node] + len),
+    }
+}
 fn value_source(p: &Plan, offsets: &[usize], mut v: Value, j: &str) -> String {
     while let Op::Alias(a) = p.nodes[v.node].op {
         v = a;
@@ -704,12 +748,30 @@ mod tests {
             let x = b.input("x", Shape::new(vec![1, 1]).unwrap()).unwrap();
             let product = b.matmul_with_kernel(x, x, kernel).unwrap();
             let p = b.compile(product).unwrap().bind(&[]).unwrap();
-            match p.pullback_source("matrix") {
-                Ok(_) => assert_eq!(kernel, MatrixKernel::Compensated),
-                Err(E::MissingPrimal { .. }) => assert_ne!(kernel, MatrixKernel::Compensated),
-                Err(e) => panic!("unexpected source failure: {e}"),
-            }
+            let source = p.pullback_source("matrix").unwrap().source;
+            assert_eq!(
+                source.contains("try_gemm"),
+                kernel != MatrixKernel::Compensated
+            );
         }
+    }
+
+    #[cfg(feature = "openblas")]
+    #[test]
+    fn lp64_source_overflow_rejects_before_emission_or_workspace_allocation() {
+        let mut b = RegionBuilder::new();
+        let a = b
+            .input("a", Shape::new(vec![i32::MAX as usize + 1, 1]).unwrap())
+            .unwrap();
+        let r = b.input("b", Shape::new(vec![1, 1]).unwrap()).unwrap();
+        let product = b.matmul_with_kernel(a, r, MatrixKernel::Blas).unwrap();
+        let p = b.compile(product).unwrap().bind(&[]).unwrap();
+        assert!(matches!(p.rust_function(), Err(E::MissingPrimal { .. })));
+        assert!(matches!(
+            p.pullback_source("overflow"),
+            Err(E::MissingPrimal { .. })
+        ));
+        assert!(p.check_workspace_limit(0).is_err());
     }
 
     #[test]

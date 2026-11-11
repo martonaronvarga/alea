@@ -179,3 +179,208 @@ mod provider_probe {
         reverse_answers(blas_reverse);
     }
 }
+
+#[cfg(any(feature = "faer", alea_probe_blas))]
+#[test]
+fn generated_provider_first_order_matches_independent_operand_answers() {
+    fn check<T: LogDensityGradient<Error = AutodiffError>>(
+        target: T,
+        value: fn(&[f64; 9]) -> f64,
+        variant: usize,
+    ) {
+        if variant == 0 || (8..=10).contains(&variant) {
+            // Finite cancelling primal, overflowing right-operand VJP.
+            let h = f64::MAX / 2.;
+            let q = [h, -h, 0., h, 0., -h, 1e-308, 1e-308, 1e-308];
+            assert!(value(&q).is_finite());
+            assert!(matches!(
+                target.logp_grad(&q, &mut [41.; 9]),
+                Err(AutodiffError::NonFinite)
+            ));
+        }
+        for scale in [0., -1., 1., 2.] {
+            if variant == 4 && scale == 0. {
+                continue;
+            }
+            let q = [1., 2., -1., 0.5, -2., 3., 2., -1., 0.5].map(|v| v * scale);
+            let (expected, score) = if variant == 0 || (8..=10).contains(&variant) {
+                (
+                    8.5 * scale * scale + 3.5 * scale,
+                    [2., -1., 0.5, 4., -2., 1., 2., -2., 5.].map(|x| x * scale),
+                )
+            } else if variant == 1 {
+                // Independent polynomial for the sum of a 2x2 matrix square.
+                let [a, b, c, d, ..] = q;
+                (
+                    (a + b) * (a + c) + (c + d) * (b + d),
+                    [
+                        2. * a + b + c,
+                        a + 2. * c + d,
+                        a + 2. * b + d,
+                        b + c + 2. * d,
+                        0.,
+                        0.,
+                        0.,
+                        0.,
+                        0.,
+                    ],
+                )
+            } else if variant == 7 {
+                // 2x3 * 3x2 with overlapping gathers; includes existing A adjoints.
+                (
+                    -3.25 * scale * scale + 3.5 * scale,
+                    [
+                        1. - 1.5 * scale,
+                        1. + 5. * scale,
+                        1. - 0.5 * scale,
+                        1.,
+                        1. + 6.5 * scale,
+                        1. - 0.5 * scale,
+                        0.,
+                        2. * scale,
+                        2. * scale,
+                    ],
+                )
+            } else if variant == 6 {
+                (8.5 * scale + 3.5, [0., 0., 0., 0., 0., 0., 2., -2., 5.])
+            } else if variant == 4 {
+                let y0 = q[0] * q[6] + q[1] * q[7] + q[2] * q[8];
+                let y1 = q[3] * q[6] + q[4] * q[7] + q[5] * q[8];
+                let (u, v) = (-1. / (y0 * y0), -1. / (y1 * y1));
+                (
+                    1. / y0 + 1. / y1,
+                    [
+                        u * q[6],
+                        u * q[7],
+                        u * q[8],
+                        v * q[6],
+                        v * q[7],
+                        v * q[8],
+                        u * q[0] + v * q[3],
+                        u * q[1] + v * q[4],
+                        u * q[2] + v * q[5],
+                    ],
+                )
+            } else {
+                (0., [0.; 9])
+            };
+            let mut score = score;
+            if variant == 0 || (8..=10).contains(&variant) {
+                for s in &mut score[..6] {
+                    *s += 1.;
+                }
+            }
+            let mut g = [41.; 9];
+            close(value(&q), expected);
+            close(target.logp_grad(&q, &mut g).unwrap(), expected);
+            for (x, y) in g.into_iter().zip(score) {
+                close(x, y);
+            }
+            assert!(matches!(
+                target.logp_grad(&[f64::NAN; 9], &mut g),
+                Err(AutodiffError::NonFinite)
+            ));
+            if !matches!(variant, 2 | 11 | 12) {
+                assert!(matches!(
+                    target.logp_grad(&[f64::MAX; 9], &mut g),
+                    Err(AutodiffError::NonFinite)
+                ));
+            }
+            close(target.logp_grad(&q, &mut g).unwrap(), expected);
+            for (x, y) in g.into_iter().zip(score) {
+                close(x, y);
+            }
+        }
+    }
+    macro_rules! case {
+        ($name:ident,$variant:expr) => {{
+            use alea_enzyme_conformance::$name as model;
+            const {
+                assert!(model::SOURCE_EXPLICIT_FIRST_ORDER);
+            }
+            check(model::target(), model::value::log_density, $variant);
+            check(
+                model::composition::objective(),
+                model::value::log_density,
+                $variant,
+            );
+        }};
+    }
+    #[cfg(feature = "faer")]
+    {
+        case!(provider_faer_rect, 0);
+        case!(provider_faer_alias, 1);
+        case!(provider_faer_empty, 2);
+        case!(provider_faer_zero, 3);
+        case!(provider_faer_inverse, 4);
+        case!(provider_faer_inactive, 6);
+        case!(provider_faer_gemm, 7);
+        case!(provider_faer_branch, 8);
+        case!(provider_faer_scan, 9);
+        case!(provider_faer_checkpoint, 10);
+        case!(provider_faer_empty_inner, 11);
+        case!(provider_faer_empty_columns, 12);
+    }
+    #[cfg(alea_probe_blas)]
+    {
+        case!(provider_blas_rect, 0);
+        case!(provider_blas_alias, 1);
+        case!(provider_blas_empty, 2);
+        case!(provider_blas_zero, 3);
+        case!(provider_blas_inverse, 4);
+        case!(provider_blas_inactive, 6);
+        case!(provider_blas_gemm, 7);
+        case!(provider_blas_branch, 8);
+        case!(provider_blas_scan, 9);
+        case!(provider_blas_checkpoint, 10);
+        case!(provider_blas_empty_inner, 11);
+        case!(provider_blas_empty_columns, 12);
+    }
+}
+
+#[cfg(any(feature = "faer", alea_probe_blas))]
+#[test]
+fn provider_first_order_preserves_ordinary_factor_compiler_route_and_admission() {
+    fn check<T: LogDensityGradient<Error = AutodiffError>>(target: T) {
+        let mut q = [1., 2., -1., 0.5, -2., 3., 2., -1., 0.5, 0.5];
+        let mut g = [41.; 10];
+        for sign in [-1., 1.] {
+            q[9] = 0.5 * sign;
+            close(target.logp_grad(&q, &mut g).unwrap(), 12.5);
+            for (x, y) in g
+                .into_iter()
+                .zip([3., 0., 1.5, 5., -1., 2., 2., -2., 5., sign])
+            {
+                close(x, y);
+            }
+            q[9] = 0.;
+            assert!(matches!(
+                target.logp_grad(&q, &mut g),
+                Err(AutodiffError::NonFinite)
+            ));
+        }
+        q[9] = 0.5;
+        close(target.logp_grad(&q, &mut g).unwrap(), 12.5);
+        close(g[9], 1.);
+    }
+    #[cfg(feature = "faer")]
+    {
+        let source = include_str!(concat!(env!("OUT_DIR"), "/provider_faer_mixed_first.rs"));
+        assert_eq!(
+            source.matches("autodiff_reverse(__factor_reverse").count(),
+            1
+        );
+        check(alea_enzyme_conformance::provider_faer_mixed::target());
+        check(alea_enzyme_conformance::provider_faer_mixed::composition::objective());
+    }
+    #[cfg(alea_probe_blas)]
+    {
+        let source = include_str!(concat!(env!("OUT_DIR"), "/provider_blas_mixed_first.rs"));
+        assert_eq!(
+            source.matches("autodiff_reverse(__factor_reverse").count(),
+            1
+        );
+        check(alea_enzyme_conformance::provider_blas_mixed::target());
+        check(alea_enzyme_conformance::provider_blas_mixed::composition::objective());
+    }
+}

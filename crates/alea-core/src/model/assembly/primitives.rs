@@ -468,6 +468,8 @@ pub struct GraphNode<'a> {
 pub struct SourceCapabilities {
     /// Active callback nodes missing a trusted Rust primal, in graph order.
     pub missing_primals: Vec<Value>,
+    /// Active matrix-provider factors without a qualified compiler curvature route.
+    pub unqualified_curvature: Vec<Value>,
 }
 impl SourceCapabilities {
     /// All active nodes have source-lowering support.
@@ -537,6 +539,20 @@ impl super::Executable {
     /// source or touching evaluation scratch. Actual export retains typed errors.
     pub fn source_capabilities(&self) -> SourceCapabilities {
         SourceCapabilities {
+            unqualified_curvature: self
+                .primitives
+                .iter()
+                .filter_map(|(node, primitive)| {
+                    (self.active_nodes.as_ref().is_none_or(|a| a[*node])
+                        && primitive
+                            .region_binding()
+                            .is_some_and(|t| t.requires_explicit_source()))
+                    .then_some(Value {
+                        owner: self.owner,
+                        node: *node,
+                    })
+                })
+                .collect(),
             missing_primals: self
                 .nodes
                 .iter()

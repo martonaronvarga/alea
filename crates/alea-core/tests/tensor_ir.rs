@@ -1510,7 +1510,7 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
         #[cfg(feature = "openblas")]
         MatrixKernel::Blas,
     ] {
-        let supported = kernel == MatrixKernel::Compensated;
+        let provider = kernel != MatrixKernel::Compensated;
         let build = |scan_body| {
             let mut b = ModelBuilder::new().region();
             let x = b.input("x", Shape::scalar()).unwrap();
@@ -1523,7 +1523,7 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
             b.compile(result).unwrap().bind(&[]).unwrap()
         };
         let check =
-            |p: BoundProgram, dimension: usize, expected: f64, derivative: f64, source: bool| {
+            |p: BoundProgram, dimension: usize, expected: f64, derivative: f64, provider: bool| {
                 let mut out = [19.];
                 let mut g = vec![19.; dimension];
                 p.value_and_vjp(
@@ -1536,13 +1536,7 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
                 .unwrap();
                 assert_eq!(out, [expected]);
                 assert_eq!(g[0], derivative);
-                if source {
-                    assert!(p.rust_function().unwrap().contains("tensor_region"));
-                } else {
-                    assert!(matches!(p.rust_function(), Err(E::MissingPrimal { .. })));
-                }
-                // The scalar-result adapter must advertise the same capability for
-                // primal and explicit checkpoint/first-order source routes.
+                assert_eq!(p.rust_function().unwrap().contains("try_gemm"), provider);
                 let mut model = ModelBuilder::new();
                 let inputs: Vec<_> = (0..dimension)
                     .map(|i| model.real(&format!("x{i}")).unwrap().expr())
@@ -1550,11 +1544,31 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
                 let root = model.apply_region(&inputs, p).unwrap();
                 model.factor(root).unwrap();
                 let model = model.compile().unwrap();
-                assert_eq!(model.source_capabilities().supports_rust_primal(), source);
-                assert_eq!(model.rust_primal().is_ok(), source);
-                if !source {
-                    assert!(!matches!(
-                        model.source_first_order(alea_core::model::assembly::SourceMode::Density),
+                let capabilities = model.source_capabilities();
+                assert!(capabilities.supports_rust_primal());
+                assert_eq!(capabilities.unqualified_curvature.is_empty(), !provider);
+                assert!(model.rust_primal().is_ok());
+                use alea_core::model::assembly::{
+                    CurvatureRoute, DerivativeOrder, SourceMode, SourceRequest,
+                };
+                for order in [
+                    DerivativeOrder::Value,
+                    DerivativeOrder::First,
+                    DerivativeOrder::Hvp,
+                    DerivativeOrder::Third,
+                ] {
+                    let request = SourceRequest {
+                        mode: SourceMode::Density,
+                        order,
+                        curvature: CurvatureRoute::OriginalCompilerReverse,
+                    };
+                    let blocked =
+                        provider && matches!(order, DerivativeOrder::Hvp | DerivativeOrder::Third);
+                    assert_eq!(capabilities.resolve(request).is_err(), blocked);
+                }
+                if provider {
+                    assert!(matches!(
+                        model.source_first_order(SourceMode::Density),
                         Ok(Some(_))
                     ));
                 }
@@ -1563,8 +1577,8 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
                     expected
                 );
             };
-        check(build(false), 1, 4., 4., supported);
-        // Neither a lazy branch nor replay may hide a missing provider lowering.
+        check(build(false), 1, 4., 4., provider);
+        // Nested regions preserve provider identity and curvature rejection.
         let mut outer = ModelBuilder::new().region();
         let x = outer.input("x", Shape::scalar()).unwrap();
         let zero = outer.constant(Shape::scalar(), vec![0.]).unwrap();
@@ -1576,7 +1590,7 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
             1,
             4.,
             4.,
-            supported,
+            provider,
         );
         for steps in [0, 1] {
             for checkpoint in [false, true] {
@@ -1593,7 +1607,7 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
                     1,
                     if steps == 0 { 2. } else { 4. },
                     if steps == 0 { 1. } else { 4. },
-                    supported || steps == 0,
+                    provider && steps != 0,
                 );
             }
         }
@@ -1602,6 +1616,6 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
         let x = b.input("x", Shape::scalar()).unwrap();
         let a = b.reshape(x, shape(&[1, 1])).unwrap();
         let _ = b.matmul_with_kernel(a, a, kernel).unwrap();
-        check(b.compile(x).unwrap().bind(&[]).unwrap(), 1, 2., 1., true);
+        check(b.compile(x).unwrap().bind(&[]).unwrap(), 1, 2., 1., false);
     }
 }

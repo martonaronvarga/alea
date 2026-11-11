@@ -64,8 +64,13 @@ impl Executable {
         if tensor_validation && !(0..self.nodes.len()).any(|i| retained(i) && tensor(i).is_some()) {
             return Ok(None);
         }
+        // Enable composition globally, but select explicit versus compiler
+        // tensor reverse per factor below; ordinary companions keep their route.
+        let provider = (0..self.nodes.len())
+            .any(|i| retained(i) && tensor(i).is_some_and(|t| t.requires_explicit_source()));
         if !tensor_validation
             && !checkpointed
+            && !provider
             && !(0..self.nodes.len()).any(|i| retained(i) && native(i).is_some())
         {
             return Ok(None);
@@ -147,8 +152,11 @@ impl Executable {
                         reverse.insert_str(0, &r);
                         continue;
                     }
-                    let explicit =
-                        tensor(i).is_some_and(|t| tensor_validation || t.has_source_checkpoints());
+                    let explicit = tensor(i).is_some_and(|t| {
+                        tensor_validation
+                            || t.has_source_checkpoints()
+                            || t.requires_explicit_source()
+                    });
                     let pullback = tensor(i)
                         .map(|t| t.pullback_source(&format!("__tensor{i}")))
                         .transpose()

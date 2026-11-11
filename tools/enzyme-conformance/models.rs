@@ -481,6 +481,123 @@ fn checkpoint_identity(
     let rows = t.constant(Shape::new(vec![0])?, vec![])?;
     t.checkpointed_scan(value, rows, &[], body)
 }
+#[cfg(any(feature = "faer", alea_probe_blas))]
+fn provider_matrix(
+    kernel: alea::model::tensor::MatrixKernel,
+    variant: usize,
+) -> Result<NativeModel, AssemblyError> {
+    use alea::model::tensor::*;
+    let mut t = ModelBuilder::new().region();
+    let q = t.input("q", Shape::new(vec![9])?)?;
+    let (a, b) = if variant == 1 {
+        let a = t.gather(q, Shape::new(vec![2, 2])?, vec![0, 1, 2, 3])?;
+        (a, t.reshape(a, Shape::new(vec![2, 2])?)?)
+    } else if variant == 11 {
+        (
+            t.gather(q, Shape::new(vec![2, 0])?, vec![])?,
+            t.gather(q, Shape::new(vec![0, 2])?, vec![])?,
+        )
+    } else if variant == 12 {
+        (
+            t.gather(q, Shape::new(vec![2, 3])?, (0..6).collect())?,
+            t.gather(q, Shape::new(vec![3, 0])?, vec![])?,
+        )
+    } else if variant == 7 {
+        (
+            t.gather(q, Shape::new(vec![2, 3])?, (0..6).collect())?,
+            t.gather(q, Shape::new(vec![3, 2])?, (3..9).collect())?,
+        )
+    } else if variant == 6 {
+        (
+            t.data("fixedA", Shape::new(vec![2, 3])?)?,
+            t.gather(q, Shape::new(vec![3, 1])?, vec![6, 7, 8])?,
+        )
+    } else {
+        let rows = if variant == 2 { 0 } else { 2 };
+        (
+            t.gather(q, Shape::new(vec![rows, 3])?, (0..rows * 3).collect())?,
+            t.gather(q, Shape::new(vec![3, 1])?, vec![6, 7, 8])?,
+        )
+    };
+    let product = t.matmul_with_kernel(a, b, kernel)?;
+    let result = if matches!(variant, 1 | 2 | 11 | 12) {
+        t.sum(product)?
+    } else if variant == 7 {
+        let sum = t.sum(product)?;
+        let extra = t.sum(a)?;
+        t.binary(BinaryOp::Add, sum, extra)?
+    } else if variant == 4 {
+        let ones = t.constant(Shape::new(vec![2, 1])?, vec![1.; 2])?;
+        let inverse = t.binary(BinaryOp::Divide, ones, product)?;
+        t.sum(inverse)?
+    } else {
+        let weights = t.constant(Shape::new(vec![2, 1])?, vec![1., 2.])?;
+        let weighted = t.binary(BinaryOp::Multiply, product, weights)?;
+        let sum = t.sum(weighted)?;
+        let extra = t.sum(a)?;
+        t.binary(BinaryOp::Add, sum, extra)?
+    };
+    let result = if variant == 3 {
+        let zero = t.constant(Shape::scalar(), vec![0.])?;
+        t.binary(BinaryOp::Multiply, result, zero)?
+    } else {
+        result
+    };
+    let program = t.compile(result)?;
+    let mut binding = if variant == 6 {
+        program.bind(&[("fixedA", &[1., 2., -1., 0.5, -2., 3.])])?
+    } else {
+        program.bind(&[])?
+    };
+    if (8..=10).contains(&variant) {
+        let mut outer = ModelBuilder::new().region();
+        let input = outer.input("q", Shape::new(vec![9])?)?;
+        let zero = outer.constant(Shape::scalar(), vec![0.])?;
+        let result = if variant == 8 {
+            let predicate = outer.gather(input, Shape::scalar(), vec![0])?;
+            outer.cond(
+                predicate,
+                zero,
+                Comparison::Less,
+                &[input],
+                binding.clone(),
+                binding,
+            )?
+        } else {
+            let mut body = ModelBuilder::new().region();
+            let carry = body.input("carry", Shape::scalar())?;
+            let row = body.input("row", Shape::new(vec![9])?)?;
+            let z = body.constant(Shape::scalar(), vec![0.])?;
+            let term = body.cond(carry, z, Comparison::Less, &[row], binding.clone(), binding)?;
+            let result = body.binary(BinaryOp::Add, carry, term)?;
+            let body = body.compile(result)?.bind(&[])?;
+            let rows = outer.reshape(input, Shape::new(vec![1, 9])?)?;
+            if variant == 10 {
+                outer.checkpointed_scan(zero, rows, &[], body)?
+            } else {
+                outer.scan(zero, rows, &[], body)?
+            }
+        };
+        binding = outer.compile(result)?.bind(&[])?;
+    }
+    let mut b = ModelBuilder::new();
+    let q = (0..9)
+        .map(|i| b.real(&format!("q{i}")).map(|v| v.expr()))
+        .collect::<Result<Vec<_>, _>>()?;
+    let out = b.apply_region(&q, binding)?;
+    b.factor(out)?;
+    if variant == 5 {
+        let s = b.real("s")?.expr();
+        let mut r = b.region();
+        let x = r.input("s", Shape::scalar())?;
+        let square = r.binary(BinaryOp::Multiply, x, x)?;
+        let root = r.unary(UnaryOp::Sqrt, square)?;
+        let ordinary = r.compile(root)?.bind(&[])?;
+        let term = b.apply_region(&[s], ordinary)?;
+        b.factor(term)?;
+    }
+    b.compile()
+}
 fn tensor_matrix_policy(checkpoint: bool) -> Result<NativeModel, AssemblyError> {
     use alea::model::tensor::*;
     let mut t = ModelBuilder::new().region();
@@ -782,7 +899,137 @@ pub fn all() -> Result<Vec<(&'static str, NativeModel)>, AssemblyError> {
         ("native_poisson_large", native_batch_rows(2, 129)?),
         ("normal_vector", normal_vector(false)?),
         ("normal_vector_observed", normal_vector(true)?),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_inverse",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 4)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_inverse",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 4)?,
+        ),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_mixed",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 5)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_mixed",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 5)?,
+        ),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_inactive",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 6)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_inactive",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 6)?,
+        ),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_gemm",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 7)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_gemm",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 7)?,
+        ),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_branch",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 8)?,
+        ),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_scan",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 9)?,
+        ),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_checkpoint",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 10)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_branch",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 8)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_scan",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 9)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_checkpoint",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 10)?,
+        ),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_empty_inner",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 11)?,
+        ),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_empty_columns",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 12)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_empty_inner",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 11)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_empty_columns",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 12)?,
+        ),
         ("tensor_matrix", tensor_matrix()?),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_rect",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 0)?,
+        ),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_alias",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 1)?,
+        ),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_empty",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 2)?,
+        ),
+        #[cfg(feature = "faer")]
+        (
+            "provider_faer_zero",
+            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 3)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_rect",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 0)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_alias",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 1)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_empty",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 2)?,
+        ),
+        #[cfg(alea_probe_blas)]
+        (
+            "provider_blas_zero",
+            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 3)?,
+        ),
         ("tensor_broadcast", tensor_broadcast()?),
         (
             "tensor_checkpoint_broadcast",
