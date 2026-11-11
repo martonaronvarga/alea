@@ -1,6 +1,6 @@
 use alea::{
     distributions::modeling::{normal, normal_observation},
-    model::assembly::{CompiledModel, ModelBuilder},
+    model::assembly::{NativeModel, ModelBuilder},
     optimize::{
         LbfgsOptions, ObjectiveDescription, ObjectiveKind, OptimizationTermination, maximize,
     },
@@ -14,7 +14,7 @@ fn description(kind: ObjectiveKind) -> ObjectiveDescription {
         source: "downstream conformance".into(),
     }
 }
-fn regression() -> CompiledModel {
+fn regression() -> NativeModel {
     let mut b = ModelBuilder::new();
     let intercept = b.real("intercept").unwrap();
     let slope = b.real("slope").unwrap();

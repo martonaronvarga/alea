@@ -28,7 +28,7 @@ macro_rules! model {
     (|$builder:ident| parameters {
         $($name:ident : $method:ident($($argument:expr),* $(,)?)),* $(,)?
     } $body:block) => {{
-        (|| -> ::core::result::Result<$crate::model::assembly::CompiledModel, $crate::model::assembly::AssemblyError> {
+        (|| -> ::core::result::Result<$crate::model::assembly::NativeModel, $crate::model::assembly::AssemblyError> {
             let mut $builder = $crate::model::assembly::ModelBuilder::new();
             $(let $name = $builder.$method(::core::stringify!($name) $(, $argument)*)?;)*
             let _: () = $body;

@@ -6,6 +6,31 @@ Analytic adapters connect supplied derivatives to the model interfaces. The
 `codegen::enzyme_source` exporter turns a compiled model into Rust source with
 gradients, Hessian-vector products, Hessians, and third derivatives.
 
+Use `codegen::source` for an explicit derivative order. For example, a build
+script can request only sampling gradients:
+
+```rust,ignore
+use alea_core::model::assembly::{
+    CurvatureRoute, DerivativeOrder, SourceMode, SourceRequest,
+};
+let source = alea_autodiff::codegen::source(&model, SourceRequest {
+    mode: SourceMode::Density,
+    order: DerivativeOrder::First,
+    curvature: CurvatureRoute::Unavailable,
+})?;
+```
+
+`Value` emits no derivative target, `First` exposes `LogDensityGradient`, `Hvp`
+exposes `PotentialHessianVector`, and `Third` exposes
+`PotentialHessianDerivative`. First-order output contains no curvature entry
+points. `SourceMode::Objective` omits chart Jacobians. Inspect eligibility with
+`model.source_capabilities().resolve(request)` without rendering or compiling.
+HVP and third-order requests require `OriginalCompilerReverse` explicitly;
+trusted first-order rules and checkpoint pullbacks do not imply curvature
+support. This selects the original compiler route and still requires numerical
+qualification on the pinned toolchain for the consuming model. The legacy
+exporters retain that route and all three derivative orders.
+
 The exporter and analytic adapters work on stable Rust. Compiling the generated
 automatic derivatives requires the pinned nightly compiler and matching Enzyme
 component:

@@ -3,11 +3,11 @@ use alea::distributions::{
     modeling::{continuous, normal},
     scalar::Cauchy,
 };
-use alea::model::assembly::{AssemblyError as E, CompiledModel, ModelBuilder};
+use alea::model::assembly::{AssemblyError as E, NativeModel, ModelBuilder};
 
 /// Existing PosteriorDB eight-schools models, in their original parameter order.
 /// Covariance is a separate synthetic Cholesky model, not a PosteriorDB port.
-pub fn build(name: &str, n: usize, k: usize, x: &[f64], y: &[f64]) -> Result<CompiledModel, E> {
+pub fn build(name: &str, n: usize, k: usize, x: &[f64], y: &[f64]) -> Result<NativeModel, E> {
     if n == 0 || y.len() != n || n.checked_mul(k) != Some(x.len()) {
         return Err(E::Shape);
     }

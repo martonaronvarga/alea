@@ -41,14 +41,20 @@ impl BoundProgram {
     /// code. This standalone primal wrapper owns local scratch; for compiler AD
     /// use the workspace-explicit compiled-model exporter. Arrays are fixed-size;
     /// this is not a dynamic-shape/JIT/GPU backend.
-    pub fn rust_function(&self) -> String {
+    /// # Errors
+    /// Returns `MissingPrimal` for reachable native-only operations, including
+    /// matrix providers without a qualified source lowering.
+    pub fn rust_function(&self) -> Result<String, E> {
+        if let Some(node) = registration::missing_source(&self.plan) {
+            return Err(E::MissingPrimal { node });
+        }
         let dimension = self.dimension();
         let len = self.output_shape().elements;
         let slots = self.plan.source_slots;
-        format!(
+        Ok(format!(
             "{}\nfn tensor_region(x: &[f64; {dimension}], valid: &mut bool) -> [f64; {len}] {{ let mut scratch=[0.0_f64; {slots}]; let (out, work)=scratch.split_at_mut({len}); tensor_region_work(x, out, work, valid); ::std::array::from_fn(|j| out[j]) }}",
             self.function_source("tensor_region_work")
-        )
+        ))
     }
     pub(super) fn scalar_source(&self) -> String {
         format!(
@@ -58,11 +64,9 @@ impl BoundProgram {
     }
     pub(super) fn function_source(&self, name: &str) -> String {
         let p = &self.plan;
-        if registration::missing_source(p).is_some() {
-            // This old infallible API cannot advertise a native-only operation
-            // as supported source. Its OperationDescriptor hook returns None below.
-            return "compile_error!(\"native-only block has no source lowering\");".into();
-        }
+        // Public emission, registration and explicit pullbacks all check the
+        // same recursive capability guard before entering this renderer.
+        debug_assert!(registration::missing_source(p).is_none());
         let failure = "*valid=false; return;";
         let mut source = format!(
             "#[inline(always)]\nfn {name}(x: &[f64], out: &mut [f64], scratch: &mut [f64], valid: &mut bool) {{\nlet _ = (x, &*valid, &*out); let rest=scratch;\n"

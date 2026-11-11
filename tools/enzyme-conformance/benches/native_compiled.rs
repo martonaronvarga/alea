@@ -5,7 +5,7 @@
 mod models;
 use alea::{
     capability::{PotentialHessianDerivative, PotentialHessianVector},
-    model::assembly::CompiledModel,
+    model::assembly::NativeModel,
     target::{LogDensityGradient, TargetSpace},
 };
 use alea_enzyme_conformance as generated;
@@ -62,7 +62,7 @@ struct Route {
     tensor_validation: bool,
 }
 impl Route {
-    fn inspect(model: &CompiledModel) -> Self {
+    fn inspect(model: &NativeModel) -> Self {
         let tensor = model.graph().any(|node| {
             node.active
                 && node
@@ -71,13 +71,13 @@ impl Route {
         });
         let compiler = if tensor { "L" } else { "C" };
         let explicit = model
-            .rust_first_order_gradient(true)
+            .source_first_order(alea::model::assembly::SourceMode::Density)
             .expect("baseline source planning");
         Self {
             first: if explicit.is_some() { "H" } else { compiler },
             compiler,
             tensor_validation: HAS_TENSOR_VALIDATION && tensor && explicit.is_none(),
-            checkpointed: explicit.is_some_and(|(_, _, checkpointed)| checkpointed),
+            checkpointed: explicit.is_some_and(|first| first.checkpointed),
         }
     }
     fn emit(self, fixture: &str, requested: &str, order: &str, status: &str, reason: &str) {
@@ -119,7 +119,7 @@ impl Route {
                 let (status, reason) = if requested == "N" && matches!(order, "hvp" | "third") {
                     (
                         "unsupported",
-                        "generic native CompiledModel has no curvature trait",
+                        "generic native NativeModel has no curvature trait",
                     )
                 } else if requested != "N" && requested != self.first {
                     (
@@ -149,6 +149,7 @@ macro_rules! flags {
                 ".rs"
             )))
             .unwrap_or(false),
+            include_str!(concat!(env!("OUT_DIR"), "/", stringify!($module), ".rs")),
         )
     };
 }
@@ -156,36 +157,66 @@ macro_rules! flags {
 fn compare<T: PotentialHessianDerivative>(
     c: &mut Criterion,
     name: &str,
-    native: CompiledModel,
+    native: NativeModel,
     compiled: T,
     fixture: &str,
-    flags: (bool, bool, bool),
+    flags: (bool, bool, bool, &str),
 ) {
     let route = Route::inspect(&native);
     assert_eq!(
-        flags,
+        (flags.0, flags.1, flags.2),
         (
             route.first == "H",
             route.checkpointed,
             route.tensor_validation
         )
     );
+    use benchmark_support::fixed_work::{self, Fixture};
+    let primal = native
+        .source_primal(alea::model::assembly::SourceMode::Density)
+        .unwrap();
+    assert!(
+        flags.3.contains(&primal.source),
+        "generated fixture does not contain the native model/data/chart"
+    );
+    let model_id = fixed_work::identity(primal.source.as_bytes());
+    let coordinates = fixed_work::identity(format!("{:?}", native.coordinates()).as_bytes());
     let native = native.into_target().unwrap();
     let n = native.dimension();
     assert_eq!(n, compiled.dimension());
-    let q: Vec<_> = (0..n).map(|i| 0.1 + i as f64 * 0.01).collect();
+    let bank = fixed_work::states(n);
+    let identity = Fixture {
+        name: fixture,
+        model: model_id,
+        coordinates,
+        query: "density/current-factor-selection",
+        algorithm: "fused-logp-grad",
+        arithmetic: "fixture-default",
+        provider: "rust",
+    };
+    let native_answers =
+        fixed_work::run(&identity, "N", &bank, None, |q, g| native.logp_grad(q, g)).unwrap();
+    let first_order = FirstOrder(&compiled);
+    let compiled_answers = fixed_work::run(&identity, route.first, &bank, None, |q, g| {
+        first_order.logp_grad(q, g)
+    })
+    .unwrap();
+    for (a, b) in native_answers.iter().zip(&compiled_answers) {
+        assert!((a - b).abs() <= 2e-10 * (1. + a.abs().max(b.abs())));
+    }
+    let q = &bank[0];
     let mut group = c.benchmark_group(format!("native_compiled/{name}"));
     group.throughput(Throughput::Elements(1));
     compare_first(
         &mut group,
         &native,
         &FirstOrder(&compiled),
-        &q,
+        q,
         route,
         fixture,
     );
-    compare_hvp(&mut group, &compiled, &q, route, fixture);
-    compare_third(&mut group, &compiled, &q, route, fixture);
+    compare_hvp(&mut group, &compiled, q, route, fixture);
+    compare_third(&mut group, &compiled, q, route, fixture);
     group.finish();
 }
 

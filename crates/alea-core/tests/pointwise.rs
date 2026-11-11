@@ -1,7 +1,7 @@
 //! Predictive partitions retain data alignment and evaluate the actual likelihood.
 use alea_core::{
     model::assembly::{
-        AssemblyError, CompiledModel, ModelBuilder, PointwiseError, PointwiseLikelihood,
+        AssemblyError, ModelBuilder, NativeModel, PointwiseError, PointwiseLikelihood,
         PredictiveUnit,
     },
     target::LogDensityGradient,
@@ -21,7 +21,7 @@ fn unit(name: &str, factors: &[&str], observations: &[&str]) -> PredictiveUnit {
         integrated_out: vec![],
     }
 }
-fn model() -> CompiledModel {
+fn model() -> NativeModel {
     let mut b = ModelBuilder::new();
     let mean = b.real("mean").unwrap();
     let scale = b.positive("scale").unwrap();

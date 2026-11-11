@@ -22,11 +22,50 @@ Generated `SOURCE_EXPLICIT_FIRST_ORDER` reports this composition, while
 qualifies higher-order differentiation of a native score rule: HVPs and third
 derivatives still differentiate the original scalar primal with Enzyme.
 Frozen native batch descriptors and mutable workspaces are initialized once per
-calling thread and retained in function-local thread storage. First-use heap
-allocation and that cache's memory are **not** included in the fixed source
-float-arena count. Steady-state evaluation reuses the cache. Changing data
+generated target and retained in its owned first-order context. Target-setup heap
+allocation and that context's memory are **not** included in the fixed source
+float-arena count. Repeated evaluations reuse only that target's workspace. Changing data
 requires regenerating the module, as with other source-specialized constants.
 No measured speedup follows merely from selecting this lowering.
+
+`SourceRule::gradient` returns a `SourceGradient` body and optional `SourceState`
+with a scoped Rust type and initializer. A stateful body receives `state` by
+exclusive mutable reference. The generator constructs that state per target and
+keeps it outside compiler differentiation. Initializer/type/body strings are
+trusted leaves inserted verbatim. Construct generated targets inside each worker;
+their local contexts are not a shared concurrent target interface. The native
+`Arc<Executable>` interface separately supports independent owned per-chain
+adapters and explicit contexts.
+
+
+## Requesting a derivative order
+
+In the development API, `codegen::source(&model, request)` accepts a
+`model::assembly::SourceRequest` with `SourceMode::Density` or `Objective`, a
+`DerivativeOrder`, and a `CurvatureRoute`. `Value` emits only the scalar function;
+`First` emits a `LogDensityGradient` target without any curvature declarations.
+`Hvp` exposes `PotentialHessianVector`, and `Third` exposes
+`PotentialHessianDerivative`. Lower-order requests do not compile higher-order
+entry points. Objective mode omits chart Jacobians at every order.
+
+For value or first order, select `CurvatureRoute::Unavailable`. HVP and third
+order require explicit `OriginalCompilerReverse`; otherwise resolution returns
+`AssemblyError::UnqualifiedDerivative` with the requested order. Inspect a
+request with `model.source_capabilities().resolve(request)` before rendering.
+Missing active primals still identify their model node. Inspection checks
+emission eligibility; numerical qualification requires the actual pinned
+compiler and independent answers for the consuming model. Trusted first-order
+rules never qualify curvature by themselves. The legacy `enzyme_source` and
+`enzyme_objective_source` exporters retain all three orders and the original
+compiler reverse route.
+
+Generation resolves entry points, admission, frozen data and fixed `f64`
+workspaces before rendering. Trusted leaf Rust is inserted verbatim; marker-like
+text inside a leaf cannot select another derivative route. Core integration uses
+`source_primal`, `source_first_order` and `source_score_admission` with named
+`SourceProgram`/`FirstOrderSource` results. The old workspace tuples and
+checkpoint-only source hook have been removed. This preserves the existing
+factor-local derivative choices and original compiler route for curvature.
 
 ## A complete small project
 

@@ -339,7 +339,9 @@ impl NormalBatch {
             )
         })
     }
-    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
+    fn source_gradient_rule(
+        &self,
+    ) -> Option<fn(&Self) -> alea_core::model::assembly::SourceGradient> {
         Some(|this| {
             let [e, m, _] = this.lengths;
             let constructor = this.observations.as_ref().map_or_else(
@@ -347,7 +349,7 @@ impl NormalBatch {
                 |y| format!("Native::observed(vec!{:?},{m},{})", y, this.lengths[2]),
             );
             let setup = constructor;
-            super::super::cached_primitive_source(
+            super::super::owned_primitive_source(
                 "::alea::distributions::modeling::NormalBatch",
                 &setup,
             )

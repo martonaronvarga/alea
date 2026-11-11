@@ -64,12 +64,32 @@ impl<F: Fn(&[f64], &mut [f64], f64) -> f64> ConstrainedModel for EnzymeModel<F> 
 
 /// Adapter for Enzyme-generated first-, second-, and third-order operations.
 ///
+/// Use `()` for absent higher callbacks: the corresponding capability traits
+/// are then unavailable. A first-order adapter never needs curvature callbacks.
+///
 /// Alea does not differentiate validation or allocation code. Generate the
 /// callbacks at the scalar model boundary, then bind them here. `H` writes the
 /// potential Hessian-vector product and `D` writes the row-major potential
 /// Hessian plus its row-major coordinate-derivative blocks.
 /// [`crate::codegen::enzyme_source`] generates all three callbacks from a typed
 /// native model, including unconstrained transforms and their Jacobians.
+///
+/// Missing callbacks do not satisfy higher capability bounds:
+/// ```compile_fail
+/// use alea_autodiff::autodiff::EnzymeHigherOrderTarget;
+/// use alea_core::capability::PotentialHessianVector;
+/// fn requires_hvp(_: impl PotentialHessianVector) {}
+/// let target = EnzymeHigherOrderTarget::new(1, |_: &[f64], _: &mut [f64], _: f64| 0., (), ());
+/// requires_hvp(target);
+/// ```
+/// ```compile_fail
+/// use alea_autodiff::autodiff::EnzymeHigherOrderTarget;
+/// use alea_core::capability::PotentialHessianDerivative;
+/// fn requires_third(_: impl PotentialHessianDerivative) {}
+/// let target = EnzymeHigherOrderTarget::new(1, |_: &[f64], _: &mut [f64], _: f64| 0.,
+///     |_: &[f64], _: &[f64], _: &mut [f64]| {}, ());
+/// requires_third(target);
+/// ```
 pub struct EnzymeHigherOrderTarget<F, H, D> {
     dimension: usize,
     gradient: F,
@@ -89,12 +109,7 @@ impl<F, H, D> EnzymeHigherOrderTarget<F, H, D> {
     }
 }
 
-impl<F, H, D> alea_core::target::TargetSpace for EnzymeHigherOrderTarget<F, H, D>
-where
-    F: Fn(&[f64], &mut [f64], f64) -> f64,
-    H: Fn(&[f64], &[f64], &mut [f64]),
-    D: Fn(&[f64], &mut [f64], &mut [f64]),
-{
+impl<F, H, D> alea_core::target::TargetSpace for EnzymeHigherOrderTarget<F, H, D> {
     type Error = AutodiffError;
     fn dimension(&self) -> usize {
         self.dimension
@@ -103,8 +118,6 @@ where
 impl<F, H, D> LogDensityGradient for EnzymeHigherOrderTarget<F, H, D>
 where
     F: Fn(&[f64], &mut [f64], f64) -> f64,
-    H: Fn(&[f64], &[f64], &mut [f64]),
-    D: Fn(&[f64], &mut [f64], &mut [f64]),
 {
     fn is_numerical_error(&self, error: &Self::Error) -> bool {
         matches!(error, AutodiffError::NonFinite)
@@ -129,7 +142,6 @@ impl<F, H, D> PotentialHessianVector for EnzymeHigherOrderTarget<F, H, D>
 where
     F: Fn(&[f64], &mut [f64], f64) -> f64,
     H: Fn(&[f64], &[f64], &mut [f64]),
-    D: Fn(&[f64], &mut [f64], &mut [f64]),
 {
     fn potential_hvp(
         &self,

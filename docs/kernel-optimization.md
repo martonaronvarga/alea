@@ -891,6 +891,53 @@ status and reason. Older logs remain `not-recorded`; Cargo features never supply
 missing execution evidence. Failed build/run cells remain in the report even
 when no fixture receipt was reached.
 
+The same command also reads `ALEA_FIXED_WORK_V1` receipts into `fixed_work` and
+`fixed_work_unavailable`. The `native_compiled` preflight uses one shared bank
+of five coordinate vectors for native and generated evaluation. The first call
+is recorded separately from four steady calls. Each phase counts attempted and
+completed public fused target calls. Compiler AD, admission helpers and provider
+internals can perform additional work that these counters do not expose.
+
+The harness checks that the generated fixture contains the exact native primal
+body before assigning a common model/data identity. The receipts identify the
+query, coordinate metadata, model and bound literals, state bank, algorithm,
+arithmetic and provider. Their FNV-1a
+identities support within-run consistency checks. The existing source-sealed
+runner manifest supplies cryptographic provenance. The report rejects changed
+identities within a fixture and across matching cells before producing ratios.
+Unsupported and unexecuted routes remain explicit, and failed cells retain
+completed first phases and partial steady-call counts.
+
+`input_gradient_bytes` counts the logical f64 input-bank and gradient storage.
+The direct tensor control measures `workspace_owned_bytes` during workspace
+construction with the existing allocation counter. Immutable bindings and
+process/provider allocations are outside that count. Targets without this
+measurement report an unknown value and reason. These fields describe neither
+peak RSS nor a compiler tape bound.
+
+`tensor_tape` and `model_pipeline` use the same cold bank and phase helper while
+retaining their independent exact-value controls and Criterion inputs. The
+receipts normally describe untimed preflight work, separate from Criterion
+iteration counts. In a Slurm compute allocation, ALEA_FIXED_WORK_TIMING enables
+first/steady phase wall times through ALEA_PHASE_ELAPSED_V1 records. These times
+include target calls, poisoning/admission and output copies, and exclude receipt
+logging. The report retains these optional durations as phase_elapsed_nanoseconds.
+Cargo build timing reports and process RSS records describe their own scopes.
+
+The ELTE before receipt used one exclusive Xeon Gold 6240 node and seven
+alternating source pairs. Each tree ran 96 native/source cases and 32 pinned
+Enzyme cases, yielding 1,792 Criterion case observations. The receipt retains
+952 first/steady phase records, 2,380 counted public preflight target calls,
+and 5,600 unavailable route-phase rows. Model/data, coordinate, state-bank,
+algorithm, arithmetic and provider identities matched for the measured cases.
+The interrupted first capture is retained separately because its Enzyme logs
+were incomplete. One process-resource record also contains NUL padding, leaving
+27 of 28 process RSS observations available. Cold builds have one observation
+per variant and different generated registry sizes, so their costs are recorded
+without a normalized cold-build comparison. Route/admission differences and
+compiler/provider storage limits remain explicit in the receipt. Read existing runner output with
+`python3 tools/native-benchmark/scripts/three_engine.py cargo-report --output RUN_DIRECTORY`.
+
 | Label | Current baseline meaning |
 | --- | --- |
 | N | Stable native analytic/tensor execution, not absence of differentiation |

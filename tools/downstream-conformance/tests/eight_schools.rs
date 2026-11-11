@@ -2,7 +2,7 @@
 //! These are target checks, not evidence that a sampling policy converges.
 use alea::{
     distributions::modeling::normal,
-    model::assembly::{AssemblyError, CompiledModel, ModelBuilder},
+    model::assembly::{AssemblyError, NativeModel, ModelBuilder},
     target::LogDensityGradient,
     transform::Transform,
 };
@@ -11,7 +11,7 @@ const Y: [f64; 8] = [28., 8., -3., 7., -1., 1., 18., 12.];
 const SIGMA: [f64; 8] = [15., 10., 16., 11., 9., 11., 10., 18.];
 const N: usize = 8;
 
-fn model(noncentered: bool) -> Result<CompiledModel, AssemblyError> {
+fn model(noncentered: bool) -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let effects = b.vector::<alea::model::assembly::Real>(
         if noncentered { "z" } else { "theta" },

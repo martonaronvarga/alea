@@ -14,13 +14,13 @@ use alea::sampling::{
 use alea::{
     distribution::Sample,
     model::{
-        assembly::CompiledModel,
+        assembly::NativeModel,
         prediction::{NamedOutput, posterior_predict},
     },
 };
 use alea_downstream_conformance::modeling::{Observation, hierarchy, regression};
 use rand::{SeedableRng, rngs::SmallRng};
-fn run(name: &str, make: impl Fn() -> CompiledModel) -> Result<(), Box<dyn std::error::Error>> {
+fn run(name: &str, make: impl Fn() -> NativeModel) -> Result<(), Box<dyn std::error::Error>> {
     let model = make();
     let coordinates = model.coordinates();
     let d = coordinates.len();

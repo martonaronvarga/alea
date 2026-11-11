@@ -6,7 +6,7 @@ use alea::{
     distributions::modeling::{ModelBuilderExt, normal, regression::RegressionData},
     model::{
         ConstrainedModel,
-        assembly::{AssemblyError, CompiledModel, FactorRole, ModelBuilder, ScalarInput},
+        assembly::{AssemblyError, FactorRole, ModelBuilder, NativeModel, ScalarInput},
     },
     target::LogDensityGradient,
 };
@@ -124,7 +124,7 @@ fn macro_errors_are_results_not_panics_and_imperative_form_remains_available() {
         b.normal_likelihood("data",f64::NAN,&x,1.)?;
     }};
     assert!(matches!(bad, Err(AssemblyError::Numerical)));
-    let direct: Result<CompiledModel, AssemblyError> = alea::model!(|b| {
+    let direct: Result<NativeModel, AssemblyError> = alea::model!(|b| {
         let x = b.real("custom name")?;
         b.normal_prior("prior", &x, 0., 1.)?;
     });
@@ -169,7 +169,7 @@ fn vector_declarations_and_batch_helpers_keep_dimensions_roles_and_native_kernel
 
 #[test]
 fn shared_normal_observations_match_scalar_terms_and_finite_differences() {
-    fn make(batch: bool, n: usize) -> CompiledModel {
+    fn make(batch: bool, n: usize) -> NativeModel {
         alea::model! { |b| parameters { mu: real(), sigma: positive() } {
             let y:Vec<_>=(0..n).map(|i|i as f64*0.01-0.3).collect();
             if batch { b.normal_observations("data",&y,&mu,&sigma)?; }
@@ -208,7 +208,7 @@ fn shared_normal_observations_match_scalar_terms_and_finite_differences() {
 fn named_glm_helpers_preserve_native_offsets_scores_and_factor_selection() {
     use alea::distributions::modeling::{bernoulli_logit, regression};
     for poisson in [false, true] {
-        let build = |convenient: bool| -> Result<CompiledModel, AssemblyError> {
+        let build = |convenient: bool| -> Result<NativeModel, AssemblyError> {
             let mut b = ModelBuilder::new();
             let beta = b.real_vector("beta", &["a", "b"])?;
             for (i, &x) in beta.expressions().iter().enumerate() {

@@ -326,7 +326,7 @@ mod tests {
             let mut plan = b.compile(out).unwrap();
             assert_eq!(plan.plan.execution.is_some(), rows * 3 >= 4096);
             let fused = plan.bind(&[]).unwrap();
-            let fused_source = fused.rust_function();
+            let fused_source = fused.rust_function().unwrap();
             let mut x: Vec<_> = (0..fused.dimension())
                 .map(|i| (i % 17) as f64 / 16.)
                 .collect();

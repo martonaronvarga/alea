@@ -1,5 +1,5 @@
 //! Statistical factor declarations and explicit, consuming graph selections.
-use super::{AssemblyError, CompiledModel, ModelBuilder, Op, Value};
+use super::{AssemblyError, Executable, ModelBuilder, Op, Value};
 
 /// Declared statistical meaning. This is a caller contract, not a proof that a
 /// custom callback is normalized or that a posterior is proper.
@@ -94,7 +94,7 @@ impl Selection {
         }
     }
 }
-impl CompiledModel {
+impl Executable {
     /// Metadata for all declared factors, including terms excluded by a selection.
     /// Names do not become generated Rust identifiers.
     pub fn factors(&self) -> &[FactorMetadata] {
@@ -115,6 +115,7 @@ impl CompiledModel {
     pub fn select_all(mut self) -> Self {
         self.active_nodes = None;
         self.active_factors = None;
+        self.identity = super::next_value_owner();
         self.selection = Selection::All;
         self
     }
@@ -202,8 +203,30 @@ impl CompiledModel {
             }
         }
         self.active_factors = Some(factors);
+        self.identity = super::next_value_owner();
         self.selection = selection;
         self.active_nodes = Some(active);
         Ok(self)
+    }
+}
+
+impl super::NativeModel {
+    pub fn select_all(self) -> Self {
+        self.into_executable().select_all().into_native_model()
+    }
+    pub fn select_likelihood(self) -> Result<Self, AssemblyError> {
+        Ok(self
+            .into_executable()
+            .select_likelihood()?
+            .into_native_model())
+    }
+    pub fn select_prior(self) -> Result<Self, AssemblyError> {
+        Ok(self.into_executable().select_prior()?.into_native_model())
+    }
+    pub fn select_posterior(self) -> Result<Self, AssemblyError> {
+        Ok(self
+            .into_executable()
+            .select_posterior()?
+            .into_native_model())
     }
 }

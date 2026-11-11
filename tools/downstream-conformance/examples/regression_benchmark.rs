@@ -6,7 +6,7 @@ use alea::{
     },
     model::{
         ComposedObjective,
-        assembly::{CompiledModel, ModelBuilder},
+        assembly::{NativeModel, ModelBuilder},
     },
     optimize::{LbfgsOptions, ObjectiveDescription, ObjectiveKind, maximize},
     target::LogDensityGradient,
@@ -127,7 +127,7 @@ fn repeated_fits(
 }
 
 struct Prepared {
-    objective: ComposedObjective<CompiledModel>,
+    objective: ComposedObjective<NativeModel>,
     family: String,
     mode: String,
     profile: String,

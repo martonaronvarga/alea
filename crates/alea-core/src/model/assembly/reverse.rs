@@ -2,6 +2,7 @@
 //! even constant/inactive derivatives do not authorize skipping primal admission.
 use super::{AssemblyError, Op};
 
+#[derive(Clone)]
 enum Edge {
     Parameter(usize, usize),
     Add(usize, usize),
@@ -11,6 +12,7 @@ enum Edge {
     Local(usize, Box<[(usize, usize)]>),
 }
 
+#[derive(Clone)]
 pub(super) struct Plan(Vec<Edge>);
 impl Plan {
     pub(super) fn new(nodes: &[Op]) -> (Self, Vec<bool>) {

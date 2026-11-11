@@ -2,6 +2,7 @@
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -133,6 +134,30 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(denied.returncode, 2, denied.stderr)
         self.assertIn('Timing requires a Slurm compute node', denied.stderr)
         self.assertFalse((unpacked / 'target').exists())
+
+    def test_feature_runner_log_pipeline_preserves_build_failure(self):
+        runner = Path(__file__).resolve().parents[1] / 'bench-features.sh'
+        tools = self.root / 'fake-tools'
+        tools.mkdir()
+        cargo = tools / 'cargo'
+        cargo.write_text('#!/bin/sh\nif [ "$1" = -V ]; then echo fake-cargo; exit 0; fi\n'
+                         'echo build-stdout\necho build-stderr >&2\nexit 7\n')
+        cargo.chmod(0o755)
+        rustc = tools / 'rustc'
+        rustc.write_text('#!/bin/sh\necho fake-rustc\n')
+        rustc.chmod(0o755)
+        output = self.root / 'failed-build'
+        result = subprocess.run(
+            [shutil.which('bash'), str(runner), '--no-run', '--output', str(output)],
+            cwd=self.root, env=dict(os.environ, PATH=str(tools)+os.pathsep+os.environ['PATH']),
+            capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        cell = output / 'cell-0'
+        self.assertTrue((cell / 'BUILD_FAILED').is_file())
+        self.assertFalse((cell / 'run.log').exists())
+        log = (cell / 'build.log').read_text()
+        self.assertIn('build-stdout', log)
+        self.assertIn('build-stderr', log)
 
     def test_archive_rejects_broken_links_and_git_free_recheck_uses_exact_manifest(self):
         doc = self.root/'docs/README.md'

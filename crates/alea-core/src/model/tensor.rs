@@ -503,8 +503,9 @@ impl RegionBuilder {
     /// Dense product with an explicit execution policy. Faer/BLAS permit
     /// reassociated reductions in both primal and VJP; they do not promise
     /// compensated accuracy or identical trajectories. The default `matmul`
-    /// remains compensated. Source export uses the portable compensated
-    /// implementation, not external library calls. Shared-storage reverse
+    /// remains compensated. Source export rejects accelerated providers until
+    /// their source lowering is qualified; it never substitutes compensated
+    /// arithmetic. Shared-storage reverse
     /// operands and zero seeds retain the scalar pullback.
     /// Workspace budgets cover Alea-owned buffers, not external provider packing
     /// or thread-local scratch. BLAS thread count must be configured by the host.
@@ -870,7 +871,7 @@ impl TensorFactor {
     pub(super) fn binding(&self) -> &BoundProgram {
         &self.binding
     }
-    /// Same-shape named data replacement, suitable for CompiledModel::rebind.
+    /// Same-shape named data replacement, suitable for NativeModel::rebind.
     /// # Errors
     /// Preserves BoundProgram's binding validation errors.
     pub(super) fn with_data(&self, name: &str, values: &[f64]) -> Result<Self, E> {
@@ -1051,6 +1052,34 @@ mod indexing_tests {
 
     #[test]
     fn map_storage_and_source_depend_on_rank_not_output_cardinality() {
+        // Match the remote fixture grid without allocating tensor elements.
+        // Isolate read-map ownership and index text from complete plan storage,
+        // frozen literals, and primal/adjoint workspace costs.
+        for n in [1, 3, 64, 128, 1024, 4096, 65_536] {
+            for width in [1, 3, 8, 16] {
+                let output = Shape::new(vec![n, width]).unwrap();
+                for (operand, input) in [
+                    ("column", Shape::new(vec![n, 1]).unwrap()),
+                    ("row", Shape::new(vec![width]).unwrap()),
+                ] {
+                    let mut retained = None;
+                    let allocation = allocation_counter::measure(|| {
+                        retained = Some(map(&input, &output).unwrap());
+                    });
+                    let compact = retained.unwrap();
+                    let source_bytes = compact.index_source().len();
+                    assert!(allocation.bytes_total < 256);
+                    assert!(source_bytes < 64);
+                    if let Map::Broadcast(terms) = &compact {
+                        assert_eq!(terms.len(), 1);
+                    }
+                    eprintln!(
+                        "ALEA_BROADCAST_MAP_V1\t{n}x{width}\t{operand}\towned={}\tallocated={}\tindex_source={source_bytes}",
+                        allocation.bytes_current, allocation.bytes_total,
+                    );
+                }
+            }
+        }
         for n in [1_000, 1_000_000] {
             let output = Shape::new(vec![n, 8]).unwrap();
             for input in [

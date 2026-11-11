@@ -10,7 +10,7 @@ use alea_core::{
 use alea_distributions::modeling;
 use rand::{SeedableRng, rngs::SmallRng};
 use std::convert::Infallible;
-fn shared_model() -> alea_core::model::assembly::CompiledModel {
+fn shared_model() -> alea_core::model::assembly::NativeModel {
     let mut b = ModelBuilder::new();
     let mu = b.real("mu").unwrap();
     let scale = b.positive("scale").unwrap();
@@ -351,22 +351,26 @@ fn fused_linear_predictor_retains_products_and_exposes_analytic_score() {
 
 #[test]
 fn owned_callback_scratch_recovers_from_unwind_and_is_model_local() {
-    fn make() -> alea_core::model::assembly::CompiledModel {
+    fn make() -> alea_core::model::assembly::NativeModel {
         let mut builder = ModelBuilder::new();
         let x = builder.real("x").unwrap();
         let factor = builder
-            .custom_with_scratch(&[x.expr()], vec![f64::NAN; 2], |x, g, work| {
-                work.fill(0.);
-                work[0] = x[0] * x[0];
-                if x[0] == 9. {
-                    panic!("test callback unwind");
-                }
-                if x[0] == 8. {
-                    return Err(AssemblyError::Numerical);
-                }
-                g[0] = 2. * x[0];
-                Ok(work[0])
-            })
+            .custom_with_scratch(
+                &[x.expr()],
+                || vec![f64::NAN; 2],
+                |x, g, work| {
+                    work.fill(0.);
+                    work[0] = x[0] * x[0];
+                    if x[0] == 9. {
+                        panic!("test callback unwind");
+                    }
+                    if x[0] == 8. {
+                        return Err(AssemblyError::Numerical);
+                    }
+                    g[0] = 2. * x[0];
+                    Ok(work[0])
+                },
+            )
             .unwrap();
         builder.factor(factor).unwrap();
         builder.compile().unwrap()

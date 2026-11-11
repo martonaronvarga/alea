@@ -145,10 +145,111 @@ def cargo_route_receipts(path):
     return list(rows.values())
 
 
+
+def cargo_work_receipts(path):
+    """Validate fixed-work target-boundary counts and within-cell identities."""
+    rows = []
+    seen = set()
+    identities = {}
+    if not path.is_file():
+        return rows
+    for line in path.read_text().splitlines():
+        if not line.startswith('ALEA_FIXED_WORK_'):
+            continue
+        if not line.startswith('ALEA_FIXED_WORK_V1\t'):
+            raise ValueError('unknown fixed-work receipt version')
+        parts = line.split('\t')[1:]
+        if len(parts) != 16:
+            raise ValueError('malformed fixed-work receipt')
+        (fixture, route, phase, query, algorithm, arithmetic, provider,
+         model, coordinates, bank, calls, completed, io_bytes, target_bytes,
+         status, reason) = parts
+        if (not re.fullmatch(r'[A-Za-z0-9_]+', fixture)
+                or route not in {'N', 'C', 'L', 'H'}
+                or phase not in {'first', 'steady'}
+                or query not in {'density/current-factor-selection', 'constrained-objective', 'constrained-density'}
+                or algorithm != 'fused-logp-grad'
+                or arithmetic != 'fixture-default' or provider != 'rust'
+                or any(not re.fullmatch('[0-9a-f]{16}', value) for value in (model, coordinates, bank))
+                or any(not value.isdigit() for value in (calls, completed, io_bytes))
+                or (target_bytes != 'unknown' and not target_bytes.isdigit())
+                or status not in {'supported', 'failed'} or not reason.strip()):
+            raise ValueError('invalid fixed-work axes/counts/status')
+        calls, completed, io_bytes = map(int, (calls, completed, io_bytes))
+        expected = 1 if phase == 'first' else 4
+        if (not 0 <= completed <= calls <= expected
+                or (status == 'supported' and (calls != expected or completed != calls))):
+            raise ValueError('inconsistent fixed-work call counts')
+        axes = (query, algorithm, arithmetic, provider, model, coordinates, bank, io_bytes)
+        if fixture in identities and identities[fixture] != axes:
+            raise ValueError('mismatched fixed-work query/data/coordinates/algorithm/provider')
+        identities[fixture] = axes
+        key = fixture, route, phase
+        if key in seen:
+            raise ValueError('duplicate fixed-work receipt')
+        seen.add(key)
+        rows.append(dict(
+            fixture=fixture, route=route, phase=phase, query=query,
+            algorithm=algorithm, arithmetic=arithmetic, provider=provider,
+            model_id=model, coordinates_id=coordinates, state_bank_id=bank,
+            target_calls=calls, completed_calls=completed,
+            fused_value_gradient_calls=calls, value_only_calls=0,
+            input_gradient_bytes=io_bytes,
+            workspace_owned_bytes=None if target_bytes == 'unknown' else int(target_bytes),
+            workspace_owned_bytes_reason='not exposed by this target' if target_bytes == 'unknown' else None,
+            status=status, reason=reason, source=str(path),
+        ))
+    timings = {}
+    for line in path.read_text().splitlines():
+        if not line.startswith('ALEA_PHASE_ELAPSED_'):
+            continue
+        parts = line.split('\t')
+        if (len(parts) != 5 or parts[0] != 'ALEA_PHASE_ELAPSED_V1'
+                or not parts[4].isdigit() or int(parts[4]) <= 0):
+            raise ValueError('invalid fixed-work phase timing')
+        key = tuple(parts[1:4])
+        if key not in seen or key in timings:
+            raise ValueError('unmatched or duplicate fixed-work phase timing')
+        timings[key] = int(parts[4])
+    for row in rows:
+        row['phase_elapsed_nanoseconds'] = timings.get((row['fixture'], row['route'], row['phase']))
+        row['phase_timing_scope'] = 'target calls, poisoning, admission and output copies; excludes receipt logging' if row['phase_elapsed_nanoseconds'] is not None else None
+    return rows
+
+
+def cargo_broadcast_storage(path):
+    """Cold fixture ownership counts, never process/compiler memory bounds."""
+    rows = []
+    seen = set()
+    fields = {'plan_owned', 'source_runtime', 'source_frozen', 'frozen_payload',
+              'workspace_budget', 'workspace_owned', 'first_allocations',
+              'first_bytes', 'steady_allocations', 'steady_bytes'}
+    if not path.is_file():
+        return rows
+    for line in path.read_text().splitlines():
+        if not line.startswith('ALEA_BROADCAST_STORAGE_'):
+            continue
+        parts = line.split('\t')
+        if (parts[0] != 'ALEA_BROADCAST_STORAGE_V1' or len(parts) != len(fields) + 2
+                or not re.fullmatch(r'tensor_broadcast(?:_gather)?/[0-9]+(?:x[0-9]+)?', parts[1])):
+            raise ValueError('invalid broadcast storage receipt')
+        values = {}
+        for field in parts[2:]:
+            key, separator, value = field.partition('=')
+            if key not in fields or key in values or not separator or not value.isdigit():
+                raise ValueError('invalid broadcast storage field')
+            values[key] = int(value)
+        if values.keys() != fields or parts[1] in seen:
+            raise ValueError('duplicate or incomplete broadcast storage receipt')
+        seen.add(parts[1])
+        rows.append(dict(fixture=parts[1], **values))
+    return rows
+
+
 def cargo_bench_report(root):
     """Read Criterion's existing estimates/samples; no second timing engine."""
     root=Path(root)
-    cells=[];rows=[];routes=[]
+    cells=[];rows=[];routes=[];work=[];unavailable=[];storage=[]
     def number(value,positive=False):
         if type(value) not in (float,int) or not math.isfinite(value) or (value<=0 if positive else value<0):
             raise ValueError('invalid Criterion numeric estimate/sample')
@@ -161,6 +262,23 @@ def cargo_bench_report(root):
         receipts = cargo_route_receipts(cell/'run.log')
         cells[-1]['route_inventory_status'] = 'recorded' if receipts else 'not-recorded'
         routes.extend(dict(cell=cell.name, **receipt) for receipt in receipts)
+        fixed = cargo_work_receipts(cell/'run.log')
+        cells[-1]['fixed_work_status'] = 'recorded' if fixed else 'not-recorded'
+        work.extend(dict(cell=cell.name, **receipt) for receipt in fixed)
+        storage.extend(dict(cell=cell.name, **receipt) for receipt in cargo_broadcast_storage(cell/'run.log'))
+        recorded = {(row['fixture'], row['route'], row['phase']) for row in fixed}
+        for receipt in receipts:
+            if receipt['order'] != 'first':
+                continue
+            for phase in ('first', 'steady'):
+                if (receipt['fixture'], receipt['requested_route'], phase) not in recorded:
+                    unavailable.append(dict(
+                        cell=cell.name, fixture=receipt['fixture'],
+                        route=receipt['requested_route'], phase=phase,
+                        status=receipt['status'] if receipt['status'] != 'supported' else 'not-run',
+                        reason=receipt['reason'] if receipt['status'] != 'supported' else 'no fixed-work receipt',
+                    ))
+
         for path in sorted((cell/'criterion').rglob('new/estimates.json')):
             location=path.parent
             estimates=json.loads(path.read_text())
@@ -183,6 +301,15 @@ def cargo_bench_report(root):
                 nanoseconds_per_iteration=point,median_interval=[lower,upper],confidence_level=level,
                 samples=len(iterations),iterations=sum(iterations),throughput=identity.get('throughput'),
                 source=str(location.relative_to(root))))
+    matched = {}
+    for row in work:
+        key = row['fixture'], row['route'], row['phase']
+        axes = tuple(row[field] for field in (
+            'query', 'algorithm', 'arithmetic', 'provider', 'model_id',
+            'coordinates_id', 'state_bank_id', 'input_gradient_bytes'))
+        if key in matched and matched[key] != axes:
+            raise ValueError('mismatched fixed-work identities across cells')
+        matched[key] = axes
     seen=set()
     for row in rows:
         key=(row['cell'],row['case'])
@@ -197,7 +324,10 @@ def cargo_bench_report(root):
                 reference_over_candidate=a['nanoseconds_per_iteration']/b['nanoseconds_per_iteration']))
     return dict(schema_version=1,scope='sequential feature-cell ratios of Criterion medians, not paired estimates, cross-source qualification or ESS/sec',
         cells=cells,measurements=rows,comparisons=comparisons,route_inventory=routes,
-        route_inventory_scope='planning and untimed preflight only; supported requires an explicit execution receipt; legacy logs are not-recorded; fixture-default arithmetic is not equal-accuracy certification; current compiled benchmark still requires PotentialHessianDerivative')
+        fixed_work=work, fixed_work_unavailable=unavailable, broadcast_storage=storage,
+        broadcast_storage_scope='cold allocation-counter ownership; plan includes graph/scheduler metadata; source lengths include scaffolding; frozen payload is f64 data bytes, not literal text; excludes compiler/provider/RSS',
+        fixed_work_scope="public target counts and optional allocated-node phase wall times; internal AD/admission work and unexposed memory remain unknown",
+        route_inventory_scope='planning and untimed preflight only; supported requires an explicit execution receipt; legacy logs are not-recorded; fixture-default arithmetic is not equal-accuracy certification')
 
 
 def allocation_affinity(plan):

@@ -1,5 +1,5 @@
 //! Explicit primitive rules lower joint native batches to conditional row values.
-use super::{AssemblyError, CompiledModel, Op};
+use super::{AssemblyError, NativeModel, Op};
 use std::cell::RefCell;
 
 /// Local batch coordinate, not a globally unique observation ID or a marginal
@@ -20,12 +20,12 @@ struct Workspace {
 /// gradient loop. Only declared primitive rules may split factors. Arbitrary
 /// joint/opaque factors remain unsupported, rather than invented independent rows.
 pub struct BatchLikelihood {
-    model: CompiledModel,
+    model: NativeModel,
     units: Vec<BatchUnit>,
     roots: Vec<(usize, usize, usize)>,
     workspace: RefCell<Workspace>,
 }
-impl CompiledModel {
+impl NativeModel {
     /// Selects the likelihood and lowers author-supplied batch rules in factor/
     /// row order. Excludes priors, arbitrary potentials and chart Jacobians.
     /// # Errors
@@ -35,7 +35,8 @@ impl CompiledModel {
         let mut roots = Vec::new();
         let mut units = Vec::new();
         {
-            let tape = model.workspace.borrow();
+            let context = model.workspace.borrow();
+            let tape = &context.work;
             for (root, metadata) in model.factors.iter().zip(&model.factor_metadata) {
                 if metadata.role() != super::FactorRole::Likelihood {
                     continue;
@@ -78,11 +79,11 @@ impl BatchLikelihood {
         &self.units
     }
     /// Original graph and retained semantic descriptors.
-    pub fn model(&self) -> &CompiledModel {
+    pub fn model(&self) -> &NativeModel {
         &self.model
     }
     /// Recovers the model for another selection or consuming data rebinding.
-    pub fn into_model(self) -> CompiledModel {
+    pub fn into_model(self) -> NativeModel {
         self.model
     }
     /// Evaluates in free coordinates without density Jacobians. Rows are staged
@@ -114,7 +115,8 @@ impl BatchLikelihood {
             .workspace
             .try_borrow_mut()
             .map_err(|_| AssemblyError::WorkspaceBusy)?;
-        self.model.forward::<true>(parameters, &mut tape)?;
+        tape.ready = None;
+        self.model.forward::<true>(parameters, &mut tape.work)?;
         for &(root, rule, start) in &self.roots {
             let Op::Factor {
                 inputs: indices, ..
@@ -127,7 +129,7 @@ impl BatchLikelihood {
                 values: tape_values,
                 batch_rules,
                 ..
-            } = &mut *tape;
+            } = &mut tape.work;
             for (out, &index) in inputs.iter_mut().zip(indices.iter()) {
                 *out = tape_values[index];
             }

@@ -11,14 +11,14 @@ use alea::{
 use alea::{
     model::{
         ModelError,
-        assembly::{AssemblyError, CompiledModel, ModelBuilder},
+        assembly::{AssemblyError, NativeModel, ModelBuilder},
     },
     target::LogDensityGradient,
 };
 use std::{fs::File, path::Path};
 use tokio_util::sync::CancellationToken;
 
-fn model() -> CompiledModel {
+fn model() -> NativeModel {
     let mut b = ModelBuilder::new();
     let q = b.real("location").unwrap();
     let square = b.multiply(q.expr(), q.expr()).unwrap();

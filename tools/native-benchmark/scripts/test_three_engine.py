@@ -9,6 +9,34 @@ import three_engine as bench
 
 
 class ThreeEngineTests(unittest.TestCase):
+    def test_broadcast_storage_report_preserves_scopes_and_rejects_bad_receipts(self):
+        fields = dict(plan_owned=256, source_runtime=1000, source_frozen=1100,
+                      frozen_payload=24, workspace_budget=2048, workspace_owned=2100,
+                      first_allocations=1, first_bytes=8, steady_allocations=0, steady_bytes=0)
+        receipt = 'ALEA_BROADCAST_STORAGE_V1\ttensor_broadcast/3x3\t' + '\t'.join(
+            f'{key}={value}' for key, value in fields.items()) + '\n'
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            cell = root / 'cell-0'
+            cell.mkdir()
+            (cell / 'features.txt').write_text('')
+            path = cell / 'run.log'
+            path.write_text(receipt)
+            result = bench.cargo_bench_report(root)
+            self.assertEqual(result['measurements'], [])  # Storage is not timing.
+            self.assertEqual(result['broadcast_storage'], [dict(
+                cell='cell-0', fixture='tensor_broadcast/3x3', **fields)])
+            for bad in [receipt * 2, receipt.replace('V1', 'V2'),
+                        receipt.replace('plan_owned=256', 'plan_owned=-1'),
+                        receipt.replace('plan_owned=256', 'plan_owned=NaN'),
+                        receipt.replace('plan_owned=256', 'first_bytes=256'),
+                        receipt.replace('\tsteady_bytes=0', '')]:
+                path.write_text(bad)
+                with self.assertRaises(ValueError):
+                    bench.cargo_bench_report(root)
+            path.write_text('legacy log\n')
+            self.assertEqual(bench.cargo_bench_report(root)['broadcast_storage'], [])
+
     def test_compiler_ad_is_opted_in_per_enzyme_cell_without_rewriting_user_controls(self):
         base={'RUSTFLAGS':'-Ctarget-cpu=native'}
         self.assertEqual(bench.feature_environment(base,[]),base)
@@ -52,6 +80,47 @@ class ThreeEngineTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'work units'):bench.cargo_bench_report(root)
             (path/'sample.json').write_text(json.dumps(dict(iters=[0],times=[100])))
             with self.assertRaisesRegex(ValueError,'numeric'):bench.cargo_bench_report(root)
+
+    def test_fixed_work_receipts_validate_identity_counts_and_partial_failures(self):
+        def line(route='N', phase='first', calls='1', completed='1', status='supported'):
+            return '\t'.join(['ALEA_FIXED_WORK_V1', 'polynomial', route, phase,
+                'density/current-factor-selection', 'fused-logp-grad',
+                'fixture-default', 'rust', 'a'*16, 'b'*16, 'c'*16,
+                calls, completed, '96', 'unknown', status, 'executed'])+'\n'
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cell=root/'cell-0';cell.mkdir()
+            (cell/'features.txt').write_text('')
+            path=cell/'run.log'
+            good=line()+line('C')
+            path.write_text(good+line(phase='steady', calls='2', completed='1', status='failed'))
+            (cell/'RUN_FAILED').touch()
+            report=bench.cargo_bench_report(root)
+            self.assertEqual(report['cells'][0]['status'],'run-failed')
+            self.assertEqual(len(report['fixed_work']),3)
+            failed=report['fixed_work'][-1]
+            self.assertEqual((failed['target_calls'],failed['completed_calls']),(2,1))
+            self.assertIsNone(failed['workspace_owned_bytes'])
+            timing='ALEA_PHASE_ELAPSED_V1\tpolynomial\tN\tfirst\t125\n'
+            path.write_text(good+timing)
+            self.assertEqual(bench.cargo_work_receipts(path)[0]['phase_elapsed_nanoseconds'],125)
+            for bad in [timing+timing,timing.replace('125','0'),timing.replace('first','missing')]:
+                path.write_text(good+bad)
+                with self.assertRaises(ValueError):bench.cargo_work_receipts(path)
+            for old,new in [('density/current-factor-selection','constrained-objective'),
+                            ('fused-logp-grad','different-algorithm'),('rust','faer'),
+                            ('fixture-default','standard'),('a'*16,'d'*16),
+                            ('b'*16,'d'*16),('c'*16,'d'*16)]:
+                with self.subTest(axis=old):
+                    path.write_text(line()+line('C').replace(old,new))
+                    with self.assertRaises(ValueError):bench.cargo_work_receipts(path)
+            for bad in [line(calls='2'),line(completed='0'),line(calls='NaN'),
+                        line()+line(),line().replace('V1','V2')]:
+                path.write_text(bad)
+                with self.assertRaises(ValueError):bench.cargo_work_receipts(path)
+            path.write_text(good)
+            other=root/'cell-1';other.mkdir();(other/'features.txt').write_text('simd')
+            (other/'run.log').write_text(good.replace('c'*16,'d'*16))
+            with self.assertRaisesRegex(ValueError,'across cells'):bench.cargo_bench_report(root)
 
     def test_cargo_inventory_exposes_real_targets_and_uncovered_modules_without_timings(self):
         inventory=bench.cargo_bench_inventory(bench.REPO)

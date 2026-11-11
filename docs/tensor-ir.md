@@ -203,13 +203,166 @@ quartic with independent value/score/Hessian/third derivatives on ordinary and
 explicit first-order checkpoint source routes. Higher derivatives still use the
 qualified compiler reverse, not differentiation of the checkpointed pullback.
 
-`tensor_tape` adds `tensor_broadcast/{128,4096,65536}` cases, separating
-`plan_bind`, `primal_source`, `workspace`, `forward`, and `value_vjp`. Run these
+The post-cutover admission inventory is below. Native integration names refer to
+`crates/alea-core/tests/tensor_ir.rs`; compiler cases live in the existing
+`tools/enzyme-conformance` fixtures and tests.
+
+| Case | Native evidence | Compiled-source evidence |
+| --- | --- | --- |
+| Rank-two rows/columns, rank-three coordinates, partial runs | `executable_broadcast_grid_matches_dense_coordinates_across_contexts_and_immutable_rebinds`; exact-bit explicit-gather controls | `tensor_broadcast` and `tensor_broadcast_tail`, ordinary and checkpoint variants; independent dense value and polynomial score/Hessian/third/HVP answers |
+| Empty axes | Executable grid includes zero rows and zero width; `empty_broadcasts_do_not_address_inputs_or_adjoint_ranges` | `tensor_broadcast_empty` and checkpoint variant, including zero HVP directions |
+| Invalid shapes, overflow, owner and index checks | `admission_checks_owners_shapes_empty_tensors_and_dead_operations`; empty scan metadata overflow test | Source generation consumes the same admitted plan; runtime nonfinite inputs remain typed errors |
+| Repeated IDs, reshape aliases, inactive operands | Executable grid; rank-three gather reverse test; specialized binary scalar-bit controls | Shared-input quartic fixtures on both source routes; compiler tensor admission tests for inactive scores |
+| Zero seeds, lazy branches, selected intermediate errors | Repeated-gather seed linearity; selected overflow test; executable lazy-broadcast test covers empty and zero-weight results | `tensor_control`, `tensor_source`, and compiler tensor admission tests retain selected-branch failures and zero-seed behavior |
+| Failure/recovery, immutable rebind, independent contexts | Executable grid checks rejected shapes/nonfinite data, new binding identities, unchanged staged scores and old-binding recovery; checkpoint replay recovery tests | Generated tail/empty tests reject nonfinite inputs then recover; existing source rebinding/admission controls remain |
+
+Whole-value `call_region` executable edges in the new grid are native-only and
+explicitly reject source emission. Compiler fixtures exercise the existing
+scalar-result adapter, including ordinary and explicit checkpoint source routes;
+they do not establish generated derivatives for whole-value model edges. No
+writable buffer reuse or copy-elision behavior changes in this grid.
+
+`tensor_tape` retains `tensor_broadcast/{128,4096,65536}` width-eight cases and
+adds rows 1/3/64/1024/65536 crossed with widths 1/3/16. Each has an explicit
+repeated-gather control under `tensor_broadcast_gather/{rows}x{width}`. Existing
+scalar/block/direct and matrix controls remain. The phases separate `plan_bind`,
+`primal_source`, `frozen_source`, `workspace`, `first_value_vjp`, `forward`, and
+steady `value_vjp`. The first-call Criterion case uses a fresh workspace per
+iteration: setup allocation is excluded, but workspace destruction is included.
+The existing fixed-work receipt additionally distinguishes one first and four
+steady target calls; optional phase timing still requires a compute allocation.
+Run these
 through `cargo bench -p alea-core --bench tensor_tape -- tensor_broadcast` from
 the crate workspace, on an ELTE HPC compute allocation. Compare saved before/after
 sources on the same host, retaining nonbroadcast/scan controls. Storage/source
-complexity is established by code and allocation tests; latency and inference
-speedups remain unmeasured for this increment.
+complexity is established by code and allocation tests; the remote native latency
+receipt below does not establish inference speedups.
+
+Cold `ALEA_BROADCAST_STORAGE_V1` records are retained by the existing
+`three_engine.py cargo-report` reader as `broadcast_storage`. They distinguish
+complete plan heap ownership (including graph/scheduler metadata), runtime-input
+source bytes, frozen-row source bytes, frozen f64 payload bytes, checked workspace
+budget, measured workspace ownership and first/steady allocation counts/bytes.
+Source lengths include scaffolding; their difference is not an isolated literal
+text measurement. The private `map_storage_and_source_depend_on_rank_not_output_cardinality`
+test separately emits `ALEA_BROADCAST_MAP_V1` allocation and integer-expression
+length records without allocating tensor elements. Those map-only counts must
+not be substituted for total plan or workspace costs. None bounds compiler tape,
+provider scratch or process RSS.
+
+Untimed allocation-counter observations on x86_64 (bytes, not timings):
+
+| Fixture | Plan heap ownership | Runtime-input source | Workspace heap ownership | First / steady allocations |
+| --- | ---: | ---: | ---: | ---: |
+| Compact 1x1 | 1,494 | 1,144 | 581 | 0 / 0 |
+| Compact 65536x16 | 1,574 | 1,113 | 35,128,181 | 0 / 0 |
+| Explicit gather 65536x16 | 16,778,776 | 10,702,693 | 68,158,495 | 0 / 0 |
+
+These are scoped fixture ownership counts, not peak allocation or matched
+before/after results. At width 16, frozen row payload is 128 bytes; the compact
+frozen-source wrapper is 1,194 bytes, including scaffolding and literals.
+
+### Remote indexing qualification (November 11, 2026)
+
+ELTE job 2778970 completed on exclusive cn18-13 (Xeon Gold 6240, KVM guest),
+with one pinned evaluation CPU and all provider/thread budgets set to one.
+Both trees used stable Rust 1.95.0, `-Cembed-bitcode=yes -Ctarget-cpu=native`,
+no default features, the Rust provider and the same expanded harness. The old
+harness only substitutes its required `CompiledModel` type name for `NativeModel`.
+The reference is the preserved I0.4 candidate source; the current tree includes
+subsequent ownership/registration work. **Both already contain compact maps**:
+these timings compare revisions and cannot attribute a gain to map compaction.
+
+Both source manifests were verified unchanged after execution. Native tests
+passed (reference 26, current 28), map property/storage tests passed on both,
+and all 261 untimed benchmark cases passed before timing. Seven alternating
+reference/current pairs yielded 3,654 Criterion observations (20 samples each),
+1,176 first/steady phase records, 2,940 counted target calls and 504 storage
+records. No run failed. The existing report reader replayed all records without
+relaxing source/query/data identities. The isolated map grid retains at most
+40 heap bytes per nontrivial operand and at most 10 bytes of index expression;
+full plans, frozen data and workspaces remain the larger separate costs above.
+All recorded steady target allocation counts were zero; ownership/source counts
+were identical across the two trees and seven pairs.
+
+Steady fused VJP times below are medians of the seven per-run Criterion medians.
+Ratios are medians of matched reference/current ratios; their min/max show
+observed pair dispersion, **not confidence intervals**. Each original Criterion
+interval/sample set is retained. Warmup was 0.1 s and requested measurement time
+0.3 s per case; Criterion extended expensive cases when needed. Outlier and
+insufficient-time warnings are preserved. One host and one source pair do not
+support a universal performance claim.
+
+| Compact shape | Reference VJP µs | Current VJP µs | Paired reference/current median [min, max] |
+| --- | ---: | ---: | --- |
+| 128×8 | 16.392 | 16.603 | 0.989 [0.985, 1.019] |
+| 4096×8 | 549.764 | 539.890 | 1.022 [1.015, 1.028] |
+| 65536×8 | 9234.872 | 9117.819 | 1.005 [0.968, 1.043] |
+| 1×1 | 0.152 | 0.148 | 1.025 [1.016, 1.156] |
+| 1×3 | 0.237 | 0.232 | 1.025 [1.021, 1.034] |
+| 1×16 | 0.365 | 0.349 | 1.015 [0.937, 1.067] |
+| 3×1 | 0.236 | 0.233 | 1.013 [1.006, 1.032] |
+| 3×3 | 0.454 | 0.438 | 1.037 [1.017, 1.093] |
+| 3×16 | 0.836 | 0.805 | 1.043 [1.032, 1.071] |
+| 64×1 | 0.860 | 0.779 | 1.108 [1.072, 1.115] |
+| 64×3 | 5.114 | 4.916 | 1.043 [1.039, 1.048] |
+| 64×16 | 13.539 | 12.814 | 1.057 [1.041, 1.061] |
+| 1024×1 | 11.343 | 10.255 | 1.098 [1.060, 1.173] |
+| 1024×3 | 81.485 | 78.433 | 1.036 [1.012, 1.046] |
+| 1024×16 | 220.597 | 205.852 | 1.059 [1.055, 1.114] |
+| 65536×1 | 1071.552 | 997.842 | 1.068 [1.049, 1.084] |
+| 65536×3 | 5261.891 | 5099.288 | 1.033 [1.027, 1.040] |
+| 65536×16 | 17751.031 | 16964.764 | 1.039 [1.037, 1.054] |
+
+Cold/fresh-workspace controls (µs, seven-run medians):
+
+| Shape | Phase | Reference | Current |
+| --- | --- | ---: | ---: |
+| 1×1 | plan/bind | 0.964 | 0.911 |
+| 1×1 | runtime-input source emission | 1.836 | 1.929 |
+| 1×1 | frozen-row source emission | 1.931 | 2.011 |
+| 1×1 | workspace construction | 0.414 | 0.385 |
+| 1×1 | fresh-workspace VJP (setup excluded, destruction included) | 0.278 | 0.276 |
+| 65536×16 | plan/bind | 1.100 | 1.044 |
+| 65536×16 | runtime-input source emission | 2.205 | 2.258 |
+| 65536×16 | frozen-row source emission | 3.471 | 3.506 |
+| 65536×16 | workspace construction | 5,679.949 | 5,416.313 |
+| 65536×16 | fresh-workspace VJP (setup excluded, destruction included) | 17,690.071 | 17,190.857 |
+
+The separate fixed-work first call includes poisoning, admission and output
+copies; it does not isolate pure kernel latency. For compact 65536×16 its current
+median was 17.600 ms [17.436, 18.091] versus 16.946 ms [16.884, 17.228] per steady
+call across seven observations. For 1×1 these were 0.567 µs [0.498, 0.751] and
+0.424 µs [0.359, 0.539], illustrating timer/harness sensitivity at tiny sizes.
+
+Retained counterexamples and controls: 1×16 forward increased from 0.112 to
+0.122 µs (paired ratio 0.920 [0.900, 0.938]); compensated 8×8 GEMM increased
+3.274 to 3.515 µs (0.932 [0.926, 0.936]). Some source-emission cases also regressed.
+The 10k assembled tensor control was effectively unchanged, 67.113 to 67.363 µs
+(0.997 [0.991, 1.014]); the 1k scalar tape improved 31.116 to 26.966 µs
+(1.154 [1.150, 1.155]). Explicit-gather 65536×16 VJP was 32.100 to 31.379 ms
+(1.015 [1.002, 1.029]), versus current compact 16.965 ms. This gather comparison
+also changes intermediate storage and graph structure; it is a control, not an
+isolated index-arithmetic speedup or a before/after map-cutover measurement.
+
+Single build observations were 107.54 s reference and 87.11 s current, with
+630,984/634,432 KiB maximum RSS. Builds ran in that order and share dependency
+caches; these are not qualified cold-build improvements. Fourteen complete
+benchmark-process RSS readings ranged 265,288–268,632 KiB and include fixture
+construction/source generation and all shapes, not per-target memory. Compiler
+AD/provider scratch remains unbounded here; no generated derivatives were changed
+or measured. No scan timing, inference/ESS or other-host qualification follows.
+
+Raw evidence is preserved on ELTE at `/users/usumusu/alea-i24-mttkQlKa`:
+`receipt.tar.gz` SHA256
+`4e7c63b1161fffc2b10c90353a885b24ce9a13d345506459cf0f6c3e404248f4`
+and `build-receipt.tar.gz` SHA256
+`8151f9c1ec1e2d3a6b6cf5196091349ce3e3bb01ad5c6c88444c4dfaa84065e9`.
+They contain raw samples/estimates, logs, host/flag/thread metadata, preflight
+results and both source manifests. Existing `three_engine.py cargo-report --output
+<extracted-results>` replays the receipt; use matched pair IDs for comparisons,
+not its sequential feature-cell ratios as a paired uncertainty estimate.
+
 
 ### Explicit Faer and BLAS matrix kernels
 
@@ -241,11 +394,46 @@ ordinary nonfinite admission, typed failures and caller-output staging remain.
 The safe adapter lives in `alea-math::gemm`; core remains free of unsafe code.
 
 Workspace budgets count Alea-owned storage, **not** provider packing buffers,
-thread-local allocations or thread stacks. Source export deliberately lowers the
-same mathematical operation to portable compensated loops, not opaque external
-calls: source/native accelerated execution need not agree bitwise. These kernels
-are opt-in research components, not an automatic cost model or a new source-AD
-capability.
+thread-local allocations or thread stacks. Source export of Faer/BLAS nodes
+(including `Auto` resolved to either provider) returns `MissingPrimal`; it does
+not silently replace the requested arithmetic. This applies to standalone primal,
+registered scalar-result and explicit pullback routes, including nested branches
+and nonzero scans. Unreachable nodes and zero-trip bodies require no lowering.
+Default compensated source remains supported. `BoundProgram::rust_function`
+now returns `Result<String, AssemblyError>`; callers must handle missing source.
+No separately requested reference-export policy is introduced here. These kernels
+remain native opt-in research components, not a new source-AD capability.
+
+The bounded provider probes in the existing Enzyme `tensor_matrix` test use
+`try_gemm` directly, without bypassing production source rejection. On
+`nightly-2026-06-23` (rustc `4429659e4`, Enzyme 22), release/fat LTO and embedded
+bitcode, a 2×3 by 3×1 product has these outcomes:
+
+| Provider | Primal execution | Compiler reverse |
+| --- | --- | --- |
+| Faer 0.24.0 | Independent answers pass for four input scales | Cargo exits 101 after rustc SIGSEGV in Enzyme `TypeTree::allFloat` / `TypeAnalyzer::visitAtomicRMWInst`; no gradient executable/result |
+| LP64 OpenBLAS 0.3.31 | Independent answers pass; executable loads `libopenblas.so.0` and calls `cblas_dgemm` | Cargo exits 101 at link: undefined `cblas_dlascl`, referenced by the generated `blas_primal` derivative; no numerical gradient result |
+
+The inputs are `A=[[1,2,-1],[0.5,-2,3]]`, `b=[2,-1,0.5]` and the scalar
+result is `(Ab)[0]+2*(Ab)[1]=8.5`. Both operands are differentiated; independent
+score checks are present for zero, negative and positive inputs and three seeds,
+but neither compiler-gradient probe reached execution. The checked adapter and
+its LP64 C static assertion are unchanged. Faer enters Rust matrix code (this
+shape dispatches to row-major matvec); the symbol table confirms that path.
+CBLAS uses 32-bit dimension/stride declarations and a foreign call. The loaded
+OpenBLAS exports `cblas_dgemm` and Fortran `dlascl_`, but not `cblas_dlascl`.
+No provider-specific AD rule was found in the inspected Alea/Faer/CBLAS wrappers;
+no custom rule, helper shim or alternative arithmetic was added for these probes.
+
+These are bounded configuration-specific failures, not proofs that all Faer or
+BLAS differentiation is impossible. Larger/transposed products, other compilers,
+custom-rule composition, higher derivatives and inference are unqualified.
+Primal success and generated derivative code alone are not derivative evidence.
+Production accelerated source export therefore remains explicitly unsupported.
+The test target's opt-in `alea_probe_reverse` and `alea_probe_blas` cfgs isolate
+deliberate failing probes from ordinary conformance. See the existing
+[Enzyme conformance instructions](../tools/enzyme-conformance/README.md) for
+commands; no provider feature-forwarding redesign is implied.
 
 Reference contracts: [Faer matrix multiplication](https://docs.rs/faer/0.24.0/faer/linalg/matmul/fn.matmul.html)
 and [BLAS DGEMM](https://netlib.org/lapack/explore-html/dd/d09/group__gemm_ga1e899f8453bcbfde78e91a86a2dab984.html).
@@ -343,18 +531,18 @@ floating-point certification. Unused-data bindings are still shape-validated.
 
 ## Rebind an existing native model without rebuilding topology
 
-`CompiledModel::rebind::<P>(expression, update)` consumes the model, downcasts its
-descriptor and validates identical expression inputs and full semantic signature.
-The optional batch rule and its row count must remain unchanged too.
-It prepares the new callback, scratch, source and batch rules before replacement.
-Failure returns `RebindError { model, source }`, preserving the unchanged model
-and original typed error. A panic propagates and consumes the model. Recover a
-model from its target before rebinding; never reuse a PointState from an old
-density. External generated functions must be regenerated/recompiled too.
+`DataBinding::rebind::<P>(expression, update)` borrows an immutable snapshot,
+validates the same semantic signature and reporting layout, and returns a new
+snapshot with a fresh identity. Compile it to obtain a new `Executable`, then
+construct contexts or owned targets for it. Descriptor captures are immutable;
+mutable native/reporting workspaces are allocated independently by each context.
+Failure preserves the old snapshot and returns the original typed error directly.
+A panic also leaves the borrowed snapshot usable. Do not reuse a context or
+PointState from the old executable. Frozen generated functions require regeneration.
 
 `NormalRegression`, `BernoulliLogitRegression` and `PoissonLogRegression` expose
 `with_data` for fixed-row/fixed-column replacements, retaining typed observations,
-design orientation, coefficients and offsets. `CompiledModel::rebind_region` rebinds
+design orientation, coefficients and offsets. `DataBinding::rebind_region` rebinds
 a named tensor binding. Changing parameter layout, dimensions or dependency
 handles requires rebuilding, not pretending it is data-only rebinding.
 
@@ -473,8 +661,8 @@ nix develop .#autodiff --command rustc --edition 2024 -O -C lto=fat -C embed-bit
 
 The source boundary now preserves typed storage explicitly:
 
-- `CompiledModel::rust_primal_with_workspace` and its objective counterpart return
-  a body plus a checked `f64` element count. `SourceRule::workspace` declares
+- `Executable::source_primal(SourceMode)` returns a named `SourceProgram`
+  containing source and a checked `FloatWorkspace` element count. `SourceRule::workspace` declares
   source-only scratch independently of native evaluation scratch. Combined sizes,
   pruning and consuming rebinding are tested; source formatting remains lazy.
 - Factor arguments and tensor mutable intermediates live in an external float
@@ -483,8 +671,9 @@ The source boundary now preserves typed storage explicitly:
   and reshapes are borrowed views. Copies are typed loops, with direct operations
   for one-element blocks. Larger maps and scan iterations are not source-unrolled.
 - Generated region helpers remain visible to AD through inlining. The standalone
-  `BoundProgram::rust_function` retains its old primal wrapper signature, but owns
-  local scratch: use the compiled-model exporter for nested compiler AD.
+  `BoundProgram::rust_function` returns `Result<String, AssemblyError>` and rejects
+  missing source capabilities before formatting. Its generated primal wrapper
+  owns local scratch: use the compiled-model exporter for nested compiler AD.
 
 After compilation succeeded, the scan's density, score and Hessian passed, but
 its third derivative failed. For the three-step recurrence
@@ -1407,7 +1596,8 @@ retain their own policies. Optional `MatrixKernel::Auto` resolves once to an
 available provider, preferring sequential Faer when both providers are enabled.
 It is **availability dispatch**, not a fitted shape/cost model. Opting in permits
 provider reassociation; default construction remains compensated, source export
-remains portable compensated code, and BLAS threads/provider scratch remain
+rejects accelerated providers rather than substituting portable compensated code,
+and BLAS threads/provider scratch remain
 host-owned. Feature availability alone never changes default arithmetic.
 
 ### Remote qualification of the adjoint planner

@@ -7,36 +7,17 @@ fn extent(a: usize, b: usize) -> Result<usize, AssemblyError> {
         .ok_or(AssemblyError::Shape)
 }
 
-impl CompiledModel {
-    /// Emits an explicit source pullback when an active tensor uses checkpointing.
-    ///
-    /// Compiler integration hook: returns helper functions and a scratch element
-    /// count, or `None` for the ordinary compiler reverse path. `density` selects
-    /// whether to include chart Jacobians. The source contains `__WORKSPACE__`,
-    /// which the consumer replaces with its final fixed arena extent. Tensor
-    /// scans use segmented replay; opaque source factors still use compiler AD
-    /// and their compiler-owned tapes are not bounded by this count.
-    /// # Errors
-    /// Rejects missing source rules and overflowing scratch extents.
-    pub fn rust_checkpoint_gradient(
-        &self,
-        density: bool,
-    ) -> Result<Option<(String, usize)>, AssemblyError> {
-        Ok(self
-            .rust_composed_gradient(density, false, false)?
-            .map(|(source, workspace, _)| (source, workspace)))
-    }
-
+impl Executable {
     /// Emits a first-order composition of trusted primitive score rules and
-    /// tensor replay. The final flag reports actual tensor checkpointing, not
+    /// tensor replay. The named receipt reports actual tensor checkpointing, not
     /// merely the presence of an analytic primitive. Higher AD uses the primal.
     /// # Errors
     /// Preserves missing-primal and checked workspace overflow errors.
-    pub fn rust_first_order_gradient(
+    pub fn source_first_order(
         &self,
-        density: bool,
-    ) -> Result<Option<(String, usize, bool)>, AssemblyError> {
-        self.rust_composed_gradient(density, true, false)
+        mode: SourceMode,
+    ) -> Result<Option<FirstOrderSource>, AssemblyError> {
+        self.rust_composed_gradient(mode == SourceMode::Density, false)
     }
 
     /// Emits checked tensor score validation for a compiler-derived gradient.
@@ -52,20 +33,19 @@ impl CompiledModel {
     /// route already performs explicit tensor pullbacks.
     /// # Errors
     /// Preserves missing-primal and checked workspace overflow errors.
-    pub fn rust_tensor_score_validation(
+    pub fn source_score_admission(
         &self,
-        density: bool,
-    ) -> Result<Option<(String, usize)>, AssemblyError> {
+        mode: SourceMode,
+    ) -> Result<Option<SourceProgram>, AssemblyError> {
         Ok(self
-            .rust_composed_gradient(density, true, true)?
-            .map(|(source, workspace, _)| (source, workspace)))
+            .rust_composed_gradient(mode == SourceMode::Density, true)?
+            .map(|first| first.program))
     }
     fn rust_composed_gradient(
         &self,
         density: bool,
-        primitive_rules: bool,
         tensor_validation: bool,
-    ) -> Result<Option<(String, usize, bool)>, AssemblyError> {
+    ) -> Result<Option<FirstOrderSource>, AssemblyError> {
         let tensor = |i| {
             self.primitives
                 .binary_search_by_key(&i, |(node, _)| *node)
@@ -76,14 +56,10 @@ impl CompiledModel {
         let checkpointed = (0..self.nodes.len())
             .any(|i| retained(i) && tensor(i).is_some_and(|t| t.has_source_checkpoints()));
         let native = |i| {
-            if primitive_rules {
-                self.primitives
-                    .binary_search_by_key(&i, |(node, _)| *node)
-                    .ok()
-                    .and_then(|j| self.primitives[j].1.source_gradient.as_ref())
-            } else {
-                None
-            }
+            self.primitives
+                .binary_search_by_key(&i, |(node, _)| *node)
+                .ok()
+                .and_then(|j| self.primitives[j].1.source_gradient.as_ref())
         };
         if tensor_validation && !(0..self.nodes.len()).any(|i| retained(i) && tensor(i).is_some()) {
             return Ok(None);
@@ -113,6 +89,8 @@ impl CompiledModel {
             writeln!(source, "x[{j}]=x{j};").unwrap();
         }
         source.push_str("jacobian}\n");
+        let mut state_fields = String::new();
+        let mut state_initializers = String::new();
         let mut forward = String::new();
         let mut reverse = String::new();
         let mut temporary = 0;
@@ -143,13 +121,25 @@ impl CompiledModel {
                         let first = local_count;
                         local_count = extent(local_count, d)?;
                         temporary = temporary.max(extent(d, size)?);
-                        writeln!(source,"fn __native{i}(x:&[f64],g:&mut[f64],scratch:&mut[f64])->f64 {{let _=&scratch;{}}}",rule()).unwrap();
+                        let rule = rule();
+                        let (state_parameter, state_argument) = if let Some(state) = rule.state {
+                            writeln!(state_fields, "s{i}: {},", state.rust_type).unwrap();
+                            writeln!(state_initializers, "s{i}: {{ {} }},", state.initializer)
+                                .unwrap();
+                            (
+                                format!(",state:&mut {}", state.rust_type),
+                                format!(",&mut context.s{i}"),
+                            )
+                        } else {
+                            (String::new(), String::new())
+                        };
+                        writeln!(source,"fn __native{i}(x:&[f64],g:&mut[f64],scratch:&mut[f64]{state_parameter})->f64 {{let _=&scratch;{}}}",rule.body).unwrap();
                         let pack = inputs
                             .iter()
                             .enumerate()
                             .map(|(j, node)| format!("args[{j}]=n[{node}];"))
                             .collect::<String>();
-                        writeln!(forward,"n[{i}]={{let(args,work)=temporary.split_at_mut({d});{pack}let scores=&mut locals[{first}..{local_count}];scores.fill(f64::NAN);let value=__native{i}(args,scores,&mut work[..{size}]);if !value.is_finite() || scores.iter().any(|s|!s.is_finite()) {{g.fill(f64::NAN);return f64::NAN;}}value}};").unwrap();
+                        writeln!(forward,"n[{i}]={{let(args,work)=temporary.split_at_mut({d});{pack}let scores=&mut locals[{first}..{local_count}];scores.fill(f64::NAN);let value=__native{i}(args,scores,&mut work[..{size}]{state_argument});if !value.is_finite() || scores.iter().any(|s|!s.is_finite()) {{g.fill(f64::NAN);return f64::NAN;}}value}};").unwrap();
                         let mut r = String::new();
                         for (j, node) in inputs.iter().enumerate() {
                             writeln!(r, "a[{node}]+=a[{i}]*locals[{}];", first + j).unwrap();
@@ -231,7 +221,9 @@ impl CompiledModel {
             extent(nodes, nodes)?,
             extent(extent(c, c)?, extent(local_count, temporary)?)?,
         )?;
-        writeln!(source,"pub(super) fn __gradient(q:&[f64;DIMENSION],g:&mut[f64;DIMENSION],work:&mut[f64;__WORKSPACE__],shadow:&mut[f64;__WORKSPACE__],seed:f64)->f64 {{work.fill(0.0);shadow.fill(0.0);g.fill(0.0);let(n,rest)=work.split_at_mut({nodes});let(a,rest)=rest.split_at_mut({nodes});let(x,rest)=rest.split_at_mut({c});let(gc,rest)=rest.split_at_mut({c});let(locals,temporary)=rest.split_at_mut({local_count});let jacobian=__coordinates(q,x);if !jacobian.is_finite() {{g.fill(f64::NAN);return f64::NAN;}}{forward}\nlet mut total=0.0_f64;").unwrap();
+        let stateful = !state_fields.is_empty();
+        writeln!(source,"pub(super) struct __SourceContext {{{state_fields}}}\npub(super) fn __first_context()->__SourceContext {{__SourceContext {{{state_initializers}}}}}").unwrap();
+        writeln!(source,"pub(super) fn __gradient(q:&[f64;DIMENSION],g:&mut[f64;DIMENSION],work:&mut[f64;{workspace}],shadow:&mut[f64;{workspace}],seed:f64,context:&mut __SourceContext)->f64 {{let _=&context;work.fill(0.0);shadow.fill(0.0);g.fill(0.0);let(n,rest)=work.split_at_mut({nodes});let(a,rest)=rest.split_at_mut({nodes});let(x,rest)=rest.split_at_mut({c});let(gc,rest)=rest.split_at_mut({c});let(locals,temporary)=rest.split_at_mut({local_count});let jacobian=__coordinates(q,x);if !jacobian.is_finite() {{g.fill(f64::NAN);return f64::NAN;}}{forward}\nlet mut total=0.0_f64;").unwrap();
         for i in self.retained_factors() {
             writeln!(source, "total+=n[{i}];a[{i}]+=1.0;").unwrap();
         }
@@ -250,6 +242,15 @@ impl CompiledModel {
             writeln!(source,"if {}.{method}(&q[{}..{}],&gc[{}..{}],&mut g[{}..{}],temporary).is_err() {{g.fill(f64::NAN);return f64::NAN;}}",b.transform().rust_constructor(),qr.start,qr.end,cr.start,cr.end,qr.start,qr.end).unwrap();
         }
         source.push_str("let _=&locals;for v in &mut *g {*v*=seed;}if g.iter().any(|v|!v.is_finite()) {g.fill(f64::NAN);return f64::NAN;}total}\n");
-        Ok(Some((source, workspace, checkpointed)))
+        Ok(Some(FirstOrderSource {
+            program: SourceProgram {
+                source,
+                workspace: FloatWorkspace {
+                    elements: workspace,
+                },
+            },
+            checkpointed,
+            stateful,
+        }))
     }
 }

@@ -2,7 +2,7 @@
 use alea::{
     model::{
         ModelError,
-        assembly::{AssemblyError, CompiledModel, ModelBuilder},
+        assembly::{AssemblyError, NativeModel, ModelBuilder},
     },
     target::{EvaluationError, LogDensityGradient},
 };
@@ -22,7 +22,7 @@ type Error = ModelError<AssemblyError>;
 
 // y = intercept + slope*x + Normal(0,1), independent Normal(0,2) priors.
 // Centered x makes the two analytic posterior coordinates independent.
-fn regression() -> Result<CompiledModel, AssemblyError> {
+fn regression() -> Result<NativeModel, AssemblyError> {
     regression_data(&[
         (-2.0, -1.7),
         (-1.0, -0.9),
@@ -32,7 +32,7 @@ fn regression() -> Result<CompiledModel, AssemblyError> {
     ])
 }
 
-fn regression_data(data: &[(f64, f64)]) -> Result<CompiledModel, AssemblyError> {
+fn regression_data(data: &[(f64, f64)]) -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let intercept = b.real("intercept")?.expr();
     let slope = b.real("slope")?.expr();
@@ -59,7 +59,7 @@ fn regression_data(data: &[(f64, f64)]) -> Result<CompiledModel, AssemblyError> 
 
 // Gamma(shape=3,rate=2), built in constrained precision coordinates. The
 // parameter layout supplies the exponential-transform Jacobian exactly once.
-fn precision() -> Result<CompiledModel, AssemblyError> {
+fn precision() -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let tau = b.positive("precision")?.expr();
     let log = b.log(tau)?;

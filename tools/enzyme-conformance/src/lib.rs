@@ -9,6 +9,24 @@ macro_rules! generated {
             pub mod composition {
                 include!(concat!(env!("OUT_DIR"), "/", stringify!($name), "_objective.rs"));
             }
+            pub mod hvp {
+                include!(concat!(env!("OUT_DIR"), "/", stringify!($name), "_hvp.rs"));
+                pub mod composition {
+                    include!(concat!(env!("OUT_DIR"), "/", stringify!($name), "_hvp_objective.rs"));
+                }
+            }
+            pub mod first {
+                include!(concat!(env!("OUT_DIR"), "/", stringify!($name), "_first.rs"));
+                pub mod composition {
+                    include!(concat!(env!("OUT_DIR"), "/", stringify!($name), "_first_objective.rs"));
+                }
+            }
+            pub mod value {
+                include!(concat!(env!("OUT_DIR"), "/", stringify!($name), "_value.rs"));
+                pub mod composition {
+                    include!(concat!(env!("OUT_DIR"), "/", stringify!($name), "_value_objective.rs"));
+                }
+            }
         }
     )*};
 }
@@ -57,6 +75,10 @@ generated!(
     tensor_matrix,
     tensor_broadcast,
     tensor_checkpoint_broadcast,
+    tensor_broadcast_tail,
+    tensor_checkpoint_broadcast_tail,
+    tensor_broadcast_empty,
+    tensor_checkpoint_broadcast_empty,
     tensor_checkpoint_matrix,
     tensor_control,
     tensor_checkpoint,

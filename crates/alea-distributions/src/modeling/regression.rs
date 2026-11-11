@@ -337,7 +337,9 @@ impl NormalRegression {
         (self.execution_plan().arithmetic() == RegressionArithmetic::Compensated)
             .then_some(Self::emit_source)
     }
-    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
+    fn source_gradient_rule(
+        &self,
+    ) -> Option<fn(&Self) -> alea_core::model::assembly::SourceGradient> {
         if self.execution_plan().arithmetic() != RegressionArithmetic::Compensated {
             return None;
         }
@@ -393,14 +395,14 @@ impl OperationDescriptor for NormalRegression {
     }
 }
 // Reuse native preparation/dispatch, not an alternative generated probability
-// implementation. Each emitted function owns a separate thread-local cache:
-// immutable frozen data plus reusable execution scratch. Initialization allocates
-// once per calling thread; this heap is outside the source float-arena receipt.
+// implementation. Each generated target owns immutable frozen data and private
+// reusable execution scratch. Target setup allocates the typed context; this
+// heap is outside the source float-arena receipt.
 fn native_score_source<Y: std::fmt::Debug>(
     data: &RegressionData<Y>,
     name: &str,
     execution: RegressionExecution,
-) -> String {
+) -> alea_core::model::assembly::SourceGradient {
     let p = data.columns();
     let constructor = format!(
         r#"use ::alea::distributions::modeling::regression as regression;
@@ -412,7 +414,7 @@ fn native_score_source<Y: std::fmt::Debug>(
         observations = data.observations(),
         offsets = data.offsets()
     );
-    super::cached_primitive_source(
+    super::owned_primitive_source(
         &format!("::alea::distributions::modeling::regression::{name}"),
         &constructor,
     )

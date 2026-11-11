@@ -66,7 +66,12 @@ fn selected_out_missing_source_and_invalid_scores_do_not_poison_an_aliased_facto
     let selected = native.into_model().select_likelihood().unwrap();
     assert!(selected.source_capabilities().supports_rust_primal());
     assert!(selected.rust_primal().is_ok());
-    assert!(selected.rust_first_order_gradient(true).unwrap().is_none());
+    assert!(
+        selected
+            .source_first_order(alea_core::model::assembly::SourceMode::Density)
+            .unwrap()
+            .is_none()
+    );
     let target = selected.into_target().unwrap();
     for x in [-2., 0., 0.5, 2.] {
         // Dyadic inputs make these independent polynomial answers exact.

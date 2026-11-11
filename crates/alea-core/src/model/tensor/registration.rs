@@ -3,25 +3,14 @@ use super::*;
 use std::any::Any;
 
 #[cfg(test)]
-mod lifecycle;
+mod binding_tests;
 #[cfg(test)]
 mod observations;
-
-// Use the existing non-recycled tensor identity space, never allocation addresses.
-#[cfg(test)]
-fn identity() -> u64 {
-    next_value_owner()
-}
-
-#[cfg(test)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct BindingId(u64);
 
 // Binding-dependent preparations are immutable and separate from Work's
 // parameter-dependent residual/scratch. Clones retain the same snapshot identity.
 #[cfg(test)]
 pub(super) struct BindingState {
-    id: BindingId,
     prepared: Box<[Option<Arc<[f64]>>]>,
 }
 #[cfg(test)]
@@ -62,7 +51,6 @@ pub(super) fn bind_snapshot(plan: Arc<Plan>, data: Vec<Arc<[f64]>>) -> Result<Bo
         plan,
         data,
         snapshot: Arc::new(BindingState {
-            id: BindingId(identity()),
             prepared: prepared.into_boxed_slice(),
         }),
     })
@@ -145,7 +133,7 @@ pub struct BlockRules<D, W> {
 pub type BlockVjp<D, W> =
     fn(&D, BlockInputs<'_>, &[f64], &[f64], &mut [f64], &mut W) -> Result<(), E>;
 
-type Workspace = dyn Any + Send + Sync;
+type Workspace = dyn Any + Send;
 type ErasedForward =
     dyn Fn(BlockInputs<'_>, &mut [f64], &mut Workspace) -> Result<(), E> + Send + Sync;
 type ErasedVjp = dyn Fn(BlockInputs<'_>, &[f64], &[f64], &mut [f64], &mut Workspace) -> Result<(), E>
@@ -336,7 +324,7 @@ impl RegionBuilder {
     ) -> Result<Value, E>
     where
         D: Send + Sync + 'static,
-        W: Send + Sync + 'static,
+        W: Send + 'static,
     {
         let (scores, contributions) =
             self.check_block_edges(inputs, &rules.inputs, &rules.output)?;
@@ -591,6 +579,7 @@ pub(super) fn missing_source(plan: &Plan) -> Option<usize> {
     plan.nodes.iter().enumerate().find_map(|(i, node)| {
         let missing = match &node.op {
             Op::Registered(_) => true,
+            Op::Matmul { kernel, .. } => *kernel != MatrixKernel::Compensated,
             Op::Cond(c) => {
                 missing_source(&c.yes.plan).is_some() || missing_source(&c.no.plan).is_some()
             }
@@ -1199,7 +1188,7 @@ mod tests {
             p.pullback_source("unsupported"),
             Err(E::MissingPrimal { .. })
         ));
-        assert!(p.rust_function().contains("compile_error!"));
+        assert!(matches!(p.rust_function(), Err(E::MissingPrimal { .. })));
         let mut model = super::super::super::assembly::ModelBuilder::new();
         let x = model.real("x").unwrap().expr();
         let factor = TensorFactor::new(p).unwrap();
@@ -1207,7 +1196,10 @@ mod tests {
         let root = model.primitive(&[x], factor).unwrap();
         model.potential("deterministic", root).unwrap();
         assert!(matches!(
-            model.compile().unwrap().rust_primal_with_workspace(),
+            model
+                .compile()
+                .unwrap()
+                .source_primal(crate::model::assembly::SourceMode::Density),
             Err(E::MissingPrimal { .. })
         ));
     }

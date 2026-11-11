@@ -3,7 +3,7 @@ use alea::{
     analysis::{AnalysisSpec, AnalysisWriter, ChainStatus, Provenance},
     distributions::modeling::{normal, regression::*},
     math::buffer::OwnedBuffer,
-    model::assembly::{CompiledModel, ModelBuilder, PointwiseLikelihood, PredictiveUnit},
+    model::assembly::{NativeModel, ModelBuilder, PointwiseLikelihood, PredictiveUnit},
     output::{ChainId, DiagnosticTransition, Draw, Phase, SCHEMA_VERSION},
     sampling::{
         HmcOptions, Nuts,
@@ -18,7 +18,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-fn model(family: usize) -> CompiledModel {
+fn model(family: usize) -> NativeModel {
     let mut b = ModelBuilder::new();
     let beta = b.real("beta").unwrap();
     let prior = normal(&mut b, beta, 0., 2.).unwrap();

@@ -2,7 +2,7 @@
 //!
 //! Descriptors and signatures are cold immutable data. Their presence is not a
 //! proof of normalization, a generative ordering, or support for another backend.
-use super::{AssemblyError, CompiledModel, ModelBuilder, Op, Value};
+use super::{AssemblyError, ModelBuilder, Op, Value};
 use crate::distribution::{EventShape, ReferenceMeasure, Support};
 use std::{any::Any, sync::Arc};
 
@@ -95,7 +95,7 @@ impl PrimitiveSignature {
 /// native first-order evaluation implies no source, JVP or higher derivatives.
 pub trait OperationDescriptor: Send + Sync + Sized + 'static {
     /// Execution-local mutable scratch, never part of shared descriptor data.
-    type Workspace: Send + Sync + 'static;
+    type Workspace: Send + 'static;
     /// Resolves immutable signature and optional rules without evaluating data or
     /// allocating execution workspaces. Source generation remains lazy.
     fn rules(&self) -> NativeRules<Self>;
@@ -167,11 +167,35 @@ impl<D> SourceBody<D> {
 /// Optional trusted source capability. The ordinary primal remains the source
 /// of compiler higher derivatives; a supplied first-order rule is never
 /// differentiated for curvature. Every call initializes its own float scratch.
+/// Explicit typed state owned by one generated target, never a thread/global cache.
+/// Rust type and initializer are trusted scoped leaves, like source rule bodies.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceState {
+    pub rust_type: String,
+    pub initializer: String,
+}
+/// First-order body and optional per-target state. Bodies receive `x`, `g`,
+/// fixed f64 `scratch`, and `state` when declared. No higher rule is inferred.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceGradient {
+    pub body: String,
+    pub state: Option<SourceState>,
+}
+impl From<String> for SourceGradient {
+    fn from(body: String) -> Self {
+        Self { body, state: None }
+    }
+}
+impl From<&str> for SourceGradient {
+    fn from(body: &str) -> Self {
+        body.to_owned().into()
+    }
+}
 pub struct SourceRule<D> {
     /// Ordinary scalar primal with native value/domain semantics.
     pub body: SourceBody<D>,
     /// Optional FIRST-ORDER fused value/local scores, preserving admission.
-    pub gradient: Option<fn(&D) -> String>,
+    pub gradient: Option<fn(&D) -> SourceGradient>,
     /// Explicit source scratch extent in f64 elements, checked at registration.
     pub workspace: usize,
 }
@@ -217,12 +241,13 @@ impl<P: OperationDescriptor> BatchRule<P> {
     }
 }
 /// Cold metadata with recoverable typed descriptor and immutable captured data.
+#[derive(Clone)]
 pub struct PrimitiveMetadata {
     pub(super) signature: PrimitiveSignature,
     pub(super) descriptor: Arc<dyn Any + Send + Sync>,
     pub(super) source_workspace: usize,
     pub(super) preparation: Option<super::prepare::Rule>,
-    pub(super) source_gradient: Option<Box<super::SourceCallback>>,
+    pub(super) source_gradient: Option<Arc<super::SourceGradientCallback>>,
 }
 impl PrimitiveMetadata {
     /// Validated argument layout and declared probability semantics.
@@ -245,10 +270,10 @@ impl PrimitiveMetadata {
 /// path at construction and replacement. No graph mutation precedes preparation.
 pub(super) struct Registration {
     pub metadata: PrimitiveMetadata,
-    pub callback: Box<super::Callback>,
-    pub batch: Option<(usize, Box<super::BatchCallback>)>,
+    pub callback: Arc<super::CallbackFactory>,
+    pub batch: Option<(usize, Arc<super::BatchFactory>)>,
     pub primal: Option<&'static str>,
-    pub source: Option<Box<super::SourceCallback>>,
+    pub source: Option<Arc<super::SourceCallback>>,
 }
 pub(super) enum ReportingConstraint {
     New,
@@ -306,30 +331,38 @@ impl Registration {
         {
             return Err(AssemblyError::Shape);
         }
-        let batch = batch.map(|rule| (rule, batch_workspace(&primitive)));
-        let mut workspace = workspace(&primitive);
         let descriptor = Arc::new(primitive);
         let executable = Arc::clone(&descriptor);
+        let prepared = preparation.map(|rule| rule.evaluate);
         let source_gradient = source_gradient.map(|rule| {
             let descriptor = Arc::clone(&descriptor);
-            Box::new(move || rule(&descriptor)) as Box<super::SourceCallback>
+            Arc::new(move || rule(&descriptor)) as Arc<super::SourceGradientCallback>
         });
-        let callback: Box<super::Callback> =
-            Box::new(move |x, g, prepared| match (&preparation, prepared) {
-                (Some(rule), Some(value)) => {
-                    (rule.evaluate)(&executable, x, g, &mut workspace, value)
-                }
-                _ => evaluate(&executable, x, g, &mut workspace),
-            });
-        let batch = batch.map(|(rule, mut workspace)| {
+        let callback: Arc<super::CallbackFactory> = Arc::new(move || {
+            let mut scratch = workspace(&executable);
+            let executable = Arc::clone(&executable);
+            Box::new(
+                move |x: &[f64], g: &mut [f64], value| match (prepared, value) {
+                    (Some(rule), Some(value)) => rule(&executable, x, g, &mut scratch, value),
+                    _ => evaluate(&executable, x, g, &mut scratch),
+                },
+            ) as Box<super::Callback>
+        });
+        let batch = batch.map(|rule| {
             let descriptor = Arc::clone(&descriptor);
-            let callback: Box<super::BatchCallback> =
-                Box::new(move |x, out| (rule.evaluate)(&descriptor, x, out, &mut workspace));
-            (rule.units, callback)
+            let factory: Arc<super::BatchFactory> = Arc::new(move || {
+                let mut scratch = batch_workspace(&descriptor);
+                let descriptor = Arc::clone(&descriptor);
+                let evaluate = rule.evaluate;
+                Box::new(move |x: &[f64], out: &mut [f64]| {
+                    evaluate(&descriptor, x, out, &mut scratch)
+                }) as Box<super::BatchCallback>
+            });
+            (rule.units, factory)
         });
         let source = source.map(|rule| {
             let descriptor = Arc::clone(&descriptor);
-            Box::new(move || rule(&descriptor)) as Box<super::SourceCallback>
+            Arc::new(move || rule(&descriptor)) as Arc<super::SourceCallback>
         });
         Ok(Self {
             metadata: PrimitiveMetadata {
@@ -438,11 +471,12 @@ pub struct SourceCapabilities {
 }
 impl SourceCapabilities {
     /// All active nodes have source-lowering support.
+    /// Use [`Self::resolve`] to also check a requested derivative route.
     pub fn supports_rust_primal(&self) -> bool {
         self.missing_primals.is_empty()
     }
 }
-impl CompiledModel {
+impl super::Executable {
     /// Inspects all declared nodes without evaluating callbacks or copying captured
     /// datasets. Statistical selections preserve descriptors for inactive nodes.
     pub fn graph(&self) -> impl Iterator<Item = GraphNode<'_>> {

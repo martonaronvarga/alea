@@ -57,7 +57,10 @@ fn segment_replay_preserves_lazy_branch_paths_row_gradients_zero_trips_and_reuse
     for steps in [0, 1, 65, 1025] {
         let full = recurrence(steps, false);
         let compact = recurrence(steps, true);
-        assert_eq!(full.rust_function(), compact.rust_function());
+        assert_eq!(
+            full.rust_function().unwrap(),
+            compact.rust_function().unwrap()
+        );
         if steps == 1025 {
             assert!(compact.workspace_bytes() < full.workspace_bytes() / 4);
         }

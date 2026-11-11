@@ -80,7 +80,9 @@ impl NormalFactor {
     fn rust_primal(&self) -> Option<&'static str> {
         Some(NORMAL_PRIMAL)
     }
-    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
+    fn source_gradient_rule(
+        &self,
+    ) -> Option<fn(&Self) -> alea_core::model::assembly::SourceGradient> {
         Some(|_| {
             "let law=match ::alea::distributions::scalar::Normal::new(x[1],x[2]) {Ok(v)=>v,Err(_)=>return f64::NAN};\nlet(value,event)=match ::alea::distribution::ParameterScore::log_prob_event_parameter_score(&law,x[0],&mut g[1..]) {Ok(v)=>v,Err(_)=>return f64::NAN};g[0]=event;value".into()
         })

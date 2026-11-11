@@ -86,7 +86,7 @@ fn all_chart_compositions_match_independent_directional_chain_rules() {
     }
 }
 
-fn regression() -> alea_core::model::assembly::CompiledModel {
+fn regression() -> alea_core::model::assembly::NativeModel {
     let mut b = ModelBuilder::new();
     let a = b.real("intercept").unwrap();
     let slope = b.real("slope").unwrap();

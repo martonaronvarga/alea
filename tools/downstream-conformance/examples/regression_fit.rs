@@ -8,7 +8,7 @@ use alea::{
         scalar::Poisson,
     },
     model::{
-        assembly::{CompiledModel, ModelBuilder},
+        assembly::{NativeModel, ModelBuilder},
         prediction::NamedOutput,
     },
     optimize::{
@@ -260,7 +260,7 @@ fn compile(
     rd: &RegressionData<f64>,
     bd: &RegressionData<bool>,
     pd: &RegressionData<u64>,
-) -> Result<CompiledModel, Box<dyn std::error::Error>> {
+) -> Result<NativeModel, Box<dyn std::error::Error>> {
     let design = rd.design();
     let offsets = rd.offsets();
     let n = rd.rows();

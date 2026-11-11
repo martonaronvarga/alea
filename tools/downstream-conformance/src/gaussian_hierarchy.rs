@@ -12,7 +12,7 @@ use alea::{
     model::{
         ModelError,
         assembly::{
-            AssemblyError, CompiledModel, ModelBuilder, PointwiseLikelihood, PredictiveUnit,
+            AssemblyError, NativeModel, ModelBuilder, PointwiseLikelihood, PredictiveUnit,
         },
     },
     output::{ChainId, Draw},
@@ -76,7 +76,7 @@ fn units() -> Vec<PredictiveUnit> {
 /// y_gi~N(mu+tau*z_g,1). All factors have explicit statistical roles.
 /// # Errors
 /// Preserves native model assembly failures.
-pub fn model() -> Result<CompiledModel, AssemblyError> {
+pub fn model() -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let mu = b.real("mu")?;
     let tau = b.positive("tau")?;

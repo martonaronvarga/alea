@@ -202,7 +202,9 @@ impl BernoulliLogitRegression {
         }
         Some(|this| source(&this.data, "bool", "BernoulliLogit"))
     }
-    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
+    fn source_gradient_rule(
+        &self,
+    ) -> Option<fn(&Self) -> alea_core::model::assembly::SourceGradient> {
         if self.execution_plan().arithmetic() != RegressionArithmetic::Compensated {
             return None;
         }
@@ -312,7 +314,9 @@ impl PoissonLogRegression {
         }
         Some(|this| source(&this.data, "u64", "PoissonLog"))
     }
-    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
+    fn source_gradient_rule(
+        &self,
+    ) -> Option<fn(&Self) -> alea_core::model::assembly::SourceGradient> {
         if self.execution_plan().arithmetic() != RegressionArithmetic::Compensated {
             return None;
         }

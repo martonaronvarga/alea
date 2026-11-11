@@ -691,6 +691,28 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(clippy::single_element_loop)] // Optional providers extend this matrix.
+    fn matrix_provider_pullbacks_do_not_substitute_compensated_source() {
+        for kernel in [
+            MatrixKernel::Compensated,
+            #[cfg(feature = "faer")]
+            MatrixKernel::Faer,
+            #[cfg(feature = "openblas")]
+            MatrixKernel::Blas,
+        ] {
+            let mut b = RegionBuilder::new();
+            let x = b.input("x", Shape::new(vec![1, 1]).unwrap()).unwrap();
+            let product = b.matmul_with_kernel(x, x, kernel).unwrap();
+            let p = b.compile(product).unwrap().bind(&[]).unwrap();
+            match p.pullback_source("matrix") {
+                Ok(_) => assert_eq!(kernel, MatrixKernel::Compensated),
+                Err(E::MissingPrimal { .. }) => assert_ne!(kernel, MatrixKernel::Compensated),
+                Err(e) => panic!("unexpected source failure: {e}"),
+            }
+        }
+    }
+
+    #[test]
     fn source_residuals_retain_only_values_read_by_the_pullback() {
         let n = 17;
         let mut b = RegionBuilder::new();

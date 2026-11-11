@@ -18,7 +18,7 @@ use alea::distributions::modeling::{
     normal,
     regression::{BernoulliLogitRegression, NormalRegression, RegressionData, RegressionExecution},
 };
-use alea::model::assembly::{AssemblyError, CompiledModel, ModelBuilder};
+use alea::model::assembly::{AssemblyError, NativeModel, ModelBuilder};
 use alea::sampling::{NutsOptions, adapt::MetricKind};
 use alea::target::{LogDensityGradient, TargetSpace};
 use alea::{
@@ -135,7 +135,7 @@ fn parse_input(path: &str) -> Result<Input, Box<dyn Error>> {
     Ok(Input { n, k, x, y })
 }
 
-fn build_model(name: &str, input: &Input) -> Result<CompiledModel, AssemblyError> {
+fn build_model(name: &str, input: &Input) -> Result<NativeModel, AssemblyError> {
     let execution = regression_execution(env::var("ALEA_BENCH_REGRESSION").ok().as_deref())?;
     build_model_with_execution(name, input, execution)
 }
@@ -144,7 +144,7 @@ fn build_model_with_execution(
     name: &str,
     input: &Input,
     execution: RegressionExecution,
-) -> Result<CompiledModel, AssemblyError> {
+) -> Result<NativeModel, AssemblyError> {
     if matches!(name, "schools" | "schools_nc" | "covariance") {
         return conformance::build(name, input.n, input.k, &input.x, &input.y);
     }

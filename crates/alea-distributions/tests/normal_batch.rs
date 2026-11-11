@@ -160,10 +160,11 @@ fn fixed_data_rows_rebinding_source_and_one_scale_jacobian_use_existing_interfac
     assert_eq!(model.expression_count(), 3);
     assert!(
         model
-            .rust_first_order_gradient(true)
+            .source_first_order(alea_core::model::assembly::SourceMode::Density)
             .unwrap()
             .unwrap()
-            .0
+            .program
+            .source
             .contains("NormalBatch")
     );
     let batch = model.batch_likelihood().unwrap();
@@ -173,8 +174,12 @@ fn fixed_data_rows_rebinding_source_and_one_scale_jacobian_use_existing_interfac
     close(likelihood, rows.iter().sum(), 1e-14);
     let model = batch
         .into_model()
+        .binding()
         .rebind::<NormalBatch>(f, |p| p.with_observations(vec![0.; 5]))
-        .unwrap();
+        .unwrap()
+        .compile()
+        .unwrap()
+        .into_native_model();
     let target = model.into_target().unwrap();
     let mut g = [0.; 2];
     let value = target.logp_grad(&q, &mut g).unwrap();

@@ -11,7 +11,7 @@ use alea::{
     ensemble::Execution,
     model::{
         ModelError, TransformedTarget,
-        assembly::{AssemblyError, CompiledModel, Value, ModelBuilder},
+        assembly::{AssemblyError, NativeModel, Value, ModelBuilder},
     },
     sampling::{
         NutsOptions,
@@ -153,7 +153,7 @@ fn subject_minima(data: &[Trial], subjects: usize) -> Vec<f64> {
     }
     values
 }
-fn build(c: &Config, data: &[Trial]) -> Result<CompiledModel, AssemblyError> {
+fn build(c: &Config, data: &[Trial]) -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let minimum = data
         .iter()
@@ -286,7 +286,7 @@ fn build(c: &Config, data: &[Trial]) -> Result<CompiledModel, AssemblyError> {
     b.compile()
 }
 struct Counted {
-    inner: TransformedTarget<CompiledModel>,
+    inner: TransformedTarget<NativeModel>,
     counter: Arc<AtomicU64>,
     errors: Arc<AtomicU64>,
 }

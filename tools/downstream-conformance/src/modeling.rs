@@ -3,7 +3,7 @@ use alea::distributions::{
     modeling,
     wiener::{WienerObservation, WienerOptions},
 };
-use alea::model::assembly::{CompiledModel, ModelBuilder, Value};
+use alea::model::assembly::{ModelBuilder, NativeModel, Value};
 
 #[derive(Clone, Copy)]
 pub enum Observation {
@@ -26,7 +26,7 @@ fn normal_prior(b: &mut ModelBuilder, x: Value, mean: f64, scale: f64) {
     factor(b, p);
 }
 /// Intercept/slope normal regression with fixed observation scale .7 and N(0,1) priors.
-pub fn regression(data: &[(f64, f64)]) -> CompiledModel {
+pub fn regression(data: &[(f64, f64)]) -> NativeModel {
     let mut b = ModelBuilder::new();
     let a = b.real("intercept").unwrap();
     let slope = b.real("slope").unwrap();
@@ -74,7 +74,7 @@ fn hierarchy_base() -> (ModelBuilder, Vec<Value>) {
 
 /// Noncentered two-group hierarchy. Parameter order: `mu`, `tau`, `z[0]`, `z[1]`.
 /// tau has LogNormal(-.7,.3), mu has Normal(0,.7), z have independent Normal(0,1).
-pub fn hierarchy(data: &[Observation]) -> CompiledModel {
+pub fn hierarchy(data: &[Observation]) -> NativeModel {
     let (mut b, effects) = hierarchy_base();
     let alpha = b.constant(1.2).unwrap();
     let ndt = b.constant(0.15).unwrap();
@@ -98,7 +98,7 @@ pub fn hierarchy(data: &[Observation]) -> CompiledModel {
 /// Each entry is (events, trials). This preserves the likelihood of the original
 /// Bernoulli sequence; no binomial combinatorial constant is introduced.
 /// Panics for inconsistent counts or counts above the exact f64 integer range.
-pub fn hierarchy_counts(groups: &[(usize, usize); 2]) -> CompiledModel {
+pub fn hierarchy_counts(groups: &[(usize, usize); 2]) -> NativeModel {
     let (mut b, effects) = hierarchy_base();
     for (&(events, trials), eta) in groups.iter().zip(effects) {
         assert!(events <= trials && trials as u128 <= (1_u128 << 53));

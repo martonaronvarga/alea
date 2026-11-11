@@ -301,6 +301,7 @@ pub fn alea_core::model::assembly::ArgumentShape::fmt(&self, f: &mut core::fmt::
 impl core::marker::Copy for alea_core::model::assembly::ArgumentShape
 impl core::marker::StructuralPartialEq for alea_core::model::assembly::ArgumentShape
 #[non_exhaustive] pub enum alea_core::model::assembly::AssemblyError
+pub alea_core::model::assembly::AssemblyError::ContextMismatch
 pub alea_core::model::assembly::AssemblyError::Empty
 pub alea_core::model::assembly::AssemblyError::Factor(alloc::boxed::Box<(dyn core::error::Error + core::marker::Send + core::marker::Sync)>)
 pub alea_core::model::assembly::AssemblyError::ForeignHandle
@@ -313,9 +314,12 @@ pub alea_core::model::assembly::AssemblyError::Numerical
 pub alea_core::model::assembly::AssemblyError::PosteriorPotential
 pub alea_core::model::assembly::AssemblyError::PosteriorPotential::index: usize
 pub alea_core::model::assembly::AssemblyError::Shape
+pub alea_core::model::assembly::AssemblyError::StaleEvaluation
 pub alea_core::model::assembly::AssemblyError::Transform(alea_core::transform::TransformError)
 pub alea_core::model::assembly::AssemblyError::UnclassifiedFactor
 pub alea_core::model::assembly::AssemblyError::UnclassifiedFactor::index: usize
+pub alea_core::model::assembly::AssemblyError::UnqualifiedDerivative
+pub alea_core::model::assembly::AssemblyError::UnqualifiedDerivative::order: alea_core::model::assembly::DerivativeOrder
 pub alea_core::model::assembly::AssemblyError::WorkspaceBusy
 impl core::convert::From<alea_core::model::assembly::AssemblyError> for alea_core::model::assembly::PointwiseError
 pub fn alea_core::model::assembly::PointwiseError::from(source: alea_core::model::assembly::AssemblyError) -> Self
@@ -351,6 +355,32 @@ pub fn alea_core::model::assembly::Correlation::clone(&self) -> alea_core::model
 impl core::fmt::Debug for alea_core::model::assembly::Correlation
 pub fn alea_core::model::assembly::Correlation::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_core::model::assembly::Correlation
+pub enum alea_core::model::assembly::CurvatureRoute
+pub alea_core::model::assembly::CurvatureRoute::OriginalCompilerReverse
+pub alea_core::model::assembly::CurvatureRoute::Unavailable
+impl core::clone::Clone for alea_core::model::assembly::CurvatureRoute
+pub fn alea_core::model::assembly::CurvatureRoute::clone(&self) -> alea_core::model::assembly::CurvatureRoute
+impl core::cmp::Eq for alea_core::model::assembly::CurvatureRoute
+impl core::cmp::PartialEq for alea_core::model::assembly::CurvatureRoute
+pub fn alea_core::model::assembly::CurvatureRoute::eq(&self, other: &alea_core::model::assembly::CurvatureRoute) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::CurvatureRoute
+pub fn alea_core::model::assembly::CurvatureRoute::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::model::assembly::CurvatureRoute
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::CurvatureRoute
+pub enum alea_core::model::assembly::DerivativeOrder
+pub alea_core::model::assembly::DerivativeOrder::First
+pub alea_core::model::assembly::DerivativeOrder::Hvp
+pub alea_core::model::assembly::DerivativeOrder::Third
+pub alea_core::model::assembly::DerivativeOrder::Value
+impl core::clone::Clone for alea_core::model::assembly::DerivativeOrder
+pub fn alea_core::model::assembly::DerivativeOrder::clone(&self) -> alea_core::model::assembly::DerivativeOrder
+impl core::cmp::Eq for alea_core::model::assembly::DerivativeOrder
+impl core::cmp::PartialEq for alea_core::model::assembly::DerivativeOrder
+pub fn alea_core::model::assembly::DerivativeOrder::eq(&self, other: &alea_core::model::assembly::DerivativeOrder) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::DerivativeOrder
+pub fn alea_core::model::assembly::DerivativeOrder::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::model::assembly::DerivativeOrder
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::DerivativeOrder
 pub enum alea_core::model::assembly::DynamicDomain
 impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::DynamicDomain
 pub fn alea_core::model::assembly::DynamicDomain::accepts(_: alea_core::transform::Transform) -> bool
@@ -483,6 +513,18 @@ pub alea_core::model::assembly::SourceBody::Generated(fn(&D) -> alloc::string::S
 pub alea_core::model::assembly::SourceBody::Static(&'static str)
 impl<D> alea_core::model::assembly::SourceBody<D>
 pub fn alea_core::model::assembly::SourceBody<D>::render(&self, descriptor: &D) -> alloc::string::String
+pub enum alea_core::model::assembly::SourceMode
+pub alea_core::model::assembly::SourceMode::Density
+pub alea_core::model::assembly::SourceMode::Objective
+impl core::clone::Clone for alea_core::model::assembly::SourceMode
+pub fn alea_core::model::assembly::SourceMode::clone(&self) -> alea_core::model::assembly::SourceMode
+impl core::cmp::Eq for alea_core::model::assembly::SourceMode
+impl core::cmp::PartialEq for alea_core::model::assembly::SourceMode
+pub fn alea_core::model::assembly::SourceMode::eq(&self, other: &alea_core::model::assembly::SourceMode) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::SourceMode
+pub fn alea_core::model::assembly::SourceMode::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::model::assembly::SourceMode
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::SourceMode
 pub enum alea_core::model::assembly::UnitInterval
 impl alea_core::model::assembly::VectorDomain for alea_core::model::assembly::UnitInterval
 pub fn alea_core::model::assembly::UnitInterval::accepts(transform: alea_core::transform::Transform) -> bool
@@ -502,8 +544,8 @@ impl core::marker::Copy for alea_core::model::assembly::UnitSphere
 pub struct alea_core::model::assembly::BatchLikelihood
 impl alea_core::model::assembly::BatchLikelihood
 pub fn alea_core::model::assembly::BatchLikelihood::evaluate(&self, q: &[f64], output: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::BatchLikelihood::into_model(self) -> alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::BatchLikelihood::model(&self) -> &alea_core::model::assembly::CompiledModel
+pub fn alea_core::model::assembly::BatchLikelihood::into_model(self) -> alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::BatchLikelihood::model(&self) -> &alea_core::model::assembly::NativeModel
 pub fn alea_core::model::assembly::BatchLikelihood::units(&self) -> &[alea_core::model::assembly::BatchUnit]
 pub struct alea_core::model::assembly::BatchRule<P: alea_core::model::assembly::OperationDescriptor>
 pub alea_core::model::assembly::BatchRule::evaluate: alea_core::model::assembly::BatchEvaluator<P>
@@ -519,44 +561,6 @@ pub fn alea_core::model::assembly::BatchUnit::eq(&self, other: &alea_core::model
 impl core::fmt::Debug for alea_core::model::assembly::BatchUnit
 pub fn alea_core::model::assembly::BatchUnit::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::StructuralPartialEq for alea_core::model::assembly::BatchUnit
-pub struct alea_core::model::assembly::CompiledModel
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::batch_likelihood(self) -> core::result::Result<alea_core::model::assembly::BatchLikelihood, alea_core::model::assembly::AssemblyError>
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::coordinates(&self) -> alloc::sync::Arc<[alea_core::model::assembly::Coordinate]>
-pub fn alea_core::model::assembly::CompiledModel::expression_count(&self) -> usize
-pub fn alea_core::model::assembly::CompiledModel::into_objective(self) -> core::result::Result<alea_core::model::ComposedObjective<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
-pub fn alea_core::model::assembly::CompiledModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
-pub fn alea_core::model::assembly::CompiledModel::layout(&self) -> &alea_core::transform::ParameterLayout
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::factors(&self) -> &[alea_core::model::assembly::FactorMetadata]
-pub fn alea_core::model::assembly::CompiledModel::select_all(self) -> Self
-pub fn alea_core::model::assembly::CompiledModel::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::select_prior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::selected_factors(&self) -> impl core::iter::traits::iterator::Iterator<Item = &alea_core::model::assembly::FactorMetadata>
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::graph(&self) -> impl core::iter::traits::iterator::Iterator<Item = alea_core::model::assembly::GraphNode<'_>>
-pub fn alea_core::model::assembly::CompiledModel::source_capabilities(&self) -> alea_core::model::assembly::SourceCapabilities
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::rebind<P: alea_core::model::assembly::OperationDescriptor>(self, expression: alea_core::model::assembly::Value, update: impl core::ops::function::FnOnce(&P) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> core::result::Result<Self, alea_core::model::assembly::RebindError>
-pub fn alea_core::model::assembly::CompiledModel::rebind_region(self, value: alea_core::model::assembly::Value, name: &str, values: &[f64]) -> core::result::Result<Self, alea_core::model::assembly::RebindError>
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::rust_checkpoint_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::rust_first_order_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize, bool)>, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::rust_tensor_score_validation(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal_with_workspace(&self) -> core::result::Result<(alloc::string::String, usize), alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::rust_objective_validation(&self) -> alloc::string::String
-pub fn alea_core::model::assembly::CompiledModel::rust_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::rust_primal_with_workspace(&self) -> core::result::Result<(alloc::string::String, usize), alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::rust_validation(&self) -> alloc::string::String
-impl alea_core::model::ConstrainedModel for alea_core::model::assembly::CompiledModel
-pub type alea_core::model::assembly::CompiledModel::Error = alea_core::model::assembly::AssemblyError
-pub fn alea_core::model::assembly::CompiledModel::dimension(&self) -> usize
-pub fn alea_core::model::assembly::CompiledModel::is_numerical_error(&self, error: &Self::Error) -> bool
-pub fn alea_core::model::assembly::CompiledModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
 pub struct alea_core::model::assembly::Coordinate
 pub alea_core::model::assembly::Coordinate::block: core::option::Option<alloc::string::String>
 pub alea_core::model::assembly::Coordinate::coordinate: core::option::Option<alloc::string::String>
@@ -570,6 +574,60 @@ pub fn alea_core::model::assembly::Coordinate::eq(&self, other: &alea_core::mode
 impl core::fmt::Debug for alea_core::model::assembly::Coordinate
 pub fn alea_core::model::assembly::Coordinate::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::StructuralPartialEq for alea_core::model::assembly::Coordinate
+pub struct alea_core::model::assembly::DataBinding
+impl alea_core::model::assembly::DataBinding
+pub fn alea_core::model::assembly::DataBinding::compile(&self) -> core::result::Result<alea_core::model::assembly::Executable, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::DataBinding::definition(&self) -> &alloc::sync::Arc<alea_core::model::assembly::ModelDefinition>
+pub fn alea_core::model::assembly::DataBinding::identity(&self) -> u64
+impl alea_core::model::assembly::DataBinding
+pub fn alea_core::model::assembly::DataBinding::rebind<P: alea_core::model::assembly::OperationDescriptor>(&self, expression: alea_core::model::assembly::Value, update: impl core::ops::function::FnOnce(&P) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::DataBinding::rebind_region(&self, value: alea_core::model::assembly::Value, name: &str, values: &[f64]) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+impl core::clone::Clone for alea_core::model::assembly::DataBinding
+pub fn alea_core::model::assembly::DataBinding::clone(&self) -> alea_core::model::assembly::DataBinding
+impl core::ops::deref::Deref for alea_core::model::assembly::DataBinding
+pub type alea_core::model::assembly::DataBinding::Target = alea_core::model::assembly::ModelDefinition
+pub fn alea_core::model::assembly::DataBinding::deref(&self) -> &Self::Target
+pub struct alea_core::model::assembly::EvaluationContext
+pub struct alea_core::model::assembly::Executable
+impl alea_core::model::assembly::Executable
+pub fn alea_core::model::assembly::Executable::binding(&self) -> &alea_core::model::assembly::DataBinding
+pub fn alea_core::model::assembly::Executable::context(&self) -> alea_core::model::assembly::EvaluationContext
+pub fn alea_core::model::assembly::Executable::evaluate(&self, context: &mut alea_core::model::assembly::EvaluationContext, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::Executable::identity(&self) -> u64
+pub fn alea_core::model::assembly::Executable::into_native_model(self) -> alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::Executable::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<alea_core::model::assembly::NativeModel>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
+pub fn alea_core::model::assembly::Executable::native_model(self: &alloc::sync::Arc<Self>) -> alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::Executable::prepare(&self, context: &mut alea_core::model::assembly::EvaluationContext, q: &[f64]) -> core::result::Result<alea_core::model::assembly::PreparedEvaluation, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::Executable::publish(&self, context: &mut alea_core::model::assembly::EvaluationContext, token: &alea_core::model::assembly::PreparedEvaluation, g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::Executable::target(self: &alloc::sync::Arc<Self>) -> core::result::Result<alea_core::model::TransformedTarget<alea_core::model::assembly::NativeModel>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
+impl alea_core::model::assembly::Executable
+pub fn alea_core::model::assembly::Executable::coordinates(&self) -> alloc::sync::Arc<[alea_core::model::assembly::Coordinate]>
+pub fn alea_core::model::assembly::Executable::expression_count(&self) -> usize
+pub fn alea_core::model::assembly::Executable::layout(&self) -> &alea_core::transform::ParameterLayout
+impl alea_core::model::assembly::Executable
+pub fn alea_core::model::assembly::Executable::factors(&self) -> &[alea_core::model::assembly::FactorMetadata]
+pub fn alea_core::model::assembly::Executable::select_all(self) -> Self
+pub fn alea_core::model::assembly::Executable::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::Executable::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::Executable::select_prior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::Executable::selected_factors(&self) -> impl core::iter::traits::iterator::Iterator<Item = &alea_core::model::assembly::FactorMetadata>
+impl alea_core::model::assembly::Executable
+pub fn alea_core::model::assembly::Executable::graph(&self) -> impl core::iter::traits::iterator::Iterator<Item = alea_core::model::assembly::GraphNode<'_>>
+pub fn alea_core::model::assembly::Executable::source_capabilities(&self) -> alea_core::model::assembly::SourceCapabilities
+impl alea_core::model::assembly::Executable
+pub fn alea_core::model::assembly::Executable::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::Executable::rust_objective_validation(&self) -> alloc::string::String
+pub fn alea_core::model::assembly::Executable::rust_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::Executable::rust_validation(&self) -> alloc::string::String
+pub fn alea_core::model::assembly::Executable::source_primal(&self, mode: alea_core::model::assembly::SourceMode) -> core::result::Result<alea_core::model::assembly::SourceProgram, alea_core::model::assembly::AssemblyError>
+impl alea_core::model::assembly::Executable
+pub fn alea_core::model::assembly::Executable::source_first_order(&self, mode: alea_core::model::assembly::SourceMode) -> core::result::Result<core::option::Option<alea_core::model::assembly::FirstOrderSource>, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::Executable::source_score_admission(&self, mode: alea_core::model::assembly::SourceMode) -> core::result::Result<core::option::Option<alea_core::model::assembly::SourceProgram>, alea_core::model::assembly::AssemblyError>
+impl core::clone::Clone for alea_core::model::assembly::Executable
+pub fn alea_core::model::assembly::Executable::clone(&self) -> alea_core::model::assembly::Executable
+impl core::ops::deref::Deref for alea_core::model::assembly::Executable
+pub type alea_core::model::assembly::Executable::Target = alea_core::model::assembly::DataBinding
+pub fn alea_core::model::assembly::Executable::deref(&self) -> &Self::Target
 pub struct alea_core::model::assembly::FactorMetadata
 impl alea_core::model::assembly::FactorMetadata
 pub fn alea_core::model::assembly::FactorMetadata::name(&self) -> core::option::Option<&str>
@@ -582,6 +640,29 @@ pub fn alea_core::model::assembly::FactorMetadata::eq(&self, other: &alea_core::
 impl core::fmt::Debug for alea_core::model::assembly::FactorMetadata
 pub fn alea_core::model::assembly::FactorMetadata::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::StructuralPartialEq for alea_core::model::assembly::FactorMetadata
+pub struct alea_core::model::assembly::FirstOrderSource
+pub alea_core::model::assembly::FirstOrderSource::checkpointed: bool
+pub alea_core::model::assembly::FirstOrderSource::program: alea_core::model::assembly::SourceProgram
+pub alea_core::model::assembly::FirstOrderSource::stateful: bool
+impl core::clone::Clone for alea_core::model::assembly::FirstOrderSource
+pub fn alea_core::model::assembly::FirstOrderSource::clone(&self) -> alea_core::model::assembly::FirstOrderSource
+impl core::cmp::Eq for alea_core::model::assembly::FirstOrderSource
+impl core::cmp::PartialEq for alea_core::model::assembly::FirstOrderSource
+pub fn alea_core::model::assembly::FirstOrderSource::eq(&self, other: &alea_core::model::assembly::FirstOrderSource) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::FirstOrderSource
+pub fn alea_core::model::assembly::FirstOrderSource::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::FirstOrderSource
+pub struct alea_core::model::assembly::FloatWorkspace
+pub alea_core::model::assembly::FloatWorkspace::elements: usize
+impl core::clone::Clone for alea_core::model::assembly::FloatWorkspace
+pub fn alea_core::model::assembly::FloatWorkspace::clone(&self) -> alea_core::model::assembly::FloatWorkspace
+impl core::cmp::Eq for alea_core::model::assembly::FloatWorkspace
+impl core::cmp::PartialEq for alea_core::model::assembly::FloatWorkspace
+pub fn alea_core::model::assembly::FloatWorkspace::eq(&self, other: &alea_core::model::assembly::FloatWorkspace) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::FloatWorkspace
+pub fn alea_core::model::assembly::FloatWorkspace::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::model::assembly::FloatWorkspace
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::FloatWorkspace
 pub struct alea_core::model::assembly::GraphNode<'a>
 pub alea_core::model::assembly::GraphNode::active: bool
 pub alea_core::model::assembly::GraphNode::constant: core::option::Option<f64>
@@ -596,13 +677,14 @@ impl alea_core::model::assembly::ModelBuilder
 pub fn alea_core::model::assembly::ModelBuilder::add(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>, b: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::annotate<S>(&mut self, p: &alea_core::model::assembly::Parameter<S>, dimension: &str, coordinate: &str, block: &str) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::apply_region(&mut self, captures: &[alea_core::model::assembly::Value], binding: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::ModelBuilder::compile(self) -> core::result::Result<alea_core::model::assembly::CompiledModel, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::compile(self) -> core::result::Result<alea_core::model::assembly::NativeModel, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::constant(&mut self, x: f64) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::custom<F>(&mut self, inputs: &[alea_core::model::assembly::Value], callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where F: core::ops::function::Fn(&[f64], &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static
 pub fn alea_core::model::assembly::ModelBuilder::custom_with_primal<F>(&mut self, inputs: &[alea_core::model::assembly::Value], primal: &'static str, callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where F: core::ops::function::Fn(&[f64], &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static
-pub fn alea_core::model::assembly::ModelBuilder::custom_with_scratch<W, F>(&mut self, inputs: &[alea_core::model::assembly::Value], scratch: W, callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where W: core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64], &mut [f64], &mut W) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static
+pub fn alea_core::model::assembly::ModelBuilder::custom_with_scratch<W, F>(&mut self, inputs: &[alea_core::model::assembly::Value], workspace: impl core::ops::function::Fn() -> W + core::marker::Send + core::marker::Sync + 'static, callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where W: core::marker::Send + 'static, F: core::ops::function::Fn(&[f64], &mut [f64], &mut W) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static
 pub fn alea_core::model::assembly::ModelBuilder::exp(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::factor(&mut self, log_factor: alea_core::model::assembly::Value) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::finish(self) -> core::result::Result<alloc::sync::Arc<alea_core::model::assembly::ModelDefinition>, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::linear_combination(&mut self, inputs: &[alea_core::model::assembly::Value], coefficients: &[f64], offset: f64) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::log(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::multiply(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>, b: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
@@ -618,7 +700,7 @@ impl alea_core::model::assembly::ModelBuilder
 pub fn alea_core::model::assembly::ModelBuilder::call_region(&mut self, inputs: &[alea_core::model::assembly::Value], binding: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::constant_block(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<f64>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::matmul(&mut self, left: alea_core::model::assembly::Value, right: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::ModelBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + core::marker::Sync + 'static
+pub fn alea_core::model::assembly::ModelBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static
 pub fn alea_core::model::assembly::ModelBuilder::reshape(&mut self, value: alea_core::model::assembly::Value, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::sum_value(&mut self, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::value_shape(&self, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::tensor::Shape, alea_core::model::assembly::AssemblyError>
@@ -640,6 +722,10 @@ pub fn alea_core::model::assembly::ModelBuilder::scope(&mut self, name: &str) ->
 pub fn alea_core::model::assembly::ModelBuilder::with_scope<T>(&mut self, name: &str, build: impl core::ops::function::FnOnce(&mut Self) -> core::result::Result<T, alea_core::model::assembly::AssemblyError>) -> core::result::Result<T, alea_core::model::assembly::AssemblyError>
 impl core::default::Default for alea_core::model::assembly::ModelBuilder
 pub fn alea_core::model::assembly::ModelBuilder::default() -> Self
+pub struct alea_core::model::assembly::ModelDefinition
+impl alea_core::model::assembly::ModelDefinition
+pub fn alea_core::model::assembly::ModelDefinition::bind(self: &alloc::sync::Arc<Self>) -> alea_core::model::assembly::DataBinding
+pub fn alea_core::model::assembly::ModelDefinition::compile(&self, binding: &alea_core::model::assembly::DataBinding) -> core::result::Result<alea_core::model::assembly::Executable, alea_core::model::assembly::AssemblyError>
 pub struct alea_core::model::assembly::ModelScope<'a>
 impl core::ops::deref::Deref for alea_core::model::assembly::ModelScope<'_>
 pub type alea_core::model::assembly::ModelScope<'_>::Target = alea_core::model::assembly::ModelBuilder
@@ -648,6 +734,28 @@ impl core::ops::deref::DerefMut for alea_core::model::assembly::ModelScope<'_>
 pub fn alea_core::model::assembly::ModelScope<'_>::deref_mut(&mut self) -> &mut Self::Target
 impl core::ops::drop::Drop for alea_core::model::assembly::ModelScope<'_>
 pub fn alea_core::model::assembly::ModelScope<'_>::drop(&mut self)
+pub struct alea_core::model::assembly::NativeModel
+impl alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::NativeModel::batch_likelihood(self) -> core::result::Result<alea_core::model::assembly::BatchLikelihood, alea_core::model::assembly::AssemblyError>
+impl alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::NativeModel::executable(&self) -> &alea_core::model::assembly::Executable
+pub fn alea_core::model::assembly::NativeModel::into_executable(self) -> alea_core::model::assembly::Executable
+impl alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::NativeModel::into_objective(self) -> core::result::Result<alea_core::model::ComposedObjective<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
+pub fn alea_core::model::assembly::NativeModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
+impl alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::NativeModel::select_all(self) -> Self
+pub fn alea_core::model::assembly::NativeModel::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::NativeModel::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::NativeModel::select_prior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+impl alea_core::model::ConstrainedModel for alea_core::model::assembly::NativeModel
+pub type alea_core::model::assembly::NativeModel::Error = alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::NativeModel::dimension(&self) -> usize
+pub fn alea_core::model::assembly::NativeModel::is_numerical_error(&self, error: &Self::Error) -> bool
+pub fn alea_core::model::assembly::NativeModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+impl core::ops::deref::Deref for alea_core::model::assembly::NativeModel
+pub type alea_core::model::assembly::NativeModel::Target = alea_core::model::assembly::Executable
+pub fn alea_core::model::assembly::NativeModel::deref(&self) -> &Self::Target
 pub struct alea_core::model::assembly::NativeRules<D: alea_core::model::assembly::OperationDescriptor>
 pub alea_core::model::assembly::NativeRules::batch: core::option::Option<alea_core::model::assembly::BatchRule<D>>
 pub alea_core::model::assembly::NativeRules::batch_workspace: fn(&D) -> <D as alea_core::model::assembly::OperationDescriptor>::Workspace
@@ -676,9 +784,9 @@ impl alea_core::model::assembly::PointwiseLikelihood
 pub fn alea_core::model::assembly::PointwiseLikelihood::batch_rows(&self) -> core::option::Option<alloc::vec::Vec<alloc::vec::Vec<alea_core::model::assembly::BatchUnit>>>
 pub fn alea_core::model::assembly::PointwiseLikelihood::evaluate(&self, q: &[f64], output: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::PointwiseError>
 pub fn alea_core::model::assembly::PointwiseLikelihood::from_batch(batch: alea_core::model::assembly::BatchLikelihood, units: alloc::vec::Vec<alea_core::model::assembly::PredictiveUnit>, rows: alloc::vec::Vec<alloc::vec::Vec<alea_core::model::assembly::BatchUnit>>) -> core::result::Result<Self, alea_core::model::assembly::PointwiseError>
-pub fn alea_core::model::assembly::PointwiseLikelihood::into_model(self) -> alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::PointwiseLikelihood::model(&self) -> &alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::PointwiseLikelihood::new(model: alea_core::model::assembly::CompiledModel, units: alloc::vec::Vec<alea_core::model::assembly::PredictiveUnit>) -> core::result::Result<Self, alea_core::model::assembly::PointwiseError>
+pub fn alea_core::model::assembly::PointwiseLikelihood::into_model(self) -> alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::PointwiseLikelihood::model(&self) -> &alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::PointwiseLikelihood::new(model: alea_core::model::assembly::NativeModel, units: alloc::vec::Vec<alea_core::model::assembly::PredictiveUnit>) -> core::result::Result<Self, alea_core::model::assembly::PointwiseError>
 pub fn alea_core::model::assembly::PointwiseLikelihood::units(&self) -> &[alea_core::model::assembly::PredictiveUnit]
 pub struct alea_core::model::assembly::PredictiveUnit
 pub alea_core::model::assembly::PredictiveUnit::conditioned_on: alloc::vec::Vec<alloc::string::String>
@@ -694,6 +802,7 @@ pub fn alea_core::model::assembly::PredictiveUnit::eq(&self, other: &alea_core::
 impl core::fmt::Debug for alea_core::model::assembly::PredictiveUnit
 pub fn alea_core::model::assembly::PredictiveUnit::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::StructuralPartialEq for alea_core::model::assembly::PredictiveUnit
+pub struct alea_core::model::assembly::PreparedEvaluation
 pub struct alea_core::model::assembly::PrimitiveArgument
 pub alea_core::model::assembly::PrimitiveArgument::name: &'static str
 pub alea_core::model::assembly::PrimitiveArgument::shape: alea_core::model::assembly::ArgumentShape
@@ -710,6 +819,8 @@ impl alea_core::model::assembly::PrimitiveMetadata
 pub fn alea_core::model::assembly::PrimitiveMetadata::descriptor<P: core::any::Any>(&self) -> core::option::Option<&P>
 pub fn alea_core::model::assembly::PrimitiveMetadata::region_binding(&self) -> core::option::Option<&alea_core::model::tensor::BoundProgram>
 pub fn alea_core::model::assembly::PrimitiveMetadata::signature(&self) -> &alea_core::model::assembly::PrimitiveSignature
+impl core::clone::Clone for alea_core::model::assembly::PrimitiveMetadata
+pub fn alea_core::model::assembly::PrimitiveMetadata::clone(&self) -> alea_core::model::assembly::PrimitiveMetadata
 pub struct alea_core::model::assembly::PrimitiveSignature
 pub alea_core::model::assembly::PrimitiveSignature::arguments: alloc::vec::Vec<alea_core::model::assembly::PrimitiveArgument>
 pub alea_core::model::assembly::PrimitiveSignature::name: &'static str
@@ -735,21 +846,14 @@ pub fn alea_core::model::assembly::ProbabilitySemantics::eq(&self, other: &alea_
 impl core::fmt::Debug for alea_core::model::assembly::ProbabilitySemantics
 pub fn alea_core::model::assembly::ProbabilitySemantics::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::StructuralPartialEq for alea_core::model::assembly::ProbabilitySemantics
-pub struct alea_core::model::assembly::RebindError
-pub alea_core::model::assembly::RebindError::model: alloc::boxed::Box<alea_core::model::assembly::CompiledModel>
-pub alea_core::model::assembly::RebindError::source: alea_core::model::assembly::AssemblyError
-impl core::error::Error for alea_core::model::assembly::RebindError
-pub fn alea_core::model::assembly::RebindError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
-impl core::fmt::Debug for alea_core::model::assembly::RebindError
-pub fn alea_core::model::assembly::RebindError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::fmt::Display for alea_core::model::assembly::RebindError
-pub fn alea_core::model::assembly::RebindError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct alea_core::model::assembly::ScalarPreparation<P: alea_core::model::assembly::OperationDescriptor>
 pub alea_core::model::assembly::ScalarPreparation::argument: usize
 pub alea_core::model::assembly::ScalarPreparation::evaluate: alea_core::model::assembly::PreparedEvaluator<P>
 pub alea_core::model::assembly::ScalarPreparation::prepare: fn(f64) -> f64
 pub struct alea_core::model::assembly::SourceCapabilities
 pub alea_core::model::assembly::SourceCapabilities::missing_primals: alloc::vec::Vec<alea_core::model::assembly::Value>
+impl alea_core::model::assembly::SourceCapabilities
+pub fn alea_core::model::assembly::SourceCapabilities::resolve(&self, request: alea_core::model::assembly::SourceRequest) -> core::result::Result<alea_core::model::assembly::SourceRequest, alea_core::model::assembly::AssemblyError>
 impl alea_core::model::assembly::SourceCapabilities
 pub fn alea_core::model::assembly::SourceCapabilities::supports_rust_primal(&self) -> bool
 impl core::clone::Clone for alea_core::model::assembly::SourceCapabilities
@@ -760,10 +864,60 @@ pub fn alea_core::model::assembly::SourceCapabilities::eq(&self, other: &alea_co
 impl core::fmt::Debug for alea_core::model::assembly::SourceCapabilities
 pub fn alea_core::model::assembly::SourceCapabilities::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::StructuralPartialEq for alea_core::model::assembly::SourceCapabilities
+pub struct alea_core::model::assembly::SourceGradient
+pub alea_core::model::assembly::SourceGradient::body: alloc::string::String
+pub alea_core::model::assembly::SourceGradient::state: core::option::Option<alea_core::model::assembly::SourceState>
+impl core::clone::Clone for alea_core::model::assembly::SourceGradient
+pub fn alea_core::model::assembly::SourceGradient::clone(&self) -> alea_core::model::assembly::SourceGradient
+impl core::cmp::Eq for alea_core::model::assembly::SourceGradient
+impl core::cmp::PartialEq for alea_core::model::assembly::SourceGradient
+pub fn alea_core::model::assembly::SourceGradient::eq(&self, other: &alea_core::model::assembly::SourceGradient) -> bool
+impl core::convert::From<&str> for alea_core::model::assembly::SourceGradient
+pub fn alea_core::model::assembly::SourceGradient::from(body: &str) -> Self
+impl core::convert::From<alloc::string::String> for alea_core::model::assembly::SourceGradient
+pub fn alea_core::model::assembly::SourceGradient::from(body: alloc::string::String) -> Self
+impl core::fmt::Debug for alea_core::model::assembly::SourceGradient
+pub fn alea_core::model::assembly::SourceGradient::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::SourceGradient
+pub struct alea_core::model::assembly::SourceProgram
+pub alea_core::model::assembly::SourceProgram::source: alloc::string::String
+pub alea_core::model::assembly::SourceProgram::workspace: alea_core::model::assembly::FloatWorkspace
+impl core::clone::Clone for alea_core::model::assembly::SourceProgram
+pub fn alea_core::model::assembly::SourceProgram::clone(&self) -> alea_core::model::assembly::SourceProgram
+impl core::cmp::Eq for alea_core::model::assembly::SourceProgram
+impl core::cmp::PartialEq for alea_core::model::assembly::SourceProgram
+pub fn alea_core::model::assembly::SourceProgram::eq(&self, other: &alea_core::model::assembly::SourceProgram) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::SourceProgram
+pub fn alea_core::model::assembly::SourceProgram::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::SourceProgram
+pub struct alea_core::model::assembly::SourceRequest
+pub alea_core::model::assembly::SourceRequest::curvature: alea_core::model::assembly::CurvatureRoute
+pub alea_core::model::assembly::SourceRequest::mode: alea_core::model::assembly::SourceMode
+pub alea_core::model::assembly::SourceRequest::order: alea_core::model::assembly::DerivativeOrder
+impl core::clone::Clone for alea_core::model::assembly::SourceRequest
+pub fn alea_core::model::assembly::SourceRequest::clone(&self) -> alea_core::model::assembly::SourceRequest
+impl core::cmp::Eq for alea_core::model::assembly::SourceRequest
+impl core::cmp::PartialEq for alea_core::model::assembly::SourceRequest
+pub fn alea_core::model::assembly::SourceRequest::eq(&self, other: &alea_core::model::assembly::SourceRequest) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::SourceRequest
+pub fn alea_core::model::assembly::SourceRequest::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_core::model::assembly::SourceRequest
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::SourceRequest
 pub struct alea_core::model::assembly::SourceRule<D>
 pub alea_core::model::assembly::SourceRule::body: alea_core::model::assembly::SourceBody<D>
-pub alea_core::model::assembly::SourceRule::gradient: core::option::Option<fn(&D) -> alloc::string::String>
+pub alea_core::model::assembly::SourceRule::gradient: core::option::Option<fn(&D) -> alea_core::model::assembly::SourceGradient>
 pub alea_core::model::assembly::SourceRule::workspace: usize
+pub struct alea_core::model::assembly::SourceState
+pub alea_core::model::assembly::SourceState::initializer: alloc::string::String
+pub alea_core::model::assembly::SourceState::rust_type: alloc::string::String
+impl core::clone::Clone for alea_core::model::assembly::SourceState
+pub fn alea_core::model::assembly::SourceState::clone(&self) -> alea_core::model::assembly::SourceState
+impl core::cmp::Eq for alea_core::model::assembly::SourceState
+impl core::cmp::PartialEq for alea_core::model::assembly::SourceState
+pub fn alea_core::model::assembly::SourceState::eq(&self, other: &alea_core::model::assembly::SourceState) -> bool
+impl core::fmt::Debug for alea_core::model::assembly::SourceState
+pub fn alea_core::model::assembly::SourceState::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for alea_core::model::assembly::SourceState
 pub struct alea_core::model::assembly::Value
 impl core::clone::Clone for alea_core::model::assembly::Value
 pub fn alea_core::model::assembly::Value::clone(&self) -> alea_core::model::assembly::Value
@@ -787,7 +941,7 @@ pub fn alea_core::model::assembly::VectorParameter<S>::clone(&self) -> alea_core
 impl<S: core::fmt::Debug + alea_core::model::assembly::VectorDomain> core::fmt::Debug for alea_core::model::assembly::VectorParameter<S>
 pub fn alea_core::model::assembly::VectorParameter<S>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub trait alea_core::model::assembly::OperationDescriptor: core::marker::Send + core::marker::Sync + core::marker::Sized + 'static
-pub type alea_core::model::assembly::OperationDescriptor::Workspace: core::marker::Send + core::marker::Sync + 'static
+pub type alea_core::model::assembly::OperationDescriptor::Workspace: core::marker::Send + 'static
 pub fn alea_core::model::assembly::OperationDescriptor::rules(&self) -> alea_core::model::assembly::NativeRules<Self>
 pub trait alea_core::model::assembly::VectorDomain: alea_core::model::assembly::domain_sealed::Sealed
 pub fn alea_core::model::assembly::VectorDomain::accepts(transform: alea_core::transform::Transform) -> bool
@@ -984,7 +1138,7 @@ pub fn alea_core::model::tensor::BoundProgram::workspace(&self) -> alea_core::mo
 pub fn alea_core::model::tensor::BoundProgram::workspace_bytes(&self) -> usize
 pub fn alea_core::model::tensor::BoundProgram::workspace_with_limit(&self, limit: usize) -> core::result::Result<alea_core::model::tensor::TensorWorkspace, alea_core::model::tensor::WorkspaceBudgetError>
 impl alea_core::model::tensor::BoundProgram
-pub fn alea_core::model::tensor::BoundProgram::rust_function(&self) -> alloc::string::String
+pub fn alea_core::model::tensor::BoundProgram::rust_function(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
 impl core::clone::Clone for alea_core::model::tensor::BoundProgram
 pub fn alea_core::model::tensor::BoundProgram::clone(&self) -> alea_core::model::tensor::BoundProgram
 pub struct alea_core::model::tensor::RegionBuilder
@@ -1009,7 +1163,7 @@ impl alea_core::model::tensor::RegionBuilder
 pub fn alea_core::model::tensor::RegionBuilder::boolean_data(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<bool>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::RegionBuilder::count_data(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<u64>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::RegionBuilder::indices(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<usize>, bound: usize) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::tensor::RegionBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + core::marker::Sync + 'static
+pub fn alea_core::model::tensor::RegionBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static
 pub struct alea_core::model::tensor::Shape
 impl alea_core::model::tensor::Shape
 pub fn alea_core::model::tensor::Shape::axes(&self) -> &[usize]
@@ -1140,11 +1294,11 @@ pub type alea_core::model::ConstrainedModel::Error: core::error::Error + 'static
 pub fn alea_core::model::ConstrainedModel::dimension(&self) -> usize
 pub fn alea_core::model::ConstrainedModel::is_numerical_error(&self, _error: &Self::Error) -> bool
 pub fn alea_core::model::ConstrainedModel::logp_grad(&self, parameters: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
-impl alea_core::model::ConstrainedModel for alea_core::model::assembly::CompiledModel
-pub type alea_core::model::assembly::CompiledModel::Error = alea_core::model::assembly::AssemblyError
-pub fn alea_core::model::assembly::CompiledModel::dimension(&self) -> usize
-pub fn alea_core::model::assembly::CompiledModel::is_numerical_error(&self, error: &Self::Error) -> bool
-pub fn alea_core::model::assembly::CompiledModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+impl alea_core::model::ConstrainedModel for alea_core::model::assembly::NativeModel
+pub type alea_core::model::assembly::NativeModel::Error = alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::NativeModel::dimension(&self) -> usize
+pub fn alea_core::model::assembly::NativeModel::is_numerical_error(&self, error: &Self::Error) -> bool
+pub fn alea_core::model::assembly::NativeModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
 impl<A: alea_core::model::ConstrainedModel, B: alea_core::model::ConstrainedModel> alea_core::model::ConstrainedModel for alea_core::model::SumModel<A, B>
 pub type alea_core::model::SumModel<A, B>::Error = alea_core::model::SumModelError<<A as alea_core::model::ConstrainedModel>::Error, <B as alea_core::model::ConstrainedModel>::Error>
 pub fn alea_core::model::SumModel<A, B>::dimension(&self) -> usize
@@ -1239,44 +1393,6 @@ impl<E: core::error::Error + 'static> core::convert::From<alea_core::transform::
 pub fn alea_core::model::ModelError<E>::from(source: alea_core::transform::TransformError) -> Self
 impl<E: core::error::Error + 'static> core::convert::From<alea_core::transform::TransformError> for alea_core::model::prediction::PredictionError<E>
 pub fn alea_core::model::prediction::PredictionError<E>::from(source: alea_core::transform::TransformError) -> Self
-pub struct alea_core::prelude::CompiledModel
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::batch_likelihood(self) -> core::result::Result<alea_core::model::assembly::BatchLikelihood, alea_core::model::assembly::AssemblyError>
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::coordinates(&self) -> alloc::sync::Arc<[alea_core::model::assembly::Coordinate]>
-pub fn alea_core::model::assembly::CompiledModel::expression_count(&self) -> usize
-pub fn alea_core::model::assembly::CompiledModel::into_objective(self) -> core::result::Result<alea_core::model::ComposedObjective<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
-pub fn alea_core::model::assembly::CompiledModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
-pub fn alea_core::model::assembly::CompiledModel::layout(&self) -> &alea_core::transform::ParameterLayout
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::factors(&self) -> &[alea_core::model::assembly::FactorMetadata]
-pub fn alea_core::model::assembly::CompiledModel::select_all(self) -> Self
-pub fn alea_core::model::assembly::CompiledModel::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::select_prior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::selected_factors(&self) -> impl core::iter::traits::iterator::Iterator<Item = &alea_core::model::assembly::FactorMetadata>
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::graph(&self) -> impl core::iter::traits::iterator::Iterator<Item = alea_core::model::assembly::GraphNode<'_>>
-pub fn alea_core::model::assembly::CompiledModel::source_capabilities(&self) -> alea_core::model::assembly::SourceCapabilities
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::rebind<P: alea_core::model::assembly::OperationDescriptor>(self, expression: alea_core::model::assembly::Value, update: impl core::ops::function::FnOnce(&P) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> core::result::Result<Self, alea_core::model::assembly::RebindError>
-pub fn alea_core::model::assembly::CompiledModel::rebind_region(self, value: alea_core::model::assembly::Value, name: &str, values: &[f64]) -> core::result::Result<Self, alea_core::model::assembly::RebindError>
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::rust_checkpoint_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::rust_first_order_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize, bool)>, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::rust_tensor_score_validation(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>
-impl alea_core::model::assembly::CompiledModel
-pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal_with_workspace(&self) -> core::result::Result<(alloc::string::String, usize), alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::rust_objective_validation(&self) -> alloc::string::String
-pub fn alea_core::model::assembly::CompiledModel::rust_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::rust_primal_with_workspace(&self) -> core::result::Result<(alloc::string::String, usize), alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::CompiledModel::rust_validation(&self) -> alloc::string::String
-impl alea_core::model::ConstrainedModel for alea_core::model::assembly::CompiledModel
-pub type alea_core::model::assembly::CompiledModel::Error = alea_core::model::assembly::AssemblyError
-pub fn alea_core::model::assembly::CompiledModel::dimension(&self) -> usize
-pub fn alea_core::model::assembly::CompiledModel::is_numerical_error(&self, error: &Self::Error) -> bool
-pub fn alea_core::model::assembly::CompiledModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
 pub struct alea_core::prelude::ComposedObjective<M>
 impl<M: alea_core::model::ConstrainedModel> alea_core::model::ComposedObjective<M>
 pub fn alea_core::model::ComposedObjective<M>::into_model(self) -> M
@@ -1331,13 +1447,14 @@ impl alea_core::model::assembly::ModelBuilder
 pub fn alea_core::model::assembly::ModelBuilder::add(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>, b: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::annotate<S>(&mut self, p: &alea_core::model::assembly::Parameter<S>, dimension: &str, coordinate: &str, block: &str) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::apply_region(&mut self, captures: &[alea_core::model::assembly::Value], binding: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::ModelBuilder::compile(self) -> core::result::Result<alea_core::model::assembly::CompiledModel, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::compile(self) -> core::result::Result<alea_core::model::assembly::NativeModel, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::constant(&mut self, x: f64) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::custom<F>(&mut self, inputs: &[alea_core::model::assembly::Value], callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where F: core::ops::function::Fn(&[f64], &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static
 pub fn alea_core::model::assembly::ModelBuilder::custom_with_primal<F>(&mut self, inputs: &[alea_core::model::assembly::Value], primal: &'static str, callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where F: core::ops::function::Fn(&[f64], &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static
-pub fn alea_core::model::assembly::ModelBuilder::custom_with_scratch<W, F>(&mut self, inputs: &[alea_core::model::assembly::Value], scratch: W, callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where W: core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64], &mut [f64], &mut W) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static
+pub fn alea_core::model::assembly::ModelBuilder::custom_with_scratch<W, F>(&mut self, inputs: &[alea_core::model::assembly::Value], workspace: impl core::ops::function::Fn() -> W + core::marker::Send + core::marker::Sync + 'static, callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where W: core::marker::Send + 'static, F: core::ops::function::Fn(&[f64], &mut [f64], &mut W) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static
 pub fn alea_core::model::assembly::ModelBuilder::exp(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::factor(&mut self, log_factor: alea_core::model::assembly::Value) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::ModelBuilder::finish(self) -> core::result::Result<alloc::sync::Arc<alea_core::model::assembly::ModelDefinition>, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::linear_combination(&mut self, inputs: &[alea_core::model::assembly::Value], coefficients: &[f64], offset: f64) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::log(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::multiply(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>, b: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
@@ -1353,7 +1470,7 @@ impl alea_core::model::assembly::ModelBuilder
 pub fn alea_core::model::assembly::ModelBuilder::call_region(&mut self, inputs: &[alea_core::model::assembly::Value], binding: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::constant_block(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<f64>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::matmul(&mut self, left: alea_core::model::assembly::Value, right: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::assembly::ModelBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + core::marker::Sync + 'static
+pub fn alea_core::model::assembly::ModelBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static
 pub fn alea_core::model::assembly::ModelBuilder::reshape(&mut self, value: alea_core::model::assembly::Value, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::sum_value(&mut self, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::value_shape(&self, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::tensor::Shape, alea_core::model::assembly::AssemblyError>
@@ -1375,6 +1492,28 @@ pub fn alea_core::model::assembly::ModelBuilder::scope(&mut self, name: &str) ->
 pub fn alea_core::model::assembly::ModelBuilder::with_scope<T>(&mut self, name: &str, build: impl core::ops::function::FnOnce(&mut Self) -> core::result::Result<T, alea_core::model::assembly::AssemblyError>) -> core::result::Result<T, alea_core::model::assembly::AssemblyError>
 impl core::default::Default for alea_core::model::assembly::ModelBuilder
 pub fn alea_core::model::assembly::ModelBuilder::default() -> Self
+pub struct alea_core::prelude::NativeModel
+impl alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::NativeModel::batch_likelihood(self) -> core::result::Result<alea_core::model::assembly::BatchLikelihood, alea_core::model::assembly::AssemblyError>
+impl alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::NativeModel::executable(&self) -> &alea_core::model::assembly::Executable
+pub fn alea_core::model::assembly::NativeModel::into_executable(self) -> alea_core::model::assembly::Executable
+impl alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::NativeModel::into_objective(self) -> core::result::Result<alea_core::model::ComposedObjective<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
+pub fn alea_core::model::assembly::NativeModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>
+impl alea_core::model::assembly::NativeModel
+pub fn alea_core::model::assembly::NativeModel::select_all(self) -> Self
+pub fn alea_core::model::assembly::NativeModel::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::NativeModel::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::assembly::NativeModel::select_prior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
+impl alea_core::model::ConstrainedModel for alea_core::model::assembly::NativeModel
+pub type alea_core::model::assembly::NativeModel::Error = alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::NativeModel::dimension(&self) -> usize
+pub fn alea_core::model::assembly::NativeModel::is_numerical_error(&self, error: &Self::Error) -> bool
+pub fn alea_core::model::assembly::NativeModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+impl core::ops::deref::Deref for alea_core::model::assembly::NativeModel
+pub type alea_core::model::assembly::NativeModel::Target = alea_core::model::assembly::Executable
+pub fn alea_core::model::assembly::NativeModel::deref(&self) -> &Self::Target
 pub struct alea_core::prelude::ParameterBlock
 impl alea_core::transform::ParameterBlock
 pub fn alea_core::transform::ParameterBlock::constrained_range(&self) -> core::ops::range::Range<usize>
@@ -1461,11 +1600,11 @@ pub type alea_core::prelude::ConstrainedModel::Error: core::error::Error + 'stat
 pub fn alea_core::prelude::ConstrainedModel::dimension(&self) -> usize
 pub fn alea_core::prelude::ConstrainedModel::is_numerical_error(&self, _error: &Self::Error) -> bool
 pub fn alea_core::prelude::ConstrainedModel::logp_grad(&self, parameters: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
-impl alea_core::model::ConstrainedModel for alea_core::model::assembly::CompiledModel
-pub type alea_core::model::assembly::CompiledModel::Error = alea_core::model::assembly::AssemblyError
-pub fn alea_core::model::assembly::CompiledModel::dimension(&self) -> usize
-pub fn alea_core::model::assembly::CompiledModel::is_numerical_error(&self, error: &Self::Error) -> bool
-pub fn alea_core::model::assembly::CompiledModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+impl alea_core::model::ConstrainedModel for alea_core::model::assembly::NativeModel
+pub type alea_core::model::assembly::NativeModel::Error = alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::NativeModel::dimension(&self) -> usize
+pub fn alea_core::model::assembly::NativeModel::is_numerical_error(&self, error: &Self::Error) -> bool
+pub fn alea_core::model::assembly::NativeModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
 impl<A: alea_core::model::ConstrainedModel, B: alea_core::model::ConstrainedModel> alea_core::model::ConstrainedModel for alea_core::model::SumModel<A, B>
 pub type alea_core::model::SumModel<A, B>::Error = alea_core::model::SumModelError<<A as alea_core::model::ConstrainedModel>::Error, <B as alea_core::model::ConstrainedModel>::Error>
 pub fn alea_core::model::SumModel<A, B>::dimension(&self) -> usize

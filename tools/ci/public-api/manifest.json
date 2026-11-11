@@ -18,13 +18,13 @@
     },
     "alea-autodiff": {
       "file": "alea-autodiff.txt",
-      "items": 81,
-      "sha256": "0e2443b82666476d47beb9afe6fbf43b80cec3626e32a79e29f5b00a3a43d579"
+      "items": 82,
+      "sha256": "c3bf0ce86c3f405f6ea2cd0b5bbd5d27cfe62055a1c4a992b540321696f951e3"
     },
     "alea-core": {
       "file": "alea-core.txt",
-      "items": 1764,
-      "sha256": "7fde764a1e39e17dbd6dd3470b8a3c6ff25242a9bc6ad4b9fe372fc9f12ffd2b"
+      "items": 1903,
+      "sha256": "ff26f206c10b9dba159cc6e637445d0568e04052b1cf41b73018dbdae7ca03bc"
     },
     "alea-distributions": {
       "file": "alea-distributions.txt",

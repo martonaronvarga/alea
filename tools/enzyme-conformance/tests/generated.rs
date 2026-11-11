@@ -52,9 +52,13 @@ fn unrelated_trusted_or_checkpoint_factor_preserves_compiler_reverse() {
         assert!(a.active);
         assert_eq!(a.inputs.len(), 2);
         assert_eq!(a.inputs[0], a.inputs[1]);
-        let plan = model.rust_first_order_gradient(true).unwrap();
+        let plan = model
+            .source_first_order(alea::model::assembly::SourceMode::Density)
+            .unwrap();
         assert_eq!(plan.is_some(), explicit);
-        if let Some((source, _, actual_checkpoint)) = plan {
+        if let Some(first) = plan {
+            let source = first.program.source;
+            let actual_checkpoint = first.checkpointed;
             assert_eq!(actual_checkpoint, checkpoint);
             // The checked tensor helper admits local scores, but compiler
             // reverse supplies A's gradient in every composed route.
@@ -91,7 +95,7 @@ fn unrelated_trusted_or_checkpoint_factor_preserves_compiler_reverse() {
         Err(alea::model::assembly::AssemblyError::MissingPrimal { .. })
     ));
     assert!(matches!(
-        missing.rust_tensor_score_validation(true),
+        missing.source_score_admission(alea::model::assembly::SourceMode::Density),
         Err(alea::model::assembly::AssemblyError::MissingPrimal { .. })
     ));
 }
@@ -528,10 +532,10 @@ fn native_batch_source_matches_tail_and_scale_admission_without_clipping() {
 }
 
 #[test]
-fn native_first_order_caches_are_thread_local_reusable_and_transactional() {
+fn native_first_order_contexts_are_reusable_and_transactional_on_independent_threads() {
     fn check<T: LogDensityGradient>(target: T, q: &[f64]) {
         let mut g = vec![0.; q.len()];
-        let expected = target.logp_grad(q, &mut g).unwrap(); // initialize this thread
+        let expected = target.logp_grad(q, &mut g).unwrap(); // admit this target's first evaluation
         let expected_g = g.clone();
         let allocations = allocation_counter::measure(|| {
             for _ in 0..16 {
@@ -569,8 +573,8 @@ fn native_first_order_caches_are_thread_local_reusable_and_transactional() {
         assert!(generated::native_logit_batch::SOURCE_EXPLICIT_FIRST_ORDER);
         assert!(!generated::native_logit_batch::SOURCE_CHECKPOINTED);
     }
-    // New threads initialize independently, then reuse the frozen descriptor and
-    // scratch; no process-global mutable native workspace is shared.
+    // Each target initializes independently, then reuses its frozen descriptor and
+    // private scratch, including when constructed on independent threads.
     let handles: Vec<_> = (0..4)
         .map(|_| {
             std::thread::spawn(|| {
@@ -726,7 +730,7 @@ fn rounded_singular_covariances_and_collapsed_intervals_fail_all_derivative_path
 }
 
 fn objective_check<T: PotentialHessianDerivative>(
-    model: alea::model::assembly::CompiledModel,
+    model: alea::model::assembly::NativeModel,
     generated: T,
 ) {
     let d = model.layout().unconstrained_dimension();
@@ -815,4 +819,353 @@ fn objective_higher_derivatives_include_chart_curvature_but_no_density_terms() {
         close(h[0], e * e + x * e, 1e-13);
         close(third[0], 3. * e * e + x * e, 1e-13);
     }
+}
+
+#[test]
+fn independently_requested_polynomial_orders_have_independent_answers() {
+    use generated::polynomial::{first, hvp, value};
+    for [x, y] in [[0.3, -0.7], [-1.2, 0.5], [0., 0.]] {
+        let q = [x, y];
+        let expected = -0.5 * (x * x + y * y) - 0.1 * x * x * y * y - 0.01 * x * x * x * x;
+        close(value::log_density(&q), expected, 1e-13);
+        close(value::composition::value(&q), expected, 1e-13);
+        {
+            let target = first::target();
+            let mut g = [f64::NAN; 2];
+            close(target.logp_grad(&q, &mut g).unwrap(), expected, 1e-13);
+            close(g[0], -x - 0.2 * x * y * y - 0.04 * x * x * x, 1e-13);
+            close(g[1], -y - 0.2 * x * x * y, 1e-13);
+            assert!(matches!(
+                target.logp_grad(&[], &mut g),
+                Err(alea::autodiff::autodiff::AutodiffError::Dimension)
+            ));
+            assert!(target.logp_grad(&[f64::NAN, y], &mut g).is_err());
+            close(target.logp_grad(&q, &mut g).unwrap(), expected, 1e-13);
+        }
+        let mut g = [41.; 2];
+        close(
+            first::composition::objective()
+                .logp_grad(&q, &mut g)
+                .unwrap(),
+            expected,
+            1e-13,
+        );
+        let direction = [0.4, -0.2];
+        let mut out = [f64::NAN; 2];
+        hvp::target()
+            .potential_hvp(&q, &direction, &mut out)
+            .unwrap();
+        close(
+            out[0],
+            (1. + 0.2 * y * y + 0.12 * x * x) * direction[0] + 0.4 * x * y * direction[1],
+            1e-13,
+        );
+        close(
+            out[1],
+            0.4 * x * y * direction[0] + (1. + 0.2 * x * x) * direction[1],
+            1e-13,
+        );
+        let mut objective_out = [f64::NAN; 2];
+        hvp::composition::objective()
+            .potential_hvp(&q, &direction, &mut objective_out)
+            .unwrap();
+        for (a, b) in objective_out.into_iter().zip(out) {
+            close(a, b, 1e-13);
+        }
+    }
+}
+
+#[test]
+fn first_only_routes_preserve_singular_admission_and_negative_branch_recovery() {
+    fn check<T: LogDensityGradient>(target: T, linear: f64, quadratic: f64, cubic: f64)
+    where
+        T::Error: std::fmt::Debug,
+    {
+        let mut g = [41.];
+        assert!(target.logp_grad(&[0.], &mut g).is_err());
+        for x in [-0.7_f64, 0.4] {
+            let expected = x.abs() + linear * x + quadratic * x * x + cubic * x * x * x;
+            close(target.logp_grad(&[x], &mut g).unwrap(), expected, 1e-12);
+            close(
+                g[0],
+                x.signum() + linear + 2. * quadratic * x + 3. * cubic * x * x,
+                1e-12,
+            );
+        }
+    }
+    check(generated::route_alone::first::target(), 0., 0., 0.);
+    check(generated::route_trusted::first::target(), 0., 1., 0.);
+    check(generated::route_checkpoint::first::target(), 66., 0., 0.);
+    check(generated::route_opaque::first::target(), 0., 0., 1.);
+    check(generated::route_trusted_opaque::first::target(), 0., 1., 1.);
+    check(
+        generated::route_checkpoint::first::composition::objective(),
+        66.,
+        0.,
+        0.,
+    );
+    fn check_hvp<T: PotentialHessianVector>(target: T, quadratic: f64, cubic: f64)
+    where
+        T::Error: std::fmt::Debug,
+    {
+        let mut out = [41.];
+        // Zero direction must still admit the actual first-order result.
+        assert!(target.potential_hvp(&[0.], &[0.], &mut out).is_err());
+        for x in [-0.7, 0.4] {
+            target.potential_hvp(&[x], &[0.3], &mut out).unwrap();
+            close(out[0], -(2. * quadratic + 6. * cubic * x) * 0.3, 1e-12);
+        }
+    }
+    check_hvp(generated::route_trusted::hvp::target(), 1., 0.);
+    check_hvp(generated::route_checkpoint::hvp::target(), 0., 0.);
+    check_hvp(generated::route_opaque::hvp::target(), 0., 1.);
+    check_hvp(
+        generated::route_trusted_opaque::hvp::composition::objective(),
+        1.,
+        1.,
+    );
+    // Value-only keeps primal admission; it must not run the singular pullback.
+    close(generated::route_alone::value::log_density(&[0.]), 0., 0.);
+    close(
+        generated::route_checkpoint::value::composition::value(&[0.]),
+        0.,
+        0.,
+    );
+}
+
+#[test]
+fn requested_chart_orders_keep_density_and_objective_jacobians_separate() {
+    for q in [-0.6_f64, 0.3] {
+        let e = q.exp();
+        let x = -2. + e;
+        let objective = -0.5 * x * x;
+        close(
+            generated::lower::value::log_density(&[q]),
+            objective + q,
+            1e-13,
+        );
+        close(
+            generated::lower::value::composition::value(&[q]),
+            objective,
+            1e-13,
+        );
+        let mut g = [41.];
+        close(
+            generated::lower::first::target()
+                .logp_grad(&[q], &mut g)
+                .unwrap(),
+            objective + q,
+            1e-13,
+        );
+        close(g[0], -x * e + 1., 1e-13);
+        close(
+            generated::lower::first::composition::objective()
+                .logp_grad(&[q], &mut g)
+                .unwrap(),
+            objective,
+            1e-13,
+        );
+        close(g[0], -x * e, 1e-13);
+        let mut out = [41.];
+        generated::lower::hvp::target()
+            .potential_hvp(&[q], &[0.7], &mut out)
+            .unwrap();
+        close(out[0], (e * e + x * e) * 0.7, 1e-13);
+        generated::lower::hvp::composition::objective()
+            .potential_hvp(&[q], &[0.7], &mut out)
+            .unwrap();
+        close(out[0], (e * e + x * e) * 0.7, 1e-13);
+    }
+    let target = generated::route_trusted::first::target();
+    let mut g = [41.];
+    assert!(matches!(
+        target.logp_grad(&[2.], &mut g),
+        Err(alea::autodiff::autodiff::AutodiffError::NonFinite)
+    ));
+    close(generated::route_trusted::value::log_density(&[2.]), 6., 0.);
+    close(target.logp_grad(&[-0.5], &mut g).unwrap(), 0.75, 1e-13);
+    close(g[0], -2., 1e-13);
+}
+
+#[test]
+fn compiled_marker_leaves_remain_verbatim_in_compiler_and_hybrid_modules() {
+    let receipt = "__WORKSPACE__ __PUBLIC_TARGET__ __TENSOR_SCORE_VALIDATION__ __VALIDATION__";
+    for source in [
+        include_str!(concat!(env!("OUT_DIR"), "/route_opaque.rs")),
+        include_str!(concat!(env!("OUT_DIR"), "/route_opaque_first.rs")),
+        include_str!(concat!(env!("OUT_DIR"), "/route_trusted_opaque.rs")),
+        include_str!(concat!(
+            env!("OUT_DIR"),
+            "/route_trusted_opaque_first_objective.rs"
+        )),
+    ] {
+        assert!(source.contains(receipt));
+    }
+    // Existing isolated-route tests execute these exact modules against the
+    // independent cubic answers, including both signs and recovery after error.
+}
+
+#[test]
+fn generated_native_contexts_are_owned_by_each_target_and_recover_independently() {
+    fn check<T: LogDensityGradient>(factory: impl Fn() -> T, q: &[f64])
+    where
+        T::Error: std::fmt::Debug,
+    {
+        let (mut left, mut right) = (None, None);
+        let a = allocation_counter::measure(|| left = Some(factory()));
+        let b = allocation_counter::measure(|| right = Some(factory()));
+        // Each instance constructs its native context; a warmed TLS cache would
+        // allocate nothing for either target constructor and fail this check.
+        assert!(a.count_total > 0 && b.count_total > 0);
+        let (left, right) = (left.unwrap(), right.unwrap());
+        let (mut g, mut h) = (vec![19.; q.len()], vec![23.; q.len()]);
+        let value = left.logp_grad(q, &mut g).unwrap();
+        assert_eq!(
+            right.logp_grad(q, &mut h).unwrap().to_bits(),
+            value.to_bits()
+        );
+        assert_eq!(g, h);
+        let mut bad = q.to_vec();
+        // Finite extreme coefficients can be admissible in stable GLM tails.
+        bad[0] = f64::NAN;
+        assert!(left.logp_grad(&bad, &mut g).is_err());
+        assert_eq!(
+            right.logp_grad(q, &mut h).unwrap().to_bits(),
+            value.to_bits()
+        );
+        let allocations = allocation_counter::measure(|| {
+            for _ in 0..16 {
+                assert_eq!(
+                    left.logp_grad(q, &mut g).unwrap().to_bits(),
+                    value.to_bits()
+                );
+                assert_eq!(
+                    right.logp_grad(q, &mut h).unwrap().to_bits(),
+                    value.to_bits()
+                );
+                assert_eq!(g, h);
+            }
+        });
+        assert_eq!(allocations.count_total, 0);
+    }
+    check(
+        generated::native_normal_batch::first::target,
+        &[0.3, -0.4, 0.],
+    );
+    check(generated::native_logit_batch::first::target, &[0.3, -0.4]);
+    check(
+        generated::native_poisson_batch::first::composition::objective,
+        &[0.3, -0.4],
+    );
+}
+
+#[test]
+fn tail_and_empty_rank_three_maps_match_dense_polynomials_on_both_source_routes() {
+    fn check<T: PotentialHessianDerivative<Error = alea::autodiff::autodiff::AutodiffError>>(
+        target: T,
+        value: fn(&[f64; 2]) -> f64,
+        empty: bool,
+    ) {
+        for [a, b] in [[-0.75, 0.5], [0.25, -0.5], [0., 0.], [-1., 2.]] {
+            // Explicit dense coordinates for [2,1,3] x [1,3,1], no map helper.
+            let mut expected = 0.;
+            if !empty {
+                let left = [a, b, a, b, a, b];
+                let right = [a, b, a];
+                for i in 0..2 {
+                    for &r in &right {
+                        for k in 0..3 {
+                            let product = left[i * 3 + k] * r;
+                            expected -= 0.25 * product * product;
+                        }
+                    }
+                }
+            }
+            let scale = if empty { 0. } else { 1. };
+            close(value(&[a, b]), expected, 1e-12);
+            let mut g = [41.; 2];
+            close(target.logp_grad(&[a, b], &mut g).unwrap(), expected, 1e-12);
+            close(g[0], scale * (-6. * a * a * a - 4.5 * a * b * b), 1e-12);
+            close(g[1], scale * (-4.5 * a * a * b - 3. * b * b * b), 1e-12);
+            let h = [
+                18. * a * a + 4.5 * b * b,
+                9. * a * b,
+                9. * a * b,
+                4.5 * a * a + 9. * b * b,
+            ]
+            .map(|v| scale * v);
+            let d = [
+                36. * a,
+                9. * b,
+                9. * b,
+                9. * a,
+                9. * b,
+                9. * a,
+                9. * a,
+                18. * b,
+            ]
+            .map(|v| scale * v);
+            let (mut matrix, mut third) = ([41.; 4], [41.; 8]);
+            target
+                .potential_hessian_and_derivatives(&[a, b], &mut matrix, &mut third)
+                .unwrap();
+            for (x, y) in matrix.into_iter().zip(h) {
+                close(x, y, 1e-12);
+            }
+            for (x, y) in third.into_iter().zip(d) {
+                close(x, y, 1e-12);
+            }
+            for direction in [[0., 0.], [0.3, -0.7]] {
+                target.potential_hvp(&[a, b], &direction, &mut g).unwrap();
+                for i in 0..2 {
+                    close(
+                        g[i],
+                        h[2 * i] * direction[0] + h[2 * i + 1] * direction[1],
+                        1e-12,
+                    );
+                }
+            }
+        }
+        let mut g = [41.; 2];
+        assert!(matches!(
+            target.logp_grad(&[f64::NAN, 0.], &mut g),
+            Err(alea::autodiff::autodiff::AutodiffError::NonFinite)
+        ));
+        assert!(matches!(
+            target.potential_hvp(&[f64::NAN, 0.], &[0., 0.], &mut g),
+            Err(alea::autodiff::autodiff::AutodiffError::NonFinite)
+        ));
+        assert!(target.logp_grad(&[-0.75, 0.5], &mut g).is_ok());
+    }
+    macro_rules! case {
+        ($name:ident,$empty:expr) => {
+            check(
+                generated::$name::target(),
+                generated::$name::value::log_density,
+                $empty,
+            );
+            check(
+                generated::$name::composition::objective(),
+                generated::$name::value::composition::value,
+                $empty,
+            );
+            // Actual first-only emission also runs the same map score route.
+            let first = generated::$name::first::target();
+            let mut g = [41.; 2];
+            let full = generated::$name::target();
+            let mut expected = [41.; 2];
+            close(
+                first.logp_grad(&[-0.75, 0.5], &mut g).unwrap(),
+                full.logp_grad(&[-0.75, 0.5], &mut expected).unwrap(),
+                1e-12,
+            );
+            for (a, b) in g.into_iter().zip(expected) {
+                close(a, b, 1e-12);
+            }
+        };
+    }
+    case!(tensor_broadcast_tail, false);
+    case!(tensor_checkpoint_broadcast_tail, false);
+    case!(tensor_broadcast_empty, true);
+    case!(tensor_checkpoint_broadcast_empty, true);
 }

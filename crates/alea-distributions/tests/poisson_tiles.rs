@@ -1,11 +1,11 @@
 use alea_core::model::assembly::OperationDescriptor;
 use alea_core::{
-    model::assembly::{CompiledModel, ModelBuilder},
+    model::assembly::{ModelBuilder, NativeModel},
     target::LogDensityGradient,
 };
 use alea_distributions::modeling::regression::{RegressionData, poisson_log_regression};
 
-fn model(n: usize, p: usize, chunk: usize) -> alea_core::model::ComposedObjective<CompiledModel> {
+fn model(n: usize, p: usize, chunk: usize) -> alea_core::model::ComposedObjective<NativeModel> {
     let mut b = ModelBuilder::new();
     let beta: Vec<_> = (0..p)
         .map(|j| b.real(&format!("b{j}")).unwrap().expr())

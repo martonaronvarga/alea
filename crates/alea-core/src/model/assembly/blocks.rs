@@ -11,6 +11,7 @@ pub(super) struct Call {
 }
 
 pub(super) struct Work {
+    binding: BoundProgram,
     value: Vec<f64>,
     adjoint: Vec<f64>,
     arguments: Vec<f64>,
@@ -19,15 +20,16 @@ pub(super) struct Work {
 }
 
 impl Call {
-    pub fn workspace(&self, dynamic: &[bool]) -> Work {
-        let elements = self.binding.output_shape().elements();
-        let dimension = self.binding.dimension();
+    pub fn workspace(&self, dynamic: &[bool], binding: &BoundProgram) -> Work {
+        let elements = binding.output_shape().elements();
+        let dimension = binding.dimension();
         Work {
+            binding: binding.clone(),
             value: vec![0.; elements],
             adjoint: vec![0.; elements],
             arguments: vec![0.; dimension],
             scores: vec![0.; dimension],
-            tensor: self.binding.workspace_with_activity(
+            tensor: binding.workspace_with_activity(
                 &self
                     .inputs
                     .iter()
@@ -41,23 +43,26 @@ impl Call {
         &self,
         nodes: &[Op],
         values: &[f64],
-        blocks: &mut [Work],
+        blocks: &mut [Option<Work>],
     ) -> Result<Option<f64>, E> {
         let (previous, current) = blocks.split_at_mut(self.slot);
-        let work = &mut current[0];
+        let work = current[0].as_mut().expect("active region frame");
         let mut offset = 0;
         for &input in &self.inputs {
             let value = match &nodes[input] {
-                Op::Region(call) if !call.binding.output_shape().axes().is_empty() => {
-                    previous[call.slot].value.as_slice()
-                }
+                Op::Region(call) if !call.binding.output_shape().axes().is_empty() => previous
+                    [call.slot]
+                    .as_ref()
+                    .expect("active argument frame")
+                    .value
+                    .as_slice(),
                 _ => std::slice::from_ref(&values[input]),
             };
             let end = offset + value.len();
             work.arguments[offset..end].copy_from_slice(value);
             offset = end;
         }
-        self.binding
+        work.binding
             .evaluate(&work.arguments, &mut work.value, &mut work.tensor)?;
         work.adjoint.fill(0.);
         Ok(self
@@ -72,24 +77,27 @@ impl Call {
         &self,
         nodes: &[Op],
         adjoints: &mut [f64],
-        blocks: &mut [Work],
+        blocks: &mut [Option<Work>],
         node: usize,
     ) -> Result<(), E> {
         let (previous, current) = blocks.split_at_mut(self.slot);
-        let work = &mut current[0];
+        let work = current[0].as_mut().expect("active region frame");
         let seed = if self.binding.output_shape().axes().is_empty() {
             std::slice::from_ref(&adjoints[node])
         } else {
             &work.adjoint
         };
-        self.binding
+        work.binding
             .reverse_point(seed, &mut work.scores, &mut work.tensor)?;
         let mut offset = 0;
         for &input in &self.inputs {
             let destination = match &nodes[input] {
-                Op::Region(call) if !call.binding.output_shape().axes().is_empty() => {
-                    previous[call.slot].adjoint.as_mut_slice()
-                }
+                Op::Region(call) if !call.binding.output_shape().axes().is_empty() => previous
+                    [call.slot]
+                    .as_mut()
+                    .expect("active argument frame")
+                    .adjoint
+                    .as_mut_slice(),
                 _ => std::slice::from_mut(&mut adjoints[input]),
             };
             let end = offset + destination.len();
@@ -190,7 +198,7 @@ impl ModelBuilder {
     ) -> Result<Value, E>
     where
         D: Send + Sync + 'static,
-        W: Send + Sync + 'static,
+        W: Send + 'static,
     {
         self.region_operation(inputs, |region, arguments| {
             region.register_block(arguments, descriptor, rules)

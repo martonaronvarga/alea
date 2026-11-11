@@ -15,20 +15,22 @@ pub use normal::{NormalBatch, NormalBatchWorkspace, NormalFactor};
 fn error(e: impl std::error::Error + Send + Sync + 'static) -> E {
     E::Factor(Box::new(e))
 }
-// Common source bridge for built-in analytic primitives. Each emitted helper
-// owns a cache; native setup/heap storage stays outside the float-arena receipt.
-fn cached_primitive_source(native: &str, constructor: &str) -> String {
-    format!(
-        r#"type Native={native};
-::std::thread_local! {{static CACHE: ::std::cell::RefCell<Option<(Native,<Native as ::alea::model::assembly::OperationDescriptor>::Workspace)>> = const {{::std::cell::RefCell::new(None)}};}}
-fn prepare()->Result<Native,::alea::model::assembly::AssemblyError> {{{constructor}}}
-CACHE.try_with(|cache| {{
-    let Ok(mut cache)=cache.try_borrow_mut() else {{return f64::NAN}};
-    if cache.is_none() {{let Ok(kernel)=prepare() else {{return f64::NAN}};let workspace=kernel.workspace();*cache=Some((kernel,workspace));}}
-    let Some((kernel,workspace))=cache.as_mut() else {{return f64::NAN}};
-    kernel.evaluate(x,g,workspace).unwrap_or(f64::NAN)
-}}).unwrap_or(f64::NAN)"#
-    )
+// Typed source state is constructed once per generated target. Native setup and
+// heap storage stay outside the fixed float-arena receipt; no TLS workspace.
+fn owned_primitive_source(
+    native: &str,
+    constructor: &str,
+) -> alea_core::model::assembly::SourceGradient {
+    use alea_core::model::assembly::{SourceGradient, SourceState};
+    SourceGradient {
+        body: "let Some((kernel,workspace))=state.as_mut() else {return f64::NAN};kernel.evaluate(x,g,workspace).unwrap_or(f64::NAN)".into(),
+        state: Some(SourceState {
+            rust_type: format!("Option<({native},<{native} as ::alea::model::assembly::OperationDescriptor>::Workspace)>"),
+            initializer: format!(r#"type Native={native};
+                fn prepare()->Result<Native,::alea::model::assembly::AssemblyError> {{{constructor}}}
+                prepare().ok().map(|kernel| {{let workspace=kernel.workspace();(kernel,workspace)}})"#),
+        }),
+    }
 }
 /// A continuous scalar law as a model factor, including the event derivative.
 /// `construct` receives the parameter values in the order supplied by `parameters`.

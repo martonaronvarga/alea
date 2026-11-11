@@ -16,12 +16,12 @@ impl<F, H, D> alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>
 pub fn alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::new(dimension: usize, gradient: F, hvp: H, tensors: D) -> Self
 impl<F, H, D> alea_core::capability::PotentialHessianDerivative for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
 pub fn alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::potential_hessian_and_derivatives(&self, position: &[f64], hessian: &mut [f64], derivatives: &mut [f64]) -> core::result::Result<(), Self::Error>
-impl<F, H, D> alea_core::capability::PotentialHessianVector for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
+impl<F, H, D> alea_core::capability::PotentialHessianVector for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64])
 pub fn alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::potential_hvp(&self, position: &[f64], vector: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>
-impl<F, H, D> alea_core::target::LogDensityGradient for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
+impl<F, H, D> alea_core::target::LogDensityGradient for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64
 pub fn alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::is_numerical_error(&self, error: &Self::Error) -> bool
 pub fn alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
-impl<F, H, D> alea_core::target::TargetSpace for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])
+impl<F, H, D> alea_core::target::TargetSpace for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>
 pub type alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::Error = alea_autodiff::autodiff::AutodiffError
 pub fn alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>::dimension(&self) -> usize
 pub struct alea_autodiff::autodiff::EnzymeModel<F>
@@ -33,8 +33,9 @@ pub fn alea_autodiff::autodiff::EnzymeModel<F>::dimension(&self) -> usize
 pub fn alea_autodiff::autodiff::EnzymeModel<F>::is_numerical_error(&self, error: &Self::Error) -> bool
 pub fn alea_autodiff::autodiff::EnzymeModel<F>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, Self::Error>
 pub mod alea_autodiff::codegen
-pub fn alea_autodiff::codegen::enzyme_objective_source(model: &alea_core::model::assembly::CompiledModel) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
-pub fn alea_autodiff::codegen::enzyme_source(model: &alea_core::model::assembly::CompiledModel) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
+pub fn alea_autodiff::codegen::enzyme_objective_source(model: &alea_core::model::assembly::Executable) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
+pub fn alea_autodiff::codegen::enzyme_source(model: &alea_core::model::assembly::Executable) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
+pub fn alea_autodiff::codegen::source(model: &alea_core::model::assembly::Executable, request: alea_core::model::assembly::source::SourceRequest) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
 pub mod alea_autodiff::gradient_check
 pub enum alea_autodiff::gradient_check::GradientCheckError<E: core::error::Error + 'static>
 pub alea_autodiff::gradient_check::GradientCheckError::Displacement

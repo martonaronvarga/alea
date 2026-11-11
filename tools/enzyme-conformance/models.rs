@@ -1,11 +1,11 @@
 use alea::distributions::modeling::{bernoulli_logit, normal};
 use alea::model::assembly::{NativeRules, OperationDescriptor, SourceBody, SourceRule};
 use alea::{
-    model::assembly::{AssemblyError, CompiledModel, ModelBuilder},
+    model::assembly::{AssemblyError, ModelBuilder, NativeModel},
     transform::Transform,
 };
 
-pub fn polynomial() -> Result<CompiledModel, AssemblyError> {
+pub fn polynomial() -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let x = b.real("x")?.expr();
     let y = b.real("y")?.expr();
@@ -69,7 +69,7 @@ impl RouteTrusted {
     fn source_rule(&self) -> Option<fn(&Self) -> String> {
         Some(|_| "x[0]*x[1]".into())
     }
-    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
+    fn source_gradient_rule(&self) -> Option<fn(&Self) -> alea::model::assembly::SourceGradient> {
         Some(|_| "g[0]=if x[0]==2. {f64::NAN} else {x[1]};g[1]=x[0];x[0]*x[1]".into())
     }
 }
@@ -90,7 +90,7 @@ impl OperationDescriptor for RouteTrusted {
 pub fn route_isolation(
     companion: RouteCompanion,
     selected_a: bool,
-) -> Result<CompiledModel, AssemblyError> {
+) -> Result<NativeModel, AssemblyError> {
     use alea::model::tensor::*;
     let mut b = ModelBuilder::new();
     let x = b.real("x")?.expr();
@@ -137,7 +137,7 @@ pub fn route_isolation(
         let term = if matches!(companion, RouteCompanion::MissingPrimal) {
             b.custom(&[x, x], callback)?
         } else {
-            b.custom_with_primal(&[x, x], "x[0]*x[1]*x[0]", callback)?
+            b.custom_with_primal(&[x, x], r#"let receipt = "__WORKSPACE__ __PUBLIC_TARGET__ __TENSOR_SCORE_VALIDATION__ __VALIDATION__"; let _=receipt; x[0]*x[1]*x[0]"#, callback)?
         };
         b.prior("opaque B", term)?;
     }
@@ -149,7 +149,7 @@ pub fn route_isolation(
     }
 }
 
-pub fn tensor_score_admission() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_score_admission() -> Result<NativeModel, AssemblyError> {
     use alea::model::tensor::*;
     let branch = |singular: bool| -> Result<_, AssemblyError> {
         let mut t = ModelBuilder::new().region();
@@ -189,7 +189,7 @@ pub fn tensor_score_admission() -> Result<CompiledModel, AssemblyError> {
     b.compile()
 }
 
-pub fn regression() -> Result<CompiledModel, AssemblyError> {
+pub fn regression() -> Result<NativeModel, AssemblyError> {
     // Same graph/order as the explicit construction, now exercising the public
     // macro in an actual downstream build-script -> Enzyme compilation path.
     alea::model! { |b| parameters { mu: real(), sigma: positive() } {
@@ -209,7 +209,7 @@ pub fn regression() -> Result<CompiledModel, AssemblyError> {
     }}
 }
 
-pub fn likelihood_location_scale() -> Result<CompiledModel, AssemblyError> {
+pub fn likelihood_location_scale() -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let mu = b.real("mu")?.expr();
     let sigma = b.positive("sigma")?.expr();
@@ -246,7 +246,7 @@ pub fn uncertainty_data(x_scale: f64, y_scale: f64) -> (Vec<f64>, Vec<f64>, Vec<
     (design, response, offsets)
 }
 
-pub fn uncertainty_regression(x_scale: f64, y_scale: f64) -> Result<CompiledModel, AssemblyError> {
+pub fn uncertainty_regression(x_scale: f64, y_scale: f64) -> Result<NativeModel, AssemblyError> {
     let (design, response, offsets) = uncertainty_data(x_scale, y_scale);
     let mut b = ModelBuilder::new();
     let intercept = b.real("intercept")?.expr();
@@ -265,7 +265,7 @@ pub fn uncertainty_regression(x_scale: f64, y_scale: f64) -> Result<CompiledMode
     b.compile()?.select_likelihood()
 }
 
-pub fn logistic() -> Result<CompiledModel, AssemblyError> {
+pub fn logistic() -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let intercept = b.real("intercept")?.expr();
     let slope = b.real("slope")?.expr();
@@ -287,7 +287,7 @@ pub fn logistic() -> Result<CompiledModel, AssemblyError> {
     b.compile()
 }
 
-pub fn transformed(transform: Transform) -> Result<CompiledModel, AssemblyError> {
+pub fn transformed(transform: Transform) -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let names: Vec<_> = (0..transform.constrained_dimension())
         .map(|i| i.to_string())
@@ -309,7 +309,7 @@ pub fn transformed(transform: Transform) -> Result<CompiledModel, AssemblyError>
     b.compile()
 }
 
-fn statistical(posterior: bool) -> Result<CompiledModel, AssemblyError> {
+fn statistical(posterior: bool) -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let theta = b.positive("theta")?.expr();
     let event = b.constant(2.)?;
@@ -331,10 +331,10 @@ fn statistical(posterior: bool) -> Result<CompiledModel, AssemblyError> {
     }
 }
 
-pub fn native_batch(family: usize) -> Result<CompiledModel, AssemblyError> {
+pub fn native_batch(family: usize) -> Result<NativeModel, AssemblyError> {
     native_batch_rows(family, 3)
 }
-pub fn normal_vector(observed: bool) -> Result<CompiledModel, AssemblyError> {
+pub fn normal_vector(observed: bool) -> Result<NativeModel, AssemblyError> {
     use alea::distributions::modeling::NormalBatch;
     let mut b = ModelBuilder::new();
     let mu = b.real("mu")?.expr();
@@ -366,7 +366,7 @@ pub fn normal_vector(observed: bool) -> Result<CompiledModel, AssemblyError> {
     b.likelihood("data", term)?;
     b.compile()
 }
-pub fn native_batch_rows(family: usize, rows: usize) -> Result<CompiledModel, AssemblyError> {
+pub fn native_batch_rows(family: usize, rows: usize) -> Result<NativeModel, AssemblyError> {
     use alea::distributions::modeling::regression::*;
     let mut b = ModelBuilder::new();
     let a = b.real("a")?;
@@ -423,24 +423,32 @@ pub fn native_batch_rows(family: usize, rows: usize) -> Result<CompiledModel, As
     b.likelihood("data", term)?;
     b.compile()
 }
-pub fn tensor_matrix() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_matrix() -> Result<NativeModel, AssemblyError> {
     tensor_matrix_policy(false)
 }
-pub fn tensor_broadcast() -> Result<CompiledModel, AssemblyError> {
-    tensor_broadcast_policy(false)
+pub fn tensor_broadcast() -> Result<NativeModel, AssemblyError> {
+    tensor_broadcast_policy(false, 2)
 }
-pub fn tensor_checkpoint_broadcast() -> Result<CompiledModel, AssemblyError> {
-    tensor_broadcast_policy(true)
+pub fn tensor_checkpoint_broadcast() -> Result<NativeModel, AssemblyError> {
+    tensor_broadcast_policy(true, 2)
 }
-fn tensor_broadcast_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError> {
+fn tensor_broadcast_policy(checkpoint: bool, width: usize) -> Result<NativeModel, AssemblyError> {
     use alea::model::tensor::*;
     let mut t = ModelBuilder::new().region();
     let q = t.input("q", Shape::new(vec![2])?)?;
     // The left map has TWO contributing axes, while the right map repeats
     // entries of the same input. Keep the explicit gather as an irregular-map
     // control. Two identical outer-product batches give -0.5*(a*a+b*b)^2.
-    let column = t.gather(q, Shape::new(vec![2, 1, 2])?, vec![0, 1, 0, 1])?;
-    let row = t.reshape(q, Shape::new(vec![1, 2, 1])?)?;
+    let column = t.gather(
+        q,
+        Shape::new(vec![2, 1, width])?,
+        (0..2 * width).map(|i| i % 2).collect(),
+    )?;
+    let row = if width == 2 {
+        t.reshape(q, Shape::new(vec![1, 2, 1])?)?
+    } else {
+        t.gather(q, Shape::new(vec![1, 3, 1])?, vec![0, 1, 0])?
+    };
     let outer = t.binary(BinaryOp::Multiply, column, row)?;
     let square = t.binary(BinaryOp::Multiply, outer, outer)?;
     let sum = t.sum(square)?;
@@ -458,7 +466,7 @@ fn tensor_broadcast_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyEr
     b.potential("objective", term)?;
     b.compile()
 }
-pub fn tensor_checkpoint_matrix() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_checkpoint_matrix() -> Result<NativeModel, AssemblyError> {
     tensor_matrix_policy(true)
 }
 fn checkpoint_identity(
@@ -473,7 +481,7 @@ fn checkpoint_identity(
     let rows = t.constant(Shape::new(vec![0])?, vec![])?;
     t.checkpointed_scan(value, rows, &[], body)
 }
-fn tensor_matrix_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError> {
+fn tensor_matrix_policy(checkpoint: bool) -> Result<NativeModel, AssemblyError> {
     use alea::model::tensor::*;
     let mut t = ModelBuilder::new().region();
     let q = t.input("q", Shape::new(vec![2, 1])?)?;
@@ -497,28 +505,28 @@ fn tensor_matrix_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError
     b.potential("objective", term)?;
     b.compile()
 }
-pub fn tensor_control() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_control() -> Result<NativeModel, AssemblyError> {
     tensor_control_steps(3, false, false)
 }
-pub fn tensor_zero_scan() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_zero_scan() -> Result<NativeModel, AssemblyError> {
     tensor_control_steps(0, false, false)
 }
-pub fn tensor_checkpoint() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_checkpoint() -> Result<NativeModel, AssemblyError> {
     tensor_control_steps(3, true, false)
 }
-pub fn tensor_checkpoint_zero() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_checkpoint_zero() -> Result<NativeModel, AssemblyError> {
     tensor_control_steps(0, true, false)
 }
-pub fn tensor_checkpoint_long() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_checkpoint_long() -> Result<NativeModel, AssemblyError> {
     tensor_control_steps(257, true, false)
 }
-pub fn tensor_retained_long() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_retained_long() -> Result<NativeModel, AssemblyError> {
     tensor_control_steps(257, false, false)
 }
-pub fn tensor_checkpoint_mixed() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_checkpoint_mixed() -> Result<NativeModel, AssemblyError> {
     tensor_control_steps(3, true, true)
 }
-pub fn tensor_checkpoint_activity() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_checkpoint_activity() -> Result<NativeModel, AssemblyError> {
     use alea::model::tensor::*;
     let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", Shape::scalar())?;
@@ -539,13 +547,13 @@ pub fn tensor_checkpoint_activity() -> Result<CompiledModel, AssemblyError> {
     b.potential("objective", term)?;
     b.compile()
 }
-pub fn tensor_checkpoint_immutable() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_checkpoint_immutable() -> Result<NativeModel, AssemblyError> {
     tensor_checkpoint_immutable_policy(true)
 }
-pub fn tensor_checkpoint_constant() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_checkpoint_constant() -> Result<NativeModel, AssemblyError> {
     tensor_checkpoint_immutable_policy(false)
 }
-fn tensor_checkpoint_immutable_policy(variable: bool) -> Result<CompiledModel, AssemblyError> {
+fn tensor_checkpoint_immutable_policy(variable: bool) -> Result<NativeModel, AssemblyError> {
     use alea::model::tensor::*;
     let mut t = ModelBuilder::new().region();
     let gain = t.input("gain", Shape::scalar())?;
@@ -569,7 +577,7 @@ fn tensor_checkpoint_immutable_policy(variable: bool) -> Result<CompiledModel, A
     b.potential("objective", term)?;
     b.compile()
 }
-pub fn tensor_checkpoint_vector() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_checkpoint_vector() -> Result<NativeModel, AssemblyError> {
     use alea::model::tensor::*;
     let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", Shape::new(vec![2])?)?;
@@ -596,7 +604,7 @@ pub fn tensor_checkpoint_vector() -> Result<CompiledModel, AssemblyError> {
     b.potential("objective", term)?;
     b.compile()
 }
-pub fn tensor_checkpoint_routes() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_checkpoint_routes() -> Result<NativeModel, AssemblyError> {
     use alea::model::tensor::*;
     let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", Shape::scalar())?;
@@ -629,7 +637,7 @@ fn tensor_control_steps(
     steps: usize,
     checkpoint: bool,
     mixed: bool,
-) -> Result<CompiledModel, AssemblyError> {
+) -> Result<NativeModel, AssemblyError> {
     use alea::model::tensor::*;
     let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", Shape::scalar())?;
@@ -690,13 +698,13 @@ fn tensor_control_steps(
     b.compile()
 }
 
-pub fn tensor_empty() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_empty() -> Result<NativeModel, AssemblyError> {
     tensor_empty_policy(false)
 }
-pub fn tensor_checkpoint_empty() -> Result<CompiledModel, AssemblyError> {
+pub fn tensor_checkpoint_empty() -> Result<NativeModel, AssemblyError> {
     tensor_empty_policy(true)
 }
-fn tensor_empty_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError> {
+fn tensor_empty_policy(checkpoint: bool) -> Result<NativeModel, AssemblyError> {
     use alea::model::tensor::{Comparison, Shape, UnaryOp};
     let branch = |log: bool| -> Result<_, AssemblyError> {
         let mut b = ModelBuilder::new().region();
@@ -729,7 +737,7 @@ fn tensor_empty_policy(checkpoint: bool) -> Result<CompiledModel, AssemblyError>
     b.potential("objective", term)?;
     b.compile()
 }
-pub fn all() -> Result<Vec<(&'static str, CompiledModel)>, AssemblyError> {
+pub fn all() -> Result<Vec<(&'static str, NativeModel)>, AssemblyError> {
     let mut models = vec![
         ("polynomial", polynomial()?),
         ("route_alone", route_isolation(RouteCompanion::None, false)?),
@@ -779,6 +787,16 @@ pub fn all() -> Result<Vec<(&'static str, CompiledModel)>, AssemblyError> {
         (
             "tensor_checkpoint_broadcast",
             tensor_checkpoint_broadcast()?,
+        ),
+        ("tensor_broadcast_tail", tensor_broadcast_policy(false, 3)?),
+        (
+            "tensor_checkpoint_broadcast_tail",
+            tensor_broadcast_policy(true, 3)?,
+        ),
+        ("tensor_broadcast_empty", tensor_broadcast_policy(false, 0)?),
+        (
+            "tensor_checkpoint_broadcast_empty",
+            tensor_broadcast_policy(true, 0)?,
         ),
         ("tensor_checkpoint_matrix", tensor_checkpoint_matrix()?),
         ("tensor_control", tensor_control()?),

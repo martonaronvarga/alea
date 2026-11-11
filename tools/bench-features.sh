@@ -3,6 +3,7 @@ set -euo pipefail
 
 # Criterion owns samples and baseline comparisons. Build every cell before any
 # timings; separate target directories prevent feature rebuilds between runs.
+# A single tee writer owns each shared-filesystem log; pipefail retains failures.
 manifest=crates/Cargo.toml
 output=target/criterion_features
 no_run=false
@@ -67,7 +68,7 @@ for i in "${!feature_sets[@]}"; do
   [[ -z $features ]] || extra=(--features "$features")
   if CARGO_TARGET_DIR="$cell/build" cargo bench --manifest-path "$manifest" --locked \
        "${packages[@]}" "${benches[@]}" --no-default-features "${extra[@]}" --no-run \
-       > "$cell/build.log" 2>&1; then
+       2>&1 | tee "$cell/build.log" > /dev/null; then
     succeeded+=("$i")
   else
     printf 'build failed: cell-%s (%s); see %s/build.log\n' "$i" "$features" "$cell" >&2
@@ -85,7 +86,7 @@ for i in "${succeeded[@]}"; do
   $smoke && args+=(--test)
   if ! CARGO_TARGET_DIR="$cell/build" CRITERION_HOME="$cell/criterion" \
        "${run_prefix[@]}" cargo bench --manifest-path "$manifest" --locked "${packages[@]}" "${benches[@]}" \
-       --no-default-features "${extra[@]}" -- "${args[@]}" > "$cell/run.log" 2>&1; then
+       --no-default-features "${extra[@]}" -- "${args[@]}" 2>&1 | tee "$cell/run.log" > /dev/null; then
     touch "$cell/RUN_FAILED"
     failed=1
   fi

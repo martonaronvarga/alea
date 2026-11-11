@@ -33,10 +33,14 @@ pub use primitives::{
     ArgumentShape, BatchEvaluator, BatchRule, GraphNode, NativeEvaluator, NativeRules,
     OperationDescriptor, OperationKind, PreparedEvaluator, PrimitiveArgument, PrimitiveMetadata,
     PrimitiveSignature, ProbabilitySemantics, ScalarPreparation, SourceBody, SourceCapabilities,
-    SourceRule,
+    SourceGradient, SourceRule, SourceState,
 };
-pub use rebinding::RebindError;
+
 pub use scope::ModelScope;
+pub use source::{
+    CurvatureRoute, DerivativeOrder, FirstOrderSource, FloatWorkspace, SourceMode, SourceProgram,
+    SourceRequest,
+};
 
 static NEXT_VALUE_OWNER: AtomicU64 = AtomicU64::new(1);
 
@@ -190,6 +194,10 @@ pub enum AssemblyError {
     Empty,
     #[error("model workspace is already in use")]
     WorkspaceBusy,
+    #[error("evaluation context belongs to another executable")]
+    ContextMismatch,
+    #[error("prepared evaluation is stale, consumed or belongs to another context")]
+    StaleEvaluation,
     #[error("non-finite model expression or derivative")]
     Numerical,
     #[error("opaque model factor failed: {0}")]
@@ -197,14 +205,16 @@ pub enum AssemblyError {
     /// A custom node has no Rust primal available for ahead-of-time compilation.
     #[error("model node {node} has no Rust primal for source generation")]
     MissingPrimal { node: usize },
+    /// The requested derivative order has no explicitly selected source route.
+    #[error("source derivative order {order:?} requires a qualified curvature route")]
+    UnqualifiedDerivative { order: DerivativeOrder },
     /// A likelihood root has no explicitly supplied pointwise rule.
     #[error("model node {node} has no batch pointwise lowering")]
     MissingPointwise { node: usize },
     #[error(transparent)]
     Transform(#[from] TransformError),
 }
-type Callback =
-    dyn FnMut(&[f64], &mut [f64], Option<f64>) -> Result<f64, AssemblyError> + Send + Sync;
+type Callback = dyn FnMut(&[f64], &mut [f64], Option<f64>) -> Result<f64, AssemblyError> + Send;
 enum Op {
     Parameter(usize),
     Constant(f64),
@@ -231,11 +241,11 @@ pub struct ModelBuilder {
     factor_metadata: Vec<FactorMetadata>,
     local_count: usize,
     max_inputs: usize,
-    callbacks: Vec<Box<Callback>>,
+    callbacks: Vec<Arc<CallbackFactory>>,
     // Cold metadata stays out of the retained operation-tape stride.
     primals: Vec<(usize, &'static str)>,
-    generated_primals: Vec<(usize, Box<SourceCallback>)>,
-    batch_rules: Vec<(usize, usize, Box<BatchCallback>)>,
+    generated_primals: Vec<(usize, Arc<SourceCallback>)>,
+    batch_rules: Vec<(usize, usize, Arc<BatchFactory>)>,
     // Semantic descriptors are cold; never increase the hot Op stride.
     primitives: Vec<(usize, PrimitiveMetadata)>,
     namespace: String,
@@ -504,8 +514,8 @@ impl ModelBuilder {
     }
     /// Adds a scalar node with an explicit VJP and owned reusable scratch.
     ///
-    /// Scratch moves into the compiled evaluator and is borrowed exclusively for
-    /// each call. It is not shared between models. The callback must initialize
+    /// The factory creates fresh scratch for each evaluation context. Scratch is
+    /// borrowed exclusively for each call and is never shared between contexts. The callback must initialize
     /// all scratch it reads and overwrite every local derivative, including after
     /// failures or unwinding; scratch is not rolled back. Results must depend only
     /// on the inputs and immutable model data, never previous scratch contents.
@@ -516,14 +526,20 @@ impl ModelBuilder {
     pub fn custom_with_scratch<W, F>(
         &mut self,
         inputs: &[Value],
-        mut scratch: W,
+        workspace: impl Fn() -> W + Send + Sync + 'static,
         callback: F,
     ) -> Result<Value, AssemblyError>
     where
-        W: Send + Sync + 'static,
+        W: Send + 'static,
         F: Fn(&[f64], &mut [f64], &mut W) -> Result<f64, AssemblyError> + Send + Sync + 'static,
     {
-        self.custom_node(inputs, move |x, g| callback(x, g, &mut scratch), None)
+        let callback = Arc::new(callback);
+        let factory: Arc<CallbackFactory> = Arc::new(move || {
+            let mut scratch = workspace();
+            let callback = Arc::clone(&callback);
+            Box::new(move |x, g, _| callback(x, g, &mut scratch))
+        });
+        self.custom_erased_node(inputs, factory, None)
     }
     /// Adds an opaque VJP together with its differentiable Rust scalar primal.
     ///
@@ -550,32 +566,23 @@ impl ModelBuilder {
     fn custom_node<F>(
         &mut self,
         inputs: &[Value],
-        mut callback: F,
-        primal: Option<&'static str>,
-    ) -> Result<Value, AssemblyError>
-    where
-        F: FnMut(&[f64], &mut [f64]) -> Result<f64, AssemblyError> + Send + Sync + 'static,
-    {
-        self.custom_prepared_node(inputs, move |x, g, _| callback(x, g), primal)
-    }
-    fn custom_prepared_node<F>(
-        &mut self,
-        inputs: &[Value],
         callback: F,
         primal: Option<&'static str>,
     ) -> Result<Value, AssemblyError>
     where
-        F: FnMut(&[f64], &mut [f64], Option<f64>) -> Result<f64, AssemblyError>
-            + Send
-            + Sync
-            + 'static,
+        F: Fn(&[f64], &mut [f64]) -> Result<f64, AssemblyError> + Send + Sync + 'static,
     {
-        self.custom_erased_node(inputs, Box::new(callback), primal)
+        let callback = Arc::new(callback);
+        let factory: Arc<CallbackFactory> = Arc::new(move || {
+            let callback = Arc::clone(&callback);
+            Box::new(move |x, g, _| callback(x, g))
+        });
+        self.custom_erased_node(inputs, factory, primal)
     }
     fn custom_erased_node(
         &mut self,
         inputs: &[Value],
-        callback: Box<Callback>,
+        callback: Arc<CallbackFactory>,
         primal: Option<&'static str>,
     ) -> Result<Value, AssemblyError> {
         let inputs = inputs
@@ -637,7 +644,7 @@ impl ModelBuilder {
     /// Consumes construction and lowers one immutable constrained model.
     /// # Errors
     /// Rejects an empty parameter/factor plan or an invalid transform layout.
-    pub fn compile(self) -> Result<CompiledModel, AssemblyError> {
+    pub fn compile(self) -> Result<NativeModel, AssemblyError> {
         #[cfg(feature = "tracing")]
         let _span = tracing::debug_span!(target: "alea::model", "compile", expressions = self.nodes.len(), factors = self.factors.len()).entered();
         #[cfg(feature = "tracing")]
@@ -654,52 +661,392 @@ impl ModelBuilder {
         }
         outcome
     }
-    fn compile_inner(self) -> Result<CompiledModel, AssemblyError> {
+    fn compile_inner(self) -> Result<NativeModel, AssemblyError> {
+        let definition = self.finish()?;
+        Ok(definition.bind().compile()?.into_native_model())
+    }
+
+    /// Freezes the authoring graph and binding schema. No execution scratch is
+    /// retained in the definition; ordinary `compile` also constructs an owned
+    /// evaluator for the simple path.
+    /// # Errors
+    /// Rejects an empty graph or invalid parameter layout.
+    pub fn finish(self) -> Result<Arc<ModelDefinition>, AssemblyError> {
         if self.transforms.is_empty() || self.factors.is_empty() {
             return Err(AssemblyError::Empty);
         }
         let layout = ParameterLayout::new(self.transforms)?;
-        let (reverse, dynamic) = reverse::Plan::new(&self.nodes);
-        let preparation = prepare::Plan::new(&self.nodes, &self.primitives, self.callbacks.len());
-        let blocks = self
+        let regions = self
             .nodes
             .iter()
             .filter_map(|node| match node {
-                Op::Region(call) => Some(call.workspace(&dynamic)),
+                Op::Region(call) => Some(call.binding.clone()),
                 _ => None,
             })
             .collect();
-        let workspace = RefCell::new(PlanWorkspace {
-            blocks,
+        let defaults = BindingContents {
             callbacks: self.callbacks,
             batch_rules: self.batch_rules,
-            values: vec![0.0; self.nodes.len()],
-            adjoints: vec![0.0; self.nodes.len()],
-            locals: vec![0.0; self.local_count],
-            inputs: vec![0.0; self.max_inputs],
-            gradient: vec![0.0; layout.constrained_dimension()],
-            preparation,
-        });
-        Ok(CompiledModel {
-            owner: self.owner,
-            nodes: self.nodes,
-            reverse,
-            factors: self.factors,
-            factor_metadata: self.factor_metadata,
-            active_nodes: None,
-            active_factors: None,
-            selection: factors::Selection::All,
-            coordinates: self.coordinates.into(),
-            layout,
-            workspace,
             primals: self.primals,
             generated_primals: self.generated_primals,
             primitives: self.primitives,
+            regions,
+        };
+        Ok(Arc::new(ModelDefinition {
+            owner: self.owner,
+            nodes: self.nodes,
+            factors: self.factors,
+            factor_metadata: self.factor_metadata,
+            coordinates: self.coordinates.into(),
+            layout,
+            local_count: self.local_count,
+            max_inputs: self.max_inputs,
+            defaults,
+        }))
+    }
+}
+
+/// Immutable graph, parameter charts, schema and default captured data.
+/// Bindings share this one topology; they never own a second authoring graph.
+pub struct ModelDefinition {
+    owner: u64,
+    nodes: Vec<Op>,
+    factors: Vec<usize>,
+    factor_metadata: Vec<FactorMetadata>,
+    coordinates: Arc<[Coordinate]>,
+    layout: ParameterLayout,
+    local_count: usize,
+    max_inputs: usize,
+    defaults: BindingContents,
+}
+
+#[derive(Clone)]
+struct BindingContents {
+    callbacks: Vec<Arc<CallbackFactory>>,
+    batch_rules: Vec<(usize, usize, Arc<BatchFactory>)>,
+    primals: Vec<(usize, &'static str)>,
+    generated_primals: Vec<(usize, Arc<SourceCallback>)>,
+    primitives: Vec<(usize, PrimitiveMetadata)>,
+    regions: Vec<crate::model::tensor::BoundProgram>,
+}
+
+/// An immutable, validated captured-data snapshot, with non-recycled identity.
+/// Native evaluation and frozen source export resolve the same registered rules.
+#[derive(Clone)]
+pub struct DataBinding {
+    definition: Arc<ModelDefinition>,
+    identity: u64,
+    callbacks: Vec<Arc<CallbackFactory>>,
+    batch_rules: Vec<(usize, usize, Arc<BatchFactory>)>,
+    primals: Vec<(usize, &'static str)>,
+    generated_primals: Vec<(usize, Arc<SourceCallback>)>,
+    primitives: Vec<(usize, PrimitiveMetadata)>,
+    regions: Vec<crate::model::tensor::BoundProgram>,
+}
+impl std::ops::Deref for DataBinding {
+    type Target = ModelDefinition;
+    fn deref(&self) -> &Self::Target {
+        &self.definition
+    }
+}
+impl ModelDefinition {
+    /// Creates a fresh snapshot identity even when captured values are identical.
+    pub fn bind(self: &Arc<Self>) -> DataBinding {
+        let BindingContents {
+            callbacks,
+            batch_rules,
+            primals,
+            generated_primals,
+            primitives,
+            regions,
+        } = self.defaults.clone();
+        DataBinding {
+            definition: Arc::clone(self),
+            identity: next_value_owner(),
+            callbacks,
+            batch_rules,
+            primals,
+            generated_primals,
+            primitives,
+            regions,
+        }
+    }
+    /// Compiles an immutable snapshot. Binding-dependent plans are rebuilt;
+    /// parameter-dependent preparations belong exclusively to each context.
+    /// # Errors
+    /// Rejects a binding belonging to another definition.
+    pub fn compile(&self, binding: &DataBinding) -> Result<Executable, AssemblyError> {
+        if self.owner != binding.definition.owner {
+            return Err(AssemblyError::ForeignHandle);
+        }
+        let (reverse, dynamic) = reverse::Plan::new(&self.nodes);
+        Ok(Executable {
+            binding: binding.clone(),
+            reverse,
+            dynamic,
+            identity: next_value_owner(),
+            active_nodes: None,
+            active_factors: None,
+            selection: factors::Selection::All,
         })
     }
 }
+impl DataBinding {
+    pub fn identity(&self) -> u64 {
+        self.identity
+    }
+    pub fn definition(&self) -> &Arc<ModelDefinition> {
+        &self.definition
+    }
+    /// Compiles this immutable snapshot without consuming it.
+    /// # Errors
+    /// Preserves definition/schema validation errors.
+    pub fn compile(&self) -> Result<Executable, AssemblyError> {
+        self.definition.compile(self)
+    }
+}
+
+/// Immutable bound executable. Share this object, never mutable execution state.
+#[derive(Clone)]
+pub struct Executable {
+    binding: DataBinding,
+    identity: u64,
+    reverse: reverse::Plan,
+    dynamic: Vec<bool>,
+    active_nodes: Option<Vec<bool>>,
+    active_factors: Option<Vec<usize>>,
+    selection: factors::Selection,
+}
+impl std::ops::Deref for Executable {
+    type Target = DataBinding;
+    fn deref(&self) -> &Self::Target {
+        &self.binding
+    }
+}
+
+/// Exclusive evaluation scratch. It has no Sync bound and cannot be used with
+/// another executable, even when the graph, binding or shapes happen to match.
+pub struct EvaluationContext {
+    executable: u64,
+    identity: u64,
+    epoch: u64,
+    ready: Option<u64>,
+    work: PlanWorkspace,
+}
+
+/// One-use publication token for an admitted native value/gradient evaluation.
+/// It does not expose residual arrays or grant higher derivative capabilities.
+pub struct PreparedEvaluation {
+    executable: u64,
+    context: u64,
+    epoch: u64,
+    value: f64,
+}
+
+/// Owned constrained evaluator. Interior mutability is local to this adapter;
+/// the shared executable and all registered descriptor captures are immutable.
+#[must_use]
+pub struct NativeModel {
+    executable: Arc<Executable>,
+    workspace: RefCell<EvaluationContext>,
+}
+impl std::ops::Deref for NativeModel {
+    type Target = Executable;
+    fn deref(&self) -> &Self::Target {
+        &self.executable
+    }
+}
+impl Executable {
+    pub fn identity(&self) -> u64 {
+        self.identity
+    }
+    pub fn binding(&self) -> &DataBinding {
+        &self.binding
+    }
+    /// Allocates one independent context and fresh operation/reporting workspaces.
+    pub fn context(&self) -> EvaluationContext {
+        let mut blocks = Vec::new();
+        for (index, node) in self.nodes.iter().enumerate() {
+            if let Op::Region(call) = node {
+                blocks.push(
+                    self.active_nodes
+                        .as_ref()
+                        .is_none_or(|a| a[index])
+                        .then(|| call.workspace(&self.dynamic, &self.binding.regions[call.slot])),
+                );
+            }
+        }
+        let mut active_callbacks = vec![true; self.callbacks.len()];
+        if let Some(active) = &self.active_nodes {
+            for (index, node) in self.nodes.iter().enumerate() {
+                if let Op::Factor { callback, .. } = node {
+                    active_callbacks[*callback] = active[index];
+                }
+            }
+        }
+        EvaluationContext {
+            executable: self.identity,
+            identity: next_value_owner(),
+            epoch: 0,
+            ready: None,
+            work: PlanWorkspace {
+                blocks,
+                callbacks: self
+                    .callbacks
+                    .iter()
+                    .enumerate()
+                    .map(|(i, make)| {
+                        if active_callbacks[i] {
+                            make()
+                        } else {
+                            Box::new(|_: &[f64], _: &mut [f64], _: Option<f64>| {
+                                Err(AssemblyError::Empty)
+                            }) as Box<Callback>
+                        }
+                    })
+                    .collect(),
+                batch_rules: self
+                    .batch_rules
+                    .iter()
+                    .map(|(node, units, make)| {
+                        (
+                            *node,
+                            *units,
+                            if self.active_nodes.as_ref().is_none_or(|a| a[*node]) {
+                                make()
+                            } else {
+                                Box::new(|_: &[f64], _: &mut [f64]| Err(AssemblyError::Empty))
+                                    as Box<BatchCallback>
+                            },
+                        )
+                    })
+                    .collect(),
+                values: vec![0.; self.nodes.len()],
+                adjoints: vec![0.; self.nodes.len()],
+                locals: vec![0.; self.local_count],
+                inputs: vec![0.; self.max_inputs],
+                gradient: vec![0.; self.layout.constrained_dimension()],
+                preparation: prepare::Plan::new(
+                    &self.nodes,
+                    &self.primitives,
+                    self.callbacks.len(),
+                ),
+            },
+        }
+    }
+    pub fn into_native_model(self) -> NativeModel {
+        Arc::new(self).native_model()
+    }
+    /// Constructs an independent owned evaluator while sharing this immutable
+    /// executable. Each worker owns its mutable context, with no Sync requirement.
+    pub fn native_model(self: &Arc<Self>) -> NativeModel {
+        NativeModel {
+            executable: Arc::clone(self),
+            workspace: RefCell::new(self.context()),
+        }
+    }
+    /// Constructs a per-chain owned sampler target from a shared executable.
+    /// # Errors
+    /// Rejects a model/layout dimension mismatch.
+    pub fn target(
+        self: &Arc<Self>,
+    ) -> Result<TransformedTarget<NativeModel>, super::ModelError<AssemblyError>> {
+        self.native_model().into_target()
+    }
+    /// Constructs the ordinary owned sampling adapter, with one chart boundary.
+    /// # Errors
+    /// Rejects a model/layout dimension mismatch.
+    pub fn into_target(
+        self,
+    ) -> Result<TransformedTarget<NativeModel>, super::ModelError<AssemblyError>> {
+        self.into_native_model().into_target()
+    }
+    fn check_context(&self, context: &EvaluationContext) -> Result<(), AssemblyError> {
+        if context.executable != self.identity {
+            return Err(AssemblyError::ContextMismatch);
+        }
+        Ok(())
+    }
+    /// Computes and admits the complete constrained value and first-order score
+    /// in exclusive scratch. Any failure or unwind invalidates prior publication.
+    /// # Errors
+    /// Preserves shape/native errors and rejects a foreign context or exhausted epoch.
+    pub fn prepare(
+        &self,
+        context: &mut EvaluationContext,
+        q: &[f64],
+    ) -> Result<PreparedEvaluation, AssemblyError> {
+        self.check_context(context)?;
+        context.ready = None;
+        context.epoch = context.epoch.checked_add(1).ok_or(AssemblyError::Empty)?;
+        let value = if self.active_nodes.is_some() {
+            self.evaluate_selected::<true>(q, &mut context.work)?
+        } else {
+            self.evaluate_selected::<false>(q, &mut context.work)?
+        };
+        context.ready = Some(context.epoch);
+        Ok(PreparedEvaluation {
+            executable: self.identity,
+            context: context.identity,
+            epoch: context.epoch,
+            value,
+        })
+    }
+    /// Publishes an admitted score once. Failed publication leaves caller output
+    /// untouched. A matching publication attempt consumes its token; a foreign
+    /// token does not invalidate another context's valid preparation.
+    /// # Errors
+    /// Rejects a foreign context, stale token or wrong output shape.
+    pub fn publish(
+        &self,
+        context: &mut EvaluationContext,
+        token: &PreparedEvaluation,
+        g: &mut [f64],
+    ) -> Result<f64, AssemblyError> {
+        self.check_context(context)?;
+        let ready = context.ready;
+        if token.executable != self.identity
+            || token.context != context.identity
+            || ready != Some(token.epoch)
+        {
+            return Err(AssemblyError::StaleEvaluation);
+        }
+        context.ready = None;
+        if g.len() != self.layout.constrained_dimension() {
+            return Err(AssemblyError::Shape);
+        }
+        g.copy_from_slice(&context.work.gradient);
+        Ok(token.value)
+    }
+    /// Fused constrained evaluation with transactional output publication.
+    /// # Errors
+    /// Preserves native numerical/structural errors and context identity failures.
+    pub fn evaluate(
+        &self,
+        context: &mut EvaluationContext,
+        q: &[f64],
+        g: &mut [f64],
+    ) -> Result<f64, AssemblyError> {
+        self.check_context(context)?;
+        context.ready = None;
+        if g.len() != self.layout.constrained_dimension() {
+            return Err(AssemblyError::Shape);
+        }
+        let token = self.prepare(context, q)?;
+        self.publish(context, &token, g)
+    }
+}
+impl NativeModel {
+    pub fn executable(&self) -> &Executable {
+        &self.executable
+    }
+    pub fn into_executable(self) -> Executable {
+        Arc::try_unwrap(self.executable).unwrap_or_else(|shared| (*shared).clone())
+    }
+}
+
 struct PlanWorkspace {
-    blocks: Vec<blocks::Work>,
+    blocks: Vec<Option<blocks::Work>>,
     callbacks: Vec<Box<Callback>>,
     batch_rules: Vec<(usize, usize, Box<BatchCallback>)>,
     values: Vec<f64>,
@@ -709,27 +1056,12 @@ struct PlanWorkspace {
     gradient: Vec<f64>,
     preparation: Option<Box<prepare::Plan>>,
 }
-/// Fixed analytic reverse plan with chain-local scratch and named layout metadata.
-#[must_use = "a compiled model must be evaluated or lowered to a target"]
-pub struct CompiledModel {
-    owner: u64,
-    nodes: Vec<Op>,
-    reverse: reverse::Plan,
-    active_nodes: Option<Vec<bool>>,
-    active_factors: Option<Vec<usize>>,
-    selection: factors::Selection,
-    factors: Vec<usize>,
-    factor_metadata: Vec<FactorMetadata>,
-    coordinates: Arc<[Coordinate]>,
-    layout: ParameterLayout,
-    workspace: RefCell<PlanWorkspace>,
-    primals: Vec<(usize, &'static str)>,
-    generated_primals: Vec<(usize, Box<SourceCallback>)>,
-    primitives: Vec<(usize, PrimitiveMetadata)>,
-}
-type BatchCallback = dyn FnMut(&[f64], &mut [f64]) -> Result<(), AssemblyError> + Send + Sync;
+type BatchCallback = dyn FnMut(&[f64], &mut [f64]) -> Result<(), AssemblyError> + Send;
+type CallbackFactory = dyn Fn() -> Box<Callback> + Send + Sync;
+type BatchFactory = dyn Fn() -> Box<BatchCallback> + Send + Sync;
 type SourceCallback = dyn Fn() -> String + Send + Sync;
-impl CompiledModel {
+type SourceGradientCallback = dyn Fn() -> SourceGradient + Send + Sync;
+impl Executable {
     /// Number of scalar expressions, including opaque batch nodes.
     /// Captured dataset bytes are not counted as expressions.
     pub fn expression_count(&self) -> usize {
@@ -741,6 +1073,8 @@ impl CompiledModel {
     pub fn layout(&self) -> &ParameterLayout {
         &self.layout
     }
+}
+impl NativeModel {
     /// Composes the active factor sum with its parameter charts without density
     /// Jacobians. This does not change the statistical selection: use
     /// `select_likelihood`, `select_prior` or `select_posterior` explicitly when
@@ -790,7 +1124,7 @@ impl CompiledModel {
         TransformedTarget::new(self, layout)
     }
 }
-impl ConstrainedModel for CompiledModel {
+impl ConstrainedModel for NativeModel {
     type Error = AssemblyError;
     fn is_numerical_error(&self, error: &Self::Error) -> bool {
         match error {
@@ -806,30 +1140,26 @@ impl ConstrainedModel for CompiledModel {
         self.layout.constrained_dimension()
     }
     fn logp_grad(&self, q: &[f64], g: &mut [f64]) -> Result<f64, AssemblyError> {
-        if self.active_nodes.is_some() {
-            self.evaluate_selected::<true>(q, g)
-        } else {
-            self.evaluate_selected::<false>(q, g)
-        }
+        let mut context = self
+            .workspace
+            .try_borrow_mut()
+            .map_err(|_| AssemblyError::WorkspaceBusy)?;
+        self.executable.evaluate(&mut context, q, g)
     }
 }
-impl CompiledModel {
+impl Executable {
     fn evaluate_selected<const FILTERED: bool>(
         &self,
         q: &[f64],
-        g: &mut [f64],
+        work: &mut PlanWorkspace,
     ) -> Result<f64, AssemblyError> {
-        if q.len() != self.dimension() || g.len() != q.len() {
+        if q.len() != self.layout.constrained_dimension() {
             return Err(AssemblyError::Shape);
         }
         if q.iter().any(|x| !x.is_finite()) {
             return Err(AssemblyError::Numerical);
         }
-        let mut work = self
-            .workspace
-            .try_borrow_mut()
-            .map_err(|_| AssemblyError::WorkspaceBusy)?;
-        self.forward::<FILTERED>(q, &mut work)?;
+        self.forward::<FILTERED>(q, work)?;
         let PlanWorkspace {
             values,
             adjoints,
@@ -837,13 +1167,13 @@ impl CompiledModel {
             gradient,
             blocks,
             ..
-        } = &mut *work;
-        adjoints.fill(0.0);
-        gradient.fill(0.0);
+        } = work;
+        adjoints.fill(0.);
+        gradient.fill(0.);
         let mut total = CompensatedSum::default();
         for i in self.retained_factors() {
             total.add(values[*i]);
-            adjoints[*i] += 1.0;
+            adjoints[*i] += 1.;
         }
         self.reverse.apply::<FILTERED>(
             values,
@@ -859,12 +1189,12 @@ impl CompiledModel {
             },
         )?;
         let total = total.total();
-        if !total.is_finite() || gradient.iter().any(|x| !x.is_finite()) {
+        if !total.is_finite() || gradient.iter().any(|v| !v.is_finite()) {
             return Err(AssemblyError::Numerical);
         }
-        g.copy_from_slice(gradient);
         Ok(total)
     }
+
     // Shared forward tape. Pointwise reporting skips reverse propagation but
     // retains the existing callback value/VJP admission contract.
     fn forward<const FILTERED: bool>(
@@ -943,5 +1273,69 @@ impl CompiledModel {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod ownership_tests {
+    use super::*;
+    #[test]
+    fn exhausted_epoch_invalidates_preparation_and_owned_adapter_reentrancy_is_typed() {
+        let mut b = ModelBuilder::new();
+        let x = b.real("x").unwrap().expr();
+        b.factor(x).unwrap();
+        let model = b.compile().unwrap();
+        let locked = model.workspace.borrow_mut();
+        let mut g = [19.];
+        assert!(matches!(
+            model.logp_grad(&[2.], &mut g),
+            Err(AssemblyError::WorkspaceBusy)
+        ));
+        assert_eq!(g, [19.]);
+        drop(locked);
+        assert_eq!(model.logp_grad(&[2.], &mut g).unwrap(), 2.);
+        assert_eq!(g, [1.]);
+        let mut context = model.context();
+        let old = model.prepare(&mut context, &[2.]).unwrap();
+        context.epoch = u64::MAX;
+        assert!(matches!(
+            model.prepare(&mut context, &[2.]),
+            Err(AssemblyError::Empty)
+        ));
+        assert!(context.ready.is_none());
+        assert!(model.publish(&mut context, &old, &mut g).is_err());
+        assert!(!model.is_numerical_error(&AssemblyError::ContextMismatch));
+        assert!(!model.is_numerical_error(&AssemblyError::StaleEvaluation));
+    }
+    #[test]
+    fn selected_executable_never_allocates_excluded_operation_workspace() {
+        let mut b = ModelBuilder::new();
+        let x = b.real("x").unwrap().expr();
+        let bad = b
+            .custom_with_scratch(
+                &[x],
+                || -> () { panic!("excluded factory") },
+                |x, g, _| {
+                    g[0] = 1.;
+                    Ok(x[0])
+                },
+            )
+            .unwrap();
+        b.prior("excluded", bad).unwrap();
+        b.likelihood("retained", x).unwrap();
+        let definition = b.finish().unwrap();
+        let executable = definition
+            .bind()
+            .compile()
+            .unwrap()
+            .select_likelihood()
+            .unwrap();
+        let mut context = executable.context();
+        let mut g = [19.];
+        assert_eq!(
+            executable.evaluate(&mut context, &[2.], &mut g).unwrap(),
+            2.
+        );
+        assert_eq!(g, [1.]);
     }
 }

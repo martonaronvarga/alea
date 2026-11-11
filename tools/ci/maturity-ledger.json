@@ -2045,21 +2045,21 @@
     },
     {
       "crate": "alea-autodiff",
-      "item": "impl<F, H, D> alea_core::capability::PotentialHessianVector for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])",
+      "item": "impl<F, H, D> alea_core::capability::PotentialHessianVector for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64])",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
     },
     {
       "crate": "alea-autodiff",
-      "item": "impl<F, H, D> alea_core::target::LogDensityGradient for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])",
+      "item": "impl<F, H, D> alea_core::target::LogDensityGradient for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
     },
     {
       "crate": "alea-autodiff",
-      "item": "impl<F, H, D> alea_core::target::TargetSpace for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D> where F: core::ops::function::Fn(&[f64], &mut [f64], f64) -> f64, H: core::ops::function::Fn(&[f64], &[f64], &mut [f64]), D: core::ops::function::Fn(&[f64], &mut [f64], &mut [f64])",
+      "item": "impl<F, H, D> alea_core::target::TargetSpace for alea_autodiff::autodiff::EnzymeHigherOrderTarget<F, H, D>",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
     },
     {
       "crate": "alea-autodiff",
@@ -2246,15 +2246,21 @@
     },
     {
       "crate": "alea-autodiff",
-      "item": "pub fn alea_autodiff::codegen::enzyme_objective_source(model: &alea_core::model::assembly::CompiledModel) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_autodiff::codegen::enzyme_objective_source(model: &alea_core::model::assembly::Executable) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-autodiff",
-      "item": "pub fn alea_autodiff::codegen::enzyme_source(model: &alea_core::model::assembly::CompiledModel) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_utility",
-      "promotion_gate": "Broaden generated-source, compiler-version and external-primal portability evidence."
+      "item": "pub fn alea_autodiff::codegen::enzyme_source(model: &alea_core::model::assembly::Executable) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-autodiff",
+      "item": "pub fn alea_autodiff::codegen::source(model: &alea_core::model::assembly::Executable, request: alea_core::model::assembly::source::SourceRequest) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-autodiff",
@@ -2475,8 +2481,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl alea_core::model::ConstrainedModel for alea_core::model::assembly::CompiledModel",
-      "profile": "validated_component_opt_in"
+      "item": "impl alea_core::model::ConstrainedModel for alea_core::model::assembly::NativeModel",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -2486,8 +2493,15 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl alea_core::model::assembly::CompiledModel",
-      "profile": "validated_component_opt_in"
+      "item": "impl alea_core::model::assembly::DataBinding",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl alea_core::model::assembly::Executable",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -2499,6 +2513,18 @@
       "crate": "alea-core",
       "item": "impl alea_core::model::assembly::ModelBuilder",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl alea_core::model::assembly::ModelDefinition",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl alea_core::model::assembly::NativeModel",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -2722,9 +2748,33 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::CurvatureRoute",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::DataBinding",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::DerivativeOrder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::clone::Clone for alea_core::model::assembly::DynamicDomain",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::Executable",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -2737,6 +2787,18 @@
       "item": "impl core::clone::Clone for alea_core::model::assembly::FactorRole",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::FirstOrderSource",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::FloatWorkspace",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
     },
     {
       "crate": "alea-core",
@@ -2781,6 +2843,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::PrimitiveMetadata",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::clone::Clone for alea_core::model::assembly::PrimitiveSignature",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
@@ -2813,6 +2881,36 @@
       "item": "impl core::clone::Clone for alea_core::model::assembly::SourceCapabilities",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::SourceGradient",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::SourceMode",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::SourceProgram",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::SourceRequest",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::SourceState",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -2991,6 +3089,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::CurvatureRoute",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::DerivativeOrder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::cmp::Eq for alea_core::model::assembly::FactorMetadata",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -3000,6 +3110,18 @@
       "item": "impl core::cmp::Eq for alea_core::model::assembly::FactorRole",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::FirstOrderSource",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::FloatWorkspace",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
     },
     {
       "crate": "alea-core",
@@ -3036,6 +3158,36 @@
       "item": "impl core::cmp::Eq for alea_core::model::assembly::SourceCapabilities",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::SourceGradient",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::SourceMode",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::SourceProgram",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::SourceRequest",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::SourceState",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -3176,6 +3328,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::CurvatureRoute",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::DerivativeOrder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::cmp::PartialEq for alea_core::model::assembly::FactorMetadata",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -3185,6 +3349,18 @@
       "item": "impl core::cmp::PartialEq for alea_core::model::assembly::FactorRole",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::FirstOrderSource",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::FloatWorkspace",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
     },
     {
       "crate": "alea-core",
@@ -3221,6 +3397,36 @@
       "item": "impl core::cmp::PartialEq for alea_core::model::assembly::SourceCapabilities",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::SourceGradient",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::SourceMode",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::SourceProgram",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::SourceRequest",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::SourceState",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -3320,6 +3526,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::convert::From<&str> for alea_core::model::assembly::SourceGradient",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::convert::From<alea_core::capability::BatchShapeError> for alea_core::capability::BatchError",
       "profile": "research_mixed",
       "promotion_gate": "Complete conformance suites for each externally implementable capability."
@@ -3340,6 +3552,12 @@
       "crate": "alea-core",
       "item": "impl core::convert::From<alea_core::transform::TransformError> for alea_core::model::assembly::AssemblyError",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::convert::From<alloc::string::String> for alea_core::model::assembly::SourceGradient",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -3379,12 +3597,6 @@
       "item": "impl core::error::Error for alea_core::model::assembly::PointwiseError",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "impl core::error::Error for alea_core::model::assembly::RebindError",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -3495,6 +3707,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::CurvatureRoute",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::DerivativeOrder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::fmt::Debug for alea_core::model::assembly::DynamicDomain",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -3510,6 +3734,18 @@
       "item": "impl core::fmt::Debug for alea_core::model::assembly::FactorRole",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::FirstOrderSource",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::FloatWorkspace",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
     },
     {
       "crate": "alea-core",
@@ -3577,12 +3813,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl core::fmt::Debug for alea_core::model::assembly::RebindError",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
       "item": "impl core::fmt::Debug for alea_core::model::assembly::ScalarInput",
       "profile": "research_component",
       "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
@@ -3598,6 +3828,36 @@
       "item": "impl core::fmt::Debug for alea_core::model::assembly::SourceCapabilities",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::SourceGradient",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::SourceMode",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::SourceProgram",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::SourceRequest",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::SourceState",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -3735,12 +3995,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "impl core::fmt::Display for alea_core::model::assembly::RebindError",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
       "item": "impl core::fmt::Display for alea_core::model::tensor::WorkspaceBudgetError",
       "profile": "research_component",
       "promotion_gate": "Broaden independent downstream, numerical and platform qualification; no performance or statistical maturity promotion."
@@ -3826,6 +4080,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::marker::Copy for alea_core::model::assembly::CurvatureRoute",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::Copy for alea_core::model::assembly::DerivativeOrder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::marker::Copy for alea_core::model::assembly::DynamicDomain",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -3835,6 +4101,12 @@
       "item": "impl core::marker::Copy for alea_core::model::assembly::FactorRole",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::Copy for alea_core::model::assembly::FloatWorkspace",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
     },
     {
       "crate": "alea-core",
@@ -3881,6 +4153,18 @@
       "item": "impl core::marker::Copy for alea_core::model::assembly::Simplex",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::Copy for alea_core::model::assembly::SourceMode",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::Copy for alea_core::model::assembly::SourceRequest",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
     },
     {
       "crate": "alea-core",
@@ -4025,6 +4309,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::CurvatureRoute",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::DerivativeOrder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::FactorMetadata",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -4034,6 +4330,18 @@
       "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::FactorRole",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::FirstOrderSource",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::FloatWorkspace",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
     },
     {
       "crate": "alea-core",
@@ -4070,6 +4378,36 @@
       "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::SourceCapabilities",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::SourceGradient",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::SourceMode",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::SourceProgram",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::SourceRequest",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::SourceState",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -4163,9 +4501,27 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::ops::deref::Deref for alea_core::model::assembly::DataBinding",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::ops::deref::Deref for alea_core::model::assembly::Executable",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::ops::deref::Deref for alea_core::model::assembly::ModelScope<'_>",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::ops::deref::Deref for alea_core::model::assembly::NativeModel",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -5145,6 +5501,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::ContextMismatch",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub alea_core::model::assembly::AssemblyError::Empty",
       "profile": "validated_component_opt_in"
     },
@@ -5209,6 +5571,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::StaleEvaluation",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub alea_core::model::assembly::AssemblyError::Transform(alea_core::transform::TransformError)",
       "profile": "validated_component_opt_in"
     },
@@ -5223,6 +5591,18 @@
       "item": "pub alea_core::model::assembly::AssemblyError::UnclassifiedFactor::index: usize",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::UnqualifiedDerivative",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::UnqualifiedDerivative::order: alea_core::model::assembly::DerivativeOrder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
     },
     {
       "crate": "alea-core",
@@ -5275,6 +5655,42 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::CurvatureRoute::OriginalCompilerReverse",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::CurvatureRoute::Unavailable",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::DerivativeOrder::First",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::DerivativeOrder::Hvp",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::DerivativeOrder::Third",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::DerivativeOrder::Value",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub alea_core::model::assembly::FactorRole::Likelihood",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -5296,6 +5712,30 @@
       "item": "pub alea_core::model::assembly::FactorRole::Unclassified",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::FirstOrderSource::checkpointed: bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::FirstOrderSource::program: alea_core::model::assembly::SourceProgram",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::FirstOrderSource::stateful: bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::FloatWorkspace::elements: usize",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
     },
     {
       "crate": "alea-core",
@@ -5593,18 +6033,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub alea_core::model::assembly::RebindError::model: alloc::boxed::Box<alea_core::model::assembly::CompiledModel>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub alea_core::model::assembly::RebindError::source: alea_core::model::assembly::AssemblyError",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
       "item": "pub alea_core::model::assembly::ScalarInput::Constant(f64)",
       "profile": "research_component",
       "promotion_gate": "Broaden independent downstream, compiler-diagnostic and ergonomic validation; retain explicit model measure, transform and numerical contracts."
@@ -5653,21 +6081,87 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceGradient::body: alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceGradient::state: core::option::Option<alea_core::model::assembly::SourceState>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceMode::Density",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceMode::Objective",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceProgram::source: alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceProgram::workspace: alea_core::model::assembly::FloatWorkspace",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceRequest::curvature: alea_core::model::assembly::CurvatureRoute",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceRequest::mode: alea_core::model::assembly::SourceMode",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceRequest::order: alea_core::model::assembly::DerivativeOrder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub alea_core::model::assembly::SourceRule::body: alea_core::model::assembly::SourceBody<D>",
       "profile": "research_component",
       "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
     },
     {
       "crate": "alea-core",
-      "item": "pub alea_core::model::assembly::SourceRule::gradient: core::option::Option<fn(&D) -> alloc::string::String>",
+      "item": "pub alea_core::model::assembly::SourceRule::gradient: core::option::Option<fn(&D) -> alea_core::model::assembly::SourceGradient>",
       "profile": "research_component",
-      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
       "item": "pub alea_core::model::assembly::SourceRule::workspace: usize",
       "profile": "research_component",
       "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceState::initializer: alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::SourceState::rust_type: alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -6496,6 +6990,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub enum alea_core::model::assembly::CurvatureRoute",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub enum alea_core::model::assembly::DerivativeOrder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub enum alea_core::model::assembly::DynamicDomain",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -6551,6 +7057,12 @@
       "item": "pub enum alea_core::model::assembly::SourceBody<D>",
       "profile": "research_component",
       "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub enum alea_core::model::assembly::SourceMode",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
     },
     {
       "crate": "alea-core",
@@ -7363,15 +7875,15 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::BatchLikelihood::into_model(self) -> alea_core::model::assembly::CompiledModel",
+      "item": "pub fn alea_core::model::assembly::BatchLikelihood::into_model(self) -> alea_core::model::assembly::NativeModel",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::BatchLikelihood::model(&self) -> &alea_core::model::assembly::CompiledModel",
+      "item": "pub fn alea_core::model::assembly::BatchLikelihood::model(&self) -> &alea_core::model::assembly::NativeModel",
       "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -7435,168 +7947,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::batch_likelihood(self) -> core::result::Result<alea_core::model::assembly::BatchLikelihood, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::coordinates(&self) -> alloc::sync::Arc<[alea_core::model::assembly::Coordinate]>",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::dimension(&self) -> usize",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::expression_count(&self) -> usize",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::factors(&self) -> &[alea_core::model::assembly::FactorMetadata]",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::graph(&self) -> impl core::iter::traits::iterator::Iterator<Item = alea_core::model::assembly::GraphNode<'_>>",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::into_objective(self) -> core::result::Result<alea_core::model::ComposedObjective<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::is_numerical_error(&self, error: &Self::Error) -> bool",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::layout(&self) -> &alea_core::transform::ParameterLayout",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
-      "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::rebind<P: alea_core::model::assembly::OperationDescriptor>(self, expression: alea_core::model::assembly::Value, update: impl core::ops::function::FnOnce(&P) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> core::result::Result<Self, alea_core::model::assembly::RebindError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::rebind_region(self, value: alea_core::model::assembly::Value, name: &str, values: &[f64]) -> core::result::Result<Self, alea_core::model::assembly::RebindError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_checkpoint_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify explicit first-order source replay separately from compiler-owned higher-order tapes; no arbitrary-program memory or speed guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_first_order_gradient(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize, bool)>, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Preserve score/error semantics and qualify source/kernel composition across more models and toolchains; no performance or higher-AD maturity promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_objective_primal_with_workspace(&self) -> core::result::Result<(alloc::string::String, usize), alea_core::model::assembly::AssemblyError>",
-      "profile": "research_utility",
-      "promotion_gate": "Broaden independent generated-buffer, compiler-version and custom-primitive conformance; bounded tensor derivative fixtures are not arbitrary-program or statistical qualification."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_objective_validation(&self) -> alloc::string::String",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_utility",
-      "promotion_gate": "Broaden generated-source, compiler-version and external-primal portability evidence."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_primal_with_workspace(&self) -> core::result::Result<(alloc::string::String, usize), alea_core::model::assembly::AssemblyError>",
-      "profile": "research_utility",
-      "promotion_gate": "Broaden independent generated-buffer, compiler-version and custom-primitive conformance; bounded tensor derivative fixtures are not arbitrary-program or statistical qualification."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_tensor_score_validation(&self, density: bool) -> core::result::Result<core::option::Option<(alloc::string::String, usize)>, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify checked tensor admission independently of compiler derivative conventions, including activity, lazy control flow and recovery; extra first-order validation work is not a speed or arbitrary-callback equivalence guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::rust_validation(&self) -> alloc::string::String",
-      "profile": "research_utility",
-      "promotion_gate": "Broaden generated-source, compiler-version and external-primal portability evidence."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::select_all(self) -> Self",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::select_prior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
-      "profile": "research_component",
-      "promotion_gate": "Retain explicit role declarations, full coordinates, density versus objective chart semantics and independent validation; this selection does not prove a normalized prior."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::selected_factors(&self) -> impl core::iter::traits::iterator::Iterator<Item = &alea_core::model::assembly::FactorMetadata>",
-      "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::CompiledModel::source_capabilities(&self) -> alea_core::model::assembly::SourceCapabilities",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
-    },
-    {
-      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::Coordinate::clone(&self) -> alea_core::model::assembly::Coordinate",
       "profile": "validated_component_opt_in"
     },
@@ -7630,6 +7980,84 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CurvatureRoute::clone(&self) -> alea_core::model::assembly::CurvatureRoute",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CurvatureRoute::eq(&self, other: &alea_core::model::assembly::CurvatureRoute) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::CurvatureRoute::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DataBinding::clone(&self) -> alea_core::model::assembly::DataBinding",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DataBinding::compile(&self) -> core::result::Result<alea_core::model::assembly::Executable, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DataBinding::definition(&self) -> &alloc::sync::Arc<alea_core::model::assembly::ModelDefinition>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DataBinding::deref(&self) -> &Self::Target",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DataBinding::identity(&self) -> u64",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DataBinding::rebind<P: alea_core::model::assembly::OperationDescriptor>(&self, expression: alea_core::model::assembly::Value, update: impl core::ops::function::FnOnce(&P) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DataBinding::rebind_region(&self, value: alea_core::model::assembly::Value, name: &str, values: &[f64]) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DerivativeOrder::clone(&self) -> alea_core::model::assembly::DerivativeOrder",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DerivativeOrder::eq(&self, other: &alea_core::model::assembly::DerivativeOrder) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DerivativeOrder::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::DynamicDomain::accepts(_: alea_core::transform::Transform) -> bool",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -7645,6 +8073,186 @@
       "item": "pub fn alea_core::model::assembly::DynamicDomain::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::binding(&self) -> &alea_core::model::assembly::DataBinding",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::clone(&self) -> alea_core::model::assembly::Executable",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::context(&self) -> alea_core::model::assembly::EvaluationContext",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::coordinates(&self) -> alloc::sync::Arc<[alea_core::model::assembly::Coordinate]>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::deref(&self) -> &Self::Target",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::evaluate(&self, context: &mut alea_core::model::assembly::EvaluationContext, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::expression_count(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::factors(&self) -> &[alea_core::model::assembly::FactorMetadata]",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::graph(&self) -> impl core::iter::traits::iterator::Iterator<Item = alea_core::model::assembly::GraphNode<'_>>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::identity(&self) -> u64",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::into_native_model(self) -> alea_core::model::assembly::NativeModel",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<alea_core::model::assembly::NativeModel>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::layout(&self) -> &alea_core::transform::ParameterLayout",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::native_model(self: &alloc::sync::Arc<Self>) -> alea_core::model::assembly::NativeModel",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::prepare(&self, context: &mut alea_core::model::assembly::EvaluationContext, q: &[f64]) -> core::result::Result<alea_core::model::assembly::PreparedEvaluation, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::publish(&self, context: &mut alea_core::model::assembly::EvaluationContext, token: &alea_core::model::assembly::PreparedEvaluation, g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::rust_objective_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::rust_objective_validation(&self) -> alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::rust_primal(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::rust_validation(&self) -> alloc::string::String",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::select_all(self) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::select_prior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::selected_factors(&self) -> impl core::iter::traits::iterator::Iterator<Item = &alea_core::model::assembly::FactorMetadata>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::source_capabilities(&self) -> alea_core::model::assembly::SourceCapabilities",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::source_first_order(&self, mode: alea_core::model::assembly::SourceMode) -> core::result::Result<core::option::Option<alea_core::model::assembly::FirstOrderSource>, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::source_primal(&self, mode: alea_core::model::assembly::SourceMode) -> core::result::Result<alea_core::model::assembly::SourceProgram, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::source_score_admission(&self, mode: alea_core::model::assembly::SourceMode) -> core::result::Result<core::option::Option<alea_core::model::assembly::SourceProgram>, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::target(self: &alloc::sync::Arc<Self>) -> core::result::Result<alea_core::model::TransformedTarget<alea_core::model::assembly::NativeModel>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -7696,6 +8304,42 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FirstOrderSource::clone(&self) -> alea_core::model::assembly::FirstOrderSource",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FirstOrderSource::eq(&self, other: &alea_core::model::assembly::FirstOrderSource) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FirstOrderSource::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FloatWorkspace::clone(&self) -> alea_core::model::assembly::FloatWorkspace",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FloatWorkspace::eq(&self, other: &alea_core::model::assembly::FloatWorkspace) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::FloatWorkspace::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ModelBuilder::add(&mut self, a: impl core::convert::Into<alea_core::model::assembly::ScalarInput>, b: impl core::convert::Into<alea_core::model::assembly::ScalarInput>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
@@ -7719,8 +8363,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::compile(self) -> core::result::Result<alea_core::model::assembly::CompiledModel, alea_core::model::assembly::AssemblyError>",
-      "profile": "validated_component_opt_in"
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::compile(self) -> core::result::Result<alea_core::model::assembly::NativeModel, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -7748,9 +8393,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::custom_with_scratch<W, F>(&mut self, inputs: &[alea_core::model::assembly::Value], scratch: W, callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where W: core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64], &mut [f64], &mut W) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::custom_with_scratch<W, F>(&mut self, inputs: &[alea_core::model::assembly::Value], workspace: impl core::ops::function::Fn() -> W + core::marker::Send + core::marker::Sync + 'static, callback: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where W: core::marker::Send + 'static, F: core::ops::function::Fn(&[f64], &mut [f64], &mut W) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError> + core::marker::Send + core::marker::Sync + 'static",
       "profile": "research_component",
-      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -7774,6 +8419,12 @@
       "item": "pub fn alea_core::model::assembly::ModelBuilder::factor(&mut self, log_factor: alea_core::model::assembly::Value) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::finish(self) -> core::result::Result<alloc::sync::Arc<alea_core::model::assembly::ModelDefinition>, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -7870,9 +8521,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::ModelBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + core::marker::Sync + 'static",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static",
       "profile": "research_component",
-      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -7935,6 +8586,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelDefinition::bind(self: &alloc::sync::Arc<Self>) -> alea_core::model::assembly::DataBinding",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelDefinition::compile(&self, binding: &alea_core::model::assembly::DataBinding) -> core::result::Result<alea_core::model::assembly::Executable, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ModelScope<'_>::deref(&self) -> &Self::Target",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
@@ -7950,6 +8613,84 @@
       "item": "pub fn alea_core::model::assembly::ModelScope<'_>::drop(&mut self)",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::batch_likelihood(self) -> core::result::Result<alea_core::model::assembly::BatchLikelihood, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::deref(&self) -> &Self::Target",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::dimension(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::executable(&self) -> &alea_core::model::assembly::Executable",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::into_executable(self) -> alea_core::model::assembly::Executable",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::into_objective(self) -> core::result::Result<alea_core::model::ComposedObjective<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::into_target(self) -> core::result::Result<alea_core::model::TransformedTarget<Self>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::is_numerical_error(&self, error: &Self::Error) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::select_all(self) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::select_likelihood(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::select_posterior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeModel::select_prior(self) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -8064,21 +8805,21 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::PointwiseLikelihood::into_model(self) -> alea_core::model::assembly::CompiledModel",
+      "item": "pub fn alea_core::model::assembly::PointwiseLikelihood::into_model(self) -> alea_core::model::assembly::NativeModel",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::PointwiseLikelihood::model(&self) -> &alea_core::model::assembly::CompiledModel",
+      "item": "pub fn alea_core::model::assembly::PointwiseLikelihood::model(&self) -> &alea_core::model::assembly::NativeModel",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::PointwiseLikelihood::new(model: alea_core::model::assembly::CompiledModel, units: alloc::vec::Vec<alea_core::model::assembly::PredictiveUnit>) -> core::result::Result<Self, alea_core::model::assembly::PointwiseError>",
+      "item": "pub fn alea_core::model::assembly::PointwiseLikelihood::new(model: alea_core::model::assembly::NativeModel, units: alloc::vec::Vec<alea_core::model::assembly::PredictiveUnit>) -> core::result::Result<Self, alea_core::model::assembly::PointwiseError>",
       "profile": "research_component",
-      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -8176,6 +8917,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::PrimitiveMetadata::clone(&self) -> alea_core::model::assembly::PrimitiveMetadata",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::PrimitiveMetadata::descriptor<P: core::any::Any>(&self) -> core::option::Option<&P>",
       "profile": "research_component",
       "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
@@ -8243,18 +8990,6 @@
       "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::Real::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "validated_component_opt_in"
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::RebindError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::RebindError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -8342,9 +9077,117 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceCapabilities::resolve(&self, request: alea_core::model::assembly::SourceRequest) -> core::result::Result<alea_core::model::assembly::SourceRequest, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::SourceCapabilities::supports_rust_primal(&self) -> bool",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceGradient::clone(&self) -> alea_core::model::assembly::SourceGradient",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceGradient::eq(&self, other: &alea_core::model::assembly::SourceGradient) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceGradient::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceGradient::from(body: &str) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceGradient::from(body: alloc::string::String) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceMode::clone(&self) -> alea_core::model::assembly::SourceMode",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceMode::eq(&self, other: &alea_core::model::assembly::SourceMode) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceMode::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceProgram::clone(&self) -> alea_core::model::assembly::SourceProgram",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceProgram::eq(&self, other: &alea_core::model::assembly::SourceProgram) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceProgram::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceRequest::clone(&self) -> alea_core::model::assembly::SourceRequest",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceRequest::eq(&self, other: &alea_core::model::assembly::SourceRequest) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceRequest::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceState::clone(&self) -> alea_core::model::assembly::SourceState",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceState::eq(&self, other: &alea_core::model::assembly::SourceState) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceState::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -8611,7 +9454,7 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::BoundProgram::rust_function(&self) -> alloc::string::String",
+      "item": "pub fn alea_core::model::tensor::BoundProgram::rust_function(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
     },
@@ -8755,9 +9598,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::RegionBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + core::marker::Sync + 'static",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static",
       "profile": "research_component",
-      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -9584,19 +10427,44 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub struct alea_core::model::assembly::CompiledModel",
+      "item": "pub struct alea_core::model::assembly::Coordinate",
       "profile": "validated_component_opt_in"
     },
     {
       "crate": "alea-core",
-      "item": "pub struct alea_core::model::assembly::Coordinate",
-      "profile": "validated_component_opt_in"
+      "item": "pub struct alea_core::model::assembly::DataBinding",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::EvaluationContext",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::Executable",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
       "item": "pub struct alea_core::model::assembly::FactorMetadata",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::FirstOrderSource",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::FloatWorkspace",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
     },
     {
       "crate": "alea-core",
@@ -9611,9 +10479,21 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::ModelDefinition",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub struct alea_core::model::assembly::ModelScope<'a>",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::NativeModel",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -9637,6 +10517,12 @@
       "item": "pub struct alea_core::model::assembly::PredictiveUnit",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::PreparedEvaluation",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -9664,12 +10550,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub struct alea_core::model::assembly::RebindError",
-      "profile": "research_component",
-      "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
-    },
-    {
-      "crate": "alea-core",
       "item": "pub struct alea_core::model::assembly::ScalarPreparation<P: alea_core::model::assembly::OperationDescriptor>",
       "profile": "research_component",
       "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
@@ -9682,9 +10562,33 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::SourceGradient",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::SourceProgram",
+      "profile": "research_component",
+      "promotion_gate": "Qualify structured source lowering and fixed f64 workspace contracts across additional models and toolchains; source eligibility does not establish arbitrary higher derivative correctness."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::SourceRequest",
+      "profile": "research_component",
+      "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub struct alea_core::model::assembly::SourceRule<D>",
       "profile": "research_component",
       "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::SourceState",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -9770,11 +10674,6 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub struct alea_core::prelude::CompiledModel",
-      "profile": "validated_component_reference"
-    },
-    {
-      "crate": "alea-core",
       "item": "pub struct alea_core::prelude::ComposedObjective<M>",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -9798,6 +10697,12 @@
       "crate": "alea-core",
       "item": "pub struct alea_core::prelude::ModelBuilder",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::prelude::NativeModel",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -10052,8 +10957,15 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub type alea_core::model::assembly::CompiledModel::Error = alea_core::model::assembly::AssemblyError",
-      "profile": "validated_component_opt_in"
+      "item": "pub type alea_core::model::assembly::DataBinding::Target = alea_core::model::assembly::ModelDefinition",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub type alea_core::model::assembly::Executable::Target = alea_core::model::assembly::DataBinding",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
@@ -10069,9 +10981,21 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub type alea_core::model::assembly::OperationDescriptor::Workspace: core::marker::Send + core::marker::Sync + 'static",
+      "item": "pub type alea_core::model::assembly::NativeModel::Error = alea_core::model::assembly::AssemblyError",
       "profile": "research_component",
-      "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub type alea_core::model::assembly::NativeModel::Target = alea_core::model::assembly::Executable",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub type alea_core::model::assembly::OperationDescriptor::Workspace: core::marker::Send + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",

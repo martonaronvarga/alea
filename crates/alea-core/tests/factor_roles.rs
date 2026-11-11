@@ -2,7 +2,7 @@
 use alea_core::{
     model::{
         ConstrainedModel,
-        assembly::{AssemblyError, CompiledModel, FactorRole, ModelBuilder},
+        assembly::{AssemblyError, FactorRole, ModelBuilder, NativeModel},
     },
     target::LogDensityGradient,
 };
@@ -11,7 +11,7 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
-fn named(potential: bool) -> CompiledModel {
+fn named(potential: bool) -> NativeModel {
     let mut b = ModelBuilder::new();
     let x = b.positive("theta").unwrap().expr();
     let square = b.multiply(x, x).unwrap();

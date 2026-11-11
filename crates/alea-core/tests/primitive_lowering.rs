@@ -80,8 +80,10 @@ impl Prepared {
     fn source_rule(&self) -> Option<fn(&Self) -> String> {
         Some(|this| format!("x[0]+{:?}_f64", this.bias))
     }
-    fn source_gradient_rule(&self) -> Option<fn(&Self) -> String> {
-        Some(|this| format!("g[0]=1.;x[0]+{:?}_f64", this.bias))
+    fn source_gradient_rule(
+        &self,
+    ) -> Option<fn(&Self) -> alea_core::model::assembly::SourceGradient> {
+        Some(|this| format!("g[0]=1.;x[0]+{:?}_f64", this.bias).into())
     }
     /// Native kernel evaluate.
     pub fn evaluate(&self, x: &[f64], g: &mut [f64], _: &mut ()) -> Result<f64, E> {
@@ -136,19 +138,29 @@ fn shared_preparation_refreshes_after_input_changes_selection_and_rebinding() {
     assert_eq!(PREPARATIONS.load(Ordering::Relaxed), 3);
     assert!(
         model
-            .rust_first_order_gradient(true)
+            .source_first_order(alea_core::model::assembly::SourceMode::Density)
             .unwrap()
             .unwrap()
-            .0
+            .program
+            .source
             .contains("g[0]=1.;x[0]+0.0_f64")
     );
     let model = model
+        .binding()
         .rebind::<Prepared>(a, |_| Ok(Prepared { bias: 2. }))
-        .unwrap();
+        .unwrap()
+        .compile()
+        .unwrap()
+        .into_native_model();
     let mut g = [17.];
     assert_eq!(model.logp_grad(&[1.], &mut g).unwrap(), 5.);
     assert_eq!(PREPARATIONS.load(Ordering::Relaxed), 4);
-    let source = model.rust_first_order_gradient(true).unwrap().unwrap().0;
+    let source = model
+        .source_first_order(alea_core::model::assembly::SourceMode::Density)
+        .unwrap()
+        .unwrap()
+        .program
+        .source;
     assert!(source.contains("g[0]=1.;x[0]+2.0_f64"));
     assert!(!source.contains("g[0]=1.;x[0]+0.0_f64"));
     let selected = model.select_likelihood().unwrap();
@@ -165,11 +177,12 @@ fn shared_preparation_refreshes_after_input_changes_selection_and_rebinding() {
     let model = builder.compile().unwrap();
     // Compilation does not run preparation (even an excluded pure rule may
     // panic). Constant preparation remains lazy, then reusable across forwards.
-    assert_eq!(PREPARATIONS.load(Ordering::Relaxed), 4);
+    // Selecting another executable constructs a fresh context and preparation cache.
+    assert_eq!(PREPARATIONS.load(Ordering::Relaxed), 5);
     for input in [0., 1., -0.] {
         assert_eq!(model.logp_grad(&[input], &mut g).unwrap(), 5.);
         assert_eq!(g, [0.]);
-        assert_eq!(PREPARATIONS.load(Ordering::Relaxed), 5);
+        assert_eq!(PREPARATIONS.load(Ordering::Relaxed), 6);
     }
 }
 
@@ -230,7 +243,11 @@ fn source_workspace_is_checked_combined_selected_and_rebound_without_evaluating(
     let model = b.compile().unwrap();
     assert_eq!(model.graph().count(), 3);
     // One argument buffer plus each primitive's independent scratch range.
-    let (body, slots) = model.rust_primal_with_workspace().unwrap();
+    let primal = model
+        .source_primal(alea_core::model::assembly::SourceMode::Density)
+        .unwrap();
+    let body = primal.source;
+    let slots = primal.workspace.elements;
     assert_eq!(slots, 7);
     assert!(body.contains("scratch[0..3]"));
     assert!(body.contains("scratch[3..7]"));
@@ -241,24 +258,50 @@ fn source_workspace_is_checked_combined_selected_and_rebound_without_evaluating(
             .unwrap()
             .contains("let mut scratch = [0.0_f64; 7]")
     );
-    assert_eq!(model.rust_objective_primal_with_workspace().unwrap().1, 7);
+    assert_eq!(
+        model
+            .source_primal(alea_core::model::assembly::SourceMode::Objective)
+            .unwrap()
+            .workspace
+            .elements,
+        7
+    );
     let model = model
+        .binding()
         .rebind::<Buffered>(a, |_| Ok(Buffered { slots: 4 }))
-        .unwrap();
-    assert_eq!(model.rust_primal_with_workspace().unwrap().1, 9);
+        .unwrap()
+        .compile()
+        .unwrap()
+        .into_native_model();
+    assert_eq!(
+        model
+            .source_primal(alea_core::model::assembly::SourceMode::Density)
+            .unwrap()
+            .workspace
+            .elements,
+        9
+    );
     // Both individually legal buffers together exceed the addressable byte size.
     let max = isize::MAX as usize / size_of::<f64>();
     let model = model
+        .binding()
         .rebind::<Buffered>(a, |_| Ok(Buffered { slots: max - 2 }))
-        .unwrap();
-    assert!(matches!(model.rust_primal_with_workspace(), Err(E::Shape)));
+        .unwrap()
+        .compile()
+        .unwrap()
+        .into_native_model();
+    assert!(matches!(
+        model.source_primal(alea_core::model::assembly::SourceMode::Density),
+        Err(E::Shape)
+    ));
     assert_eq!(
         model
             .select_likelihood()
             .unwrap()
-            .rust_primal_with_workspace()
+            .source_primal(alea_core::model::assembly::SourceMode::Density)
             .unwrap()
-            .1,
+            .workspace
+            .elements,
         4
     );
 }
@@ -364,6 +407,7 @@ fn generated_sources_are_lazy_and_batch_failures_preserve_outputs_and_typed_caus
     let source = model.rust_primal().unwrap();
     assert_eq!(exports.load(Ordering::Relaxed), 1);
     let failed = model
+        .binding()
         .rebind::<Rule>(f, |p| {
             Ok(Rule {
                 exports: Arc::clone(&p.exports),
@@ -373,10 +417,10 @@ fn generated_sources_are_lazy_and_batch_failures_preserve_outputs_and_typed_caus
         })
         .err()
         .unwrap();
-    assert!(matches!(failed.source, E::Shape));
+    assert!(matches!(failed, E::Shape));
     assert_eq!(workspaces.load(Ordering::Relaxed), 2);
-    let model = *failed.model;
     let model = model
+        .binding()
         .rebind::<Rule>(f, |p| {
             Ok(Rule {
                 exports: Arc::clone(&p.exports),
@@ -384,7 +428,10 @@ fn generated_sources_are_lazy_and_batch_failures_preserve_outputs_and_typed_caus
                 units: 2,
             })
         })
-        .unwrap();
+        .unwrap()
+        .compile()
+        .unwrap()
+        .into_native_model();
     assert_eq!(workspaces.load(Ordering::Relaxed), 4);
     assert_eq!(exports.load(Ordering::Relaxed), 1);
     assert_eq!(model.rust_primal().unwrap(), source);

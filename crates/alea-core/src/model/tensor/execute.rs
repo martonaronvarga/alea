@@ -169,36 +169,6 @@ impl BoundProgram {
         Ok(())
     }
 
-    // R0.2b's checked lifecycle owns identity/epoch validation. These private
-    // hooks reuse precisely this executor, admission and staging, not a second
-    // value/VJP implementation. They are absent from production builds.
-    #[cfg(test)]
-    pub(super) fn prepare_point(&self, x: &[f64], w: &mut TensorWorkspace) -> Result<(), E> {
-        self.validate(x, w)?;
-        self.execute_forward(x, w)
-    }
-    #[cfg(test)]
-    pub(super) fn pullback_point(
-        &self,
-        seed: &[f64],
-        out: &mut [f64],
-        g: &mut [f64],
-        w: &mut TensorWorkspace,
-    ) -> Result<(), E> {
-        if out.len() != self.output_shape().elements
-            || seed.len() != out.len()
-            || g.len() != self.dimension()
-        {
-            return Err(E::Shape);
-        }
-        if seed.iter().any(|v| !v.is_finite()) {
-            return Err(E::Numerical);
-        }
-        self.reverse(seed, w)?;
-        out.copy_from_slice(&w.values[self.plan.nodes[self.plan.output.node].range()]);
-        g.copy_from_slice(&w.gradient);
-        Ok(())
-    }
     /// Native per-execution workspace estimate. This is a tensor-target budget,
     /// separate from session sampler/storage limits and immutable bindings.
     pub fn workspace_bytes(&self) -> usize {

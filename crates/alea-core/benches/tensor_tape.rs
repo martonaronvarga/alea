@@ -2,7 +2,7 @@
 //! No probability distribution/derivative/sampler is reimplemented here.
 use alea_core::model::{
     ConstrainedModel,
-    assembly::{CompiledModel, ModelBuilder},
+    assembly::{ModelBuilder, NativeModel},
     tensor::{BinaryOp as B, BoundProgram, MatrixKernel, Shape},
 };
 use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
@@ -23,7 +23,7 @@ fn region(n: usize) -> BoundProgram {
         .bind(&[("weights", &data)])
         .unwrap()
 }
-fn assembled(n: usize, block: bool) -> CompiledModel {
+fn assembled(n: usize, block: bool) -> NativeModel {
     let mut b = ModelBuilder::new();
     let slope = b.real("slope").unwrap().expr();
     let result = if block {
@@ -96,7 +96,44 @@ fn benchmark(c: &mut Criterion) {
         let scalar = assembled(n, false);
         let block = assembled(n, true);
         let direct = region(n);
-        let mut scratch = direct.workspace();
+        let mut scratch = None;
+        let allocation = allocation_counter::measure(|| {
+            scratch = Some(direct.workspace());
+        });
+        let workspace_owned_bytes = usize::try_from(allocation.bytes_current).unwrap();
+        let mut scratch = scratch.unwrap();
+        use benchmark_support::fixed_work::{self, Fixture};
+        let bank = fixed_work::states(1);
+        let coordinate_id = fixed_work::identity(b"constrained/slope");
+        for (kind, model) in [("scalar", &scalar), ("block", &block)] {
+            let name = format!("tensor_{kind}_{n}");
+            let fixture = Fixture {
+                name: &name,
+                model: fixed_work::identity(model.rust_objective_primal().unwrap().as_bytes()),
+                coordinates: coordinate_id,
+                query: "constrained-objective",
+                algorithm: "fused-logp-grad",
+                arithmetic: "fixture-default",
+                provider: "rust",
+            };
+            fixed_work::run(&fixture, "N", &bank, None, |q, g| model.logp_grad(q, g)).unwrap();
+        }
+        let name = format!("tensor_direct_{n}");
+        let fixture = Fixture {
+            name: &name,
+            model: fixed_work::identity(direct.rust_function().unwrap().as_bytes()),
+            coordinates: coordinate_id,
+            query: "constrained-objective",
+            algorithm: "fused-logp-grad",
+            arithmetic: "fixture-default",
+            provider: "rust",
+        };
+        fixed_work::run(&fixture, "N", &bank, Some(workspace_owned_bytes), |q, g| {
+            let mut value = [0.];
+            direct.value_and_vjp(q, &[1.], &mut value, g, &mut scratch)?;
+            Ok::<_, alea_core::model::assembly::AssemblyError>(value[0])
+        })
+        .unwrap();
         let mut out = [0.];
         let mut g = [0.];
         let expected = scalar.logp_grad(&[0.5], &mut g).unwrap();
@@ -142,58 +179,179 @@ fn benchmark(c: &mut Criterion) {
         group.finish();
     }
 }
-fn broadcast_region(n: usize) -> BoundProgram {
+fn broadcast_region(n: usize, width: usize, gather: bool, frozen: bool) -> BoundProgram {
     let mut b = ModelBuilder::new().region();
     let column = b.input("column", Shape::new(vec![n, 1]).unwrap()).unwrap();
-    let row = b.input("row", Shape::new(vec![8]).unwrap()).unwrap();
+    let row_shape = Shape::new(vec![width]).unwrap();
+    let row = if frozen {
+        b.data("row", row_shape).unwrap()
+    } else {
+        b.input("row", row_shape).unwrap()
+    };
+    let (column, row) = if gather {
+        let shape = Shape::new(vec![n, width]).unwrap();
+        (
+            b.gather(
+                column,
+                shape.clone(),
+                (0..n * width).map(|i| i / width).collect(),
+            )
+            .unwrap(),
+            b.gather(row, shape, (0..n * width).map(|i| i % width).collect())
+                .unwrap(),
+        )
+    } else {
+        (column, row)
+    };
     let product = b.binary(B::Multiply, column, row).unwrap();
     let square = b.binary(B::Multiply, product, product).unwrap();
     let out = b.sum(square).unwrap();
-    b.compile(out).unwrap().bind(&[]).unwrap()
+    let program = b.compile(out).unwrap();
+    if frozen {
+        program.bind(&[("row", &vec![0.25; width])]).unwrap()
+    } else {
+        program.bind(&[]).unwrap()
+    }
 }
-// Separate cold planning/emission/allocation from repeated forward and VJP work.
-// Compact metadata reduces storage, but integer indexing may cost hot time;
-// these controls must accompany remote before/after measurements.
+// Retain the original width-eight controls and names. Added cells distinguish
+// compact read maps from explicit (potentially repeated) gather storage.
 fn broadcast_maps(c: &mut Criterion) {
-    for n in [128, 4096, 65_536] {
-        let p = broadcast_region(n);
-        let mut group = c.benchmark_group(format!("tensor_broadcast/{n}"));
-        group.bench_function("plan_bind", |b| {
-            b.iter(|| black_box(broadcast_region(black_box(n))))
-        });
-        group.bench_function("primal_source", |b| b.iter(|| black_box(p.rust_function())));
-        group.bench_function("workspace", |b| b.iter(|| black_box(p.workspace())));
-        let x = vec![0.25; p.dimension()];
-        let mut w = p.workspace();
-        let mut out = [0.];
-        let mut g = vec![0.; x.len()];
-        p.value_and_vjp(&x, &[1.], &mut out, &mut g, &mut w)
-            .unwrap();
-        assert_eq!(out[0], n as f64 / 32.);
-        assert!(g[..n].iter().all(|&v| v == 0.25));
-        assert!(g[n..].iter().all(|&v| v == n as f64 / 32.));
-        group.throughput(Throughput::Elements((8 * n) as u64));
-        group.bench_function("forward", |b| {
-            b.iter(|| {
-                p.evaluate(black_box(&x), black_box(&mut out), &mut w)
+    let shapes = [128, 4096, 65_536].into_iter().map(|n| (n, 8)).chain(
+        [1, 3, 64, 1024, 65_536]
+            .into_iter()
+            .flat_map(|n| [1, 3, 16].into_iter().map(move |width| (n, width))),
+    );
+    for (n, width) in shapes {
+        for gather in [false, true] {
+            let name = if gather {
+                format!("tensor_broadcast_gather/{n}x{width}")
+            } else if width == 8 {
+                format!("tensor_broadcast/{n}")
+            } else {
+                format!("tensor_broadcast/{n}x{width}")
+            };
+            let mut program = None;
+            let plan = allocation_counter::measure(|| {
+                program = Some(broadcast_region(n, width, gather, false));
+            });
+            let p = program.unwrap();
+            let source = p.rust_function().unwrap();
+            let frozen = broadcast_region(n, width, gather, true);
+            let frozen_source = frozen.rust_function().unwrap();
+            let mut workspace = None;
+            let workspace_alloc = allocation_counter::measure(|| workspace = Some(p.workspace()));
+            let mut w = workspace.unwrap();
+            let x = vec![0.25; p.dimension()];
+            let mut out = [0.];
+            let mut g = vec![0.; x.len()];
+            let first = allocation_counter::measure(|| {
+                p.value_and_vjp(&x, &[1.], &mut out, &mut g, &mut w)
                     .unwrap();
-                black_box(out);
-            })
-        });
-        group.bench_function("value_vjp", |b| {
-            b.iter(|| {
-                p.value_and_vjp(
-                    black_box(&x),
+            });
+            // Dense coordinate oracle, independent of map/gather planning.
+            assert_eq!(out[0], (n * width) as f64 / 256.);
+            assert!(g[..n].iter().all(|&v| v == width as f64 / 32.));
+            assert!(g[n..].iter().all(|&v| v == n as f64 / 32.));
+            let mut frozen_out = [0.];
+            let mut frozen_g = vec![0.; n];
+            frozen
+                .value_and_vjp(
+                    &x[..n],
                     &[1.],
-                    black_box(&mut out),
-                    black_box(&mut g),
-                    &mut w,
+                    &mut frozen_out,
+                    &mut frozen_g,
+                    &mut frozen.workspace(),
                 )
                 .unwrap();
-                black_box(&g);
-            })
-        });
-        group.finish();
+            assert_eq!(frozen_out, out);
+            assert_eq!(frozen_g, g[..n]);
+            let steady = allocation_counter::measure(|| {
+                p.value_and_vjp(&x, &[1.], &mut out, &mut g, &mut w)
+                    .unwrap();
+            });
+            assert_eq!(steady.count_total, 0);
+            eprintln!(
+                "ALEA_BROADCAST_STORAGE_V1\t{name}\tplan_owned={}\tsource_runtime={}\tsource_frozen={}\tfrozen_payload={}\tworkspace_budget={}\tworkspace_owned={}\tfirst_allocations={}\tfirst_bytes={}\tsteady_allocations={}\tsteady_bytes={}",
+                plan.bytes_current,
+                source.len(),
+                frozen_source.len(),
+                width * size_of::<f64>(),
+                p.workspace_bytes(),
+                workspace_alloc.bytes_current,
+                first.count_total,
+                first.bytes_total,
+                steady.count_total,
+                steady.bytes_total,
+            );
+            // Existing fixed-work receipt owns optional first/steady timing.
+            // Use a fresh workspace so the first phase includes binding refresh.
+            let mut fresh = p.workspace();
+            let receipt_name = name.replace('/', "_");
+            let fixture = benchmark_support::fixed_work::Fixture {
+                name: &receipt_name,
+                model: benchmark_support::fixed_work::identity(source.as_bytes()),
+                coordinates: benchmark_support::fixed_work::identity(b"column/row-row-major"),
+                query: "constrained-objective",
+                algorithm: "fused-logp-grad",
+                arithmetic: "fixture-default",
+                provider: "rust",
+            };
+            benchmark_support::fixed_work::run(
+                &fixture,
+                "N",
+                &benchmark_support::fixed_work::states(x.len()),
+                Some(usize::try_from(workspace_alloc.bytes_current).unwrap()),
+                |q, g| {
+                    p.value_and_vjp(q, &[1.], &mut out, g, &mut fresh)?;
+                    Ok::<_, alea_core::model::assembly::AssemblyError>(out[0])
+                },
+            )
+            .unwrap();
+            let mut group = c.benchmark_group(name);
+            group.bench_function("plan_bind", |b| {
+                b.iter(|| black_box(broadcast_region(black_box(n), width, gather, false)))
+            });
+            group.bench_function("primal_source", |b| {
+                b.iter(|| black_box(p.rust_function().unwrap()))
+            });
+            group.bench_function("frozen_source", |b| {
+                b.iter(|| black_box(frozen.rust_function().unwrap()))
+            });
+            group.bench_function("workspace", |b| b.iter(|| black_box(p.workspace())));
+            group.throughput(Throughput::Elements((width * n) as u64));
+            group.bench_function("first_value_vjp", |b| {
+                b.iter_batched(
+                    || p.workspace(),
+                    |mut fresh| {
+                        p.value_and_vjp(black_box(&x), &[1.], &mut out, &mut g, &mut fresh)
+                            .unwrap();
+                        black_box(&g);
+                    },
+                    criterion::BatchSize::LargeInput,
+                )
+            });
+            group.bench_function("forward", |b| {
+                b.iter(|| {
+                    p.evaluate(black_box(&x), black_box(&mut out), &mut w)
+                        .unwrap();
+                    black_box(out);
+                })
+            });
+            group.bench_function("value_vjp", |b| {
+                b.iter(|| {
+                    p.value_and_vjp(
+                        black_box(&x),
+                        &[1.],
+                        black_box(&mut out),
+                        black_box(&mut g),
+                        &mut w,
+                    )
+                    .unwrap();
+                    black_box(&g);
+                })
+            });
+            group.finish();
+        }
     }
 }
 criterion_group! {name=benches; config=benchmark_support::criterion().sample_size(30).warm_up_time(Duration::from_millis(500)).measurement_time(Duration::from_secs(2)); targets=benchmark,matrix_kernels,broadcast_maps}

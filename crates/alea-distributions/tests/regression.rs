@@ -1,7 +1,7 @@
 use alea_core::{
     model::{
         ComposedObjective,
-        assembly::{CompiledModel, ModelBuilder},
+        assembly::{ModelBuilder, NativeModel},
     },
     target::LogDensityGradient,
 };
@@ -13,7 +13,7 @@ use alea_distributions::{
 fn data_design() -> Vec<f64> {
     vec![1., -2., 1., 0.5, 1., 3.]
 }
-fn model(family: usize, chunk: usize, scalar: bool) -> CompiledModel {
+fn model(family: usize, chunk: usize, scalar: bool) -> NativeModel {
     let mut b = ModelBuilder::new();
     let beta = [
         b.real("intercept").unwrap().expr(),
@@ -90,7 +90,7 @@ fn model(family: usize, chunk: usize, scalar: bool) -> CompiledModel {
     }
     b.compile().unwrap()
 }
-fn evaluate(m: &ComposedObjective<CompiledModel>, q: &[f64]) -> (f64, Vec<f64>) {
+fn evaluate(m: &ComposedObjective<NativeModel>, q: &[f64]) -> (f64, Vec<f64>) {
     let mut g = vec![0.; q.len()];
     (m.logp_grad(q, &mut g).unwrap(), g)
 }

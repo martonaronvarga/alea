@@ -1,5 +1,5 @@
 //! Explicit predictive partitions over the declared likelihood factors.
-use super::{AssemblyError, BatchLikelihood, BatchUnit, CompiledModel, FactorRole};
+use super::{AssemblyError, BatchLikelihood, BatchUnit, FactorRole, NativeModel};
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
@@ -70,11 +70,11 @@ struct Workspace {
 }
 
 enum Model {
-    Factors(CompiledModel),
+    Factors(NativeModel),
     Batch(BatchLikelihood),
 }
 impl std::ops::Deref for Model {
-    type Target = CompiledModel;
+    type Target = NativeModel;
     fn deref(&self) -> &Self::Target {
         match self {
             Self::Factors(model) => model,
@@ -106,7 +106,7 @@ impl PointwiseLikelihood {
     /// # Errors
     /// Rejects unclassified factors, absent likelihoods, invalid names, incomplete
     /// or overlapping factor/observation assignments and ambiguous conditioning.
-    pub fn new(model: CompiledModel, units: Vec<PredictiveUnit>) -> Result<Self, PointwiseError> {
+    pub fn new(model: NativeModel, units: Vec<PredictiveUnit>) -> Result<Self, PointwiseError> {
         let model = model.select_likelihood()?;
         let factors: HashMap<_, _> = model
             .factor_metadata
@@ -289,12 +289,12 @@ impl PointwiseLikelihood {
     }
 
     /// The original graph, with its likelihood selection active.
-    pub fn model(&self) -> &CompiledModel {
+    pub fn model(&self) -> &NativeModel {
         &self.model
     }
 
     /// Recovers the owned graph; excluded factors remain available for selection.
-    pub fn into_model(self) -> CompiledModel {
+    pub fn into_model(self) -> NativeModel {
         match self.model {
             Model::Factors(model) => model,
             Model::Batch(batch) => batch.into_model(),
@@ -355,15 +355,16 @@ impl PointwiseLikelihood {
             .workspace
             .try_borrow_mut()
             .map_err(|_| AssemblyError::WorkspaceBusy)?;
-        self.model.forward::<true>(parameters, &mut tape)?;
+        tape.ready = None;
+        self.model.forward::<true>(parameters, &mut tape.work)?;
         for (sum, indices) in units.iter_mut().zip(&self.nodes) {
-            *sum = indices.iter().fold(0., |sum, &i| sum + tape.values[i]);
+            *sum = indices.iter().fold(0., |sum, &i| sum + tape.work.values[i]);
         }
         let total: f64 = self
             .model
             .retained_factors()
             .iter()
-            .fold(0., |sum, &i| sum + tape.values[i]);
+            .fold(0., |sum, &i| sum + tape.work.values[i]);
         if !total.is_finite() || units.iter().any(|x| !x.is_finite()) {
             return Err(AssemblyError::Numerical.into());
         }

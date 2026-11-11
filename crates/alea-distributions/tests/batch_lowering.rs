@@ -100,7 +100,7 @@ fn batch_rows_form_explicit_predictive_partitions_without_scalarizing_the_graph(
 fn model(
     family: usize,
 ) -> (
-    alea_core::model::assembly::CompiledModel,
+    alea_core::model::assembly::NativeModel,
     alea_core::model::assembly::Value,
 ) {
     let mut b = ModelBuilder::new();
@@ -217,7 +217,7 @@ fn all_three_rebindings_refresh_pointwise_rows_source_and_scores_without_changin
         let coordinates = model.coordinates();
         let source = model.rust_primal().unwrap();
         let rebound = match family {
-            0 => model.rebind::<NormalRegression>(root, |p| {
+            0 => model.binding().rebind::<NormalRegression>(root, |p| {
                 p.with_data(
                     RegressionData::new(2, p.data().design().to_vec(), vec![1., 2., 3.])
                         .unwrap()
@@ -225,15 +225,21 @@ fn all_three_rebindings_refresh_pointwise_rows_source_and_scores_without_changin
                         .unwrap(),
                 )
             }),
-            1 => model.rebind::<BernoulliLogitRegression>(root, |p| {
-                p.with_data(
-                    RegressionData::new(2, p.data().design().to_vec(), vec![true, false, false])
+            1 => model
+                .binding()
+                .rebind::<BernoulliLogitRegression>(root, |p| {
+                    p.with_data(
+                        RegressionData::new(
+                            2,
+                            p.data().design().to_vec(),
+                            vec![true, false, false],
+                        )
                         .unwrap()
                         .with_offsets(p.data().offsets().to_vec())
                         .unwrap(),
-                )
-            }),
-            _ => model.rebind::<PoissonLogRegression>(root, |p| {
+                    )
+                }),
+            _ => model.binding().rebind::<PoissonLogRegression>(root, |p| {
                 p.with_data(
                     RegressionData::new(2, p.data().design().to_vec(), vec![1, 0, 4])
                         .unwrap()
@@ -242,7 +248,10 @@ fn all_three_rebindings_refresh_pointwise_rows_source_and_scores_without_changin
                 )
             }),
         }
-        .unwrap();
+        .unwrap()
+        .compile()
+        .unwrap()
+        .into_native_model();
         assert_eq!(*coordinates, *rebound.coordinates());
         assert_ne!(source, rebound.rust_primal().unwrap());
         assert!(rebound.graph().any(|n| n.expression == root));
@@ -277,6 +286,7 @@ fn failed_rebind_retains_original_model_and_original_typed_source() {
     let (model, root) = model(0);
     let source = model.rust_primal().unwrap();
     let error = model
+        .binding()
         .rebind::<NormalRegression>(root, |p| {
             p.with_data(
                 RegressionData::new(2, p.data().design().to_vec(), vec![f64::NAN; 3]).unwrap(),
@@ -284,17 +294,17 @@ fn failed_rebind_retains_original_model_and_original_typed_source() {
         })
         .err()
         .unwrap();
-    assert!(matches!(error.source, E::Factor(_)));
-    assert_eq!(error.model.rust_primal().unwrap(), source);
-    let error = error
-        .model
+    assert!(matches!(error, E::Factor(_)));
+    assert_eq!(model.rust_primal().unwrap(), source);
+    let error = model
+        .binding()
         .rebind::<NormalRegression>(root, |p| {
             p.with_data(RegressionData::new(2, vec![1.; 4], vec![0.; 2]).unwrap())
         })
         .err()
         .unwrap();
-    assert!(matches!(error.source, E::Shape));
-    assert_eq!(error.model.rust_primal().unwrap(), source);
+    assert!(matches!(error, E::Shape));
+    assert_eq!(model.rust_primal().unwrap(), source);
 }
 #[test]
 fn opaque_or_algebraic_joint_factors_never_acquire_an_invented_row_partition() {

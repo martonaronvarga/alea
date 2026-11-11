@@ -9,7 +9,7 @@ use alea::{
     ensemble::Execution,
     model::{
         ModelError,
-        assembly::{AssemblyError, CompiledModel, ModelBuilder},
+        assembly::{AssemblyError, ModelBuilder, NativeModel},
     },
     sampling::{NutsOptions, adapt::MetricKind},
     session::{SamplerConfig, SessionBuilder, Warmup, storage::Discard},
@@ -23,7 +23,7 @@ const GROUPS: [(&str, usize, usize); 3] = [("a", 3, 12), ("b", 7, 12), ("c", 10,
 const DIMENSION: usize = 5;
 const DRAWS: usize = 2_000;
 
-fn model() -> Result<CompiledModel, AssemblyError> {
+fn model() -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let mu = b.real("mu")?;
     let log_tau = b.real("log_tau")?;

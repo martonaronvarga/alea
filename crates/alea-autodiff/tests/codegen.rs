@@ -43,7 +43,13 @@ fn native_first_order_rules_do_not_claim_checkpointing_or_replace_higher_ad() {
     .unwrap();
     b.factor(batch).unwrap();
     let model = b.compile().unwrap();
-    assert!(model.rust_checkpoint_gradient(true).unwrap().is_none());
+    assert!(
+        !model
+            .source_first_order(alea_core::model::assembly::SourceMode::Density)
+            .unwrap()
+            .unwrap()
+            .checkpointed
+    );
     let source = enzyme_source(&model).unwrap();
     assert!(source.contains("SOURCE_EXPLICIT_FIRST_ORDER: bool = true"));
     assert!(source.contains("SOURCE_CHECKPOINTED: bool = false"));
@@ -100,8 +106,18 @@ fn compiler_tensor_scores_have_separate_checked_admission_without_changing_value
         .unwrap();
     b.factor(term).unwrap();
     let model = b.compile().unwrap();
-    assert!(model.rust_first_order_gradient(true).unwrap().is_none());
-    let (guard, slots) = model.rust_tensor_score_validation(true).unwrap().unwrap();
+    assert!(
+        model
+            .source_first_order(alea_core::model::assembly::SourceMode::Density)
+            .unwrap()
+            .is_none()
+    );
+    let admission = model
+        .source_score_admission(alea_core::model::assembly::SourceMode::Density)
+        .unwrap()
+        .unwrap();
+    let slots = admission.workspace.elements;
+    let guard = admission.source;
     assert!(slots > 0);
     assert!(guard.contains("fn __tensor"));
     for source in [
@@ -120,10 +136,170 @@ fn compiler_tensor_scores_have_separate_checked_admission_without_changing_value
     let x = plain.real("x").unwrap().expr();
     plain.factor(x).unwrap();
     let plain = plain.compile().unwrap();
-    assert!(plain.rust_tensor_score_validation(true).unwrap().is_none());
+    assert!(
+        plain
+            .source_score_admission(alea_core::model::assembly::SourceMode::Density)
+            .unwrap()
+            .is_none()
+    );
     assert!(
         enzyme_source(&plain)
             .unwrap()
             .contains("SOURCE_TENSOR_SCORE_VALIDATION: bool = false")
     );
+}
+
+#[test]
+fn requests_emit_only_the_selected_entries_and_require_explicit_curvature() {
+    use alea_core::model::assembly::{
+        CurvatureRoute, DerivativeOrder as O, SourceMode, SourceRequest,
+    };
+    let mut b = ModelBuilder::new();
+    let x = b.real("x").unwrap().expr();
+    let term = b.multiply(x, x).unwrap();
+    b.factor(term).unwrap();
+    let model = b.compile().unwrap();
+    for mode in [SourceMode::Density, SourceMode::Objective] {
+        for order in [O::Value, O::First, O::Hvp, O::Third] {
+            let mut request = SourceRequest {
+                mode,
+                order,
+                curvature: CurvatureRoute::Unavailable,
+            };
+            if matches!(order, O::Hvp | O::Third) {
+                assert!(
+                    matches!(alea_autodiff::codegen::source(&model, request), Err(AssemblyError::UnqualifiedDerivative { order: rejected }) if rejected == order)
+                );
+                request.curvature = CurvatureRoute::OriginalCompilerReverse;
+            }
+            assert_eq!(
+                model.source_capabilities().resolve(request).unwrap(),
+                request
+            );
+            let source = alea_autodiff::codegen::source(&model, request).unwrap();
+            assert_eq!(source.contains("autodiff_reverse"), order != O::Value);
+            assert_eq!(
+                source.contains("pub fn target()") || source.contains("pub fn objective()"),
+                order != O::Value
+            );
+            assert_eq!(
+                source.contains("__gradient_jvp"),
+                matches!(order, O::Hvp | O::Third)
+            );
+            assert_eq!(source.contains("__hvp_jvp"), order == O::Third);
+            assert_eq!(
+                source.contains("PotentialHessianDerivative"),
+                order == O::Third
+            );
+            assert_eq!(source.contains("PotentialHessianVector"), order == O::Hvp);
+            if order == O::First {
+                assert!(source.contains("impl ::alea::target::LogDensityGradient"));
+            }
+        }
+    }
+}
+
+#[test]
+fn native_vjp_does_not_qualify_any_source_order() {
+    use alea_core::model::assembly::{
+        CurvatureRoute, DerivativeOrder as O, SourceMode, SourceRequest,
+    };
+    let mut b = ModelBuilder::new();
+    let x = b.real("x").unwrap().expr();
+    let term = b
+        .custom(&[x], |x, g| {
+            g[0] = 1.;
+            Ok(x[0])
+        })
+        .unwrap();
+    b.factor(term).unwrap();
+    let model = b.compile().unwrap();
+    for mode in [SourceMode::Density, SourceMode::Objective] {
+        for order in [O::Value, O::First, O::Hvp, O::Third] {
+            let request = SourceRequest {
+                mode,
+                order,
+                curvature: CurvatureRoute::OriginalCompilerReverse,
+            };
+            assert!(matches!(
+                alea_autodiff::codegen::source(&model, request),
+                Err(AssemblyError::MissingPrimal { .. })
+            ));
+        }
+    }
+}
+
+#[test]
+fn trusted_first_order_source_has_no_root_curvature_reverse() {
+    use alea_core::model::assembly::{CurvatureRoute, DerivativeOrder, SourceMode, SourceRequest};
+    let mut b = ModelBuilder::new();
+    let mu = b.real("mu").unwrap().expr();
+    let sigma = b.positive("sigma").unwrap().expr();
+    let y = b.constant(0.5).unwrap();
+    let term = alea_distributions::modeling::normal(&mut b, y, mu, sigma).unwrap();
+    b.factor(term).unwrap();
+    let model = b.compile().unwrap();
+    for mode in [SourceMode::Density, SourceMode::Objective] {
+        let source = alea_autodiff::codegen::source(
+            &model,
+            SourceRequest {
+                mode,
+                order: DerivativeOrder::First,
+                curvature: CurvatureRoute::Unavailable,
+            },
+        )
+        .unwrap();
+        assert!(source.contains("SOURCE_EXPLICIT_FIRST_ORDER: bool = true"));
+        assert!(!source.contains("__higher_gradient"));
+        assert!(!source.contains("autodiff_forward"));
+        assert!(!source.contains("__hvp"));
+        assert!(!source.contains("PotentialHessian"));
+    }
+}
+
+#[test]
+fn leaf_marker_text_is_preserved_across_every_entry_and_admission_route() {
+    use alea_core::model::assembly::{
+        CurvatureRoute, DerivativeOrder as O, SourceMode, SourceRequest,
+    };
+    const LEAF: &str = r#"let receipt = "__WORKSPACE__ __PUBLIC_TARGET__ __VALIDATION__ __TENSOR_SCORE_VALIDATION__ __CURVATURE_GRADIENT__ __FIRST_ORDER_SOURCE__"; let _=receipt; x[0]*x[0]"#;
+    for trusted in [false, true] {
+        let mut b = ModelBuilder::new();
+        let x = b.real("x").unwrap().expr();
+        let term = b
+            .custom_with_primal(&[x], LEAF, |x, g| {
+                g[0] = 2. * x[0];
+                Ok(x[0] * x[0])
+            })
+            .unwrap();
+        b.factor(term).unwrap();
+        if trusted {
+            let one = b.constant(1.).unwrap();
+            let term = alea_distributions::modeling::normal(&mut b, x, 0., one).unwrap();
+            b.factor(term).unwrap();
+        }
+        let model = b.compile().unwrap();
+        for mode in [SourceMode::Density, SourceMode::Objective] {
+            for order in [O::Value, O::First, O::Hvp, O::Third] {
+                let source = alea_autodiff::codegen::source(
+                    &model,
+                    SourceRequest {
+                        mode,
+                        order,
+                        curvature: CurvatureRoute::OriginalCompilerReverse,
+                    },
+                )
+                .unwrap();
+                assert!(source.contains(LEAF), "leaf changed for {mode:?}/{order:?}");
+                assert_eq!(
+                    source.contains("SOURCE_EXPLICIT_FIRST_ORDER: bool = true"),
+                    trusted && order != O::Value
+                );
+                assert_eq!(
+                    source.contains("pub(super) fn __hvp("),
+                    matches!(order, O::Hvp | O::Third)
+                );
+            }
+        }
+    }
 }

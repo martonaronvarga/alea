@@ -9,7 +9,7 @@ use alea::{
     ensemble::Execution,
     model::{
         ModelError,
-        assembly::{AssemblyError, CompiledModel, ModelBuilder},
+        assembly::{AssemblyError, NativeModel, ModelBuilder},
     },
     sampling::{NutsOptions, adapt::MetricKind},
     session::{SamplerConfig, SessionBuilder, Warmup, storage::Discard},
@@ -17,7 +17,7 @@ use alea::{
 };
 use rand::{SeedableRng, rngs::SmallRng};
 
-fn model(data: &[(usize, WienerObservation)]) -> Result<CompiledModel, AssemblyError> {
+fn model(data: &[(usize, WienerObservation)]) -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let mu = b.real("population_drift")?;
     let z = [b.real("subject_a")?, b.real("subject_b")?];

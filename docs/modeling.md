@@ -15,11 +15,11 @@ prior on the mean and an exponential prior with rate 1 on the scale.
 ```rust
 use alea::distributions::modeling::ModelBuilderExt;
 use alea::{
-    model::assembly::{AssemblyError, CompiledModel},
+    model::assembly::{AssemblyError, NativeModel},
     target::LogDensityGradient,
 };
 
-fn model(observations: &[f64]) -> Result<CompiledModel, AssemblyError> {
+fn model(observations: &[f64]) -> Result<NativeModel, AssemblyError> {
     alea::model! { |builder|
         parameters { mean: real(), scale: positive() }
         {
@@ -67,7 +67,7 @@ convenient place to create it.
 backend. `parameters { mean: real(), scale: positive() }` passes the binding
 names to the existing typed builder methods. The following block is ordinary
 Rust: use loops, conditionals, helper functions and `?`. The macro returns
-`Result<CompiledModel, AssemblyError>` and compiles only after the block succeeds;
+`Result<NativeModel, AssemblyError>` and compiles only after the block succeeds;
 the block's final value must be `()`. It never infers a prior, adds a hidden
 Jacobian, chooses an inference algorithm or runs a sampler. Use the builder
 directly, or `model!(|builder| { ... })`, for explicit/custom declarations.
@@ -93,7 +93,7 @@ error: helpers can leave unused expressions but never attach a failed named term
 a nonempty observation slice. Its graph size is independent of row count, though
 owned data storage remains linear. It declares one **joint factor**, not per-row
 leave-out units. An explicit native batch rule now provides conditional rows via
-`CompiledModel::batch_likelihood()`, and a lazy source rule emits counted Rust
+`NativeModel::batch_likelihood()`, and a lazy source rule emits counted Rust
 loops. Neither route changes the posterior measure or infers marginal leave-out
 units. See [tensor regions and batch lowering](tensor-ir.md).
 
@@ -115,8 +115,10 @@ Each location/scale slice has length one or the observation count. The native
 `NormalBatch` primitive selects packet/scalar execution automatically, caches
 shared scale logarithms, and reuses derivative storage. It keeps one graph node
 for the joint density; conditional rows remain explicit through
-`batch_likelihood()`. Fixed responses can be replaced with the existing consuming
-`CompiledModel::rebind` and `NormalBatch::with_observations` interfaces.
+`batch_likelihood()`. Fixed responses can be replaced through
+`model.binding().rebind::<NormalBatch>(root, |p| p.with_observations(values))`.
+Compile the returned immutable binding and construct a fresh target; the old
+binding and executable remain usable.
 
 For differentiable event vectors, `modeling::normal_batch` accepts event,
 location and scale expression slices with the same broadcasting rule. It does
@@ -196,7 +198,7 @@ merging between components. Explicit `vector`/`annotate` metadata stays explicit
 Native `normal` and `normal_regression` operations retain immutable typed
 descriptors, rather than retaining only executable callbacks. Existing free
 functions, named builder helpers and `model!` all use this same registration path.
-`CompiledModel::graph()` exposes scalar dependencies, constants, factor roots
+`Executable::graph()` exposes scalar dependencies, constants, factor roots
 (including repeated declarations), current-view activity and optional primitive
 metadata. Inspection is a cold operation: input-handle vectors are allocated;
 captured datasets are borrowed, not copied. The retained analytic evaluator does
@@ -403,6 +405,48 @@ Use the layout saved from your compiled model in a real analysis. The predictive
 helper constrains each position before calling your generator. It does not add
 another density weight or Jacobian.
 
+## Reuse an immutable executable
+
+`ModelBuilder::compile()` constructs an owned `NativeModel` for the simple path.
+`finish()` instead returns a shared immutable `ModelDefinition`. Bindings retain
+validated typed descriptors and data; executables retain the binding and compiled
+schedule. Every context owns its mutable buffers, callback workspaces and scalar
+preparation cache. Workspaces must be `Send` when moved with their owner; they
+need not be `Sync` or cloneable.
+
+```rust
+use alea::{model::assembly::ModelBuilder, target::LogDensityGradient};
+use std::sync::Arc;
+let mut builder = ModelBuilder::new();
+let x = builder.positive("x")?;
+let factor = builder.multiply(-1.0, &x)?;
+builder.factor(factor)?;
+let definition = builder.finish()?;
+let binding = definition.bind();
+let executable = Arc::new(binding.compile()?);
+let (mut left, mut right) = (executable.context(), executable.context());
+let (mut g0, mut g1) = ([0.0], [0.0]);
+// Explicit contexts evaluate the constrained function, without chart Jacobians.
+assert_eq!(executable.evaluate(&mut left, &[2.0], &mut g0)?, -2.0);
+assert_eq!(executable.evaluate(&mut right, &[3.0], &mut g1)?, -3.0);
+assert_eq!((g0, g1), ([-1.0], [-1.0]));
+// Each chain's owned adapter shares the executable and owns a fresh context.
+// Sampling coordinates include each chart Jacobian exactly once.
+let target = executable.target()?;
+assert!((target.logp_grad(&[0.0], &mut g0)? + 1.0).abs() < 1e-14);
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+Rebinding borrows a snapshot and returns a new `DataBinding`. Failure or unwind
+leaves the old snapshot intact; recompilation gives a distinct executable
+identity. Its evaluations reject old contexts even if shapes and values match.
+`prepare` and `publish` expose one-use publication of an admitted native score;
+a failed evaluation invalidates older tokens, and errors publish no partial
+caller output. These operations do not provide JVP or curvature capabilities.
+Frozen source export reads the executable's same binding and requires regeneration
+for changed data. It does not update already compiled source functions or provide
+an implicit runtime-data ABI.
+
 ## Supply a custom density
 
 Implement `LogDensityGradient` when you already have a log density and gradient,
@@ -418,8 +462,8 @@ against finite differences before sampling. [Enzyme code generation](enzyme-nati
 is also available for compatible models that need compiled automatic derivatives.
 
 Use `ModelBuilder::custom_with_scratch` for a callback that needs reusable working
-storage. Supply its initial scratch and a callback taking `(inputs, scores, scratch)`.
-The compiled model owns that storage and borrows it exclusively during evaluation.
+storage. Supply a workspace factory and a callback taking `(inputs, scores, scratch)`.
+Each evaluation context owns independent scratch and borrows it exclusively during evaluation.
 Reset every scratch entry you read and write every local score on each successful
 call. Scratch survives errors and unwinding; it must never change the mathematical
 result according to previous calls. Scratch-backed nodes currently have no generated primal and return
@@ -451,10 +495,10 @@ the gradient, without a density-change Jacobian.
 
 ```rust
 use alea::distributions::modeling::normal_observation;
-use alea::model::assembly::{AssemblyError, CompiledModel, ModelBuilder};
+use alea::model::assembly::{AssemblyError, NativeModel, ModelBuilder};
 use alea::target::LogDensityGradient;
 
-fn likelihood() -> Result<CompiledModel, AssemblyError> {
+fn likelihood() -> Result<NativeModel, AssemblyError> {
     let mut b = ModelBuilder::new();
     let mean = b.real("mean")?;
     let sigma = b.positive("sigma")?;
@@ -1625,7 +1669,7 @@ likelihood whose calculation already integrates that effect out. These are
 different prediction questions. Setting a label performs no integration and does
 not establish that units are statistically independent or suitable for LOO.
 
-For targets built with `CompiledModel::into_target`, recover the model after
+For targets built with `NativeModel::into_target`, recover the model after
 fitting with `target.into_model()` and pass it to `PointwiseLikelihood::new`. You can recover it again with `pointwise.into_model()`.
 The evaluator reuses its storage and runs the forward graph once per coordinate
 vector, without reverse propagation. Custom value/VJP callbacks still supply

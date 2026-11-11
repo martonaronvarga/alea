@@ -2,7 +2,7 @@
 use alea_core::{
     model::{
         TransformedTarget,
-        assembly::{CompiledModel, ModelBuilder},
+        assembly::{ModelBuilder, NativeModel},
     },
     target::LogDensityGradient,
 };
@@ -11,7 +11,7 @@ use alea_distributions::modeling::{
     regression::{RegressionData, normal_regression},
 };
 
-fn mixed_effects(chunk: usize) -> TransformedTarget<CompiledModel> {
+fn mixed_effects(chunk: usize) -> TransformedTarget<NativeModel> {
     let mut b = ModelBuilder::new();
     let intercept = b.real("intercept").unwrap();
     let slope = b.real("slope").unwrap();

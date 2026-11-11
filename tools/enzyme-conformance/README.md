@@ -75,3 +75,30 @@ the primal: a zero-direction HVP must not admit a singular score. The regression
 checks typed numerical failures for zero/nonzero directions and valid recovery.
 This replaces primal-only admission and can cost additional reverse work; it
 does not change the sampling gradient path.
+
+The existing `tensor_matrix` target also contains bounded direct-provider probes.
+They call the checked `alea::math::gemm::try_gemm` adapter; they do not enable
+accelerated tensor source export. Faer primal answers run with the normal feature:
+
+```console
+nix develop .#autodiff --command cargo test --manifest-path tools/enzyme-conformance/Cargo.toml --release --locked --features faer --test tensor_matrix
+```
+
+Deliberate compiler/link-failure probes are opt-in cfgs on this test target only:
+
+```console
+nix develop .#autodiff --command cargo rustc --manifest-path tools/enzyme-conformance/Cargo.toml --release --locked --features faer --test tensor_matrix --message-format=json -- --cfg alea_probe_reverse
+# Supply the LP64 OpenBLAS PKG_CONFIG_PATH and LD_LIBRARY_PATH from .#blas:
+nix develop .#autodiff --command cargo rustc --manifest-path tools/enzyme-conformance/Cargo.toml --release --locked --features alea/openblas --test tensor_matrix --message-format=json -- --cfg alea_probe_blas
+# Add --cfg alea_probe_reverse to the previous command for BLAS reverse AD.
+```
+
+A successful `cargo rustc` build is not execution: run the test executable named
+by its JSON compiler-artifact record with `provider_probe --nocapture`, retaining
+the same loader path. Keep each probe's stdout/stderr and exit status separately.
+The pinned Faer reverse probe currently crashes Enzyme type analysis; the BLAS
+reverse probe cannot link `cblas_dlascl`. Both primals pass independent rectangular
+answers. These negative results do not qualify gradients or expand production
+source support. See [the tensor method specification](../../docs/tensor-ir.md)
+for versions, call/ABI visibility and limits. No higher-order derivative or speed
+claim follows; feature forwarding and qualified source lowering remain separate.

@@ -1,9 +1,87 @@
 //! Cold source lowering. No graph, callbacks or reverse tape survives in the primal.
-use super::{AssemblyError, CompiledModel, Op};
+use super::{AssemblyError, Executable, Op};
 use std::fmt::Write;
 mod checkpoint;
 
-impl CompiledModel {
+/// Highest derivative entry point requested from source generation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DerivativeOrder {
+    Value,
+    First,
+    Hvp,
+    Third,
+}
+
+/// Scalar being differentiated, including the choice of chart Jacobian.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceMode {
+    Density,
+    Objective,
+}
+
+/// Explicit curvature route. First-order rules never imply curvature support.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CurvatureRoute {
+    /// No curvature route has been selected or qualified by the caller.
+    Unavailable,
+    /// Retain the original compiler reverse path, independently of trusted or
+    /// checkpointed first-order rules. Requires actual downstream qualification;
+    /// selecting this route is not a claim about arbitrary compiler programs.
+    OriginalCompilerReverse,
+}
+
+/// Source entry points to emit. Lower-order requests do not emit higher entries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SourceRequest {
+    pub mode: SourceMode,
+    pub order: DerivativeOrder,
+    pub curvature: CurvatureRoute,
+}
+
+/// Fixed, explicitly typed mutable f64 source scratch. This excludes compiler tapes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FloatWorkspace {
+    pub elements: usize,
+}
+
+/// Lowered Rust leaf and its checked fixed f64 scratch requirement.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceProgram {
+    pub source: String,
+    pub workspace: FloatWorkspace,
+}
+
+/// Checked factor-local first-order composition and its replay receipt.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FirstOrderSource {
+    pub program: SourceProgram,
+    pub checkpointed: bool,
+    /// Whether generated native helpers require per-target typed state.
+    pub stateful: bool,
+}
+
+impl super::SourceCapabilities {
+    /// Checks source availability and explicit derivative-route selection without
+    /// evaluating callbacks, rendering source, or invoking an external compiler.
+    /// This checks emission eligibility, not numerical/toolchain qualification.
+    /// # Errors
+    /// Reports the first active missing primal, or an unqualified curvature order.
+    pub fn resolve(&self, request: SourceRequest) -> Result<SourceRequest, AssemblyError> {
+        if let Some(value) = self.missing_primals.first() {
+            return Err(AssemblyError::MissingPrimal { node: value.node });
+        }
+        if matches!(request.order, DerivativeOrder::Hvp | DerivativeOrder::Third)
+            && request.curvature == CurvatureRoute::Unavailable
+        {
+            return Err(AssemblyError::UnqualifiedDerivative {
+                order: request.order,
+            });
+        }
+        Ok(request)
+    }
+}
+
+impl Executable {
     pub(super) fn has_primal(&self, node: usize) -> bool {
         self.generated_primals
             .binary_search_by_key(&node, |(i, _)| *i)
@@ -53,32 +131,24 @@ impl CompiledModel {
     }
 
     fn rust_local_primal(&self, density: bool) -> Result<String, AssemblyError> {
-        let (body, workspace) = self.rust_mapped_primal(density)?;
-        Ok(format!("let mut scratch = [0.0_f64; {workspace}];\n{body}"))
+        let program = self.rust_mapped_primal(density)?;
+        Ok(format!(
+            "let mut scratch = [0.0_f64; {}];\n{}",
+            program.workspace.elements, program.source
+        ))
     }
 
-    /// Emits a log-density body and its mutable `f64` scratch element count.
-    /// The caller supplies `q` as for `rust_primal`, plus
-    /// `scratch: &mut [f64; count]`. Scratch is overwritten before use; its input
-    /// values are not model data. Compiler AD must mark this argument duplicated,
-    /// with a zero-initialized shadow. Keeping storage explicitly typed avoids
-    /// nested AD mistaking local byte-initialized buffers for integer data.
+    /// Lowers a density or objective primal with checked fixed f64 scratch.
+    /// The caller supplies `q` and `scratch` with the returned extent. Data is
+    /// frozen into source. Scratch is overwritten and must have a zero shadow
+    /// when compiler-differentiated. No callbacks or reverse tape survive here.
     /// # Errors
     /// Rejects missing primals or overflowing combined scratch storage.
-    pub fn rust_primal_with_workspace(&self) -> Result<(String, usize), AssemblyError> {
-        self.rust_mapped_primal(true)
+    pub fn source_primal(&self, mode: SourceMode) -> Result<SourceProgram, AssemblyError> {
+        self.rust_mapped_primal(mode == SourceMode::Density)
     }
 
-    /// Workspace-explicit equivalent of `rust_objective_primal`, without a
-    /// transform Jacobian. Uses the same scratch contract as
-    /// `rust_primal_with_workspace`.
-    /// # Errors
-    /// Rejects missing primals or overflowing combined scratch storage.
-    pub fn rust_objective_primal_with_workspace(&self) -> Result<(String, usize), AssemblyError> {
-        self.rust_mapped_primal(false)
-    }
-
-    fn rust_mapped_primal(&self, density: bool) -> Result<(String, usize), AssemblyError> {
+    fn rust_mapped_primal(&self, density: bool) -> Result<SourceProgram, AssemblyError> {
         let mut source = String::new();
         let mut workspace = 0_usize;
         if density {
@@ -146,7 +216,12 @@ impl CompiledModel {
         } else {
             "total\n"
         });
-        Ok((source, workspace))
+        Ok(SourceProgram {
+            source,
+            workspace: FloatWorkspace {
+                elements: workspace,
+            },
+        })
     }
 
     /// Emits a boolean function body for cold/opaque numerical admission checks.

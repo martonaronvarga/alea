@@ -5,7 +5,7 @@ use alea::{
     math::buffer::OwnedBuffer,
     model::{
         TransformedTarget,
-        assembly::{CompiledModel, ModelBuilder},
+        assembly::{ModelBuilder, NativeModel},
         tensor::{BinaryOp, Comparison, Shape},
     },
     sampling::{
@@ -16,7 +16,7 @@ use alea::{
 };
 use rand::{SeedableRng, rngs::SmallRng};
 
-fn target() -> TransformedTarget<CompiledModel> {
+fn target() -> TransformedTarget<NativeModel> {
     let mut b = ModelBuilder::new();
     let q = b.real("q").unwrap();
     let mut tensor = b.region();

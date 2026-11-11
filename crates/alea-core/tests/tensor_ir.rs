@@ -174,11 +174,16 @@ fn broadcast_source_is_compact_and_rebinding_preserves_error_staging() {
         let out = b.binary(B::Divide, a, r).unwrap();
         b.compile(out).unwrap()
     };
-    let small = build(16).bind(&[("r", &[1.; 16])]).unwrap().rust_function();
+    let small = build(16)
+        .bind(&[("r", &[1.; 16])])
+        .unwrap()
+        .rust_function()
+        .unwrap();
     let large = build(4096)
         .bind(&[("r", &[1.; 4096])])
         .unwrap()
-        .rust_function();
+        .rust_function()
+        .unwrap();
     // Data literals still scale with data; regular maps must not add literals.
     assert!(small.contains("j%16"));
     assert!(large.contains("j%4096"));
@@ -446,7 +451,7 @@ fn condition_is_lazy_in_both_passes_and_failures_do_not_publish_or_poison_recove
     }
     check_vjp(&program, &[2.], &[1.]);
     check_vjp(&program, &[-2.], &[1.]);
-    assert!(program.rust_function().contains("else {no"));
+    assert!(program.rust_function().unwrap().contains("else {no"));
 }
 
 #[test]
@@ -572,7 +577,7 @@ fn structured_scan_has_constant_graph_size_correct_capture_gradients_and_zero_tr
             .unwrap();
         assert!((out[0] - expected.iter().sum::<f64>()).abs() < 1e-12);
         check_vjp(&program, &x, &[1.]);
-        let source = program.rust_function();
+        let source = program.rust_function().unwrap();
         assert_eq!(
             source.contains(&format!("for step in 0..{steps}")),
             steps != 0
@@ -622,7 +627,10 @@ fn checkpointed_scan_preserves_nonlinear_vjp_rebinding_errors_and_allocation_bud
             .unwrap()
             .bind(&[("rows", &data)])
             .unwrap();
-        assert_eq!(bound.rust_function(), plain.rust_function());
+        assert_eq!(
+            bound.rust_function().unwrap(),
+            plain.rust_function().unwrap()
+        );
         eprintln!(
             "checkpoint scan steps={steps}: native budget {} -> {} bytes",
             plain.workspace_bytes(),
@@ -842,13 +850,20 @@ fn binding_snapshots_share_plan_and_rebinding_requires_consuming_the_compiled_mo
     b.potential("objective", factor).unwrap();
     let model = b.compile().unwrap();
     let source = model.rust_primal().unwrap();
-    let error = model.rebind_region(factor, "weights", &[0.]).err().unwrap();
-    assert!(matches!(error.source, E::Shape));
-    assert_eq!(error.model.rust_primal().unwrap(), source);
-    let model = error
-        .model
-        .rebind_region(factor, "weights", &[3., 2., 1.])
+    let error = model
+        .binding()
+        .rebind_region(factor, "weights", &[0.])
+        .err()
         .unwrap();
+    assert!(matches!(error, E::Shape));
+    assert_eq!(model.rust_primal().unwrap(), source);
+    let model = model
+        .binding()
+        .rebind_region(factor, "weights", &[3., 2., 1.])
+        .unwrap()
+        .compile()
+        .unwrap()
+        .into_native_model();
     assert_ne!(model.rust_primal().unwrap(), source);
     let target = model.into_target().unwrap();
     let mut g = [0.; 3];
@@ -955,7 +970,7 @@ fn empty_matrix_does_no_outer_loop_work_and_empty_scan_metadata_overflow_is_reje
     let p = b.compile(result).unwrap().bind(&[]).unwrap();
     p.value_and_vjp(&[], &[], &mut [], &mut [], &mut p.workspace())
         .unwrap();
-    assert!(!p.rust_function().contains("for row"));
+    assert!(!p.rust_function().unwrap().contains("for row"));
 
     let mut body = ModelBuilder::new().region();
     let carry = body.input("carry", shape(&[0])).unwrap();
@@ -1251,12 +1266,342 @@ fn model_matrix_edges_preserve_parameter_chart_and_rebind_named_data() {
     let mut g = [0.; 2];
     assert_eq!(model.logp_grad(&[2., 3.], &mut g).unwrap(), 26.);
     assert_eq!(g, [4., 6.]);
-    let err = model.rebind_region(design, "X", &[0.]).err().unwrap();
-    assert!(matches!(err.source, E::Shape));
-    let model = err
-        .model
-        .rebind_region(design, "X", &[1., 0., 0., 1.])
+    let err = model
+        .binding()
+        .rebind_region(design, "X", &[0.])
+        .err()
         .unwrap();
+    assert!(matches!(err, E::Shape));
+    let model = model
+        .binding()
+        .rebind_region(design, "X", &[1., 0., 0., 1.])
+        .unwrap()
+        .compile()
+        .unwrap()
+        .into_native_model();
     assert_eq!(model.logp_grad(&[2., 3.], &mut g).unwrap(), 5.);
     assert_eq!(g, [1., 1.]);
+}
+
+#[test]
+fn executable_broadcast_grid_matches_dense_coordinates_across_contexts_and_immutable_rebinds() {
+    // A dense Cartesian oracle, independent of Map and its run/index renderer.
+    let oracle = |rank, n, width, inverse, q: [f64; 2], data: &[f64]| {
+        let lanes = if rank == 3 { 3 } else { 1 };
+        let (mut value, mut score) = (0., [0.; 2]);
+        for i in 0..n {
+            for &r in data.iter().take(width) {
+                for k in 0..lanes {
+                    let slot = (i * lanes + k) % 2;
+                    let z = if inverse { r / q[slot] } else { q[slot] / r };
+                    value += z * z;
+                    score[slot] += if inverse {
+                        -2. * z * z / q[slot]
+                    } else {
+                        2. * z / r
+                    };
+                }
+            }
+        }
+        (value, score)
+    };
+    for rank in [2, 3] {
+        for (n, width) in [(0, 3), (1, 0), (1, 1), (3, 3), (17, 3)] {
+            for inverse in [false, true] {
+                let data: Vec<_> = (0..width).map(|j| [1., 2., 4.][j % 3]).collect();
+                let mut model = ModelBuilder::new();
+                let parameters = model.real_vector("q", &["a", "b"]).unwrap();
+                let q = model.vector_value(&parameters, shape(&[2])).unwrap();
+                let mut region = model.region();
+                let input = region.input("q", shape(&[2])).unwrap();
+                let lanes = if rank == 3 { 3 } else { 1 };
+                let left_shape = if rank == 3 {
+                    shape(&[n, 1, 3])
+                } else {
+                    shape(&[n, 1])
+                };
+                let right_shape = if rank == 3 {
+                    shape(&[1, width, 1])
+                } else {
+                    shape(&[1, width])
+                };
+                let left = region
+                    .gather(input, left_shape, (0..n * lanes).map(|i| i % 2).collect())
+                    .unwrap();
+                let right = region.data("r", right_shape.clone()).unwrap();
+                let value = if inverse {
+                    region.binary(B::Divide, right, left)
+                } else {
+                    region.binary(B::Divide, left, right)
+                }
+                .unwrap();
+                let alias = region
+                    .reshape(value, region.value_shape(value).unwrap().clone())
+                    .unwrap();
+                let square = region.binary(B::Multiply, value, alias).unwrap();
+                let sum = region.sum(square).unwrap();
+                let program = region.compile(sum).unwrap().bind(&[("r", &data)]).unwrap();
+                let root = model.call_region(&[q], program).unwrap();
+                model.factor(root).unwrap();
+                let definition = model.finish().unwrap();
+                let binding = definition.bind();
+                let executable = binding.compile().unwrap();
+                let (mut a, mut b) = (executable.context(), executable.context());
+                for (point, context) in [([0.5, 1.5], &mut a), ([-0.5, -1.5], &mut b)] {
+                    let expected = oracle(rank, n, width, inverse, point, &data);
+                    let mut g = [19.; 2];
+                    let value = executable.evaluate(context, &point, &mut g).unwrap();
+                    assert!((value - expected.0).abs() < 1e-12 * (1. + expected.0.abs()));
+                    for (x, y) in g.into_iter().zip(expected.1) {
+                        assert!((x - y).abs() < 1e-12 * (1. + y.abs()));
+                    }
+                }
+                // Whole model calls remain native-only; do not infer source AD
+                // from this successful native map/call path.
+                assert!(matches!(
+                    executable.rust_primal(),
+                    Err(E::MissingPrimal { .. })
+                ));
+                assert!(matches!(
+                    binding.rebind_region(root, "r", &vec![1.; width + 1]),
+                    Err(E::Shape)
+                ));
+                if width > 0 {
+                    assert!(
+                        binding
+                            .rebind_region(root, "r", &vec![f64::NAN; width])
+                            .is_err()
+                    );
+                    let changed: Vec<_> = data.iter().map(|r| 2. * r).collect();
+                    let replacement = binding
+                        .rebind_region(root, "r", &changed)
+                        .unwrap()
+                        .compile()
+                        .unwrap();
+                    let mut g = [19.; 2];
+                    assert!(matches!(
+                        replacement.evaluate(&mut a, &[0.5, 1.5], &mut g),
+                        Err(E::ContextMismatch)
+                    ));
+                    assert_eq!(g, [19.; 2]);
+                    let mut context = replacement.context();
+                    let expected = oracle(rank, n, width, inverse, [0.5, 1.5], &changed);
+                    let value = replacement
+                        .evaluate(&mut context, &[0.5, 1.5], &mut g)
+                        .unwrap();
+                    assert!((value - expected.0).abs() < 1e-12 * (1. + expected.0.abs()));
+                    for (x, y) in g.into_iter().zip(expected.1) {
+                        assert!((x - y).abs() < 1e-12 * (1. + y.abs()));
+                    }
+                    if !inverse && n > 0 {
+                        let mut bad = data.clone();
+                        bad[0] = 0.;
+                        let invalid = binding
+                            .rebind_region(root, "r", &bad)
+                            .unwrap()
+                            .compile()
+                            .unwrap();
+                        let mut bad_context = invalid.context();
+                        let mut g = [19.; 2];
+                        assert!(matches!(
+                            invalid.evaluate(&mut bad_context, &[0.5, 1.5], &mut g),
+                            Err(E::Numerical)
+                        ));
+                        assert_eq!(g, [19.; 2]);
+                    }
+                }
+                let mut g = [19.; 2];
+                let expected = oracle(rank, n, width, inverse, [0.5, 1.5], &data);
+                assert!(
+                    (executable.evaluate(&mut a, &[0.5, 1.5], &mut g).unwrap() - expected.0).abs()
+                        < 1e-12 * (1. + expected.0.abs())
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn executable_lazy_broadcast_admits_selected_intermediates_even_for_empty_or_zero_weight_results() {
+    for empty in [false, true] {
+        for zero_weight in [false, true] {
+            let branch = |negative| {
+                let mut b = ModelBuilder::new().region();
+                let x = b.input("x", Shape::scalar()).unwrap();
+                let positive = if negative {
+                    b.unary(U::Neg, x).unwrap()
+                } else {
+                    x
+                };
+                let log = b.unary(U::Log, positive).unwrap();
+                let rows = if empty {
+                    b.constant(shape(&[0, 3]), vec![]).unwrap()
+                } else {
+                    b.constant(shape(&[1, 3]), vec![1., 2., 3.]).unwrap()
+                };
+                let values = b.binary(B::Add, log, rows).unwrap();
+                let out = b.sum(values).unwrap();
+                b.compile(out).unwrap().bind(&[]).unwrap()
+            };
+            let mut model = ModelBuilder::new();
+            let x = model.real("x").unwrap().expr();
+            let mut region = model.region();
+            let input = region.input("x", Shape::scalar()).unwrap();
+            let zero = region.constant(Shape::scalar(), vec![0.]).unwrap();
+            let value = region
+                .cond(
+                    input,
+                    zero,
+                    Comparison::Less,
+                    &[input],
+                    branch(true),
+                    branch(false),
+                )
+                .unwrap();
+            let region = region.compile(value).unwrap().bind(&[]).unwrap();
+            let value = model.call_region(&[x], region).unwrap();
+            let value = if zero_weight {
+                model.multiply(value, 0.).unwrap()
+            } else {
+                value
+            };
+            model.factor(value).unwrap();
+            let executable = model.finish().unwrap().bind().compile().unwrap();
+            let mut context = executable.context();
+            for point in [-0.5_f64, 0.5] {
+                let mut g = [19.];
+                let expected = if empty || zero_weight {
+                    0.
+                } else {
+                    3. * point.abs().ln() + 6.
+                };
+                assert!(
+                    (executable.evaluate(&mut context, &[point], &mut g).unwrap() - expected).abs()
+                        < 1e-12
+                );
+                assert_eq!(g, [if empty || zero_weight { 0. } else { 3. / point }]);
+                let mut g = [19.];
+                assert!(matches!(
+                    executable.evaluate(&mut context, &[0.], &mut g),
+                    Err(E::Numerical)
+                ));
+                assert_eq!(g, [19.]);
+            }
+            assert!(
+                executable
+                    .evaluate(&mut context, &[0.5], &mut [19.])
+                    .is_ok()
+            );
+        }
+    }
+}
+
+#[test]
+#[allow(clippy::single_element_loop)] // Optional providers extend this matrix.
+fn matrix_source_capability_preserves_the_requested_provider_recursively() {
+    use alea_core::model::ConstrainedModel;
+    use alea_core::model::tensor::{BoundProgram, MatrixKernel};
+    for kernel in [
+        MatrixKernel::Compensated,
+        #[cfg(any(feature = "faer", feature = "openblas"))]
+        MatrixKernel::Auto,
+        #[cfg(feature = "faer")]
+        MatrixKernel::Faer,
+        #[cfg(feature = "openblas")]
+        MatrixKernel::Blas,
+    ] {
+        let supported = kernel == MatrixKernel::Compensated;
+        let build = |scan_body| {
+            let mut b = ModelBuilder::new().region();
+            let x = b.input("x", Shape::scalar()).unwrap();
+            if scan_body {
+                let _ = b.input("row", Shape::scalar()).unwrap();
+            }
+            let a = b.reshape(x, shape(&[1, 1])).unwrap();
+            let product = b.matmul_with_kernel(a, a, kernel).unwrap();
+            let result = b.sum(product).unwrap();
+            b.compile(result).unwrap().bind(&[]).unwrap()
+        };
+        let check =
+            |p: BoundProgram, dimension: usize, expected: f64, derivative: f64, source: bool| {
+                let mut out = [19.];
+                let mut g = vec![19.; dimension];
+                p.value_and_vjp(
+                    &vec![2.; dimension],
+                    &[1.],
+                    &mut out,
+                    &mut g,
+                    &mut p.workspace(),
+                )
+                .unwrap();
+                assert_eq!(out, [expected]);
+                assert_eq!(g[0], derivative);
+                if source {
+                    assert!(p.rust_function().unwrap().contains("tensor_region"));
+                } else {
+                    assert!(matches!(p.rust_function(), Err(E::MissingPrimal { .. })));
+                }
+                // The scalar-result adapter must advertise the same capability for
+                // primal and explicit checkpoint/first-order source routes.
+                let mut model = ModelBuilder::new();
+                let inputs: Vec<_> = (0..dimension)
+                    .map(|i| model.real(&format!("x{i}")).unwrap().expr())
+                    .collect();
+                let root = model.apply_region(&inputs, p).unwrap();
+                model.factor(root).unwrap();
+                let model = model.compile().unwrap();
+                assert_eq!(model.source_capabilities().supports_rust_primal(), source);
+                assert_eq!(model.rust_primal().is_ok(), source);
+                if !source {
+                    assert!(!matches!(
+                        model.source_first_order(alea_core::model::assembly::SourceMode::Density),
+                        Ok(Some(_))
+                    ));
+                }
+                assert_eq!(
+                    model.logp_grad(&vec![2.; dimension], &mut g).unwrap(),
+                    expected
+                );
+            };
+        check(build(false), 1, 4., 4., supported);
+        // Neither a lazy branch nor replay may hide a missing provider lowering.
+        let mut outer = ModelBuilder::new().region();
+        let x = outer.input("x", Shape::scalar()).unwrap();
+        let zero = outer.constant(Shape::scalar(), vec![0.]).unwrap();
+        let root = outer
+            .cond(x, zero, Comparison::Less, &[x], build(false), build(false))
+            .unwrap();
+        check(
+            outer.compile(root).unwrap().bind(&[]).unwrap(),
+            1,
+            4.,
+            4.,
+            supported,
+        );
+        for steps in [0, 1] {
+            for checkpoint in [false, true] {
+                let mut outer = ModelBuilder::new().region();
+                let x = outer.input("x", Shape::scalar()).unwrap();
+                let rows = outer.constant(shape(&[steps]), vec![0.; steps]).unwrap();
+                let result = if checkpoint {
+                    outer.checkpointed_scan(x, rows, &[], build(true)).unwrap()
+                } else {
+                    outer.scan(x, rows, &[], build(true)).unwrap()
+                };
+                check(
+                    outer.compile(result).unwrap().bind(&[]).unwrap(),
+                    1,
+                    if steps == 0 { 2. } else { 4. },
+                    if steps == 0 { 1. } else { 4. },
+                    supported || steps == 0,
+                );
+            }
+        }
+        // An unreachable matrix node does not remove the selected root's source.
+        let mut b = ModelBuilder::new().region();
+        let x = b.input("x", Shape::scalar()).unwrap();
+        let a = b.reshape(x, shape(&[1, 1])).unwrap();
+        let _ = b.matmul_with_kernel(a, a, kernel).unwrap();
+        check(b.compile(x).unwrap().bind(&[]).unwrap(), 1, 2., 1., true);
+    }
 }

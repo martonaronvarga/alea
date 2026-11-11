@@ -17,7 +17,7 @@ use alea_distributions::modeling::{
 // rebuilding targets that could accidentally have different constants/priors.
 mod query_chart_reporting {
     use super::*;
-    use alea_core::model::assembly::{CompiledModel, PointwiseLikelihood, PredictiveUnit};
+    use alea_core::model::assembly::{NativeModel, PointwiseLikelihood, PredictiveUnit};
     use alea_distributions::modeling::bernoulli_logit;
 
     #[derive(Clone, Copy)]
@@ -28,7 +28,7 @@ mod query_chart_reporting {
         General,
     }
     impl View {
-        fn select(self, model: CompiledModel) -> CompiledModel {
+        fn select(self, model: NativeModel) -> NativeModel {
             match self {
                 Self::Prior => model.select_prior().unwrap(),
                 Self::Likelihood => model.select_likelihood().unwrap(),
@@ -38,7 +38,7 @@ mod query_chart_reporting {
         }
     }
 
-    fn definition(potential: bool) -> CompiledModel {
+    fn definition(potential: bool) -> NativeModel {
         let mut b = ModelBuilder::new();
         let beta = b.real("beta").unwrap();
         let amplitude = b.positive("amplitude").unwrap();
@@ -317,7 +317,7 @@ fn generic_observation_uses_the_fused_parameter_only_entry_once() {
 
 #[test]
 fn shared_normal_preparation_matches_scalar_callbacks_and_preserves_first_failure() {
-    fn model(shared: bool) -> alea_core::model::assembly::CompiledModel {
+    fn model(shared: bool) -> alea_core::model::assembly::NativeModel {
         let mut b = ModelBuilder::new();
         let x = b.real("x").unwrap().expr();
         let sigma = b.real("sigma").unwrap().expr();
@@ -371,7 +371,7 @@ fn data(rows: usize) -> RegressionData<f64> {
     .with_offsets((0..rows).map(|i| i as f64 / 10.).collect())
     .unwrap()
 }
-fn regression(native: bool, rows: usize) -> alea_core::model::assembly::CompiledModel {
+fn regression(native: bool, rows: usize) -> alea_core::model::assembly::NativeModel {
     let mut b = ModelBuilder::new();
     let beta = [b.real("a").unwrap().expr(), b.real("b").unwrap().expr()];
     let sigma = b.positive("sigma").unwrap();
@@ -381,10 +381,13 @@ fn regression(native: bool, rows: usize) -> alea_core::model::assembly::Compiled
     } else {
         let primitive = NormalRegression::new(d).unwrap();
         let inputs = [&beta[..], &[sigma.expr()]].concat();
-        let workspace = primitive.workspace();
-        b.custom_with_scratch(&inputs, workspace, move |x, g, w| {
-            primitive.evaluate(x, g, w)
-        })
+        let primitive = std::sync::Arc::new(primitive);
+        let binding = std::sync::Arc::clone(&primitive);
+        b.custom_with_scratch(
+            &inputs,
+            move || binding.workspace(),
+            move |x, g, w| primitive.evaluate(x, g, w),
+        )
         .unwrap()
     };
     b.likelihood("observations", f).unwrap();

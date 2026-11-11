@@ -2,13 +2,13 @@
 //! native primitive/kernel. No reimplemented probability or sampler arithmetic.
 use alea_core::model::{
     ConstrainedModel,
-    assembly::{CompiledModel, ModelBuilder},
+    assembly::{ModelBuilder, NativeModel},
 };
 use alea_distributions::modeling::regression::{NormalRegression, RegressionData};
 use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use std::time::Duration;
 
-fn build(data: RegressionData<f64>, semantic: bool) -> CompiledModel {
+fn build(data: RegressionData<f64>, semantic: bool) -> NativeModel {
     let mut b = ModelBuilder::new();
     let beta = [
         b.real("intercept").unwrap().expr(),
@@ -20,10 +20,13 @@ fn build(data: RegressionData<f64>, semantic: bool) -> CompiledModel {
     let f = if semantic {
         b.primitive(&inputs, primitive).unwrap()
     } else {
-        let scratch = primitive.workspace();
-        b.custom_with_scratch(&inputs, scratch, move |x, g, scratch| {
-            primitive.evaluate(x, g, scratch)
-        })
+        let primitive = std::sync::Arc::new(primitive);
+        let binding = std::sync::Arc::clone(&primitive);
+        b.custom_with_scratch(
+            &inputs,
+            move || binding.workspace(),
+            move |x, g, scratch| primitive.evaluate(x, g, scratch),
+        )
         .unwrap()
     };
     b.likelihood("data", f).unwrap();

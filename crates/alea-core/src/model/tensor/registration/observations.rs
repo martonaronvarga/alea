@@ -220,6 +220,23 @@ mod tests {
         }
         (value, gradient)
     }
+    // Exercise the production owned adapter; the old lifecycle-only target is removed.
+    fn target(
+        program: &TensorProgram,
+        data: &[(&str, &[f64])],
+    ) -> Result<impl crate::target::LogDensityGradient + use<>, E> {
+        let binding = program.bind(data)?;
+        let mut builder = crate::model::assembly::ModelBuilder::new();
+        let inputs = (0..binding.dimension())
+            .map(|i| builder.real(&format!("x{i}")).map(|x| x.expr()))
+            .collect::<Result<Vec<_>, _>>()?;
+        let output = builder.apply_region(&inputs, binding)?;
+        builder.factor(output)?;
+        Ok(builder
+            .compile()?
+            .into_target()
+            .expect("builder's identity layout"))
+    }
     fn scalar(design: &[f64], family: u8) -> impl alea::target::LogDensityGradient {
         let (_, events, binary) = data(design.len() / 2);
         let mut b = ModelBuilder::new();
@@ -256,7 +273,7 @@ mod tests {
                 let (p, calls) = build(n, family);
                 assert_eq!(*nodes.get_or_insert(p.node_count()), p.node_count());
                 let bound = p.bind(&[("design", &design)]).unwrap();
-                let target = p.native_target(&[("design", &design)]).unwrap();
+                let target = target(&p, &[("design", &design)]).unwrap();
                 let scalar = scalar(&design, family);
                 for q in [[0.3, -0.7, -0.2], [-1.2, 0.8, 0.4], [0., 0., 0.]] {
                     let before = calls.load(Ordering::Relaxed);
@@ -350,7 +367,7 @@ mod tests {
         ));
         for family in [1, 2, 3] {
             let (p, calls) = build(0, family);
-            let target = p.native_target(&[("design", &[])]).unwrap();
+            let target = target(&p, &[("design", &[])]).unwrap();
             let mut g = [17.; 3];
             assert_eq!(target.logp_grad(&[0., 0., 0.], &mut g).unwrap(), 0.);
             assert_eq!(g, [0.; 3]);
@@ -366,7 +383,7 @@ mod tests {
         .unwrap();
         let value = b.sum(value).unwrap();
         let p = b.compile(value).unwrap();
-        let target = p.native_target(&[]).unwrap();
+        let target = target(&p, &[]).unwrap();
         let mut g = [17.];
         let lp = target.logp_grad(&[1.2], &mut g).unwrap();
         let expected: f64 = [0.2, -0.3, 0.7]

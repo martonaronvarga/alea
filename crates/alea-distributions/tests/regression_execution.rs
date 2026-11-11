@@ -337,10 +337,14 @@ fn plans_are_inspectable_through_graph_descriptors_and_rebinding_preserves_polic
         // Same shape, different packing decision: old unit-column optimization
         // cannot survive an offset replacement.
         let m = m
+            .binding()
             .rebind::<NormalRegression>(root, |p| {
                 p.with_data(p.data().clone().with_offsets(vec![0.5; 5]).unwrap())
             })
-            .unwrap();
+            .unwrap()
+            .compile()
+            .unwrap()
+            .into_native_model();
         let descriptor = m
             .graph()
             .find(|n| n.expression == root)
@@ -355,14 +359,14 @@ fn plans_are_inspectable_through_graph_descriptors_and_rebinding_preserves_polic
         assert_eq!(plan.packed_design_bytes(), 2 * 4 * size_of::<f64>());
         assert_ne!(source, m.rust_primal().unwrap());
         let failure = m
+            .binding()
             .rebind::<NormalRegression>(root, |p| {
                 p.with_data(RegressionData::new(1, vec![1.; 4], vec![0.; 4]).unwrap())
             })
             .err()
             .unwrap();
-        assert!(matches!(failure.source, E::Shape));
-        let descriptor = failure
-            .model
+        assert!(matches!(failure, E::Shape));
+        let descriptor = m
             .graph()
             .find(|n| n.expression == root)
             .unwrap()
@@ -371,7 +375,7 @@ fn plans_are_inspectable_through_graph_descriptors_and_rebinding_preserves_polic
             .descriptor::<NormalRegression>()
             .unwrap();
         assert_eq!(descriptor.execution_plan().execution(), execution);
-        let target = failure.model.into_target().unwrap();
+        let target = m.into_target().unwrap();
         let mut gradient = [0.; 2];
         assert!(
             target

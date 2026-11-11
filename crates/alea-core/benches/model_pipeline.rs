@@ -147,8 +147,12 @@ fn pipeline(c: &mut Criterion) {
                         |(model, expression, y)| {
                             black_box(
                                 model
+                                    .binding()
                                     .rebind::<NormalBatch>(expression, |p| p.with_observations(y))
-                                    .unwrap(),
+                                    .unwrap()
+                                    .compile()
+                                    .unwrap()
+                                    .into_native_model(),
                             )
                         },
                         BatchSize::SmallInput,
@@ -170,6 +174,21 @@ fn pipeline(c: &mut Criterion) {
                     })
                 });
             }
+            use benchmark_support::fixed_work::{self, Fixture};
+            let bank = fixed_work::states(2);
+            let model_id = fixed_work::identity(model.rust_primal().unwrap().as_bytes());
+            let coordinates = fixed_work::identity(format!("{:?}", model.coordinates()).as_bytes());
+            let fixture_name = format!("pipeline_{name}_{rows}_constrained");
+            let fixture = Fixture {
+                name: &fixture_name,
+                model: model_id,
+                coordinates,
+                query: "constrained-density",
+                algorithm: "fused-logp-grad",
+                arithmetic: "fixture-default",
+                provider: "rust",
+            };
+            fixed_work::run(&fixture, "N", &bank, None, |q, g| model.logp_grad(q, g)).unwrap();
             let mut g = [0.; 2];
             let q = [0.2, 1.3]; // Constrained scale for model-only evaluation.
             assert!(model.logp_grad(&q, &mut g).unwrap().is_finite());
@@ -177,6 +196,13 @@ fn pipeline(c: &mut Criterion) {
                 b.iter(|| black_box(model.logp_grad(black_box(&q), black_box(&mut g)).unwrap()))
             });
             let target = model.into_target().unwrap();
+            let fixture_name = format!("pipeline_{name}_{rows}_unconstrained");
+            let fixture = Fixture {
+                name: &fixture_name,
+                query: "density/current-factor-selection",
+                ..fixture
+            };
+            fixed_work::run(&fixture, "N", &bank, None, |q, g| target.logp_grad(q, g)).unwrap();
             let q = [0.2, 1.3_f64.ln()];
             assert!(target.logp_grad(&q, &mut g).unwrap().is_finite());
             group.bench_function("unconstrained_value_gradient_reused", |b| {
