@@ -245,20 +245,20 @@ fn matrix_block_vjp_matches_finite_differences_and_exact_product() {
 
 #[test]
 fn matrix_kernel_policies_preserve_products_vjps_aliases_and_error_recovery() {
-    use alea_core::model::tensor::MatrixKernel;
+    use alea_core::model::tensor::{MatrixProvider, MatrixRequest};
     for kernel in [
-        MatrixKernel::Compensated,
+        MatrixRequest::default(),
         #[cfg(any(feature = "faer", feature = "openblas"))]
-        MatrixKernel::Auto,
+        MatrixRequest::standard(MatrixProvider::Auto),
         #[cfg(feature = "faer")]
-        MatrixKernel::Faer,
+        MatrixRequest::standard(MatrixProvider::Faer),
         #[cfg(feature = "openblas")]
-        MatrixKernel::Blas,
+        MatrixRequest::standard(MatrixProvider::Blas),
     ] {
         let mut b = ModelBuilder::new().region();
         let a = b.input("a", shape(&[2, 3])).unwrap();
         let r = b.data("r", shape(&[3, 2])).unwrap();
-        let out = b.matmul_with_kernel(a, r, kernel).unwrap();
+        let out = b.matmul_with_request(a, r, kernel).unwrap();
         // A direct path contributes existing adjoints before matrix reversal.
         let extra = b.sum(a).unwrap();
         let sum = b.sum(out).unwrap();
@@ -292,7 +292,7 @@ fn matrix_kernel_policies_preserve_products_vjps_aliases_and_error_recovery() {
             } else {
                 b.input("r", shape(&[2, 2])).unwrap()
             };
-            let out = b.matmul_with_kernel(a, r, kernel).unwrap();
+            let out = b.matmul_with_request(a, r, kernel).unwrap();
             let p = b.compile(out).unwrap().bind(&[]).unwrap();
             let x = if shared {
                 vec![1., 2., 3., 4.]
@@ -307,7 +307,7 @@ fn matrix_kernel_policies_preserve_products_vjps_aliases_and_error_recovery() {
 
 #[test]
 fn matrix_kernel_rectangular_and_empty_products_match_reference() {
-    use alea_core::model::tensor::MatrixKernel;
+    use alea_core::model::tensor::{MatrixProvider, MatrixRequest};
     for (m, k, n) in [
         (17, 33, 19),
         (65, 9, 1),
@@ -322,16 +322,16 @@ fn matrix_kernel_rectangular_and_empty_products_match_reference() {
         let seed: Vec<_> = (0..m * n).map(|i| (i % 7 + 1) as f64 / 13.).collect();
         let mut reference: Option<(Vec<f64>, Vec<f64>)> = None;
         for kernel in [
-            MatrixKernel::Compensated,
+            MatrixRequest::default(),
             #[cfg(feature = "faer")]
-            MatrixKernel::Faer,
+            MatrixRequest::standard(MatrixProvider::Faer),
             #[cfg(feature = "openblas")]
-            MatrixKernel::Blas,
+            MatrixRequest::standard(MatrixProvider::Blas),
         ] {
             let mut b = ModelBuilder::new().region();
             let a = b.input("a", shape(&[m, k])).unwrap();
             let r = b.input("r", shape(&[k, n])).unwrap();
-            let out = b.matmul_with_kernel(a, r, kernel).unwrap();
+            let out = b.matmul_with_request(a, r, kernel).unwrap();
             let p = b.compile(out).unwrap().bind(&[]).unwrap();
             let mut out = vec![0.; m * n];
             let mut g = vec![0.; x.len()];
@@ -1500,17 +1500,17 @@ fn executable_lazy_broadcast_admits_selected_intermediates_even_for_empty_or_zer
 #[allow(clippy::single_element_loop)] // Optional providers extend this matrix.
 fn matrix_source_capability_preserves_the_requested_provider_recursively() {
     use alea_core::model::ConstrainedModel;
-    use alea_core::model::tensor::{BoundProgram, MatrixKernel};
+    use alea_core::model::tensor::{BoundProgram, MatrixProvider, MatrixRequest};
     for kernel in [
-        MatrixKernel::Compensated,
+        MatrixRequest::default(),
         #[cfg(any(feature = "faer", feature = "openblas"))]
-        MatrixKernel::Auto,
+        MatrixRequest::standard(MatrixProvider::Auto),
         #[cfg(feature = "faer")]
-        MatrixKernel::Faer,
+        MatrixRequest::standard(MatrixProvider::Faer),
         #[cfg(feature = "openblas")]
-        MatrixKernel::Blas,
+        MatrixRequest::standard(MatrixProvider::Blas),
     ] {
-        let provider = kernel != MatrixKernel::Compensated;
+        let provider = kernel != MatrixRequest::default();
         let build = |scan_body| {
             let mut b = ModelBuilder::new().region();
             let x = b.input("x", Shape::scalar()).unwrap();
@@ -1518,7 +1518,7 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
                 let _ = b.input("row", Shape::scalar()).unwrap();
             }
             let a = b.reshape(x, shape(&[1, 1])).unwrap();
-            let product = b.matmul_with_kernel(a, a, kernel).unwrap();
+            let product = b.matmul_with_request(a, a, kernel).unwrap();
             let result = b.sum(product).unwrap();
             b.compile(result).unwrap().bind(&[]).unwrap()
         };
@@ -1551,20 +1551,34 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
                 use alea_core::model::assembly::{
                     CurvatureRoute, DerivativeOrder, SourceMode, SourceRequest,
                 };
-                for order in [
-                    DerivativeOrder::Value,
-                    DerivativeOrder::First,
-                    DerivativeOrder::Hvp,
-                    DerivativeOrder::Third,
-                ] {
-                    let request = SourceRequest {
-                        mode: SourceMode::Density,
-                        order,
-                        curvature: CurvatureRoute::OriginalCompilerReverse,
-                    };
-                    let blocked =
-                        provider && matches!(order, DerivativeOrder::Hvp | DerivativeOrder::Third);
-                    assert_eq!(capabilities.resolve(request).is_err(), blocked);
+                for mode in [SourceMode::Density, SourceMode::Objective] {
+                    for order in [
+                        DerivativeOrder::Value,
+                        DerivativeOrder::First,
+                        DerivativeOrder::Hvp,
+                        DerivativeOrder::Third,
+                    ] {
+                        for curvature in [
+                            CurvatureRoute::Unavailable,
+                            CurvatureRoute::OriginalCompilerReverse,
+                        ] {
+                            let request = SourceRequest {
+                                mode,
+                                order,
+                                curvature,
+                            };
+                            let blocked =
+                                matches!(order, DerivativeOrder::Hvp | DerivativeOrder::Third)
+                                    && (provider || curvature == CurvatureRoute::Unavailable);
+                            match capabilities.resolve(request) {
+                                Err(E::UnqualifiedDerivative { order: rejected }) if blocked => {
+                                    assert_eq!(rejected, order);
+                                }
+                                Ok(resolved) if !blocked => assert_eq!(resolved, request),
+                                result => panic!("{kernel:?}/{request:?}: {result:?}"),
+                            }
+                        }
+                    }
                 }
                 if provider {
                     assert!(matches!(
@@ -1615,7 +1629,44 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
         let mut b = ModelBuilder::new().region();
         let x = b.input("x", Shape::scalar()).unwrap();
         let a = b.reshape(x, shape(&[1, 1])).unwrap();
-        let _ = b.matmul_with_kernel(a, a, kernel).unwrap();
+        let _ = b.matmul_with_request(a, a, kernel).unwrap();
         check(b.compile(x).unwrap().bind(&[]).unwrap(), 1, 2., 1., false);
     }
+}
+
+#[test]
+fn matrix_requests_reject_before_node_publication_and_report_original_preferences() {
+    use alea_core::model::tensor::{
+        MatrixArithmetic, MatrixCpu, MatrixPolicyError, MatrixProvider, MatrixRequest,
+    };
+    let mut b = ModelBuilder::new().region();
+    let x = b.input("x", shape(&[1, 1])).unwrap();
+    let invalid = MatrixRequest {
+        arithmetic: MatrixArithmetic::Compensated,
+        provider: MatrixProvider::Faer,
+        ..MatrixRequest::default()
+    };
+    assert!(
+        matches!(b.matmul_with_request(x,x,invalid), Err(E::MatrixPolicy(MatrixPolicyError::Incompatible(r))) if r==invalid)
+    );
+    let first = b.matmul(x, x).unwrap();
+    let request = MatrixRequest {
+        cpu: MatrixCpu::Scalar,
+        ..MatrixRequest::default()
+    };
+    let mut b = b.with_matrix_request(request).unwrap();
+    let second = b.matmul(x, first).unwrap();
+    let p = b.compile(second).unwrap().bind(&[]).unwrap();
+    let reports = p.matrix_policies();
+    assert_eq!(reports.len(), 2);
+    assert_eq!(reports[0].requested(), MatrixRequest::default());
+    assert_eq!(reports[1].requested(), request);
+    assert!(
+        reports
+            .iter()
+            .all(|r| r.provider() == MatrixProvider::Reference)
+    );
+    let mut out = [99.];
+    p.evaluate(&[2.], &mut out, &mut p.workspace()).unwrap();
+    assert_eq!(out, [8.]);
 }

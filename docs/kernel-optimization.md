@@ -1189,7 +1189,7 @@ for construction/scalar-dispatch controls. No wall-time speedup is established
 until the remote campaign completes; no change to defaults is justified by the
 cancellation counterexamples or by a fast result on ordinary fixtures alone.
 
-Tensor `MatrixKernel::Faer` and `MatrixKernel::Blas` already explicitly permit
+Tensor `MatrixRequest::standard(MatrixProvider::Faer)` and its BLAS counterpart explicitly permit
 uncompensated library reductions. The new regression option is a native SIMD
 arithmetic ablation, **not** automatic regression lowering into either provider.
 Comparing library GEMV/layout/threading costs is a distinct experiment; enabling

@@ -3,7 +3,7 @@
 use alea_core::model::{
     ConstrainedModel,
     assembly::{ModelBuilder, NativeModel},
-    tensor::{BinaryOp as B, BoundProgram, MatrixKernel, Shape},
+    tensor::{BinaryOp as B, BoundProgram, MatrixRequest, Shape},
 };
 use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use std::time::Duration;
@@ -51,16 +51,16 @@ fn matrix_kernels(c: &mut Criterion) {
         let seed = vec![0.5; n * n];
         let mut reference: Option<(Vec<f64>, Vec<f64>)> = None;
         for kernel in [
-            MatrixKernel::Compensated,
+            MatrixRequest::default(),
             #[cfg(feature = "faer")]
-            MatrixKernel::Faer,
+            MatrixRequest::standard(alea_core::model::tensor::MatrixProvider::Faer),
             #[cfg(feature = "openblas")]
-            MatrixKernel::Blas,
+            MatrixRequest::standard(alea_core::model::tensor::MatrixProvider::Blas),
         ] {
             let mut b = ModelBuilder::new().region();
             let a = b.input("a", Shape::new(vec![n, n]).unwrap()).unwrap();
             let r = b.input("r", Shape::new(vec![n, n]).unwrap()).unwrap();
-            let out = b.matmul_with_kernel(a, r, kernel).unwrap();
+            let out = b.matmul_with_request(a, r, kernel).unwrap();
             let p = b.compile(out).unwrap().bind(&[]).unwrap();
             let mut w = p.workspace();
             let mut out = vec![0.; n * n];

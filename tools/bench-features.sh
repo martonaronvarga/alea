@@ -11,14 +11,16 @@ smoke=false
 threads=1
 packages=()
 benches=()
+tests=()
 feature_sets=()
 criterion_args=()
 usage() {
   printf '%s\n' 'Usage: tools/bench-features.sh [--no-run|--smoke] [--manifest PATH] [--output PATH]' \
-    '       [--crate NAME]... [--bench NAME]... [--feature-set "FEATURES"]... [--threads N]' \
-    '       [-- CRITERION_ARGS...]' \
+    '       [--crate NAME]... [--bench NAME|--test NAME]... [--feature-set "FEATURES"]... [--threads N]' \
+    '       [-- TARGET_ARGS...]' \
     'Default: all native Criterion targets, default feature cell, one thread.' \
-    'Timings require a Slurm compute allocation. --smoke runs fixtures once without timing.'
+    'Timings require a Slurm compute allocation. --smoke runs fixtures once without timing.' \
+    '--test runs release correctness tests and requires --smoke or --no-run.'
 }
 while (($#)); do
   case "$1" in
@@ -28,6 +30,7 @@ while (($#)); do
     --output) output=${2:?}; shift 2 ;;
     --crate) packages+=(-p "${2:?}"); shift 2 ;;
     --bench) benches+=(--bench "${2:?}"); shift 2 ;;
+    --test) tests+=(--test "${2:?}"); shift 2 ;;
     --feature-set) feature_sets+=("${2?feature set required (may be empty)}"); shift 2 ;;
     --threads) threads=${2:?}; shift 2 ;;
     --help|-h) usage; exit 0 ;;
@@ -35,6 +38,14 @@ while (($#)); do
     *) printf 'Unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
 done
+command_kind=bench
+if ((${#tests[@]})); then
+  ((${#benches[@]} == 0)) || { printf 'choose either bench or test targets\n' >&2; exit 2; }
+  $smoke || $no_run || { printf 'test targets require --smoke or --no-run\n' >&2; exit 2; }
+  command_kind=test
+fi
+cargo_mode=("$command_kind")
+[[ $command_kind != test ]] || cargo_mode+=(--release)
 [[ $threads =~ ^[1-9][0-9]*$ ]] || { printf 'positive thread count required\n' >&2; exit 2; }
 run_prefix=()
 cpu_list=not-timed
@@ -48,7 +59,9 @@ if ! $no_run && ! $smoke; then
 fi
 ((${#feature_sets[@]})) || feature_sets=("")
 ((${#packages[@]})) || packages=(--workspace)
-((${#benches[@]})) || benches=(--benches)
+targets=("${benches[@]}")
+if [[ $command_kind == test ]]; then targets=("${tests[@]}"); fi
+((${#targets[@]})) || targets=(--benches)
 mkdir -p "$output"
 output=$(cd "$output" && pwd)
 export OPENBLAS_NUM_THREADS=$threads OMP_NUM_THREADS=$threads MKL_NUM_THREADS=$threads
@@ -66,8 +79,13 @@ for i in "${!feature_sets[@]}"; do
   if command -v lscpu >/dev/null; then lscpu >> "$cell/environment.txt"; fi
   extra=()
   [[ -z $features ]] || extra=(--features "$features")
-  if CARGO_TARGET_DIR="$cell/build" cargo bench --manifest-path "$manifest" --locked \
-       "${packages[@]}" "${benches[@]}" --no-default-features "${extra[@]}" --no-run \
+  target_dir="$cell/build"
+  # Correctness-only cells may reuse Cargo's normal feature-keyed cache. Timed
+  # benchmarks retain isolated builds, so no rebuild enters a measurement phase.
+  if [[ $command_kind == test && -n ${CARGO_TARGET_DIR:-} ]]; then target_dir=$CARGO_TARGET_DIR; fi
+  printf '%s\n' "$target_dir" > "$cell/build-target.txt"
+  if CARGO_TARGET_DIR="$target_dir" cargo "${cargo_mode[@]}" --manifest-path "$manifest" --locked \
+       "${packages[@]}" "${targets[@]}" --no-default-features "${extra[@]}" --no-run \
        2>&1 | tee "$cell/build.log" > /dev/null; then
     succeeded+=("$i")
   else
@@ -83,9 +101,12 @@ for i in "${succeeded[@]}"; do
   extra=()
   [[ -z $features ]] || extra=(--features "$features")
   args=("${criterion_args[@]}")
-  $smoke && args+=(--test)
-  if ! CARGO_TARGET_DIR="$cell/build" CRITERION_HOME="$cell/criterion" \
-       "${run_prefix[@]}" cargo bench --manifest-path "$manifest" --locked "${packages[@]}" "${benches[@]}" \
+  if $smoke; then
+    if [[ $command_kind == test ]]; then args+=(--show-output); else args+=(--test); fi
+  fi
+  target_dir=$(cat "$cell/build-target.txt")
+  if ! CARGO_TARGET_DIR="$target_dir" CRITERION_HOME="$cell/criterion" \
+       "${run_prefix[@]}" cargo "${cargo_mode[@]}" --manifest-path "$manifest" --locked "${packages[@]}" "${targets[@]}" \
        --no-default-features "${extra[@]}" -- "${args[@]}" 2>&1 | tee "$cell/run.log" > /dev/null; then
     touch "$cell/RUN_FAILED"
     failed=1

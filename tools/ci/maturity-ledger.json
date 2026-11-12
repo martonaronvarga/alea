@@ -341,6 +341,12 @@
       "promotion_gate": "Broaden model/ISA/compiler qualification and measure execution before promotion; no arbitrary-plate fusion or higher-AD kernel differentiation claim."
     },
     {
+      "path": "crates/alea-distributions/src/modeling/observations.rs",
+      "profile": "research_component",
+      "summary": "Native typed observed-law block map, shared by Normal/logit with cached parameter scores.",
+      "promotion_gate": "Broaden law and binding/reporting conformance; source, replay and higher derivatives remain unqualified."
+    },
+    {
       "path": "crates/alea-distributions/src/modeling/regression.rs",
       "profile": "research_component",
       "summary": "Fixed-design analytic normal, Bernoulli-logit and Poisson-log batch likelihoods with typed responses, explicit offsets and compensated scores.",
@@ -3555,6 +3561,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::convert::From<alea_math::gemm::MatrixPolicyError> for alea_core::model::assembly::AssemblyError",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::convert::From<alloc::string::String> for alea_core::model::assembly::SourceGradient",
       "profile": "research_component",
       "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
@@ -5519,6 +5531,12 @@
       "crate": "alea-core",
       "item": "pub alea_core::model::assembly::AssemblyError::ForeignHandle",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::MatrixPolicy(alea_math::gemm::MatrixPolicyError)",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-core",
@@ -7870,6 +7888,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::AssemblyError::from(source: alea_math::gemm::MatrixPolicyError) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::AssemblyError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>",
       "profile": "validated_component_opt_in"
     },
@@ -9448,6 +9472,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BoundProgram::matrix_policies(&self) -> alloc::vec::Vec<alea_math::gemm::ResolvedMatrix>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::BoundProgram::output_shape(&self) -> &alea_core::model::tensor::Shape",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
@@ -9598,9 +9628,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::RegionBuilder::matmul_with_kernel(&mut self, a: alea_core::model::assembly::Value, b: alea_core::model::assembly::Value, kernel: alea_math::gemm::MatrixKernel) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::matmul_with_request(&mut self, a: alea_core::model::assembly::Value, b: alea_core::model::assembly::Value, kernel: alea_math::gemm::MatrixRequest) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-core",
@@ -9640,9 +9670,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::tensor::RegionBuilder::with_matrix_kernel(self, kernel: alea_math::gemm::MatrixKernel) -> Self",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::with_matrix_request(self, request: alea_math::gemm::MatrixRequest) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-core",
@@ -11052,9 +11082,45 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub use alea_core::model::tensor::MatrixKernel",
+      "item": "pub use alea_core::model::tensor::MatrixArithmetic",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub use alea_core::model::tensor::MatrixCpu",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub use alea_core::model::tensor::MatrixPolicyError",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub use alea_core::model::tensor::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub use alea_core::model::tensor::MatrixRequest",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub use alea_core::model::tensor::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub use alea_core::model::tensor::ResolvedMatrix",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-distributions",
@@ -17604,6 +17670,12 @@
       "item": "pub fn alea_distributions::modeling::observation<D, F, O>(builder: &mut alea_core::model::assembly::ModelBuilder, event: O, parameters: &[alea_core::model::assembly::Value], construct: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: alea_core::distribution::ParameterScore + 'static, O: core::borrow::Borrow<<D as alea_core::distribution::Distribution>::Event> + core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64]) -> core::result::Result<D, <D as alea_core::distribution::Distribution>::Error> + core::marker::Send + core::marker::Sync + 'static",
       "profile": "research_component",
       "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::observations<D, F, O>(builder: &mut alea_core::model::assembly::ModelBuilder, events: alloc::vec::Vec<O>, parameters: &[alea_core::model::assembly::Value], construct: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: alea_core::distribution::ParameterScore + 'static, O: core::borrow::Borrow<<D as alea_core::distribution::Distribution>::Event> + core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64]) -> core::result::Result<D, <D as alea_core::distribution::Distribution>::Error> + core::marker::Send + core::marker::Sync + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify additional observed laws, binding/reporting and source capabilities independently; native block composition is not general derivative or performance qualification."
     },
     {
       "crate": "alea-distributions",
@@ -26618,12 +26690,6 @@
     },
     {
       "crate": "alea-math",
-      "item": "#[non_exhaustive] pub enum alea_math::gemm::MatrixKernel",
-      "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
-    },
-    {
-      "crate": "alea-math",
       "item": "#[non_exhaustive] pub enum alea_math::metric::MetricError",
       "profile": "validated_component_reference"
     },
@@ -26645,9 +26711,15 @@
     },
     {
       "crate": "alea-math",
-      "item": "impl alea_math::gemm::MatrixKernel",
+      "item": "impl alea_math::gemm::MatrixRequest",
       "profile": "research_component",
-      "promotion_gate": "Qualify representative matrix shapes and numerical policies before scheduling or stability promotion; Auto selects availability only, with host-owned provider threading and scratch."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl alea_math::gemm::ResolvedMatrix",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
@@ -26820,9 +26892,45 @@
     },
     {
       "crate": "alea-math",
-      "item": "impl core::clone::Clone for alea_math::gemm::MatrixKernel",
+      "item": "impl core::clone::Clone for alea_math::gemm::MatrixArithmetic",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::gemm::MatrixCpu",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::gemm::MatrixPolicyError",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::gemm::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::gemm::MatrixRequest",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::gemm::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::clone::Clone for alea_math::gemm::ResolvedMatrix",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
@@ -26946,9 +27054,45 @@
     },
     {
       "crate": "alea-math",
-      "item": "impl core::cmp::Eq for alea_math::gemm::MatrixKernel",
+      "item": "impl core::cmp::Eq for alea_math::gemm::MatrixArithmetic",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::Eq for alea_math::gemm::MatrixCpu",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::Eq for alea_math::gemm::MatrixPolicyError",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::Eq for alea_math::gemm::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::Eq for alea_math::gemm::MatrixRequest",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::Eq for alea_math::gemm::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::Eq for alea_math::gemm::ResolvedMatrix",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
@@ -27008,9 +27152,45 @@
     },
     {
       "crate": "alea-math",
-      "item": "impl core::cmp::PartialEq for alea_math::gemm::MatrixKernel",
+      "item": "impl core::cmp::PartialEq for alea_math::gemm::MatrixArithmetic",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::PartialEq for alea_math::gemm::MatrixCpu",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::PartialEq for alea_math::gemm::MatrixPolicyError",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::PartialEq for alea_math::gemm::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::PartialEq for alea_math::gemm::MatrixRequest",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::PartialEq for alea_math::gemm::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::cmp::PartialEq for alea_math::gemm::ResolvedMatrix",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
@@ -27113,9 +27293,33 @@
     },
     {
       "crate": "alea-math",
-      "item": "impl core::default::Default for alea_math::gemm::MatrixKernel",
+      "item": "impl core::default::Default for alea_math::gemm::MatrixArithmetic",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::default::Default for alea_math::gemm::MatrixCpu",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::default::Default for alea_math::gemm::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::default::Default for alea_math::gemm::MatrixRequest",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::default::Default for alea_math::gemm::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
@@ -27143,6 +27347,12 @@
       "crate": "alea-math",
       "item": "impl core::error::Error for alea_math::fisher::FisherFitError",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::error::Error for alea_math::gemm::MatrixPolicyError",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
@@ -27219,9 +27429,45 @@
     },
     {
       "crate": "alea-math",
-      "item": "impl core::fmt::Debug for alea_math::gemm::MatrixKernel",
+      "item": "impl core::fmt::Debug for alea_math::gemm::MatrixArithmetic",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::gemm::MatrixCpu",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::gemm::MatrixPolicyError",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::gemm::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::gemm::MatrixRequest",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::gemm::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::fmt::Debug for alea_math::gemm::ResolvedMatrix",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
@@ -27376,6 +27622,12 @@
     },
     {
       "crate": "alea-math",
+      "item": "impl core::fmt::Display for alea_math::gemm::MatrixPolicyError",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "impl core::fmt::Display for alea_math::information::InformationError",
       "profile": "research_component",
       "promotion_gate": "Qualify independent curvature, coordinate conditioning and application regularity before uncertainty promotion."
@@ -27432,9 +27684,45 @@
     },
     {
       "crate": "alea-math",
-      "item": "impl core::marker::Copy for alea_math::gemm::MatrixKernel",
+      "item": "impl core::marker::Copy for alea_math::gemm::MatrixArithmetic",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::gemm::MatrixCpu",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::gemm::MatrixPolicyError",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::gemm::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::gemm::MatrixRequest",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::gemm::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::Copy for alea_math::gemm::ResolvedMatrix",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
@@ -27511,9 +27799,45 @@
     },
     {
       "crate": "alea-math",
-      "item": "impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixKernel",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixArithmetic",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixCpu",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixPolicyError",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixRequest",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "impl core::marker::StructuralPartialEq for alea_math::gemm::ResolvedMatrix",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
@@ -27800,21 +28124,99 @@
     },
     {
       "crate": "alea-math",
-      "item": "pub alea_math::gemm::MatrixKernel::Auto",
+      "item": "pub alea_math::gemm::MatrixArithmetic::Compensated",
       "profile": "research_component",
-      "promotion_gate": "Qualify representative matrix shapes and numerical policies before scheduling or stability promotion; Auto selects availability only, with host-owned provider threading and scratch."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
-      "item": "pub alea_math::gemm::MatrixKernel::Compensated",
+      "item": "pub alea_math::gemm::MatrixArithmetic::Standard",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
-      "item": "pub alea_math::gemm::MatrixKernel::Faer",
+      "item": "pub alea_math::gemm::MatrixCpu::Auto",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixCpu::Scalar",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixPolicyError::Incompatible(alea_math::gemm::MatrixRequest)",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixPolicyError::Unavailable(alea_math::gemm::MatrixProvider)",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixProvider::Auto",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixProvider::Blas",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixProvider::Faer",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixProvider::Reference",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixRequest::arithmetic: alea_math::gemm::MatrixArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixRequest::cpu: alea_math::gemm::MatrixCpu",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixRequest::provider: alea_math::gemm::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixRequest::threads: alea_math::gemm::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixThreads::HostConfigured",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub alea_math::gemm::MatrixThreads::Sequential",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
@@ -28257,6 +28659,24 @@
     },
     {
       "crate": "alea-math",
+      "item": "pub const alea_math::gemm::ResolvedMatrix::COMPENSATED: Self",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub const alea_math::gemm::ResolvedMatrix::FAER: Self",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub const fn alea_math::gemm::MatrixRequest::standard(provider: alea_math::gemm::MatrixProvider) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
       "item": "pub enum alea_math::exact::ConeSearch",
       "profile": "research_component",
       "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
@@ -28271,6 +28691,36 @@
       "crate": "alea-math",
       "item": "pub enum alea_math::fisher::FisherFitError",
       "profile": "validated_component_opt_in"
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub enum alea_math::gemm::MatrixArithmetic",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub enum alea_math::gemm::MatrixCpu",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub enum alea_math::gemm::MatrixPolicyError",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub enum alea_math::gemm::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub enum alea_math::gemm::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
@@ -28623,39 +29073,213 @@
     },
     {
       "crate": "alea-math",
-      "item": "pub fn alea_math::gemm::MatrixKernel::clone(&self) -> alea_math::gemm::MatrixKernel",
+      "item": "pub fn alea_math::gemm::MatrixArithmetic::clone(&self) -> alea_math::gemm::MatrixArithmetic",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
-      "item": "pub fn alea_math::gemm::MatrixKernel::default() -> alea_math::gemm::MatrixKernel",
+      "item": "pub fn alea_math::gemm::MatrixArithmetic::default() -> alea_math::gemm::MatrixArithmetic",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
-      "item": "pub fn alea_math::gemm::MatrixKernel::eq(&self, other: &alea_math::gemm::MatrixKernel) -> bool",
+      "item": "pub fn alea_math::gemm::MatrixArithmetic::eq(&self, other: &alea_math::gemm::MatrixArithmetic) -> bool",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
-      "item": "pub fn alea_math::gemm::MatrixKernel::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "item": "pub fn alea_math::gemm::MatrixArithmetic::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
-      "item": "pub fn alea_math::gemm::MatrixKernel::resolved(self) -> Self",
+      "item": "pub fn alea_math::gemm::MatrixCpu::clone(&self) -> alea_math::gemm::MatrixCpu",
       "profile": "research_component",
-      "promotion_gate": "Qualify representative matrix shapes and numerical policies before scheduling or stability promotion; Auto selects availability only, with host-owned provider threading and scratch."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
-      "item": "pub fn alea_math::gemm::try_gemm(kernel: alea_math::gemm::MatrixKernel, a: &[f64], b: &[f64], out: &mut [f64], dimensions: (usize, usize, usize), transpose: (bool, bool), add: bool) -> bool",
+      "item": "pub fn alea_math::gemm::MatrixCpu::default() -> alea_math::gemm::MatrixCpu",
       "profile": "research_component",
-      "promotion_gate": "Broaden independent numerical/provider/platform qualification; explicit reassociation, external scratch and thread policy remain outside compensated/default guarantees."
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixCpu::eq(&self, other: &alea_math::gemm::MatrixCpu) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixCpu::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixPolicyError::clone(&self) -> alea_math::gemm::MatrixPolicyError",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixPolicyError::eq(&self, other: &alea_math::gemm::MatrixPolicyError) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixPolicyError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixPolicyError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixProvider::clone(&self) -> alea_math::gemm::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixProvider::default() -> alea_math::gemm::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixProvider::eq(&self, other: &alea_math::gemm::MatrixProvider) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixProvider::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixRequest::clone(&self) -> alea_math::gemm::MatrixRequest",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixRequest::default() -> alea_math::gemm::MatrixRequest",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixRequest::eq(&self, other: &alea_math::gemm::MatrixRequest) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixRequest::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixRequest::resolve(self) -> core::result::Result<alea_math::gemm::ResolvedMatrix, alea_math::gemm::MatrixPolicyError>",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixThreads::clone(&self) -> alea_math::gemm::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixThreads::default() -> alea_math::gemm::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixThreads::eq(&self, other: &alea_math::gemm::MatrixThreads) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::MatrixThreads::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::ResolvedMatrix::clone(&self) -> alea_math::gemm::ResolvedMatrix",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::ResolvedMatrix::cpu(self) -> alea_math::gemm::MatrixCpu",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::ResolvedMatrix::eq(&self, other: &alea_math::gemm::ResolvedMatrix) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::ResolvedMatrix::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::ResolvedMatrix::is_accelerated(self) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::ResolvedMatrix::provider(self) -> alea_math::gemm::MatrixProvider",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::ResolvedMatrix::requested(self) -> alea_math::gemm::MatrixRequest",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::ResolvedMatrix::source_name(self) -> &'static str",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::ResolvedMatrix::threads(self) -> alea_math::gemm::MatrixThreads",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub fn alea_math::gemm::try_gemm(kernel: alea_math::gemm::ResolvedMatrix, a: &[f64], b: &[f64], out: &mut [f64], dimensions: (usize, usize, usize), transpose: (bool, bool), add: bool) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",
@@ -29874,6 +30498,18 @@
       "item": "pub struct alea_math::exact::IntegerDirection(_)",
       "profile": "research_component",
       "promotion_gate": "Retain stored-data exactness, bounded resource and unconstrained likelihood assumptions; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub struct alea_math::gemm::MatrixRequest",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
+    },
+    {
+      "crate": "alea-math",
+      "item": "pub struct alea_math::gemm::ResolvedMatrix",
+      "profile": "research_component",
+      "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
     },
     {
       "crate": "alea-math",

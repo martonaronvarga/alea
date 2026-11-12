@@ -108,8 +108,15 @@ impl Route {
         } else {
             self.first
         };
+        let provider = if fixture.starts_with("provider_faer_") {
+            "faer"
+        } else if fixture.starts_with("provider_blas_") {
+            "blas"
+        } else {
+            "rust"
+        };
         eprintln!(
-            "ALEA_BASELINE_ROUTE_V1\t{fixture}\t{requested}\t{resolved}\t{order}\tfixture-default\trust\t{admission}\t{}\t{status}\t{reason}",
+            "ALEA_BASELINE_ROUTE_V1\t{fixture}\t{requested}\t{resolved}\t{order}\tfixture-default\t{provider}\t{admission}\t{}\t{status}\t{reason}",
             requested != "N" && self.checkpointed
         );
     }

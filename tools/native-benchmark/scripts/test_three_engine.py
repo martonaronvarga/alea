@@ -2,6 +2,10 @@ import copy
 import json
 from pathlib import Path
 import tempfile
+import os
+import subprocess
+import shutil
+import tomllib
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
@@ -47,6 +51,67 @@ class ThreeEngineTests(unittest.TestCase):
         encoded={'CARGO_ENCODED_RUSTFLAGS':'-Ctarget-cpu=native\x1f-Cembed-bitcode=yes'}
         self.assertTrue(bench.feature_environment(encoded,['enzyme'])['CARGO_ENCODED_RUSTFLAGS'].endswith('\x1f-Zautodiff=Enable'))
         self.assertEqual(bench.feature_environment(encoded,[]),encoded)
+
+    def test_conformance_provider_features_are_opt_in_and_forward_the_same_dependency(self):
+        manifest = tomllib.loads((bench.REPO / 'tools/enzyme-conformance/Cargo.toml').read_text())
+        self.assertEqual(manifest['features'].get('default', []), [])
+        for name in ['faer', 'openblas']:
+            self.assertEqual(manifest['features'][name], ['alea/' + name])
+            for kind in ['dependencies', 'build-dependencies']:
+                self.assertNotIn(name, manifest[kind]['alea']['features'])
+
+    def test_provider_route_receipts_reject_mislabeled_library_or_reference_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / 'run.log'
+            def receipt(provider):
+                return f'ALEA_BASELINE_ROUTE_V1\tprovider_{provider}_rect\tH\tH\tfirst\tfixture-default\t{provider}\tH\tfalse\tsupported\tindependent numerical answers passed\n'
+            path.write_text(receipt('faer') + receipt('blas'))
+            self.assertEqual([r['provider'] for r in bench.cargo_route_receipts(path)], ['faer', 'blas'])
+            for bad in [receipt('faer').replace('\tfaer\t', '\tRust\t'),
+                        receipt('faer').replace('\tfaer\t', '\tblas\t'),
+                        receipt('blas').replace('\tblas\t', '\trust\t')]:
+                path.write_text(bad)
+                with self.assertRaises(ValueError): bench.cargo_route_receipts(path)
+
+    def test_existing_feature_runner_executes_release_tests_and_preserves_failed_cells(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            tools = root / 'tools'
+            tools.mkdir()
+            cargo = tools / 'cargo'
+            cargo.write_text("""#!/bin/sh
+if [ "$1" = -V ]; then echo fake-cargo; exit 0; fi
+printf '%s\\n' "$*" >> "$I34_COMMAND_LOG"
+case " $* " in *" --features unavailable "*) echo unavailable-feature >&2; exit 7;; esac
+case " $* " in *" --no-run "*) echo build-ok; exit 0;; esac
+case " $* " in *" --features runtime-fail "*) echo loader-failed >&2; exit 8;; esac
+echo test-ok
+""")
+            cargo.chmod(0o755)
+            rustc = tools / 'rustc'
+            rustc.write_text('#!/bin/sh\necho fake-rustc\n')
+            rustc.chmod(0o755)
+            commands = root / 'commands.txt'
+            env = dict(os.environ, PATH=str(tools) + os.pathsep + os.environ['PATH'], I34_COMMAND_LOG=str(commands))
+            runner = bench.REPO / 'tools/bench-features.sh'
+            output = root / 'cells'
+            args = [shutil.which('bash'), str(runner), '--smoke', '--test', 'tensor_matrix', '--output', str(output)]
+            for features in ['', 'faer', 'openblas', 'faer,openblas', 'unavailable', 'runtime-fail']:
+                args.extend(['--feature-set', features])
+            result = subprocess.run(args, cwd=root, env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1, result.stderr)
+            report = bench.cargo_bench_report(output)
+            self.assertEqual([r['status'] for r in report['cells']], ['finished'] * 4 + ['build-failed', 'run-failed'])
+            self.assertEqual(report['measurements'], [])
+            calls = commands.read_text().splitlines()
+            self.assertEqual(len(calls), 11)
+            self.assertTrue(all(c.startswith('test --release ') and '--no-default-features' in c for c in calls))
+            self.assertTrue(all('--show-output' in c for c in calls if '--no-run' not in c))
+            self.assertIn('loader-failed', (output / 'cell-5/run.log').read_text())
+            denied = root / 'denied'
+            result = subprocess.run([shutil.which('bash'), str(runner), '--test', 'tensor_matrix', '--output', str(denied)], cwd=root, env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 2)
+            self.assertFalse(denied.exists())
 
     def test_state_banks_require_ten_finite_rows_and_enter_input_identity(self):
         with tempfile.TemporaryDirectory() as temp:

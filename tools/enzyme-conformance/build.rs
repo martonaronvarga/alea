@@ -7,6 +7,46 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=build.rs");
     let output = std::path::PathBuf::from(std::env::var_os("OUT_DIR").ok_or("missing OUT_DIR")?);
     for (name, model) in models::all()? {
+        // Resolve every provider/order cell before any source artifact is written.
+        // An explicit compiler route cannot override an unqualified provider.
+        let capabilities = model.source_capabilities();
+        for mode in [SourceMode::Density, SourceMode::Objective] {
+            for order in [
+                DerivativeOrder::Value,
+                DerivativeOrder::First,
+                DerivativeOrder::Hvp,
+                DerivativeOrder::Third,
+            ] {
+                for curvature in [
+                    CurvatureRoute::Unavailable,
+                    CurvatureRoute::OriginalCompilerReverse,
+                ] {
+                    let request = SourceRequest {
+                        mode,
+                        order,
+                        curvature,
+                    };
+                    let blocked = matches!(order, DerivativeOrder::Hvp | DerivativeOrder::Third)
+                        && (curvature == CurvatureRoute::Unavailable
+                            || !capabilities.unqualified_curvature.is_empty());
+                    if blocked {
+                        for result in [
+                            capabilities.resolve(request).map(|_| ()),
+                            alea::autodiff::codegen::source(&model, request).map(|_| ()),
+                        ] {
+                            assert!(
+                                matches!(result,
+                                Err(alea::model::assembly::AssemblyError::UnqualifiedDerivative { order: rejected })
+                                if rejected == order),
+                                "{name}/{request:?}: {result:?}"
+                            );
+                        }
+                    } else {
+                        assert_eq!(capabilities.resolve(request)?, request);
+                    }
+                }
+            }
+        }
         if name.starts_with("tensor_") {
             let dimension = model.layout().unconstrained_dimension();
             let primal = format!(

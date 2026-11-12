@@ -142,24 +142,118 @@ impl core::fmt::Display for alea_math::fisher::FisherFitError
 pub fn alea_math::fisher::FisherFitError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn alea_math::fisher::fit_low_rank(positions: &[f64], scores: &[f64], scales: &[f64], ridge: f64, threshold: f64, max_rank: usize) -> core::result::Result<alea_math::metric::LowRankDiagonalMetric, alea_math::fisher::FisherFitError>
 pub mod alea_math::gemm
-#[non_exhaustive] pub enum alea_math::gemm::MatrixKernel
-pub alea_math::gemm::MatrixKernel::Auto
-pub alea_math::gemm::MatrixKernel::Compensated
-pub alea_math::gemm::MatrixKernel::Faer
-impl alea_math::gemm::MatrixKernel
-pub fn alea_math::gemm::MatrixKernel::resolved(self) -> Self
-impl core::clone::Clone for alea_math::gemm::MatrixKernel
-pub fn alea_math::gemm::MatrixKernel::clone(&self) -> alea_math::gemm::MatrixKernel
-impl core::cmp::Eq for alea_math::gemm::MatrixKernel
-impl core::cmp::PartialEq for alea_math::gemm::MatrixKernel
-pub fn alea_math::gemm::MatrixKernel::eq(&self, other: &alea_math::gemm::MatrixKernel) -> bool
-impl core::default::Default for alea_math::gemm::MatrixKernel
-pub fn alea_math::gemm::MatrixKernel::default() -> alea_math::gemm::MatrixKernel
-impl core::fmt::Debug for alea_math::gemm::MatrixKernel
-pub fn alea_math::gemm::MatrixKernel::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for alea_math::gemm::MatrixKernel
-impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixKernel
-pub fn alea_math::gemm::try_gemm(kernel: alea_math::gemm::MatrixKernel, a: &[f64], b: &[f64], out: &mut [f64], dimensions: (usize, usize, usize), transpose: (bool, bool), add: bool) -> bool
+pub enum alea_math::gemm::MatrixArithmetic
+pub alea_math::gemm::MatrixArithmetic::Compensated
+pub alea_math::gemm::MatrixArithmetic::Standard
+impl core::clone::Clone for alea_math::gemm::MatrixArithmetic
+pub fn alea_math::gemm::MatrixArithmetic::clone(&self) -> alea_math::gemm::MatrixArithmetic
+impl core::cmp::Eq for alea_math::gemm::MatrixArithmetic
+impl core::cmp::PartialEq for alea_math::gemm::MatrixArithmetic
+pub fn alea_math::gemm::MatrixArithmetic::eq(&self, other: &alea_math::gemm::MatrixArithmetic) -> bool
+impl core::default::Default for alea_math::gemm::MatrixArithmetic
+pub fn alea_math::gemm::MatrixArithmetic::default() -> alea_math::gemm::MatrixArithmetic
+impl core::fmt::Debug for alea_math::gemm::MatrixArithmetic
+pub fn alea_math::gemm::MatrixArithmetic::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::gemm::MatrixArithmetic
+impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixArithmetic
+pub enum alea_math::gemm::MatrixCpu
+pub alea_math::gemm::MatrixCpu::Auto
+pub alea_math::gemm::MatrixCpu::Scalar
+impl core::clone::Clone for alea_math::gemm::MatrixCpu
+pub fn alea_math::gemm::MatrixCpu::clone(&self) -> alea_math::gemm::MatrixCpu
+impl core::cmp::Eq for alea_math::gemm::MatrixCpu
+impl core::cmp::PartialEq for alea_math::gemm::MatrixCpu
+pub fn alea_math::gemm::MatrixCpu::eq(&self, other: &alea_math::gemm::MatrixCpu) -> bool
+impl core::default::Default for alea_math::gemm::MatrixCpu
+pub fn alea_math::gemm::MatrixCpu::default() -> alea_math::gemm::MatrixCpu
+impl core::fmt::Debug for alea_math::gemm::MatrixCpu
+pub fn alea_math::gemm::MatrixCpu::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::gemm::MatrixCpu
+impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixCpu
+pub enum alea_math::gemm::MatrixPolicyError
+pub alea_math::gemm::MatrixPolicyError::Incompatible(alea_math::gemm::MatrixRequest)
+pub alea_math::gemm::MatrixPolicyError::Unavailable(alea_math::gemm::MatrixProvider)
+impl core::clone::Clone for alea_math::gemm::MatrixPolicyError
+pub fn alea_math::gemm::MatrixPolicyError::clone(&self) -> alea_math::gemm::MatrixPolicyError
+impl core::cmp::Eq for alea_math::gemm::MatrixPolicyError
+impl core::cmp::PartialEq for alea_math::gemm::MatrixPolicyError
+pub fn alea_math::gemm::MatrixPolicyError::eq(&self, other: &alea_math::gemm::MatrixPolicyError) -> bool
+impl core::error::Error for alea_math::gemm::MatrixPolicyError
+impl core::fmt::Debug for alea_math::gemm::MatrixPolicyError
+pub fn alea_math::gemm::MatrixPolicyError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for alea_math::gemm::MatrixPolicyError
+pub fn alea_math::gemm::MatrixPolicyError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::gemm::MatrixPolicyError
+impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixPolicyError
+pub enum alea_math::gemm::MatrixProvider
+pub alea_math::gemm::MatrixProvider::Auto
+pub alea_math::gemm::MatrixProvider::Blas
+pub alea_math::gemm::MatrixProvider::Faer
+pub alea_math::gemm::MatrixProvider::Reference
+impl core::clone::Clone for alea_math::gemm::MatrixProvider
+pub fn alea_math::gemm::MatrixProvider::clone(&self) -> alea_math::gemm::MatrixProvider
+impl core::cmp::Eq for alea_math::gemm::MatrixProvider
+impl core::cmp::PartialEq for alea_math::gemm::MatrixProvider
+pub fn alea_math::gemm::MatrixProvider::eq(&self, other: &alea_math::gemm::MatrixProvider) -> bool
+impl core::default::Default for alea_math::gemm::MatrixProvider
+pub fn alea_math::gemm::MatrixProvider::default() -> alea_math::gemm::MatrixProvider
+impl core::fmt::Debug for alea_math::gemm::MatrixProvider
+pub fn alea_math::gemm::MatrixProvider::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::gemm::MatrixProvider
+impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixProvider
+pub enum alea_math::gemm::MatrixThreads
+pub alea_math::gemm::MatrixThreads::HostConfigured
+pub alea_math::gemm::MatrixThreads::Sequential
+impl core::clone::Clone for alea_math::gemm::MatrixThreads
+pub fn alea_math::gemm::MatrixThreads::clone(&self) -> alea_math::gemm::MatrixThreads
+impl core::cmp::Eq for alea_math::gemm::MatrixThreads
+impl core::cmp::PartialEq for alea_math::gemm::MatrixThreads
+pub fn alea_math::gemm::MatrixThreads::eq(&self, other: &alea_math::gemm::MatrixThreads) -> bool
+impl core::default::Default for alea_math::gemm::MatrixThreads
+pub fn alea_math::gemm::MatrixThreads::default() -> alea_math::gemm::MatrixThreads
+impl core::fmt::Debug for alea_math::gemm::MatrixThreads
+pub fn alea_math::gemm::MatrixThreads::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::gemm::MatrixThreads
+impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixThreads
+pub struct alea_math::gemm::MatrixRequest
+pub alea_math::gemm::MatrixRequest::arithmetic: alea_math::gemm::MatrixArithmetic
+pub alea_math::gemm::MatrixRequest::cpu: alea_math::gemm::MatrixCpu
+pub alea_math::gemm::MatrixRequest::provider: alea_math::gemm::MatrixProvider
+pub alea_math::gemm::MatrixRequest::threads: alea_math::gemm::MatrixThreads
+impl alea_math::gemm::MatrixRequest
+pub fn alea_math::gemm::MatrixRequest::resolve(self) -> core::result::Result<alea_math::gemm::ResolvedMatrix, alea_math::gemm::MatrixPolicyError>
+pub const fn alea_math::gemm::MatrixRequest::standard(provider: alea_math::gemm::MatrixProvider) -> Self
+impl core::clone::Clone for alea_math::gemm::MatrixRequest
+pub fn alea_math::gemm::MatrixRequest::clone(&self) -> alea_math::gemm::MatrixRequest
+impl core::cmp::Eq for alea_math::gemm::MatrixRequest
+impl core::cmp::PartialEq for alea_math::gemm::MatrixRequest
+pub fn alea_math::gemm::MatrixRequest::eq(&self, other: &alea_math::gemm::MatrixRequest) -> bool
+impl core::default::Default for alea_math::gemm::MatrixRequest
+pub fn alea_math::gemm::MatrixRequest::default() -> alea_math::gemm::MatrixRequest
+impl core::fmt::Debug for alea_math::gemm::MatrixRequest
+pub fn alea_math::gemm::MatrixRequest::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::gemm::MatrixRequest
+impl core::marker::StructuralPartialEq for alea_math::gemm::MatrixRequest
+pub struct alea_math::gemm::ResolvedMatrix
+impl alea_math::gemm::ResolvedMatrix
+pub const alea_math::gemm::ResolvedMatrix::COMPENSATED: Self
+pub const alea_math::gemm::ResolvedMatrix::FAER: Self
+pub fn alea_math::gemm::ResolvedMatrix::cpu(self) -> alea_math::gemm::MatrixCpu
+pub fn alea_math::gemm::ResolvedMatrix::is_accelerated(self) -> bool
+pub fn alea_math::gemm::ResolvedMatrix::provider(self) -> alea_math::gemm::MatrixProvider
+pub fn alea_math::gemm::ResolvedMatrix::requested(self) -> alea_math::gemm::MatrixRequest
+pub fn alea_math::gemm::ResolvedMatrix::source_name(self) -> &'static str
+pub fn alea_math::gemm::ResolvedMatrix::threads(self) -> alea_math::gemm::MatrixThreads
+impl core::clone::Clone for alea_math::gemm::ResolvedMatrix
+pub fn alea_math::gemm::ResolvedMatrix::clone(&self) -> alea_math::gemm::ResolvedMatrix
+impl core::cmp::Eq for alea_math::gemm::ResolvedMatrix
+impl core::cmp::PartialEq for alea_math::gemm::ResolvedMatrix
+pub fn alea_math::gemm::ResolvedMatrix::eq(&self, other: &alea_math::gemm::ResolvedMatrix) -> bool
+impl core::fmt::Debug for alea_math::gemm::ResolvedMatrix
+pub fn alea_math::gemm::ResolvedMatrix::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for alea_math::gemm::ResolvedMatrix
+impl core::marker::StructuralPartialEq for alea_math::gemm::ResolvedMatrix
+pub fn alea_math::gemm::try_gemm(kernel: alea_math::gemm::ResolvedMatrix, a: &[f64], b: &[f64], out: &mut [f64], dimensions: (usize, usize, usize), transpose: (bool, bool), add: bool) -> bool
 pub mod alea_math::information
 pub enum alea_math::information::InformationError
 pub alea_math::information::InformationError::Asymmetric

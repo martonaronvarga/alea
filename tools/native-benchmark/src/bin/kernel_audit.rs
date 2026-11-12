@@ -81,21 +81,25 @@ fn main() -> Result<(), Box<dyn Error>> {
     let construction_seconds;
     let (seconds, checksum) = match case.as_str() {
         "gemm" | "gemm_faer" | "gemm_blas" => {
-            use alea::model::tensor::{MatrixKernel, Shape};
+            use alea::model::tensor::{MatrixRequest, Shape};
             let requested = std::env::var("ALEA_MATRIX_KERNEL").unwrap_or_else(|_| case.clone());
             let kernel = match requested.as_str() {
-                "gemm" | "compensated" => MatrixKernel::Compensated,
+                "gemm" | "compensated" => MatrixRequest::default(),
                 #[cfg(feature = "faer")]
-                "gemm_faer" | "faer" => MatrixKernel::Faer,
+                "gemm_faer" | "faer" => {
+                    MatrixRequest::standard(alea::model::tensor::MatrixProvider::Faer)
+                }
                 #[cfg(feature = "openblas")]
-                "gemm_blas" | "blas" => MatrixKernel::Blas,
+                "gemm_blas" | "blas" => {
+                    MatrixRequest::standard(alea::model::tensor::MatrixProvider::Blas)
+                }
                 _ => return Err("requested matrix provider was not compiled".into()),
             };
             let count = size.checked_mul(size).ok_or("matrix extent overflow")?;
             let mut b = ModelBuilder::new().region();
             let a = b.input("a", Shape::new(vec![size, size])?)?;
             let r = b.input("r", Shape::new(vec![size, size])?)?;
-            let result = b.matmul_with_kernel(a, r, kernel)?;
+            let result = b.matmul_with_request(a, r, kernel)?;
             let program = b.compile(result)?.bind(&[])?;
             let mut w = program.workspace();
             let x: Vec<_> = (0..2 * count)

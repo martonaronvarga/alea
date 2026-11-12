@@ -145,8 +145,8 @@ impl BoundProgram {
                     n,
                     kernel,
                 } => {
-                    if *kernel != MatrixKernel::Compensated {
-                        writeln!(source, "if !::alea::math::gemm::try_gemm(::alea::math::gemm::MatrixKernel::{kernel:?},n{},n{},n{i},({m},{k},{n}),(false,false),false) {{{failure}}}", a.node,b.node).unwrap();
+                    if kernel.is_accelerated() {
+                        writeln!(source, "if !::alea::math::gemm::try_gemm(::alea::math::gemm::ResolvedMatrix::{},n{},n{},n{i},({m},{k},{n}),(false,false),false) {{{failure}}}", kernel.source_name(),a.node,b.node).unwrap();
                         writeln!(
                             source,
                             "if n{i}.iter().any(|v|!v.is_finite()) {{{failure}}}"

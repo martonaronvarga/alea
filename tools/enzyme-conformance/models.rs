@@ -481,9 +481,9 @@ fn checkpoint_identity(
     let rows = t.constant(Shape::new(vec![0])?, vec![])?;
     t.checkpointed_scan(value, rows, &[], body)
 }
-#[cfg(any(feature = "faer", alea_probe_blas))]
+#[cfg(any(feature = "faer", feature = "openblas"))]
 fn provider_matrix(
-    kernel: alea::model::tensor::MatrixKernel,
+    kernel: alea::model::tensor::MatrixRequest,
     variant: usize,
 ) -> Result<NativeModel, AssemblyError> {
     use alea::model::tensor::*;
@@ -519,7 +519,7 @@ fn provider_matrix(
             t.gather(q, Shape::new(vec![3, 1])?, vec![6, 7, 8])?,
         )
     };
-    let product = t.matmul_with_kernel(a, b, kernel)?;
+    let product = t.matmul_with_request(a, b, kernel)?;
     let result = if matches!(variant, 1 | 2 | 11 | 12) {
         t.sum(product)?
     } else if variant == 7 {
@@ -902,133 +902,263 @@ pub fn all() -> Result<Vec<(&'static str, NativeModel)>, AssemblyError> {
         #[cfg(feature = "faer")]
         (
             "provider_faer_inverse",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 4)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                4,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_inverse",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 4)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                4,
+            )?,
         ),
         #[cfg(feature = "faer")]
         (
             "provider_faer_mixed",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 5)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                5,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_mixed",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 5)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                5,
+            )?,
         ),
         #[cfg(feature = "faer")]
         (
             "provider_faer_inactive",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 6)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                6,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_inactive",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 6)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                6,
+            )?,
         ),
         #[cfg(feature = "faer")]
         (
             "provider_faer_gemm",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 7)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                7,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_gemm",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 7)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                7,
+            )?,
         ),
         #[cfg(feature = "faer")]
         (
             "provider_faer_branch",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 8)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                8,
+            )?,
         ),
         #[cfg(feature = "faer")]
         (
             "provider_faer_scan",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 9)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                9,
+            )?,
         ),
         #[cfg(feature = "faer")]
         (
             "provider_faer_checkpoint",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 10)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                10,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_branch",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 8)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                8,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_scan",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 9)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                9,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_checkpoint",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 10)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                10,
+            )?,
         ),
         #[cfg(feature = "faer")]
         (
             "provider_faer_empty_inner",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 11)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                11,
+            )?,
         ),
         #[cfg(feature = "faer")]
         (
             "provider_faer_empty_columns",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 12)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                12,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_empty_inner",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 11)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                11,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_empty_columns",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 12)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                12,
+            )?,
         ),
         ("tensor_matrix", tensor_matrix()?),
         #[cfg(feature = "faer")]
         (
             "provider_faer_rect",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 0)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                0,
+            )?,
         ),
         #[cfg(feature = "faer")]
         (
             "provider_faer_alias",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 1)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                1,
+            )?,
         ),
         #[cfg(feature = "faer")]
         (
             "provider_faer_empty",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 2)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                2,
+            )?,
         ),
         #[cfg(feature = "faer")]
         (
             "provider_faer_zero",
-            provider_matrix(alea::model::tensor::MatrixKernel::Faer, 3)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Faer,
+                ),
+                3,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_rect",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 0)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                0,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_alias",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 1)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                1,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_empty",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 2)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                2,
+            )?,
         ),
-        #[cfg(alea_probe_blas)]
+        #[cfg(feature = "openblas")]
         (
             "provider_blas_zero",
-            provider_matrix(alea::model::tensor::MatrixKernel::Blas, 3)?,
+            provider_matrix(
+                alea::model::tensor::MatrixRequest::standard(
+                    alea::model::tensor::MatrixProvider::Blas,
+                ),
+                3,
+            )?,
         ),
         ("tensor_broadcast", tensor_broadcast()?),
         (

@@ -1107,26 +1107,26 @@ mod tests {
     #[test]
     fn lexical_matrix_policy_resolves_once_without_changing_existing_nodes() {
         for kernel in [
-            MatrixKernel::Compensated,
+            MatrixRequest::default(),
             #[cfg(any(feature = "faer", feature = "openblas"))]
-            MatrixKernel::Auto,
+            MatrixRequest::standard(MatrixProvider::Auto),
             #[cfg(feature = "faer")]
-            MatrixKernel::Faer,
+            MatrixRequest::standard(MatrixProvider::Faer),
             #[cfg(feature = "openblas")]
-            MatrixKernel::Blas,
+            MatrixRequest::standard(MatrixProvider::Blas),
         ] {
             let mut b = RegionBuilder::new();
             let x = b.input("x", Shape::new(vec![2, 2]).unwrap()).unwrap();
             let old = b.matmul(x, x).unwrap();
-            let mut b = b.with_matrix_kernel(kernel);
+            let mut b = b.with_matrix_request(kernel).unwrap();
             let inherited = b.matmul(x, x).unwrap();
             let explicit = b
-                .matmul_with_kernel(x, x, MatrixKernel::Compensated)
+                .matmul_with_request(x, x, MatrixRequest::default())
                 .unwrap();
             for (v, expected) in [
-                (old, MatrixKernel::Compensated),
-                (inherited, kernel.resolved()),
-                (explicit, MatrixKernel::Compensated),
+                (old, ResolvedMatrix::COMPENSATED),
+                (inherited, kernel.resolve().unwrap()),
+                (explicit, ResolvedMatrix::COMPENSATED),
             ] {
                 let Op::Matmul { kernel, .. } = b.nodes[v.node].op else {
                     panic!("matrix node")

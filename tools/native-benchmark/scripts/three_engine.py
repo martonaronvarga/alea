@@ -109,10 +109,13 @@ def cargo_route_receipts(path):
         if (not re.fullmatch(r'[A-Za-z0-9_]+', fixture)
                 or requested not in {'N','C','L','H'} or resolved not in {'N','C','L','H','none'}
                 or order not in {'value','first','hvp','third'}
-                or arithmetic != 'fixture-default' or provider != 'rust'
+                or arithmetic != 'fixture-default' or provider not in {'rust', 'faer', 'blas'}
                 or admission not in {'N','C','L','H','none'} or checkpoint not in {'true','false'}
                 or status not in {'supported','unsupported','failed','not-run'} or not reason.strip()):
             raise ValueError('invalid baseline route axes/status/reason')
+        expected_provider = next((p for p in ('faer', 'blas') if fixture.startswith('provider_' + p + '_')), 'rust')
+        if provider != expected_provider:
+            raise ValueError('provider receipt disagrees with its explicit fixture identity')
         if ((requested == 'N' and (admission != 'N' or checkpoint != 'false'))
                 or (requested != 'N' and admission == 'N')
                 or (checkpoint == 'true' and order != 'value' and admission != 'H')

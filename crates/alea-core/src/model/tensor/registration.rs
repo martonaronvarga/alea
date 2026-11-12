@@ -581,12 +581,8 @@ pub(super) fn missing_source(plan: &Plan) -> Option<usize> {
             Op::Registered(_) => true,
             #[cfg(feature = "openblas")]
             Op::Matmul {
-                kernel: MatrixKernel::Blas,
-                m,
-                k,
-                n,
-                ..
-            } => {
+                kernel, m, k, n, ..
+            } if kernel.provider() == MatrixProvider::Blas => {
                 *m != 0
                     && *k != 0
                     && *n != 0

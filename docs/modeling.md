@@ -129,6 +129,69 @@ reductions need not be bit-identical. Arbitrary `plate` closures are **not**
 automatically rewritten into vector factors. Existing `normal_observations`
 continues to use compressed regression when all observations share one mean.
 
+For arbitrary shared whole-value predictors, `modeling::observations` maps any
+existing parameter-score law through the common native block boundary. Normal,
+Bernoulli-logit, and Poisson-log use the same adapter; captured events retain their Rust types.
+Scalar parameters broadcast, while vector parameters match the observation count:
+
+```rust
+use alea::{model::{assembly::ModelBuilder, tensor::Shape},
+    distributions::{modeling::observations, scalar::{Normal, BernoulliLogit, PoissonLog}}};
+let mut builder = ModelBuilder::new();
+let beta = builder.real_vector("beta", &["intercept", "slope"])?;
+let beta = builder.vector_value(&beta, Shape::new(vec![2, 1])?)?;
+let design = builder.constant_block(Shape::new(vec![3, 2])?,
+    vec![1., -1., 1., 0., 1., 1.])?;
+let predictor = builder.matmul(design, beta)?;
+let predictor = builder.reshape(predictor, Shape::new(vec![3])?)?;
+let sigma = builder.positive("sigma")?;
+let continuous = observations::<Normal, _, _>(&mut builder,
+    vec![0.2, -0.4, 1.1], &[predictor, sigma.expr()],
+    |p| Normal::new(p[0], p[1]))?;
+let binary = observations::<BernoulliLogit, _, _>(&mut builder,
+    vec![true, false, true], &[predictor], |p| BernoulliLogit::new(p[0]))?;
+// Fixed offsets are log exposures; counts remain exact Rust u64 data.
+let offsets = builder.constant_block(Shape::new(vec![3])?, vec![0.1, 0., -0.1])?;
+let mut region = builder.region();
+let eta = region.input("predictor", Shape::new(vec![3])?)?;
+let exposure = region.input("offsets", Shape::new(vec![3])?)?;
+let eta = region.binary(alea::model::tensor::BinaryOp::Add, eta, exposure)?;
+let binding = region.compile(eta)?.bind(&[])?;
+let log_rate = builder.call_region(&[predictor, offsets], binding)?;
+let counts = observations::<PoissonLog, _, _>(&mut builder,
+    vec![0_u64, 3, 1], &[log_rate], |p| PoissonLog::new(p[0]))?;
+let counts = builder.sum_value(counts)?;
+builder.likelihood("counts", counts)?;
+let continuous = builder.sum_value(continuous)?;
+let binary = builder.sum_value(binary)?;
+builder.likelihood("continuous", continuous)?;
+builder.likelihood("binary", binary)?;
+let model = builder.compile()?;
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+Shared predecessors execute once and receive accumulated VJPs from all maps.
+Each map calls the existing combined value/parameter-score entry once per row,
+admits every local parameter score before publishing results, and stores scores
+in exclusive typed workspace for reverse. Empty batches invoke no law. The
+single-event `observation` convenience uses this same boundary and retains its
+scalar-parameter contract. Missing scores fail even under zero cotangent seeds.
+
+Poisson-log keeps its existing count-precision limit: counts through 2^53 are
+admitted, and larger `u64` counts reject during evaluation, including under zero
+reverse seeds. Finite log-rate tail evaluation follows the existing law; this is
+not a sampling-range guarantee. The adapter adds no law formula or sufficient-
+statistics policy. Existing Poisson regression preparation and reporting remain
+unchanged. Independent normalized-density/gradient checks cover small counts;
+the huge-count boundary checks establish admission, not log-gamma accuracy.
+
+These maps request parameter scores, not event scores. They do not replace
+`NormalBatch`'s stronger event-score admission, conditional-row reporting,
+preparation, rebinding, or qualified source specialization. Their whole-value
+native rules have no source/JVP/curvature capability; source requests reject
+explicitly. Joint reporting units remain explicit through `PointwiseLikelihood`;
+no marginal or automatic row-reporting claim follows from a vector output.
+
 For regression, named vector declarations are convenient:
 
 ```rust

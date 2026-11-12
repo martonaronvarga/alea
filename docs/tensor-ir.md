@@ -370,9 +370,9 @@ Enable `alea/faer` or `alea/openblas` (direct core users: `alea-core/faer` or
 `alea-core/openblas`), then select a kernel on the matrix operation:
 
 ```rust,ignore
-use alea::model::tensor::MatrixKernel;
-let product = builder.matmul_with_kernel(a, b, MatrixKernel::Faer)?;
-// MatrixKernel::Blas selects LP64 CBLAS instead.
+use alea::model::tensor::{MatrixRequest, MatrixProvider};
+let product = builder.matmul_with_request(a, b, MatrixRequest::standard(MatrixProvider::Faer))?;
+// MatrixProvider::Blas explicitly requests LP64 CBLAS instead.
 ```
 
 The choice is retained with the fixed-shape matrix node. Forward execution uses
@@ -454,9 +454,10 @@ Primal success and generated derivative code alone are not derivative evidence.
 Direct compiler reverse and curvature remain unsupported; the separate explicit
 first-order lowering above avoids these compiler paths.
 The test target's opt-in `alea_probe_reverse` cfg isolates deliberate failing
-reverse probes; `alea_probe_blas` selects the explicit BLAS feature cell. See the existing
-[Enzyme conformance instructions](../tools/enzyme-conformance/README.md) for
-commands; no provider feature-forwarding redesign is implied.
+reverse probes; the named `openblas` feature selects the BLAS feature cell. See
+the existing [Enzyme conformance instructions](../tools/enzyme-conformance/README.md) for
+commands and the untimed default/Faer/BLAS/combined feature runner. Provider
+features remain opt-in and forward to both source generation and execution.
 
 The explicit first-order composition is independently exercised on the same
 pinned compiler for Faer and LP64-BLAS, in density and objective modes. Fixtures
@@ -471,8 +472,17 @@ helper and singular-score rejection instead of inheriting the provider route.
 
 Primal and operand VJP calls use the actual selected library. First-only targets
 do not implement curvature capabilities, and unsupported higher source entries
-are not emitted. No new provider shim, custom Enzyme rule, global thread change
-or feature forwarding is introduced. The source-owned arena includes the seed
+are not emitted. Capability resolution and the exporter are checked separately
+for density/objective, value/first/HVP/third, and both curvature selections.
+Selecting original compiler reverse does not override an unqualified provider.
+The matrix includes nested regions and zero-trip scans; dead provider operations
+do not remove the selected root's capabilities. Generated provider first-only
+targets have positive first-order tests and compile-fail HVP/third trait tests.
+In the combined-provider binary, compensated matrix/checkpoint controls retain
+explicit original compiler higher reverse and independent Hessian/third answers;
+singular replay controls reject zero as well as nonzero HVP directions and recover.
+No new provider shim, custom Enzyme rule, global thread change
+is introduced. The source-owned arena includes the seed
 copy needed by provider accumulation; provider packing/compiler storage remain
 outside that budget. This is numerical/capability evidence, not timing, general
 program qualification or inference/ESS evidence.
@@ -1632,15 +1642,24 @@ passes per gradient trip, establish optimal checkpointing, or qualify higher
 derivatives through the explicit reverse program. The original tested compiler
 reverse remains the HVP/third-order route.
 
-For matrix products, `RegionBuilder::with_matrix_kernel` sets the policy for
-subsequent products in that lexical builder. Existing nodes and child regions
-retain their own policies. Optional `MatrixKernel::Auto` resolves once to an
-available provider, preferring sequential Faer when both providers are enabled.
-It is **availability dispatch**, not a fitted shape/cost model. Opting in permits
-provider reassociation; default construction remains compensated. Qualified
-value/explicit-first source export preserves the resolved provider and rejects
-unqualified curvature. BLAS threads/provider scratch remain host-owned. Feature
-availability alone never changes default arithmetic.
+For matrix products, `RegionBuilder::with_matrix_request` resolves a lexical
+request for subsequent operations; `matmul_with_request` overrides one operation.
+Both reject unavailable/incompatible requests before a node is published.
+`MatrixRequest` separates `MatrixArithmetic`, `MatrixProvider`, `MatrixCpu`, and
+`MatrixThreads`; its default is Compensated/Auto/Auto/Sequential. Auto provider
+selection never relaxes arithmetic: compensated Auto always resolves to the
+ordered reference path, even when both provider features are unified. Standard
+Auto prefers sequential Faer, then host-configured BLAS, without fitted cutoffs.
+Explicit Faer/BLAS require Standard and cannot promise scalar ISA. BLAS also
+requires HostConfigured threads; that preference permits host-owned thread
+configuration, not an enforced thread-count bound. No global thread setting is
+changed. Reference Standard is rejected because no conventional reference GEMM
+exists; the ordered compensated implementation is not silently relabeled.
+`BoundProgram::matrix_policies()` reports original requests and resolved physical
+calls recursively in active plan traversal order. Generated value/first source
+uses resolved physical constants, with no hot policy resolution. Provider scratch
+remains outside Alea workspace budgets. Regression arithmetic/CPU APIs are
+unchanged by this dense-matrix request boundary.
 
 ### Remote qualification of the adjoint planner
 

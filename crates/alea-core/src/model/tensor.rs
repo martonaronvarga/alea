@@ -15,7 +15,10 @@ mod kernels;
 mod pullback;
 mod registration;
 mod source;
-pub use alea_math::gemm::MatrixKernel;
+pub use alea_math::gemm::{
+    MatrixArithmetic, MatrixCpu, MatrixPolicyError, MatrixProvider, MatrixRequest, MatrixThreads,
+    ResolvedMatrix,
+};
 pub use execute::TensorWorkspace;
 pub use registration::{BlockInputs, BlockRules, BlockType, BlockVjp, ElementType};
 
@@ -234,7 +237,7 @@ enum Op {
         m: usize,
         k: usize,
         n: usize,
-        kernel: MatrixKernel,
+        kernel: ResolvedMatrix,
     },
     Cond(Box<Cond>),
     Scan(Box<Scan>),
@@ -320,7 +323,7 @@ pub struct RegionBuilder {
     data: Vec<Input>,
     dimension: usize,
     slots: usize,
-    matrix_kernel: MatrixKernel,
+    matrix_kernel: ResolvedMatrix,
 }
 impl RegionBuilder {
     pub(super) fn new() -> Self {
@@ -331,17 +334,16 @@ impl RegionBuilder {
             data: vec![],
             dimension: 0,
             slots: 0,
-            matrix_kernel: MatrixKernel::Compensated,
+            matrix_kernel: ResolvedMatrix::COMPENSATED,
         }
     }
-    /// Sets the execution policy for subsequent `matmul` operations in this
-    /// lexical builder. Existing nodes and child regions retain their policies.
-    /// `Auto` opts into accelerated reduction arithmetic and selects an available
-    /// provider; it does not promise a cost-optimal choice or bound provider
-    /// scratch/thread use. Default construction remains compensated.
-    pub fn with_matrix_kernel(mut self, kernel: MatrixKernel) -> Self {
-        self.matrix_kernel = kernel.resolved();
-        self
+    /// Sets the request for subsequent matrix operations in this lexical builder.
+    /// Existing nodes and child regions retain their own resolved choices.
+    /// # Errors
+    /// Rejects incompatible or unavailable matrix providers before construction.
+    pub fn with_matrix_request(mut self, request: MatrixRequest) -> Result<Self, E> {
+        self.matrix_kernel = request.resolve()?;
+        Ok(self)
     }
     fn node(&self, value: Value) -> Result<&Node, E> {
         if value.owner != self.owner {
@@ -498,7 +500,7 @@ impl RegionBuilder {
     /// # Errors
     /// Rejects incompatible matrix dimensions or foreign values.
     pub fn matmul(&mut self, a: Value, b: Value) -> Result<Value, E> {
-        self.matmul_with_kernel(a, b, self.matrix_kernel)
+        self.matmul_resolved(a, b, self.matrix_kernel)
     }
     /// Dense product with an explicit execution policy. Faer/BLAS permit
     /// reassociated reductions in both primal and VJP; they do not promise
@@ -511,13 +513,15 @@ impl RegionBuilder {
     /// or thread-local scratch. BLAS thread count must be configured by the host.
     /// # Errors
     /// Rejects incompatible matrix dimensions or foreign values.
-    pub fn matmul_with_kernel(
+    pub fn matmul_with_request(
         &mut self,
         a: Value,
         b: Value,
-        kernel: MatrixKernel,
+        kernel: MatrixRequest,
     ) -> Result<Value, E> {
-        let kernel = kernel.resolved();
+        self.matmul_resolved(a, b, kernel.resolve()?)
+    }
+    fn matmul_resolved(&mut self, a: Value, b: Value, kernel: ResolvedMatrix) -> Result<Value, E> {
         let lhs = &self.real_node(a)?.shape;
         let rhs = &self.real_node(b)?.shape;
         if lhs.axes.len() != 2 || rhs.axes.len() != 2 || lhs.axes[1] != rhs.axes[0] {
@@ -799,6 +803,30 @@ impl TensorProgram {
     }
 }
 impl BoundProgram {
+    /// Requested and resolved matrix calls in active plan traversal order,
+    /// recursively including child regions. This cold report allocates no state
+    /// in evaluation contexts and is not a provider scratch/thread-count bound.
+    pub fn matrix_policies(&self) -> Vec<ResolvedMatrix> {
+        fn collect(p: &Plan, out: &mut Vec<ResolvedMatrix>) {
+            for (i, node) in p.nodes.iter().enumerate() {
+                if !p.active[i] {
+                    continue;
+                }
+                match &node.op {
+                    Op::Matmul { kernel, .. } => out.push(*kernel),
+                    Op::Cond(c) => {
+                        collect(&c.yes.plan, out);
+                        collect(&c.no.plan, out);
+                    }
+                    Op::Scan(s) if s.steps != 0 => collect(&s.body.plan, out),
+                    _ => {}
+                }
+            }
+        }
+        let mut out = Vec::new();
+        collect(&self.plan, &mut out);
+        out
+    }
     /// Fixed flattened differentiable input dimension.
     pub fn dimension(&self) -> usize {
         self.plan.dimension

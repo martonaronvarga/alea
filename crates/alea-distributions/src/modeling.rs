@@ -1,6 +1,8 @@
 //! Distribution-backed factors for typed model assembly.
 mod builder;
 mod normal;
+mod observations;
+pub use observations::observations;
 pub mod regression;
 use crate::{
     scalar::Bernoulli,
@@ -87,14 +89,16 @@ where
     O: std::borrow::Borrow<D::Event> + Send + Sync + 'static,
     F: Fn(&[f64]) -> Result<D, D::Error> + Send + Sync + 'static,
 {
-    builder.custom(parameters, move |x, g| {
-        let law = construct(x).map_err(error)?;
-        if law.parameter_count() != g.len() {
-            return Err(error(alea_core::distribution::DistributionError::Shape));
+    // Preserve this scalar convenience contract; batches explicitly use
+    // observations and whole-value inputs rather than implicit repetition.
+    for &parameter in parameters {
+        if builder.value_shape(parameter)? != alea_core::model::tensor::Shape::scalar() {
+            return Err(E::Shape);
         }
-        law.log_prob_parameter_score(event.borrow(), g)
-            .map_err(error)
-    })
+    }
+    let rows = observations::<D, F, O>(builder, vec![event], parameters, construct)?;
+    // A rank-zero view preserves even signed-zero value bits; no reduction is needed.
+    builder.reshape(rows, alea_core::model::tensor::Shape::scalar())
 }
 /// Normalized Normal log density node, with event/location/scale reverse scores.
 /// # Errors

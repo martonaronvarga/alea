@@ -178,6 +178,9 @@ pub struct Coordinate {
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum AssemblyError {
+    /// A dense-matrix request is incompatible or its provider is unavailable.
+    #[error(transparent)]
+    MatrixPolicy(#[from] alea_math::gemm::MatrixPolicyError),
     #[error("parameter or expression belongs to another model")]
     ForeignHandle,
     /// A named statistical view cannot infer the meaning of an unclassified factor.

@@ -1,6 +1,6 @@
 //! Block dispatch and contiguous pullbacks. The default preserves scalar order
 //! and repeated-operand writes; explicit accelerated policies allow reassociation.
-use super::{Binary, BinaryOp, Map, MatrixKernel, UnaryOp, execute};
+use super::{Binary, BinaryOp, Map, ResolvedMatrix, UnaryOp, execute};
 use alea_math::gemm::try_gemm;
 use alea_math::numeric::CompensatedSum;
 
@@ -12,7 +12,7 @@ pub(super) fn matmul_forward(
     b: &[f64],
     out: &mut [f64],
     (m, k, n): (usize, usize, usize),
-    kernel: MatrixKernel,
+    kernel: ResolvedMatrix,
 ) {
     if try_gemm(kernel, a, b, out, (m, k, n), (false, false), false) {
         return;
@@ -42,7 +42,7 @@ pub(super) fn matmul_forward(
 pub(super) fn matmul_reverse(
     (m, k, n): (usize, usize, usize),
     work: Pullback<'_>,
-    kernel: MatrixKernel,
+    kernel: ResolvedMatrix,
 ) {
     let Pullback {
         a,
@@ -54,10 +54,7 @@ pub(super) fn matmul_reverse(
     } = work;
     // Preserve skipped derivatives and original interleaving for aliased inputs.
     // Each GEMM writes only its active destination, including existing adjoints.
-    if kernel != MatrixKernel::Compensated
-        && (!da || !dr || lhs != rhs)
-        && seeds.iter().all(|s| *s != 0.)
-    {
+    if kernel.is_accelerated() && (!da || !dr || lhs != rhs) && seeds.iter().all(|s| *s != 0.) {
         let left_done = !da
             || try_gemm(
                 kernel,
@@ -93,7 +90,7 @@ pub(super) fn matmul_reverse(
                 starts: (lhs, rhs),
                 active: (da && !left_done, dr && !right_done),
             },
-            MatrixKernel::Compensated,
+            ResolvedMatrix::COMPENSATED,
         );
         return;
     }

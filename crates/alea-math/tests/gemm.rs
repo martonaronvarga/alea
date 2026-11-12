@@ -1,14 +1,14 @@
-use alea_math::gemm::{MatrixKernel, try_gemm};
+use alea_math::gemm::{MatrixProvider, MatrixRequest, try_gemm};
 
-fn kernels() -> Vec<MatrixKernel> {
+fn kernels() -> Vec<MatrixRequest> {
     vec![
-        MatrixKernel::Compensated,
+        MatrixRequest::default(),
         #[cfg(any(feature = "faer", feature = "openblas"))]
-        MatrixKernel::Auto,
+        MatrixRequest::standard(MatrixProvider::Auto),
         #[cfg(feature = "faer")]
-        MatrixKernel::Faer,
+        MatrixRequest::standard(MatrixProvider::Faer),
         #[cfg(feature = "openblas")]
-        MatrixKernel::Blas,
+        MatrixRequest::standard(MatrixProvider::Blas),
     ]
 }
 
@@ -32,8 +32,16 @@ fn checked_gemm_transposes_accumulation_and_empty_products() {
                 }
                 for add in [false, true] {
                     let mut out = vec![7.; m * n];
-                    let done = try_gemm(kernel, &a, &b, &mut out, (m, k, n), (ta, tb), add);
-                    if kernel == MatrixKernel::Compensated {
+                    let done = try_gemm(
+                        kernel.resolve().unwrap(),
+                        &a,
+                        &b,
+                        &mut out,
+                        (m, k, n),
+                        (ta, tb),
+                        add,
+                    );
+                    if kernel == MatrixRequest::default() {
                         assert!(!done);
                         assert_eq!(out, vec![7.; m * n]);
                         continue;
@@ -53,7 +61,7 @@ fn checked_gemm_transposes_accumulation_and_empty_products() {
         }
         let mut out = [9.; 6];
         assert!(!try_gemm(
-            kernel,
+            kernel.resolve().unwrap(),
             &[],
             &[],
             &mut out,
@@ -63,7 +71,7 @@ fn checked_gemm_transposes_accumulation_and_empty_products() {
         ));
         assert_eq!(out, [9.; 6]);
         assert!(!try_gemm(
-            kernel,
+            kernel.resolve().unwrap(),
             &[1.],
             &[],
             &mut out,
@@ -72,9 +80,9 @@ fn checked_gemm_transposes_accumulation_and_empty_products() {
             false
         ));
         assert_eq!(out, [9.; 6]);
-        if kernel != MatrixKernel::Compensated {
+        if kernel != MatrixRequest::default() {
             assert!(try_gemm(
-                kernel,
+                kernel.resolve().unwrap(),
                 &[],
                 &[],
                 &mut out,
@@ -84,7 +92,7 @@ fn checked_gemm_transposes_accumulation_and_empty_products() {
             ));
             assert_eq!(out, [9.; 6]);
             assert!(try_gemm(
-                kernel,
+                kernel.resolve().unwrap(),
                 &[],
                 &[],
                 &mut out,
@@ -94,5 +102,85 @@ fn checked_gemm_transposes_accumulation_and_empty_products() {
             ));
             assert_eq!(out, [0.; 6]);
         }
+    }
+}
+
+#[test]
+fn matrix_requests_never_relax_arithmetic_or_mutate_thread_policy() {
+    use alea_math::gemm::{
+        MatrixArithmetic as A, MatrixCpu as C, MatrixPolicyError as E, MatrixThreads as T,
+    };
+    for provider in [MatrixProvider::Auto, MatrixProvider::Reference] {
+        for cpu in [C::Auto, C::Scalar] {
+            for threads in [T::Sequential, T::HostConfigured] {
+                let request = MatrixRequest {
+                    provider,
+                    cpu,
+                    threads,
+                    ..MatrixRequest::default()
+                };
+                let resolved = request.resolve().unwrap();
+                assert_eq!(resolved.requested(), request);
+                assert_eq!(resolved.provider(), MatrixProvider::Reference);
+                assert_eq!(resolved.cpu(), C::Scalar);
+                assert_eq!(resolved.threads(), T::Sequential);
+                assert!(!resolved.is_accelerated());
+            }
+        }
+    }
+    for provider in [MatrixProvider::Faer, MatrixProvider::Blas] {
+        let request = MatrixRequest::standard(provider);
+        let available = match provider {
+            MatrixProvider::Faer => cfg!(feature = "faer"),
+            _ => cfg!(feature = "openblas"),
+        };
+        match request.resolve() {
+            Ok(plan) => {
+                assert!(available);
+                assert_eq!(plan.provider(), provider);
+                assert_eq!(plan.requested(), request);
+            }
+            Err(E::Unavailable(p)) => {
+                assert!(!available);
+                assert_eq!(p, provider);
+            }
+            result => panic!("{request:?}: {result:?}"),
+        }
+        for invalid in [
+            MatrixRequest {
+                arithmetic: A::Compensated,
+                ..request
+            },
+            MatrixRequest {
+                cpu: C::Scalar,
+                ..request
+            },
+        ] {
+            assert_eq!(invalid.resolve(), Err(E::Incompatible(invalid)));
+        }
+    }
+    let request = MatrixRequest {
+        threads: T::Sequential,
+        ..MatrixRequest::standard(MatrixProvider::Blas)
+    };
+    assert_eq!(request.resolve(), Err(E::Incompatible(request)));
+    let reference = MatrixRequest::standard(MatrixProvider::Reference);
+    assert_eq!(reference.resolve(), Err(E::Incompatible(reference)));
+    let auto = MatrixRequest::standard(MatrixProvider::Auto);
+    let providers_available = cfg!(any(feature = "faer", feature = "openblas"));
+    match auto.resolve() {
+        Ok(plan) => {
+            let expected = if cfg!(feature = "faer") {
+                MatrixProvider::Faer
+            } else {
+                MatrixProvider::Blas
+            };
+            assert_eq!(plan.provider(), expected);
+            assert_eq!(plan.requested(), auto);
+        }
+        Err(E::Unavailable(MatrixProvider::Auto)) => {
+            assert!(!providers_available)
+        }
+        result => panic!("{result:?}"),
     }
 }

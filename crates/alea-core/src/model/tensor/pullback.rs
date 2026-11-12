@@ -263,7 +263,7 @@ impl BoundProgram {
         self.plan.nodes.iter().enumerate().any(|(i, n)| {
             self.plan.active[i]
                 && match &n.op {
-                    Op::Matmul { kernel, .. } => *kernel != MatrixKernel::Compensated,
+                    Op::Matmul { kernel, .. } => kernel.is_accelerated(),
                     Op::Cond(c) => {
                         c.yes.requires_explicit_source() || c.no.requires_explicit_source()
                     }
@@ -450,7 +450,7 @@ impl BoundProgram {
                     if len == 0 || *k == 0 {
                         continue;
                     }
-                    let accelerated = *kernel != MatrixKernel::Compensated
+                    let accelerated = kernel.is_accelerated()
                         && (!active[l.node] || !active[r.node] || adjoints[l.node] != adjoints[r.node]);
                     if accelerated {
                         extra = extra.max(len);
@@ -463,12 +463,12 @@ impl BoundProgram {
                         ] {
                             if enabled {
                                 let (first,second) = if transpose.0 { (input.as_str(), "seeds") } else { ("seeds", input.as_str()) };
-                                writeln!(reverse,"if !::alea::math::gemm::try_gemm(::alea::math::gemm::MatrixKernel::{kernel:?},{first},{second},&mut a[{destination}..{}],{dimensions:?},{transpose:?},true) {{*valid=false;return;}}",destination+count).unwrap();
+                                writeln!(reverse,"if !::alea::math::gemm::try_gemm(::alea::math::gemm::ResolvedMatrix::{},{first},{second},&mut a[{destination}..{}],{dimensions:?},{transpose:?},true) {{*valid=false;return;}}",kernel.source_name(),destination+count).unwrap();
                             }
                         }
                         reverse.push_str("} else {\n");
                     }
-                    let skip_zero=if *kernel!=MatrixKernel::Compensated {"if s==0.0 {continue;}"}else{""};
+                    let skip_zero=if kernel.is_accelerated() {"if s==0.0 {continue;}"}else{""};
                     writeln!(reverse,"for row in 0..{m} {{for col in 0..{n} {{let s=a[{base}+row*{n}+col]; {skip_zero} for j in 0..{k} {{").unwrap();
                     if active[l.node] {
                         writeln!(
@@ -738,20 +738,20 @@ mod tests {
     #[allow(clippy::single_element_loop)] // Optional providers extend this matrix.
     fn matrix_provider_pullbacks_do_not_substitute_compensated_source() {
         for kernel in [
-            MatrixKernel::Compensated,
+            MatrixRequest::default(),
             #[cfg(feature = "faer")]
-            MatrixKernel::Faer,
+            MatrixRequest::standard(MatrixProvider::Faer),
             #[cfg(feature = "openblas")]
-            MatrixKernel::Blas,
+            MatrixRequest::standard(MatrixProvider::Blas),
         ] {
             let mut b = RegionBuilder::new();
             let x = b.input("x", Shape::new(vec![1, 1]).unwrap()).unwrap();
-            let product = b.matmul_with_kernel(x, x, kernel).unwrap();
+            let product = b.matmul_with_request(x, x, kernel).unwrap();
             let p = b.compile(product).unwrap().bind(&[]).unwrap();
             let source = p.pullback_source("matrix").unwrap().source;
             assert_eq!(
                 source.contains("try_gemm"),
-                kernel != MatrixKernel::Compensated
+                kernel != MatrixRequest::default()
             );
         }
     }
@@ -764,7 +764,9 @@ mod tests {
             .input("a", Shape::new(vec![i32::MAX as usize + 1, 1]).unwrap())
             .unwrap();
         let r = b.input("b", Shape::new(vec![1, 1]).unwrap()).unwrap();
-        let product = b.matmul_with_kernel(a, r, MatrixKernel::Blas).unwrap();
+        let product = b
+            .matmul_with_request(a, r, MatrixRequest::standard(MatrixProvider::Blas))
+            .unwrap();
         let p = b.compile(product).unwrap().bind(&[]).unwrap();
         assert!(matches!(p.rust_function(), Err(E::MissingPrimal { .. })));
         assert!(matches!(

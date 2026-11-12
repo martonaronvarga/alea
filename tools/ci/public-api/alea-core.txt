@@ -305,6 +305,7 @@ pub alea_core::model::assembly::AssemblyError::ContextMismatch
 pub alea_core::model::assembly::AssemblyError::Empty
 pub alea_core::model::assembly::AssemblyError::Factor(alloc::boxed::Box<(dyn core::error::Error + core::marker::Send + core::marker::Sync)>)
 pub alea_core::model::assembly::AssemblyError::ForeignHandle
+pub alea_core::model::assembly::AssemblyError::MatrixPolicy(alea_math::gemm::MatrixPolicyError)
 pub alea_core::model::assembly::AssemblyError::MissingPointwise
 pub alea_core::model::assembly::AssemblyError::MissingPointwise::node: usize
 pub alea_core::model::assembly::AssemblyError::MissingPrimal
@@ -325,6 +326,8 @@ impl core::convert::From<alea_core::model::assembly::AssemblyError> for alea_cor
 pub fn alea_core::model::assembly::PointwiseError::from(source: alea_core::model::assembly::AssemblyError) -> Self
 impl core::convert::From<alea_core::transform::TransformError> for alea_core::model::assembly::AssemblyError
 pub fn alea_core::model::assembly::AssemblyError::from(source: alea_core::transform::TransformError) -> Self
+impl core::convert::From<alea_math::gemm::MatrixPolicyError> for alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::assembly::AssemblyError::from(source: alea_math::gemm::MatrixPolicyError) -> Self
 impl core::error::Error for alea_core::model::assembly::AssemblyError
 pub fn alea_core::model::assembly::AssemblyError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
 impl core::fmt::Debug for alea_core::model::assembly::AssemblyError
@@ -1018,7 +1021,13 @@ pub fn alea_core::model::prediction::Predictions<T>::fmt(&self, f: &mut core::fm
 pub fn alea_core::model::prediction::posterior_predict<'a, T, E, R, F>(layout: &alea_core::transform::ParameterLayout, draws: impl core::iter::traits::collect::IntoIterator<Item = &'a [f64]>, rng: &mut R, generate: F) -> core::result::Result<alea_core::model::prediction::Predictions<T>, alea_core::model::prediction::PredictionError<E>> where E: core::error::Error + 'static, R: rand_core::Rng + ?core::marker::Sized, F: core::ops::function::FnMut(&[f64], &mut R) -> core::result::Result<T, E>
 pub fn alea_core::model::prediction::prior_predict<T, E, R, F>(count: usize, rng: &mut R, generate: F) -> core::result::Result<alea_core::model::prediction::Predictions<T>, E> where R: rand_core::Rng + ?core::marker::Sized, F: core::ops::function::FnMut(&mut R) -> core::result::Result<T, E>
 pub mod alea_core::model::tensor
-pub use alea_core::model::tensor::MatrixKernel
+pub use alea_core::model::tensor::MatrixArithmetic
+pub use alea_core::model::tensor::MatrixCpu
+pub use alea_core::model::tensor::MatrixPolicyError
+pub use alea_core::model::tensor::MatrixProvider
+pub use alea_core::model::tensor::MatrixRequest
+pub use alea_core::model::tensor::MatrixThreads
+pub use alea_core::model::tensor::ResolvedMatrix
 #[non_exhaustive] pub enum alea_core::model::tensor::BinaryOp
 pub alea_core::model::tensor::BinaryOp::Add
 pub alea_core::model::tensor::BinaryOp::Divide
@@ -1130,6 +1139,7 @@ pub struct alea_core::model::tensor::BoundProgram
 impl alea_core::model::tensor::BoundProgram
 pub fn alea_core::model::tensor::BoundProgram::check_workspace_limit(&self, limit: usize) -> core::result::Result<(), alea_core::model::tensor::WorkspaceBudgetError>
 pub fn alea_core::model::tensor::BoundProgram::dimension(&self) -> usize
+pub fn alea_core::model::tensor::BoundProgram::matrix_policies(&self) -> alloc::vec::Vec<alea_math::gemm::ResolvedMatrix>
 pub fn alea_core::model::tensor::BoundProgram::output_shape(&self) -> &alea_core::model::tensor::Shape
 pub fn alea_core::model::tensor::BoundProgram::rebind(&self, name: &str, values: &[f64]) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
 impl alea_core::model::tensor::BoundProgram
@@ -1153,13 +1163,13 @@ pub fn alea_core::model::tensor::RegionBuilder::data(&mut self, name: &str, shap
 pub fn alea_core::model::tensor::RegionBuilder::gather(&mut self, value: alea_core::model::assembly::Value, shape: alea_core::model::tensor::Shape, indices: alloc::vec::Vec<usize>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::RegionBuilder::input(&mut self, name: &str, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::RegionBuilder::matmul(&mut self, a: alea_core::model::assembly::Value, b: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::tensor::RegionBuilder::matmul_with_kernel(&mut self, a: alea_core::model::assembly::Value, b: alea_core::model::assembly::Value, kernel: alea_math::gemm::MatrixKernel) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::tensor::RegionBuilder::matmul_with_request(&mut self, a: alea_core::model::assembly::Value, b: alea_core::model::assembly::Value, kernel: alea_math::gemm::MatrixRequest) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::RegionBuilder::reshape(&mut self, value: alea_core::model::assembly::Value, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::RegionBuilder::scan(&mut self, initial: alea_core::model::assembly::Value, xs: alea_core::model::assembly::Value, captures: &[alea_core::model::assembly::Value], body: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::RegionBuilder::sum(&mut self, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::RegionBuilder::unary(&mut self, kind: alea_core::model::tensor::UnaryOp, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::RegionBuilder::value_shape(&self, value: alea_core::model::assembly::Value) -> core::result::Result<&alea_core::model::tensor::Shape, alea_core::model::assembly::AssemblyError>
-pub fn alea_core::model::tensor::RegionBuilder::with_matrix_kernel(self, kernel: alea_math::gemm::MatrixKernel) -> Self
+pub fn alea_core::model::tensor::RegionBuilder::with_matrix_request(self, request: alea_math::gemm::MatrixRequest) -> core::result::Result<Self, alea_core::model::assembly::AssemblyError>
 impl alea_core::model::tensor::RegionBuilder
 pub fn alea_core::model::tensor::RegionBuilder::boolean_data(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<bool>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::RegionBuilder::count_data(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<u64>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>

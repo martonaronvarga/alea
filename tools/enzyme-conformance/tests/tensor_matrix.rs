@@ -18,6 +18,9 @@ fn close(actual: f64, expected: f64) {
 fn matrix_density_score_curvature_and_third_match_independent_quadratic() {
     let target = tensor_matrix::target();
     let checkpoint = alea_enzyme_conformance::tensor_checkpoint_matrix::target();
+    // Explicit first-order replay does not become the higher derivative rule.
+    let source = include_str!(concat!(env!("OUT_DIR"), "/tensor_checkpoint_matrix.rs"));
+    assert!(source.contains("autodiff_reverse(__higher_gradient"));
     for [a, b] in [[0.3, -0.4], [0., 0.], [-10., 1.], [2., 0.5]] {
         let mut g = [41.; 2];
         let mut h = [41.; 4];
@@ -48,6 +51,18 @@ fn matrix_density_score_curvature_and_third_match_independent_quadratic() {
         target.potential_hvp(&q, &[0.4, -0.2], &mut g).unwrap();
         close(g[0], 0.55);
         close(g[1], -0.6);
+        checkpoint
+            .potential_hessian_and_derivatives(&q, &mut h, &mut t)
+            .unwrap();
+        for (actual, expected) in h.into_iter().zip([1.25, -0.25, -0.25, 2.5]) {
+            close(actual, expected);
+        }
+        assert_eq!(t, [0.; 8]);
+        for direction in [[0.4, -0.2], [0., 0.]] {
+            checkpoint.potential_hvp(&q, &direction, &mut g).unwrap();
+            close(g[0], 1.25 * direction[0] - 0.25 * direction[1]);
+            close(g[1], -0.25 * direction[0] + 2.5 * direction[1]);
+        }
     }
 }
 
@@ -93,15 +108,15 @@ fn invalid_tensor_states_remain_typed_errors_and_do_not_poison_scratch() {
 
 // Bounded direct-provider probes. Keep deliberate compiler-failure cases out of
 // ordinary conformance builds; cargo rustc can opt in for this existing target.
-#[cfg(any(feature = "faer", alea_probe_blas))]
+#[cfg(any(feature = "faer", feature = "openblas"))]
 mod provider_probe {
     use super::close;
-    use alea::math::gemm::{MatrixKernel, try_gemm};
+    use alea::math::gemm::{MatrixProvider, MatrixRequest, try_gemm};
 
-    fn product(kernel: MatrixKernel, x: &[f64; 9]) -> f64 {
+    fn product(kernel: MatrixRequest, x: &[f64; 9]) -> f64 {
         let mut out = [0.; 2];
         assert!(try_gemm(
-            kernel,
+            kernel.resolve().unwrap(),
             &x[..6],
             &x[6..],
             &mut out,
@@ -118,16 +133,16 @@ mod provider_probe {
         std::autodiff::autodiff_reverse(faer_reverse, Duplicated, Active)
     )]
     fn faer_primal(x: &[f64; 9]) -> f64 {
-        product(MatrixKernel::Faer, x)
+        product(MatrixRequest::standard(MatrixProvider::Faer), x)
     }
 
-    #[cfg(alea_probe_blas)]
+    #[cfg(feature = "openblas")]
     #[cfg_attr(
         alea_probe_reverse,
         std::autodiff::autodiff_reverse(blas_reverse, Duplicated, Active)
     )]
     fn blas_primal(x: &[f64; 9]) -> f64 {
-        product(MatrixKernel::Blas, x)
+        product(MatrixRequest::standard(MatrixProvider::Blas), x)
     }
 
     fn primal_answers(primal: fn(&[f64; 9]) -> f64) {
@@ -168,19 +183,19 @@ mod provider_probe {
     fn faer_compiler_reverse_has_independent_operand_scores() {
         reverse_answers(faer_reverse);
     }
-    #[cfg(alea_probe_blas)]
+    #[cfg(feature = "openblas")]
     #[test]
     fn blas_primal_has_independent_rectangular_answers() {
         primal_answers(blas_primal);
     }
-    #[cfg(all(alea_probe_blas, alea_probe_reverse))]
+    #[cfg(all(feature = "openblas", alea_probe_reverse))]
     #[test]
     fn blas_compiler_reverse_has_independent_operand_scores() {
         reverse_answers(blas_reverse);
     }
 }
 
-#[cfg(any(feature = "faer", alea_probe_blas))]
+#[cfg(any(feature = "faer", feature = "openblas"))]
 #[test]
 fn generated_provider_first_order_matches_independent_operand_answers() {
     fn check<T: LogDensityGradient<Error = AutodiffError>>(
@@ -304,6 +319,12 @@ fn generated_provider_first_order_matches_independent_operand_answers() {
                 model::value::log_density,
                 $variant,
             );
+            let name=stringify!($name);
+            let (provider,token)=if name.starts_with("provider_faer_") {("faer","ResolvedMatrix::FAER")} else {("blas","ResolvedMatrix::BLAS")};
+            let source=include_str!(concat!(env!("OUT_DIR"),"/",stringify!($name),"_first.rs"));
+            // Empty output axes need no provider call or matrix addresses.
+            assert_eq!(source.contains(token), !matches!($variant, 2 | 12));
+            eprintln!("ALEA_BASELINE_ROUTE_V1\t{name}\tH\tH\tfirst\tfixture-default\t{provider}\tH\t{}\tsupported\tindependent density/objective provider VJPs and recovery passed",model::SOURCE_CHECKPOINTED);
         }};
     }
     #[cfg(feature = "faer")]
@@ -321,7 +342,7 @@ fn generated_provider_first_order_matches_independent_operand_answers() {
         case!(provider_faer_empty_inner, 11);
         case!(provider_faer_empty_columns, 12);
     }
-    #[cfg(alea_probe_blas)]
+    #[cfg(feature = "openblas")]
     {
         case!(provider_blas_rect, 0);
         case!(provider_blas_alias, 1);
@@ -338,7 +359,7 @@ fn generated_provider_first_order_matches_independent_operand_answers() {
     }
 }
 
-#[cfg(any(feature = "faer", alea_probe_blas))]
+#[cfg(any(feature = "faer", feature = "openblas"))]
 #[test]
 fn provider_first_order_preserves_ordinary_factor_compiler_route_and_admission() {
     fn check<T: LogDensityGradient<Error = AutodiffError>>(target: T) {
@@ -373,7 +394,7 @@ fn provider_first_order_preserves_ordinary_factor_compiler_route_and_admission()
         check(alea_enzyme_conformance::provider_faer_mixed::target());
         check(alea_enzyme_conformance::provider_faer_mixed::composition::objective());
     }
-    #[cfg(alea_probe_blas)]
+    #[cfg(feature = "openblas")]
     {
         let source = include_str!(concat!(env!("OUT_DIR"), "/provider_blas_mixed_first.rs"));
         assert_eq!(
