@@ -1,56 +1,45 @@
 # Alea
 
-**Statistical modeling, probability computation, and inference in Rust.**
+**Probability distributions, differentiable statistical models, and CPU inference in Rust.**
 
-Alea is a Rust framework for building and evaluating statistical models, optimizing likelihoods, and sampling posterior distributions.
+Alea is a modular Rust library for probability computation, statistical model construction, numerical optimization, and Monte Carlo inference. You can assemble models in ordinary Rust or supply your own log-density target to a sampler. There is no separate modeling language.
 
-Models are defined in ordinary Rust using named parameters, probability distributions, differentiable expressions, and custom numerical factors. The same model can be used for maximum likelihood estimation, posterior sampling, prediction, and analysis.
+The primary execution path uses native Rust on the CPU: analytic distribution scores, reverse-mode model differentiation, specialized regression kernels, and reusable evaluation workspaces. Stable Rust is sufficient for this path. Compiler-generated differentiation through Enzyme is optional and qualified for a narrower subset of models and derivative operations.
 
-Alea emphasizes fast repeated model evaluation, explicit numerical contracts, and reproducible statistical computation.
-
-> **Project status:** Alea is under active development. Its native inference and numerical components are usable, while the tensor compiler, compiled differentiation, and several inference algorithms have narrower experimental qualifications. It is not yet a drop-in replacement for Stan or JAX.
+> **Project status:** Alea is under active development, currently at version 0.1.1. APIs and numerical contracts are evolving. Native capabilities, experimental algorithms, and compiler differentiation have different qualification boundaries; availability of an API does not establish support for every model or derivative order.
 
 ## Quick start
 
-Requires Rust 1.95 or later.
+Requires Rust 1.95 or later. The optional `distributions` feature also requires a C compiler to build the bundled cubature dependency.
 
-Add Alea to your application:
+Alea is installed from source. Add it to your application:
 
 ```toml
-[dependencies]
-alea = {
-    git = "https://github.com/martonaronvarga/alea",
-    branch = "main",
-    features = ["distributions"]
-}
+[dependencies.alea]
+git = "https://github.com/martonaronvarga/alea"
+branch = "main"
+features = ["distributions"]
 ```
 
 For reproducible applications, commit `Cargo.lock` or pin a specific Git revision.
 
-### Define a statistical model
-
-The following model estimates a normal location and positive scale from four observations:
+This model combines normal observations with a normal prior on the mean and an exponential prior on a positive scale. It evaluates the sampling log density and its gradient in unconstrained coordinates:
 
 ```rust
 use alea::{
     distributions::modeling::ModelBuilderExt,
     model::assembly::ModelBuilder,
+    target::LogDensityGradient,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut builder = ModelBuilder::new();
-
     let mean = builder.real("mean")?;
     let scale = builder.positive("scale")?;
 
-    // Normal prior for the location.
     builder.normal_prior("mean prior", mean, 0.0, 2.0)?;
-
-    // Exponential prior for the positive scale.
     let scale_log_prior = builder.multiply(-1.0, scale)?;
     builder.prior("scale prior", scale_log_prior)?;
-
-    // Observations conditional on mean and scale.
     builder.normal_observations(
         "measurements",
         &[1.2, 0.9, 1.4, 1.1],
@@ -58,125 +47,115 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &scale,
     )?;
 
-    let model = builder.compile()?;
-
-    // Use the compiled model for inference or optimization.
-    let _ = model;
-
+    let target = builder.compile()?.into_target()?;
+    let mut gradient = [0.0; 2];
+    // Coordinates are [mean, log(scale)]; here scale = 1.
+    let logp = target.logp_grad(&[1.0, 0.0], &mut gradient)?;
+    println!("log density: {logp}, gradient: {gradient:?}");
     Ok(())
 }
 ```
 
-Alea handles constrained parameter coordinates and the corresponding Jacobian adjustments for sampling. Its native reverse-mode implementation computes the log density and gradient without requiring Enzyme or nightly Rust.
+The sampling target includes the Jacobian adjustment for the scale transformation. Native gradients require neither Enzyme nor nightly Rust. The [getting-started guide](docs/getting-started.md) provides a complete NUTS sampling example, including a custom target.
 
-The [getting-started guide](docs/getting-started.md) provides a complete NUTS sampling example.
-
-## Features
+## What you can do today
 
 ### Probability and numerical computation
 
-- Continuous, discrete, multivariate, mixture, and directional distributions.
-- Wiener drift-diffusion densities for reaction-time and choice models.
-- Analytic derivatives for supported distribution families.
-- Numerically stable likelihoods and explicitly checked domain conditions.
-- Optional Faer and OpenBLAS linear algebra backends.
+- Evaluate continuous, discrete, multivariate, mixture, and directional distributions, with analytic derivatives for supported families.
+- Compute Wiener drift-diffusion densities for reaction-time and choice models.
+- Use checked numerical routines, compensated arithmetic, and optional Faer or LP64 OpenBLAS matrix operations.
 
-### Statistical modeling
+### Model construction
 
-- Named scalar and vector parameters.
-- Constraints and transformations, including positive, bounded, simplex, and matrix-valued domains where supported.
-- Differentiable model graphs and composable hierarchical models.
-- Native Gaussian, Bernoulli-logit, and Poisson regression factors.
-- Custom probability factors with supplied derivatives.
-- Explicit likelihood, prior, and prediction components.
+- Define named scalar and vector parameters, with positive, bounded, simplex, and matrix-domain transformations where supported.
+- Compose likelihoods, priors, hierarchical models, and custom factors with supplied derivative rules.
+- Use specialized Gaussian, Bernoulli-logit, and Poisson regression factors.
+- Share fixed-shape vector and matrix expressions across observation blocks. Native Normal, Bernoulli-logit, and Poisson-log observation adapters accept shared predictors, including nonlinear predictors, and propagate cached scores through the same graph.
+- Build fixed-shape tensor expressions with broadcasting, reductions, matrix multiplication, lazy conditionals, scans, and supported checkpointed reverse passes.
 
-### Inference and optimization
+Model definitions, data bindings, compiled executables, and evaluation contexts are separate parts of the model lifecycle. Evaluation contexts own mutable workspaces so repeated evaluations and independent chains can reuse storage without sharing mutable chain state.
 
-- No-U-Turn Sampling (NUTS).
-- Hamiltonian Monte Carlo and random-walk Metropolis.
-- Covariance adaptation, parallel chains, diagnostics, and checkpoint recovery.
-- L-BFGS optimization for likelihood and posterior-mode objectives.
-- Named sampling results, prediction, and analysis exports.
-- Experimental inference algorithms like RMHMC or WALNUTS with separate documented contracts.
+### Inference, optimization, and results
 
-## Execution and automatic differentiation
+- Run NUTS, Hamiltonian Monte Carlo, or random-walk Metropolis through sampling sessions.
+- Configure warmup, covariance adaptation, parallel chains, diagnostics, and checkpoint recovery.
+- Optimize likelihood and posterior-mode objectives with L-BFGS.
+- Work with named draws, explicit prediction and pointwise reporting components, and optional CSV/JSON analysis exports.
 
-Alea provides multiple execution strategies rather than requiring a single compiler backend.
+Objectives and sampling densities have different meanings. Maximum likelihood uses likelihood factors; declared-measure MAP uses likelihood and prior factors. A transformed sampling density additionally includes parameter-coordinate Jacobians. An optimizer reaching its numerical stopping condition does not by itself establish that a finite estimator exists or that uncertainty estimates are valid. See [optimization and posterior modes](docs/modeling.md#maximum-likelihood-and-posterior-modes).
 
-| Backend | Differentiation | Requirements | Status |
-|---|---|---|---|
-| Native model executor | Analytic scalar reverse AD and block tensor VJPs | Stable Rust | Implemented |
-| Specialized probability kernels | Fused log-density and gradient evaluation | Stable Rust | Implemented for supported laws |
-| Ahead-of-time compiled source | Explicit first-order rules and Enzyme-generated derivatives | Optional pinned nightly toolchain | Qualified experimental subset |
-| Tensor IR execution | Fixed-shape SSA, fusion, structured regions, analytic VJPs | Stable Rust | Experimental |
+## Execution and qualification boundaries
 
-Alea's tensor IR supports fixed-shape operations, broadcasting, reductions, matrix multiplication, lazy conditionals, scans, and optional checkpointed reverse passes.
+| Path | What it provides | Boundary |
+|---|---|---|
+| Native model executor | Scalar reverse-mode differentiation and block vector–Jacobian products | Stable Rust; supported operations and supplied rules |
+| Specialized probability kernels | Fused density and score evaluation, including regression kernels | Supported laws and their explicit numerical policies |
+| Source generation and compiled differentiation | Ahead-of-time source and explicitly requested derivative operations | Eligible model subset; Enzyme execution requires the matching pinned toolchain |
 
-The tensor system is **not yet a general optimizing tensor compiler**. It does not provide a general GPU/TPU backend, dynamic tensor shapes, or universal source compilation of arbitrary Rust callbacks.
+The fixed-shape tensor representation is part of native model execution and source lowering, not a general accelerator compiler. Alea does not currently provide a general GPU/TPU backend, dynamic tensor shapes, or universal differentiation of arbitrary Rust callbacks.
 
-See [Tensor IR](docs/tensor-ir.md) and [Enzyme compilation](docs/enzyme-native-models.md).
+Native first-order support does not imply source compilation, Jacobian-vector products, Hessian-vector products, third derivatives, or replay support. In particular, the shared observation adapters above are qualified for native first-order evaluation; their source and higher-order paths are not available.
 
-## Performance and numerical correctness
+Additional samplers have separate experimental contracts. Examples include RMHMC, whose exactness qualification remains pending, WALNUTS, and explicitly approximate MCLMC. They are not interchangeable with the ordinary session samplers. The `alea-smc` package currently defines particle-operation traits; filtering and particle MCMC are not implemented. The CLI contains experiment and benchmark utilities rather than a general model frontend.
 
-Alea's numerical implementations are tested against independent mathematical references, finite differences, and selected external implementations.
-
-Performance work examines both individual log-density/gradient evaluations and complete inference runs.
-
-The [native-model performance study](docs/native-model-performance.md) compares selected regression and inference workloads with CmdStan and JAX, including cases where Alea is faster, slower, or numerically different.
-
-These results apply to specified versions, models, hardware, compiler configurations, and numerical policies. ___They don't establish universal performance superiority___.
-
-Alea treats invalid domains, nonfinite values, derivative failures, and parameter transformation errors as explicit numerical concerns.
+See [model construction](docs/modeling.md), [Tensor IR](docs/tensor-ir.md), [sampling](docs/sampling.md), and [Enzyme compilation](docs/enzyme-native-models.md) for operation-specific contracts.
 
 ## Installation and optional features
 
-The default native build uses stable Rust.
+The facade has no default features. Its native model, sampler, and runtime interfaces work on stable Rust without Enzyme or BLAS; distribution implementations are opt-in.
 
-Optional features include:
-
-| Feature | Purpose |
+| Feature | Purpose and requirements |
 |---|---|
-| `distributions` | Probability laws, model factors, and Wiener models |
-| `analysis` | Analysis and result-export functionality |
-| `faer` | Additional native linear algebra functionality |
-| `openblas` | Opt-in LP64 BLAS-backed numerical operations |
-| `autodiff` / `std-autodiff` | Optional source generation and compiler differentiation components |
+| `distributions` | Probability laws, model factors, and Wiener models; requires a C compiler |
+| `analysis` | Structured analysis and CSV/JSON result exports |
+| `tracing` | Runtime and enabled-component tracing events |
+| `faer` | Optional native matrix operations and additional linear algebra routines |
+| `openblas` | Optional LP64 BLAS operations; requires compatible OpenBLAS libraries |
+| `autodiff` | Source generation and derivative-checking tools |
+| `std-autodiff` | Enzyme compiler differentiation; requires the documented pinned nightly toolchain |
+| `simd` | Additional SIMD paths; requires nightly Rust |
+| `branch-hints` | Distribution branch hints; requires nightly Rust |
 
-The distribution feature also requires a C compiler.
+Enabling a matrix provider does not silently replace the default compensated matrix arithmetic. Standard arithmetic and provider/thread policies are explicit choices with separate numerical contracts.
 
-See [installation](docs/installation.md) for supported feature combinations, compiler configuration, and source builds.
+See [installation](docs/installation.md) and [supported builds](docs/releases.md) for toolchains, feature combinations, and platform requirements.
+
+## Performance and numerical validation
+
+Alea uses independent mathematical references, finite differences, and selected external implementations to check supported numerical paths. Derivative claims are specific to the operation, backend, and derivative order that was exercised.
+
+The [native-model performance study](docs/native-model-performance.md) records selected regression and inference comparisons with CmdStan and JAX, including correctness issues, repairs, and workloads where results differ. Its timings apply to the recorded models, hardware, source revisions, compiler settings, and numerical policies. They do not establish a universal speed ranking or equal statistical value for equal draw counts.
+
+## Workspace
+
+Most users start with the `alea` facade. The workspace also separates reusable components:
+
+| Package | Role |
+|---|---|
+| `alea-math` | Numerical routines, matrix operations, metrics, and aligned storage |
+| `alea-core` | Distribution and target contracts, transforms, and model execution |
+| `alea-distributions` | Probability laws, observation/regression factors, and Wiener models |
+| `alea-mcmc` | Markov kernels and sampler implementations |
+| `alea-runtime` | Sessions, warmup, diagnostics, optimization, outputs, and recovery |
+| `alea-autodiff` | Source generation, compiler differentiation, and gradient checks |
+| `alea-smc` | Particle-operation contracts |
+| `alea-ffi` | Native dependency bindings |
+| `alea-cli` | Experiment and benchmark utilities |
 
 ## Documentation
 
-**Getting started**
-- [Your first model](docs/getting-started.md)
+- [Documentation index](docs/README.md)
+- [Getting started](docs/getting-started.md)
 - [Model construction and likelihoods](docs/modeling.md)
+- [Hierarchical models](docs/hierarchical-models.md)
 - [Sampling and warmup](docs/sampling.md)
-- [Optimization](docs/modeling.md#maximum-likelihood-and-posterior-modes)
-
-**Analysis and numerical methods**
 - [Diagnostics](docs/diagnostics.md)
 - [Sampling sessions and recovery](docs/sessions.md)
 - [Distribution reference](docs/distributions.md)
 - [Wiener diffusion models](docs/wiener.md)
-
-**Compiler and development**
 - [Tensor IR and lowering](docs/tensor-ir.md)
 - [Compiled differentiation with Enzyme](docs/enzyme-native-models.md)
-- [Performance and numerical validation](docs/native-model-performance.md)
-- [Feature and compatibility matrix](docs/compatibility.md)
-
-## Development priorities
-
-Alea's ongoing development concentrates on:
-
-1. Making general model composition approach specialized numerical-kernel performance.
-2. Improving tensor indexing, fusion, storage planning, and backend-aware lowering.
-3. Expanding mathematical and derivative conformance across execution backends.
-4. Strengthening end-to-end inference validation and statistical workflows.
-5. Evaluating portable accelerator backends where measurements justify them.
-
-Experimental capabilities are documented separately from supported paths.
 
 ## Contributing
 
@@ -188,8 +167,6 @@ The canonical development repository is [git.martonaronvarga.dev/usu/alea](https
 
 ## License
 
-Licensing varies across the workspace.
-
-The facade, distribution, FFI, and CLI packages use GPL-3.0-or-later. Six reusable core, numerical, inference, runtime, and AD packages use MIT OR Apache-2.0.
+Licensing varies across the workspace. The facade, distribution, FFI, and CLI packages use GPL-3.0-or-later. Six reusable core, numerical, inference, runtime, AD, and particle-contract packages use MIT OR Apache-2.0.
 
 See [LICENSING.md](LICENSING.md) for package-specific terms and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for dependency notices.
