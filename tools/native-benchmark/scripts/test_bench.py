@@ -426,5 +426,82 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual(row['wall_seconds']['maximum'],3.)
 
 
+    def qualified_row(self, engine='alea', rep=0):
+        d=dict(rhat=1.001,rank_rhat=1.001,folded_rhat=1.,bulk_ess=800.,tail_ess=700.,mean_ess=750.,mean=1.,mcse_mean=.01)
+        q=[dict(d,name=f'c{j}:{kind}',kind=kind,coordinate=j) for j in range(5) for kind in ('mean','second_moment')]
+        q.extend(dict(d,name=f'derived{j}',kind='derived',coordinate=None) for j in range(4))
+        metrics=dict(completed=4000,chains=4,dimension=5,failures=[],retained_divergences=0,retained_depth_saturations=0,evaluations=10000,
+                     diagnostics=[d.copy() for _ in range(5)],constrained_diagnostics=[d.copy() for _ in range(5)],scientific_quantities=q,
+                     energy_diagnostics=[dict(ebfmi=.8,transitions=1000) for _ in range(4)])
+        return dict(case='covariance',engine=engine,rep=rep,success=True,wall_seconds=2.,metrics=metrics)
+
+    def qualification_plan(self):
+        return dict(cases=['covariance'],chains=4,reps=7,total_planned=14,minimum_ess_per_chain=100,both_coordinate_spaces=True,
+                    posterior_qualification=dict(minimum_ebfmi=.3))
+
+    def test_scientific_admission_rejects_missing_energy_depth_estimands_and_mcse(self):
+        import copy
+        original=self.qualified_row();plan=self.qualification_plan()
+        self.assertTrue(bench.statistical_qualification(original,plan)[0])
+        changes=[lambda m:m.update(retained_depth_saturations=1),lambda m:m.update(retained_depth_saturations=None),
+                 lambda m:m.update(energy_diagnostics=[]),lambda m:m['energy_diagnostics'][0].update(ebfmi=.29),
+                 lambda m:m.update(evaluations=None),lambda m:m['scientific_quantities'].pop(),
+                 lambda m:m['scientific_quantities'][0].update(mcse_mean=-1.),lambda m:m['scientific_quantities'][0].update(mean=float('nan')),
+                 lambda m:m['scientific_quantities'][0].update(rhat=1.01),lambda m:m['scientific_quantities'][0].update(tail_ess=399.),
+                 lambda m:m['scientific_quantities'][0].update(coordinate=None),lambda m:m['scientific_quantities'][0].update(name=m['scientific_quantities'][1]['name'])]
+        for change in changes:
+            row=copy.deepcopy(original);change(row['metrics'])
+            self.assertFalse(bench.statistical_qualification(row,plan)[0])
+
+    def test_posterior_pairs_include_reference_mc_error_and_withhold_failed_references(self):
+        rows=[self.qualified_row(engine,rep) for rep in range(7) for engine in ('alea','stan')]
+        plan=self.qualification_plan()
+        # More than a deterministic epsilon; admitted using BOTH MCSEs.
+        for row in rows:
+            if row['engine']=='stan':row['metrics']['scientific_quantities'][0]['mean']=1.06
+        result=bench.scientific_pairs(rows,plan)[0]
+        self.assertTrue(result['rankable']);self.assertEqual(result['interval']['lower'],1.)
+        rows[-1]['metrics']['retained_divergences']=1
+        result=bench.scientific_pairs(rows,plan)[0]
+        self.assertFalse(result['rankable']);self.assertIsNone(result['interval']);self.assertEqual(result['qualified_pairs'],6)
+        rows[-1]['metrics']['retained_divergences']=0
+        rows[-1]['metrics']['scientific_quantities'][0]['mean']=2.
+        self.assertFalse(bench.scientific_pairs(rows,plan)[0]['rankable'])
+
+    def test_sampling_replay_uses_sealed_raw_outputs_and_rejects_changed_or_missing_evidence(self):
+        import copy
+        with tempfile.TemporaryDirectory() as temporary:
+            directory=Path(temporary);plan=self.qualification_plan();(directory/'manifest.json').write_text(json.dumps(plan))
+            row=self.qualified_row();label='covariance-0-alea';row['returncodes']=[0]
+            for suffix,text in [('-0.stdout',json.dumps(row['metrics'])),('-0.stderr',''),('.csv','retained raw bytes')]:
+                (directory/(label+suffix)).write_text(text)
+            (directory/f'{label}-process.json').write_text(json.dumps(dict(wall_seconds=2.,returncodes=[0])))
+            row['files']={p.name:bench.sha(p) for p in directory.glob(label+'*')}
+            journal=directory/'records.jsonl'
+            def write(r):journal.write_text(json.dumps(r)+'\n')
+            write(row);expected=bench.sampling_report(directory)
+            import replay
+            self.assertEqual(replay.rebuild(directory,'stan'),expected)
+            with journal.open('a') as stream:stream.write('{"case":')
+            self.assertEqual(bench.sampling_report(directory),expected)
+            write(row)
+            with journal.open('a') as stream:stream.write(json.dumps(row)+'\n')
+            with self.assertRaisesRegex(ValueError,'duplicate'):bench.sampling_report(directory)
+            write(row)
+            row['metrics']={};row['success']=False;row['wall_seconds']=.00001;write(row)
+            self.assertEqual(bench.sampling_report(directory),expected)
+            saved=copy.deepcopy(row);row['files'].pop(label+'.csv');write(row)
+            with self.assertRaisesRegex(ValueError,'missing raw'):bench.sampling_report(directory)
+            write(saved);(directory/(label+'-0.stdout')).write_text('{}')
+            with self.assertRaisesRegex(ValueError,'changed'):bench.sampling_report(directory)
+
+    def test_missing_stan_profile_is_unknown_work_and_phase_times_remain_separate(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path=Path(temporary)/'chain.csv'
+            path.write_text('lp__,n_leapfrog__,divergent__,treedepth__\n'+('-1,3,0,2\n'*1000)+'# Elapsed Time: 0.5 seconds (Warm-up)\n# 0.25 seconds (Sampling)\n')
+            metrics=bench.parse_stan([path],allow_missing_profile=True)
+            self.assertIsNone(metrics['evaluations']);self.assertEqual(metrics['warmup_seconds_csv_inclusive'],[.5]);self.assertEqual(metrics['sampling_seconds_csv_inclusive'],[.25])
+            with self.assertRaises(FileNotFoundError):bench.parse_stan([path])
+
 if __name__ == '__main__':
     unittest.main()

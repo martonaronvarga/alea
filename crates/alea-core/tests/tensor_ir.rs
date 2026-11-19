@@ -1023,97 +1023,120 @@ fn non_differentiable_data_and_predicates_do_not_acquire_spurious_singular_deriv
 
 #[test]
 fn specialized_binary_blocks_preserve_scalar_bits_for_aliases_broadcasts_and_inactive_data() {
-    let values = [1e-100, -1e100, 0.3, -0.7];
-    let other = [-1e100, 1e-100, 1.3, 0.8];
-    let seeds = [0.3, 0., -0.7, 1.];
-    for op in [B::Add, B::Subtract, B::Multiply, B::Divide] {
-        for case in 0..6 {
-            let mut b = ModelBuilder::new().region();
-            let (a, r, q, amap, rmap) = match case {
-                0 => (
-                    b.input("a", shape(&[4])).unwrap(),
-                    b.input("r", shape(&[4])).unwrap(),
-                    [values, other].concat(),
-                    Some((0, false)),
-                    Some((4, false)),
-                ),
-                1 => (
-                    b.input("a", shape(&[4])).unwrap(),
-                    b.constant(Shape::scalar(), vec![0.8]).unwrap(),
-                    values.to_vec(),
-                    Some((0, false)),
-                    None,
-                ),
-                2 => (
-                    b.constant(Shape::scalar(), vec![0.8]).unwrap(),
-                    b.input("r", shape(&[4])).unwrap(),
-                    other.to_vec(),
-                    None,
-                    Some((0, false)),
-                ),
-                3 => (
-                    b.input("a", Shape::scalar()).unwrap(),
-                    b.constant(shape(&[4]), other.to_vec()).unwrap(),
-                    vec![0.8],
-                    Some((0, true)),
-                    None,
-                ),
-                4 => (
-                    b.constant(shape(&[4]), values.to_vec()).unwrap(),
-                    b.input("r", Shape::scalar()).unwrap(),
-                    vec![0.8],
-                    None,
-                    Some((0, true)),
-                ),
-                _ => {
-                    let a = b.input("a", shape(&[4])).unwrap();
-                    let r = b.reshape(a, shape(&[4])).unwrap();
-                    (a, r, values.to_vec(), Some((0, false)), Some((0, false)))
+    for (values, other, seeds) in [
+        (
+            [1e-100, -1e100, 0.3, -0.7],
+            [-1e100, 1e-100, 1.3, 0.8],
+            [0.3, 0., -0.7, 1.],
+        ),
+        // The scalar score must keep row order through cancellation. Signed
+        // zero seeds skip both destinations, including in the active pair.
+        ([1e16, 1., -1e16, 1.], [1., -1e16, 1., 1e16], [1.; 4]),
+        ([0.2; 4], [0.8; 4], [-0., 0., -0., 0.]),
+    ] {
+        for op in [B::Add, B::Subtract, B::Multiply, B::Divide] {
+            for case in 0..8 {
+                let mut b = ModelBuilder::new().region();
+                let (a, r, q, amap, rmap) = match case {
+                    0 => (
+                        b.input("a", shape(&[4])).unwrap(),
+                        b.input("r", shape(&[4])).unwrap(),
+                        [values, other].concat(),
+                        Some((0, false)),
+                        Some((4, false)),
+                    ),
+                    1 => (
+                        b.input("a", shape(&[4])).unwrap(),
+                        b.constant(Shape::scalar(), vec![0.8]).unwrap(),
+                        values.to_vec(),
+                        Some((0, false)),
+                        None,
+                    ),
+                    2 => (
+                        b.constant(Shape::scalar(), vec![0.8]).unwrap(),
+                        b.input("r", shape(&[4])).unwrap(),
+                        other.to_vec(),
+                        None,
+                        Some((0, false)),
+                    ),
+                    3 => (
+                        b.input("a", Shape::scalar()).unwrap(),
+                        b.constant(shape(&[4]), other.to_vec()).unwrap(),
+                        vec![0.8],
+                        Some((0, true)),
+                        None,
+                    ),
+                    4 => (
+                        b.constant(shape(&[4]), values.to_vec()).unwrap(),
+                        b.input("r", Shape::scalar()).unwrap(),
+                        vec![0.8],
+                        None,
+                        Some((0, true)),
+                    ),
+                    5 => {
+                        let a = b.input("a", shape(&[4])).unwrap();
+                        let r = b.reshape(a, shape(&[4])).unwrap();
+                        (a, r, values.to_vec(), Some((0, false)), Some((0, false)))
+                    }
+                    6 => (
+                        b.input("a", Shape::scalar()).unwrap(),
+                        b.input("r", shape(&[4])).unwrap(),
+                        [vec![0.8], other.to_vec()].concat(),
+                        Some((0, true)),
+                        Some((1, false)),
+                    ),
+                    _ => (
+                        b.input("a", shape(&[4])).unwrap(),
+                        b.input("r", Shape::scalar()).unwrap(),
+                        [values.to_vec(), vec![0.8]].concat(),
+                        Some((0, false)),
+                        Some((4, true)),
+                    ),
+                };
+                let out = b.binary(op, a, r).unwrap();
+                let p = b.compile(out).unwrap().bind(&[]).unwrap();
+                let mut actual = [0.; 4];
+                let mut g = vec![0.; q.len()];
+                p.value_and_vjp(&q, &seeds, &mut actual, &mut g, &mut p.workspace())
+                    .unwrap();
+                let mut expected_g = vec![0.; q.len()];
+                for j in 0..4 {
+                    let av = match case {
+                        2 | 3 | 6 => 0.8,
+                        _ => values[j],
+                    };
+                    let rv = match case {
+                        1 | 4 | 7 => 0.8,
+                        5 => values[j],
+                        _ => other[j],
+                    };
+                    let (value, da, dr) = match op {
+                        B::Add => (av + rv, 1., 1.),
+                        B::Subtract => (av - rv, 1., -1.),
+                        B::Multiply => (av * rv, rv, av),
+                        B::Divide => (av / rv, 1. / rv, -(av / rv) / rv),
+                        _ => unreachable!(),
+                    };
+                    assert_eq!(
+                        actual[j].to_bits(),
+                        value.to_bits(),
+                        "{op:?}, case {case}, row {j}"
+                    );
+                    if seeds[j] != 0. {
+                        if let Some((start, scalar)) = amap {
+                            expected_g[start + if scalar { 0 } else { j }] += seeds[j] * da;
+                        }
+                        if let Some((start, scalar)) = rmap {
+                            expected_g[start + if scalar { 0 } else { j }] += seeds[j] * dr;
+                        }
+                    }
                 }
-            };
-            let out = b.binary(op, a, r).unwrap();
-            let p = b.compile(out).unwrap().bind(&[]).unwrap();
-            let mut actual = [0.; 4];
-            let mut g = vec![0.; q.len()];
-            p.value_and_vjp(&q, &seeds, &mut actual, &mut g, &mut p.workspace())
-                .unwrap();
-            let mut expected_g = vec![0.; q.len()];
-            for j in 0..4 {
-                let av = match case {
-                    2 | 3 => 0.8,
-                    _ => values[j],
-                };
-                let rv = match case {
-                    1 | 4 => 0.8,
-                    5 => values[j],
-                    _ => other[j],
-                };
-                let (value, da, dr) = match op {
-                    B::Add => (av + rv, 1., 1.),
-                    B::Subtract => (av - rv, 1., -1.),
-                    B::Multiply => (av * rv, rv, av),
-                    B::Divide => (av / rv, 1. / rv, -(av / rv) / rv),
-                    _ => unreachable!(),
-                };
                 assert_eq!(
-                    actual[j].to_bits(),
-                    value.to_bits(),
-                    "{op:?}, case {case}, row {j}"
+                    g.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+                    expected_g.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+                    "{op:?}, case {case}"
                 );
-                if seeds[j] != 0. {
-                    if let Some((start, scalar)) = amap {
-                        expected_g[start + if scalar { 0 } else { j }] += seeds[j] * da;
-                    }
-                    if let Some((start, scalar)) = rmap {
-                        expected_g[start + if scalar { 0 } else { j }] += seeds[j] * dr;
-                    }
-                }
             }
-            assert_eq!(
-                g.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
-                expected_g.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
-                "{op:?}, case {case}"
-            );
         }
     }
     let mut b = ModelBuilder::new().region();
@@ -1128,6 +1151,44 @@ fn specialized_binary_blocks_preserve_scalar_bits_for_aliases_broadcasts_and_ina
         .unwrap();
     for (g, x) in g.into_iter().zip(q) {
         assert_eq!(g.to_bits(), ((1. + x) + x).to_bits());
+    }
+}
+
+#[test]
+fn active_scalar_vector_reverse_keeps_shared_alias_and_existing_score_order() {
+    // Reverse of the final add contributes to s before the product visits s
+    // again. This detects overwriting a previously accumulated scalar score.
+    let mut b = ModelBuilder::new().region();
+    let s = b.input("s", Shape::scalar()).unwrap();
+    let v = b.input("v", shape(&[4])).unwrap();
+    let product = b.binary(B::Multiply, s, v).unwrap();
+    let result = b.binary(B::Add, product, s).unwrap();
+    let p = b.compile(result).unwrap().bind(&[]).unwrap();
+    check_vjp(&p, &[0.75, 0.25, -0.5, 1., 2.], &[0.3, -0.2, 0., 0.7]);
+    let q = [0.75, 1e16, 1., -1e16, 1.];
+    let mut out = [0.; 4];
+    let mut g = [0.; 5];
+    p.value_and_vjp(&q, &[1.; 4], &mut out, &mut g, &mut p.workspace())
+        .unwrap();
+    let mut expected = 4.;
+    for &v in &q[1..] {
+        expected += v;
+    }
+    assert_eq!(g[0].to_bits(), expected.to_bits());
+    assert_eq!(g[1..], [0.75; 4]);
+
+    // Scalar and length-one vector handles can alias. Their two contributions
+    // must still be interleaved in operand order, in either map orientation.
+    for op in [B::Add, B::Subtract, B::Multiply, B::Divide] {
+        for swap in [false, true] {
+            let mut b = ModelBuilder::new().region();
+            let x = b.input("x", Shape::scalar()).unwrap();
+            let alias = b.reshape(x, shape(&[1])).unwrap();
+            let (a, r) = if swap { (alias, x) } else { (x, alias) };
+            let result = b.binary(op, a, r).unwrap();
+            let p = b.compile(result).unwrap().bind(&[]).unwrap();
+            check_vjp(&p, &[0.75], &[0.3]);
+        }
     }
 }
 

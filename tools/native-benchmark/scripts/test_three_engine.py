@@ -13,6 +13,23 @@ import three_engine as bench
 
 
 class ThreeEngineTests(unittest.TestCase):
+    def test_missing_primal_keeps_source_routes_unresolved_and_never_supported(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / 'run.log'
+            for route in ('C', 'L', 'H'):
+                for order in ('value', 'first', 'hvp', 'third'):
+                    receipt = f'ALEA_BASELINE_ROUTE_V1\tcomposition_covariance_block\t{route}\tnone\t{order}\tfixture-default\trust\tnone\tfalse\tunsupported\tMissingPrimal\n'
+                    path.write_text(receipt)
+                    row = bench.cargo_route_receipts(path)[0]
+                    self.assertEqual((row['resolved_route'], row['first_order_admission_route']), ('none', 'none'))
+                    for status in ('supported', 'failed', 'not-run'):
+                        path.write_text(receipt.replace('\tunsupported\t', f'\t{status}\t'))
+                        with self.assertRaises(ValueError):
+                            bench.cargo_route_receipts(path)
+                    path.write_text(receipt.replace('\tfalse\t', '\ttrue\t'))
+                    with self.assertRaises(ValueError):
+                        bench.cargo_route_receipts(path)
+
     def test_broadcast_storage_report_preserves_scopes_and_rejects_bad_receipts(self):
         fields = dict(plan_owned=256, source_runtime=1000, source_frozen=1100,
                       frozen_payload=24, workspace_budget=2048, workspace_owned=2100,

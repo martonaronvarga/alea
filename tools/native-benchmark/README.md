@@ -176,7 +176,7 @@ client, not a generated model's optimized tape; actual CmdStan executables are
 used for inference. These scopes must not be conflated.
 Alea's existing diagnostic implementation evaluates every engine's coordinates.
 JAX gradient counts remain unavailable rather than inferred from leapfrog steps.
-Process ESS/sec comparisons require both engines' Rhat<=1.01, bulk/tailESS>=100,
+Process ESS/sec comparisons require both engines' Rhat<=1.01, bulk/tailESS >=100,
 no retained divergences and means within six combined MCSE for every coordinate.
 Repeated seeds support timing spread, not independent extra posterior chains.
 The funnel stays in the denominator as a negative control; failed quality gates
@@ -320,8 +320,8 @@ Use the actual saved binary paths; the usual current binary is
 construction and evaluation times, partial failures and checksum qualification.
 Run without concurrent compilation, profiling or other CPU-heavy work. These
 fixed-work gains are not interchangeable with inference throughput or ESS/sec.
-Execute timing campaigns on Dusk or another stable remote server, not a laptop
-whose AC/battery policy can change. Transfer the same sealed source, binaries
+Execute timing campaigns through `elte-vpn` on allocated ELTE compute nodes,
+never the login node, Dusk or a laptop. Transfer the same sealed source, binaries
 and runtime closure; record the measurement host, CPU affinity, governor, load
 and thread settings. Never pool laptop exploratory timings with remote results.
 Correctness tests and compilation can remain local and separate from measurement.
@@ -345,9 +345,9 @@ remain unchanged. The covariance control is a separate 32-observation synthetic
 Cholesky model, not a PosteriorDB posterior or an LKJ/Wishart benchmark.
 
 `simd`, `faer` and `openblas` forward the corresponding facade features. The
-optional `enzyme` feature generates a frozen covariance target from the very
-same public native model in `src/conformance.rs`, using the existing source
-exporter. Runtime `ALEA_BENCH_BACKEND=enzyme` selects its **evaluation-only**
+optional `enzyme` feature generates a frozen covariance target from the retained scalar reference model (`conformance::build`) in
+`src/conformance.rs`, using the existing source exporter. Ordinary native runs
+use `conformance::native`, the composed block model; the routes are distinct. Runtime `ALEA_BENCH_BACKEND=enzyme` selects its **evaluation-only**
 protocol. Changed frozen data and other models reject explicitly. The school
 prior uses the existing opaque Cauchy factor, whose source export is unsupported;
 do not replace it with a Normal prior to fill a timing cell.
@@ -566,3 +566,153 @@ the saved per-cell flags: enabling a Cargo feature, selecting generated gradient
 and enabling a compiler mode are distinct configuration axes.
 The autodiff Nix shell itself supplies an AD flag: explicitly override its
 `RUSTFLAGS` when preparing native-only compiler controls.
+
+### Block-model conformance boundaries
+
+`src/conformance.rs::native` constructs covariance and centered/noncentered
+schools with the shared native observation boundary. `build` is the retained
+scalar **source reference**, still selected by `build.rs`; it is not the block
+executor. Free-coordinate order is unchanged. Schools now uses named `theta`/`z`
+vectors followed by `mu,tau`, matching the downstream review fixture. The Cauchy
+prior is still the production opaque law, without half-Cauchy renormalization.
+Normal symmetry expresses latent Normal priors through fixed-zero observation
+maps; their values and all coordinate scores are checked independently.
+
+`ALEA_BENCH_REPRESENTATION=scalar|block` selects the ordinary scalar or composed
+native implementation for covariance and both school models. The default remains
+`block`. Radon probes accept the same selection; its scalar control shares data
+and parameter declarations with the block constructor and uses the existing
+Normal laws. Other models reject an explicit representation selection. An explicit
+`block` request with the Enzyme backend rejects before execution: the retained
+frozen source target is scalar covariance only.
+
+In fixed-work evaluation mode, its `construction_seconds` measures state-bank
+loading and the runtime source-target factory. Source rendering and Rust
+compilation remain separate build/preparation costs; a frozen binding does not
+make runtime setup free.
+
+The existing core `model_pipeline` benchmark contains `composition_pipeline`
+groups for these four fixtures. It checks scalar/block full values and all scores
+on the same five-state bank before measuring construction, binding, executable
+compilation, context creation, first evaluation and reused evaluation separately.
+Cold Criterion cases include destruction of their returned/setup objects; in
+particular, `first_value_gradient` includes dropping its setup target. Separate
+fixed-work first/steady phase receipts time the target calls, gradient poisoning,
+admission and output copies, excluding target construction/destruction and logging.
+
+`ALEA_RADON_DATA` selects the pinned Radon JSON here too; the observation count is
+part of each benchmark identity, keeping the tiny default fixture separate.
+`ALEA_COMPOSITION_REVERSE=1` reverses representation order for paired campaigns.
+Source rendering is a separate preparation case where eligible; it is not a
+compiled derivative measurement. Route receipts retain missing primals and
+unexecuted orders explicitly. Private target workspace sizes remain unknown;
+known input/output storage and process peak RSS are different measurements.
+
+For untimed validation, use `cargo bench --manifest-path crates/Cargo.toml
+-p alea-core --bench model_pipeline -- --test` from the repository root. Direct
+Criterion executable invocations require `--bench` to collect samples; without
+that flag they run in test mode. Comparative timing belongs on an allocated ELTE
+compute node with frozen source/binaries, matched inputs and seven paired runs.
+Native scalar/block ratios describe abstraction only when arithmetic and
+algorithm contracts match. Standard versus Compensated or native versus compiler
+reduction differences must remain separate accuracy/performance tradeoffs.
+
+The same module supplies the Radon conformance constructor. It is exercised by
+`tools/downstream-conformance/tests/eight_schools.rs`, rather than adding another
+model registry or a sampling runner. The existing `ALEA_BENCH_PROBES` CLI also
+accepts `radon <data.json>`. The same typed input now supports native sampling
+and the existing logical-chain phase control. Fixed-work CLI evaluation and
+Enzyme selection remain unsupported for Radon. Default tests use a small repeated-county
+fixture. To exercise the existing pinned PosteriorDB data explicitly:
+
+```sh
+ALEA_RADON_DATA="$PWD/tools/bench/corpus/pdb-v2/radon_mn-radon_variable_intercept_noncentered/data.json" \
+  cargo test --manifest-path tools/downstream-conformance/Cargo.toml \
+  --test eight_schools --locked
+```
+
+Run this command from the repository root. The optional corpus path must exist;
+there is no silent replacement when it is supplied. Corpus data and the Stan
+model remain governed by `tools/bench/corpus/pdb-v3.json`, not a new manifest.
+
+| Gate | Current evidence and admission |
+| --- | --- |
+| Expressiveness | Covariance/schools block constructors and Radon repeated gathers execute through public native operations and existing laws; no new operator or law formula. |
+| Measure and numerics | Independent full Cholesky/Radon densities and analytic scores, all-coordinate finite differences at three step sizes; centered schools and explicit noncentered pullback; named coordinate order and chart Jacobians. These are deterministic fixture checks, not posterior evidence. |
+| Reporting | Block maps require explicit joint conditional units. Joint covariance, schools and Radon reports exclude all priors/Jacobians; scalar conditional-row contracts remain separate. Joint factors do not imply marginal leave-out units. |
+| Source/derivatives | Block compositions reject source export. Retained scalar covariance source stays separate; schools retains its opaque Cauchy source gap. No block source, higher-order or replay support is claimed. |
+| Fresh Stan comparison | 19 shared-coordinate density/gradient checks pass against CmdStan 2.40.0: current vectorized covariance, centered/noncentered schools and the pinned Radon model/data. The checker uses density differences and all gradient coordinates; independent Rust tests check full constants and explicit conditional partitions. This bounded state bank is not a posterior or universal numerical qualification. |
+| Timing admission | Deterministic conformance is distinct from performance and posterior-efficiency qualification. No speed or ESS comparison follows from these checks. |
+
+The existing cross-engine checker accepts these cases without changing its
+original default case list:
+
+```sh
+python3 tools/native-benchmark/scripts/check_stan.py \
+  --alea tools/native-benchmark/target/debug/alea-stan-bench \
+  --cases covariance schools schools_nc radon \
+  --stan-directory /path/to/compiled/stan/models --output /new/conformance-output
+```
+
+The Stan directory must provide executables named `covariance`, `schools`,
+`schools_nc` and `radon`, built from the corresponding existing Stan models (Radon
+uses the pinned corpus model). `--radon-data` selects an explicit external copy
+of that data when the local corpus is absent. The checker compares density
+differences to remove Stan's parameter-independent constants and compares every
+gradient coordinate. Full constants are checked by the independent Rust oracles.
+Missing executables and loader failures retain `*-stan-unavailable.json` receipts;
+they are not successful comparisons.
+
+
+### Multichain scientific qualification
+
+`bench.py --qualify` uses the existing sampling runner with four chains and at
+least seven predeclared independent seed sets (17+repetition), 1000 warmup and
+1000 retained draws, diagonal adaptation, target acceptance 0.8 and depth 10. It
+requires a compute allocation. The original defaults remain unchanged. Explicit
+`--cases covariance schools schools_nc radon` selects the qualified composition
+fixtures; Radon reads the existing pinned data copied to `data/radon.json` rather
+than creating another corpus. Radon is an explicit sampling choice and does not
+enter the default nine-case fixed-work matrix. Source sampling remains unavailable.
+
+Admission requires rank/folded R-hat <1.01, bulk/tail ESS >=100 per chain, no retained
+divergences or depth saturations, and per-chain E-BFMI >=0.3. Low E-BFMI is a
+comparison warning gate, not a convergence theorem. Scientific summaries recover
+noncentered school theta and Radon alpha per draw, exponentiate scale charts once,
+and include original-coordinate means/second moments and covariance quantities.
+They reuse production diagnostics and estimand-specific mean MCSE; squared
+observables give second-moment MCSE, not variance MCSE. Reference agreement uses
+six combined MCSEs from both engines. It is not a deterministic equality check.
+
+Every planned pair must pass before ranking a case. A 95% percentile bootstrap
+interval over independent paired repetitions is exploratory uncertainty, not
+guaranteed coverage for ESS estimates or proof of convergence. Failed references
+remain in the report and disable paired efficiency rankings. Native/Stan RNGs and
+adaptation implementations differ; fixed draw counts are not equal work. Native
+counts are actual fused target calls; Stan counts are actual posterior-profile
+AD calls, with transforms/Jacobians outside that region explicitly excluded.
+Missing counters remain unknown. CSV phase footers retain their output-inclusive
+scope. Native phase counters come from the separate existing `ALEA_BENCH_KERNEL`
+control with `ALEA_BENCH_CHAIN=0..3`; they must be checked against the primary
+trajectory and counts before attribution. Their times are not subtracted from a
+primary run.
+
+`ALEA_BENCH_OUTPUT=memory|csv|discard` controls collection. CSV requires the
+create-new `ALEA_BENCH_CSV` path and currently serializes collected positions after
+sampling; memory retains positions; discard disables that collection while
+keeping energy evidence and the runtime's bounded diagnostic window. Per-chain
+`output_trajectory_hashes` permit same-binary/seed controls across these modes.
+Discard-mode output does not qualify scientific summaries. It is not an
+allocation-free execution promise. `ALEA_BENCH_SEED` accepts a byte (default 17).
+
+Qualified reports include reference diagnostic-reader cost in the full workflow
+wall time, matching the inclusion of native diagnostics; component scopes remain
+separate. Raw stdout/CSV/profile files and process-time witnesses are hashed.
+Use the existing `replay.py stan <results> <new-report.json>` entrypoint to
+re-admit them: it ignores cached pass/metrics/wall fields, detects changed or
+missing raw evidence, and recovers complete journal rows after an interrupted
+final write. Original-coordinate tail mixing remains a diagnostic, not a separate
+SBC claim or a universal posterior-accuracy certificate.
+
+The completed four-model study, admitted efficiency intervals, failed school
+references and raw artifact hashes are in [the performance report](../../docs/native-model-performance.md#17-four-chain-posteriorefficiency-qualification-2026-11-18).

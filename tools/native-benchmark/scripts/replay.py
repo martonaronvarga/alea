@@ -29,6 +29,8 @@ def rebuild(directory, kind):
         return bench.conformance_summary(bench.read_metrics((directory/'manifest.json').read_text()),
                                          bench.read_metrics((directory/'report.json').read_text()))
     plan = json.loads((directory/('plan.json' if kind == 'paired' else 'manifest.json')).read_text())
+    if kind == 'stan' and plan.get('posterior_qualification'):
+        return bench.sampling_report(directory)
     rows = journal(directory/'records.jsonl')
     def unique(records, keys):
         identities = [tuple(r[k] for k in keys) for r in records]

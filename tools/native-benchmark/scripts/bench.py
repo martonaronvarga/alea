@@ -16,15 +16,16 @@ import platform
 import statistics
 import subprocess
 import time
+import re
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parents[1]
 CASES = dict(mean="mean", linear="linear", logistic="logistic",
              linear_large="linear", logistic_large="logistic", funnel="funnel",
-             schools="schools", schools_nc="schools_nc", covariance="covariance")
+             schools="schools", schools_nc="schools_nc", covariance="covariance", radon="radon")
 DIMENSIONS = dict(mean=2, linear=9, logistic=8, linear_large=9, logistic_large=8, funnel=9,
-                  schools=10, schools_nc=10, covariance=5)
+                  schools=10, schools_nc=10, covariance=5, radon=89)
 DEFAULT_CASES = ['mean','linear','logistic','linear_large','logistic_large','funnel']
 
 
@@ -115,6 +116,10 @@ def statistical_qualification(row, plan=None):
             return False, 'diagnostic thresholds failed'
     if type(metrics.get('retained_divergences')) is not int or metrics['retained_divergences'] != 0:
         return False, 'divergences or missing divergence count'
+    if (plan or {}).get('posterior_qualification'):
+        if chains<4: return False,'four chains required'
+        reason=scientific_qualification(metrics,DIMENSIONS[row['case']],chains,dict(plan['posterior_qualification'],case=row['case']))
+        if reason:return False,reason
     return True, None
 
 
@@ -314,7 +319,7 @@ def summarize(rows, plan=None):
     return result
 
 
-def parse_stan(paths):
+def parse_stan(paths, allow_missing_profile=False):
     steps = divergences = completed = 0
     depths = []
     phase_seconds = []
@@ -337,16 +342,22 @@ def parse_stan(paths):
         phase_seconds.extend(l for l in text.splitlines() if 'seconds (' in l)
     evaluations = 0
     evaluation_seconds = 0.
+    available=True
     for path in paths:
+        if allow_missing_profile and not path.with_suffix('.profile.csv').exists():
+            available=False;continue
         with path.with_suffix('.profile.csv').open() as stream:
             for row in csv.DictReader(stream):
                 if row['name'] == 'posterior':
                     evaluations += int(row['autodiff_calls'])
                     evaluation_seconds += float(row['total_time'])
-    return dict(completed=completed, retained_leapfrog_steps=steps,
+    phase={label:[float(m[1]) for line in phase_seconds if (m:=re.search(r'([0-9.eE+-]+) seconds \('+label+r'\)',line))] for label in ('Warm-up','Sampling')}
+    if not evaluations:available=False
+    return dict(warmup_seconds_csv_inclusive=phase['Warm-up'],sampling_seconds_csv_inclusive=phase['Sampling'],completed=completed, retained_leapfrog_steps=steps,
                 retained_divergences=divergences, retained_mean_depth=statistics.mean(depths),
                 retained_max_depth=max(depths), phase_times_csv_inclusive=phase_seconds,
-                evaluations=evaluations, evaluation_seconds=evaluation_seconds,
+                evaluations=evaluations if available or not allow_missing_profile else None, evaluation_seconds=evaluation_seconds if available or not allow_missing_profile else None,
+                missing_evaluation_reason=None if available else 'posterior profile region unavailable',
                 evaluation_scope="Stan profile posterior autodiff calls; total_time includes any primal calls and excludes transform/Jacobian outside the profile")
 
 
@@ -362,6 +373,7 @@ def main():
     p.add_argument('--chain-workers',type=int,default=1,help='equal CPU budget for Alea pool and concurrent Stan chains')
     p.add_argument('--cpu', type=int)
     p.add_argument('--timed', action='store_true')
+    p.add_argument('--qualify', action='store_true', help='I4.5 strict scientific/energy/depth gates, independent seeds and raw replay')
     p.add_argument('--alea-csv', action='store_true')
     p.add_argument('--minimum-ess-per-chain',type=int)
     p.add_argument('--both-coordinate-spaces',action='store_true')
@@ -371,6 +383,10 @@ def main():
             or not 0 < args.target_acceptance < 1
             or (args.minimum_ess_per_chain is not None and args.minimum_ess_per_chain<1)):
         p.error('positive reps/chains required')
+    if args.qualify:
+        if args.chains<4 or args.reps<7:p.error('qualification requires four chains and seven repetitions')
+        if not os.environ.get('SLURM_JOB_ID'):p.error('qualification sampling requires a compute allocation')
+        args.minimum_ess_per_chain=100;args.both_coordinate_spaces=True;args.alea_csv=True
     if args.cpu is not None:
         os.sched_setaffinity(0, {args.cpu})
     if not 1 <= args.chain_workers <= min(args.chains,16,len(os.sched_getaffinity(0))):
@@ -405,8 +421,12 @@ def main():
                     stan_seed=17, initial_free_coordinates=0, timed=args.timed,
                     storage='Alea collects in memory, no serialization; Stan writes retained CSV (preserved). Process comparison includes this asymmetry.',
                     schedule=f'Alea bounded pool in one process; Stan bounded concurrent chain processes; {args.chain_workers} workers, library threads=1',
-                    data={c:sha(ROOT/'data'/f'{c}.txt') for c in args.cases},
+                    data={c:sha(sampling_data(c)) for c in args.cases},
                     stan_data={c:sha(ROOT/'data'/f'{c}.json') for c in args.cases})
+    if args.qualify:
+        manifest.update(posterior_qualification=dict(minimum_ebfmi=.3,maximum_depth_saturations=0,reference_standard_errors=6.),
+                        seed_policy='independent predeclared repetitions: byte17+rep/native and integer17+rep/Stan',
+                        native_representation=os.environ.get('ALEA_BENCH_REPRESENTATION','block'))
     (results/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     env = dict(os.environ, OMP_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='1',
                RAYON_NUM_THREADS='1',STAN_NUM_THREADS='1',ALEA_BENCH_CHAINS=str(args.chains),
@@ -422,7 +442,7 @@ def main():
             for rep in range(args.reps):
                 for engine in (('alea','stan') if rep%2==0 else ('stan','alea')):
                     label = f'{case}-{rep}-{engine}'
-                    commands = [[str(alea),model,str(ROOT/'data'/f'{case}.txt')]]
+                    commands = [[str(alea),model,str(sampling_data(case))]]
                     paths = []
                     if engine == 'stan':
                         commands = []
@@ -432,9 +452,10 @@ def main():
                             commands.append([str(args.stan_directory/model),'sample','num_warmup=1000','num_samples=1000',
                                 'adapt',f'delta={args.target_acceptance}','algorithm=hmc','engine=nuts','max_depth=10',
                                 'metric=diag_e','stepsize=0.2','data',f'file={ROOT/"data"/f"{case}.json"}',
-                                'random','seed=17',f'id={chain+1}','init=0','output',f'file={path}',f'profile_file={path.with_suffix(".profile.csv")}','sig_figs=17','refresh=0'])
+                                'random',f'seed={17+rep if args.qualify else 17}',f'id={chain+1}','init=0','output',f'file={path}',f'profile_file={path.with_suffix(".profile.csv")}','sig_figs=17','refresh=0'])
                     started = time.perf_counter_ns()
                     run_env = {**env,'ALEA_BENCH_CSV':str(results/f'{label}.csv')} if engine=='alea' and args.alea_csv else env
+                    if args.qualify:run_env={**run_env,'ALEA_BENCH_SEED':str(17+rep)}
                     processes = run_chain_processes(commands,run_env,args.chain_workers)
                     wall = (time.perf_counter_ns()-started)/1e9
                     for i,process in enumerate(processes):
@@ -448,9 +469,16 @@ def main():
                             row['metrics'] = read_metrics(processes[0].stdout.splitlines()[-1])
                             row['success'] &= row['metrics']['completed']==1000*args.chains and not row['metrics']['failures']
                         elif success:
-                            row['metrics'] = parse_stan(paths)
-                            diag = run_process([str(alea),model,str(ROOT/'data'/f'{case}.txt')],
+                            row['metrics'] = parse_stan(paths,allow_missing_profile=args.qualify)
+                            diag_started=time.perf_counter()
+                            diag = run_process([str(alea),model,str(sampling_data(case))],
                                 env={**env,'ALEA_BENCH_STAN_CSVS':':'.join(map(str,paths))},text=True,capture_output=True,check=False)
+                            row['diagnostic_returncode']=diag.returncode
+                            row['diagnostic_wall_seconds']=time.perf_counter()-diag_started
+                            if args.qualify:
+                                row['wall_seconds']+=row['diagnostic_wall_seconds']
+                                (results/f'{label}-diagnostics.stdout').write_text(diag.stdout)
+                                (results/f'{label}-diagnostics.stderr').write_text(diag.stderr)
                             if diag.returncode==0:
                                 row['metrics'].update(read_metrics(diag.stdout))
                             else:
@@ -462,12 +490,126 @@ def main():
                     row['diagnostic_pass'], row['diagnostic_reason'] = statistical_qualification(row, manifest)
                     if not row['success']:
                         row['failure_reason'] = row.get('parse_error', 'nonzero child exit or incomplete retained draws')
+                    if args.qualify:
+                        witness={k:row[k] for k in ('wall_seconds','returncodes','diagnostic_returncode') if k in row}
+                        (results/f'{label}-process.json').write_text(json.dumps(witness)+'\n')
+                        row['files']={str(p.relative_to(results)):sha(p) for p in results.glob(label+'*') if p.is_file()}
                     rows.append(row)
                     output.write(json.dumps(row)+'\n')
                     output.flush()
                     (results/'summary.json').write_text(json.dumps(summarize(rows,manifest),indent=2)+'\n')
-                    print(label, 'complete' if row['success'] else 'FAILED', f'{wall:.6f}s',flush=True)
+                    if args.qualify:
+                        (results/'qualification.json').write_text(json.dumps(sampling_report(results),indent=2)+'\n')
+                    print(label, 'complete'  if row['success'] else 'FAILED', f'{wall:.6f}s',flush=True)
 
+
+def sampling_data(case):
+    return ROOT/'data'/f'{case}.json' if case=='radon' else ROOT/'data'/f'{case}.txt'
+
+
+def scientific_qualification(metrics, dimension, chains, policy):
+    """Extra opt-in I4.5 gates; historical admission stays unchanged."""
+    quantities=metrics.get('scientific_quantities')
+    required=2*dimension+(4 if dimension==5 and policy.get('case')=='covariance' else 0)
+    if not isinstance(quantities,list) or len(quantities)!=required:
+        return 'missing scientific quantities'
+    names=[q.get('name') for q in quantities if isinstance(q,dict)]
+    if len(names)!=required or any(not isinstance(n,str) or not n for n in names) or len(set(names))!=required:
+        return 'invalid scientific quantity identities'
+    coordinates={(q.get('coordinate'),q.get('kind')) for q in quantities if q.get('kind')!='derived'}
+    if coordinates!={(j,kind) for j in range(dimension) for kind in ('mean','second_moment')}:
+        return 'incomplete original-coordinate estimands'
+    for q in quantities:
+        if any(not finite_number(q.get(k)) for k in ('rhat','rank_rhat','folded_rhat','bulk_ess','tail_ess','mean','mcse_mean','mean_ess')):
+            return 'undefined scientific diagnostics or MCSE'
+        if not (0<q['rhat']<1.01 and q['bulk_ess']>=100*chains and q['tail_ess']>=100*chains
+                and q['mean_ess']>0 and q['mcse_mean']>=0):
+            return 'scientific mixing thresholds failed'
+    energy=metrics.get('energy_diagnostics')
+    if not isinstance(energy,list) or len(energy)!=chains or any(not isinstance(e,dict)
+            or not finite_number(e.get('ebfmi')) or e['ebfmi']<policy['minimum_ebfmi']
+            or e.get('transitions')!=1000 for e in energy):
+        return 'missing or low energy mixing (comparison warning gate)'
+    if type(metrics.get('retained_depth_saturations')) is not int or metrics['retained_depth_saturations']!=0:
+        return 'depth saturation or unavailable depth evidence'
+    if type(metrics.get('evaluations')) is not int or metrics['evaluations']<=0:
+        return 'target-call count unavailable'
+    return None
+
+
+def scientific_pairs(rows, plan):
+    """Pair complete independent-seed repetitions, including reference MC error.
+
+    Bootstrap intervals describe repeated-run uncertainty under that design, not
+    a convergence proof or a guaranteed interval for an ESS estimator.
+    """
+    import random
+    rng=random.Random(17045)
+    output=[]
+    for case in plan['cases']:
+        ratios=[];reasons=[];details=[]
+        for rep in range(plan['reps']):
+            both={r['engine']:r for r in rows if (r['case'],r['rep'])==(case,rep)}
+            if not all(e in both and statistical_qualification(both[e],plan)[0] for e in ('alea','stan')):
+                reasons.append(dict(rep=rep,reason='incomplete or diagnostic-ineligible pair'));continue
+            a,b=(both[e] for e in ('alea','stan'))
+            qa,qb=(r['metrics']['scientific_quantities'] for r in (a,b))
+            if [(q['name'],q['kind'],q['coordinate']) for q in qa]!=[(q['name'],q['kind'],q['coordinate']) for q in qb] or not functional_agreement(qa,qb,6.):
+                reasons.append(dict(rep=rep,reason='scientific mean/second-moment disagreement with combined reference MCSE'));continue
+            ess=lambda r:min(q['bulk_ess'] for q in r['metrics']['scientific_quantities'])/r['wall_seconds']
+            ratios.append(ess(a)/ess(b))
+            details.append(dict(rep=rep,alea_ess_per_second=ess(a),stan_ess_per_second=ess(b),
+                quantities=[dict(name=x['name'],alea_mean=x['mean'],stan_mean=y['mean'],alea_mcse=x['mcse_mean'],stan_mcse=y['mcse_mean'],combined_mcse=math.hypot(x['mcse_mean'],y['mcse_mean'])) for x,y in zip(qa,qb,strict=True)]))
+        admitted=len(ratios)==plan['reps'] and plan['reps']>=7
+        interval=None
+        if admitted:
+            medians=sorted(statistics.median(rng.choices(ratios,k=len(ratios))) for _ in range(10000))
+            interval=dict(level=.95,lower=medians[250],upper=medians[9749],method='paired repetition percentile bootstrap; seven independent seed sets; exploratory coverage')
+        output.append(dict(case=case,qualified_pairs=len(ratios),planned=plan['reps'],rankable=admitted,
+            withheld=reasons,alea_over_stan_scientific_ess_per_second=describe(ratios) if admitted else None,
+            interval=interval,per_repetition=details,
+            scope='full process workflows including output and diagnostics; estimator-specific mixing/MCSE admission; no equivalent-adaptation claim'))
+    return output
+
+
+def sampling_report(directory):
+    """Replay raw sampling records, never cached metrics/pass flags."""
+    directory=Path(directory);plan=read_metrics((directory/'manifest.json').read_text())
+    from replay import journal
+    records=[];seen=set()
+    for row in journal(directory/'records.jsonl'):
+        key=row['case'],row['engine'],row['rep']
+        if key in seen or key[0] not in plan['cases'] or key[1] not in ('alea','stan') or type(key[2]) is not int or not 0<=key[2]<plan['reps']:
+            raise ValueError('duplicate or unknown sampling identity')
+        seen.add(key)
+        label=f'{row["case"]}-{row["rep"]}-{row["engine"]}'
+        required={f'{label}-0.stdout',f'{label}-0.stderr',f'{label}-process.json'}
+        if row['engine']=='alea':required.add(f'{label}.csv')
+        else:
+            required.update(f'{label}-{c}.csv' for c in range(plan['chains']))
+            if row.get('diagnostic_returncode')==0:required.add(f'{label}-diagnostics.stdout')
+        # Failed children can legitimately have no CSV; never rank them.
+        if not {f'{label}-0.stdout',f'{label}-0.stderr',f'{label}-process.json'}.issubset(row['files']):
+            raise ValueError('missing raw sampling evidence')
+        for name,digest in row['files'].items():
+            if Path(name).is_absolute() or '..' in Path(name).parts or sha(directory/name)!=digest:
+                raise ValueError('changed or unsafe sampling output')
+        witness=read_metrics((directory/f'{label}-process.json').read_text())
+        row=dict(row,**witness,success=False,metrics={})
+        if all(code==0 for code in row['returncodes']) and not required.issubset(row['files']):
+            raise ValueError('missing raw sampling evidence')
+        try:
+            if any(code!=0 for code in row['returncodes']):raise ValueError('failed child')
+            if row['engine']=='alea':row['metrics']=read_metrics((directory/f'{label}-0.stdout').read_text().splitlines()[-1])
+            else:
+                row['metrics']=parse_stan([directory/f'{label}-{c}.csv' for c in range(plan['chains'])],allow_missing_profile=True)
+                if row.get('diagnostic_returncode')!=0:raise ValueError('failed reference diagnostics')
+                row['metrics'].update(read_metrics((directory/f'{label}-diagnostics.stdout').read_text()))
+            row['success']=completed_run(dict(row,success=True),plan['chains'])
+        except (OSError,ValueError,KeyError,IndexError,TypeError) as error:row['failure_reason']=str(error)
+        records.append(row)
+    return dict(summary=summarize(records,plan),pairs=scientific_pairs(records,plan),
+                planned=plan['total_planned'],attempted=len(records),unstarted=plan['total_planned']-len(records))
 
 if __name__ == '__main__':
     main()

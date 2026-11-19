@@ -18,21 +18,27 @@ use alea::distributions::modeling::{
     normal,
     regression::{BernoulliLogitRegression, NormalRegression, RegressionData, RegressionExecution},
 };
-use alea::model::assembly::{AssemblyError, NativeModel, ModelBuilder};
+use alea::model::{
+    ConstrainedModel,
+    assembly::{AssemblyError, ModelBuilder, NativeModel},
+};
 use alea::sampling::{NutsOptions, adapt::MetricKind};
 use alea::target::{LogDensityGradient, TargetSpace};
 use alea::{
     ensemble::Execution,
-    session::{SamplerConfig, SessionBuilder, Warmup, storage::Discard},
+    session::{SamplerConfig, SessionBuilder, Warmup},
 };
 use std::{
     env,
     error::Error,
     fs,
+    hash::{Hash, Hasher},
     sync::{Arc, Mutex},
     time::Instant,
 };
 
+#[cfg(test)]
+use alea::session::storage::Discard;
 #[cfg(test)]
 mod correctness;
 
@@ -146,7 +152,14 @@ fn build_model_with_execution(
     execution: RegressionExecution,
 ) -> Result<NativeModel, AssemblyError> {
     if matches!(name, "schools" | "schools_nc" | "covariance") {
-        return conformance::build(name, input.n, input.k, &input.x, &input.y);
+        return if composition_blocks(env::var("ALEA_BENCH_REPRESENTATION").ok().as_deref())? {
+            conformance::native(name, input.n, input.k, &input.x, &input.y)
+        } else {
+            conformance::build(name, input.n, input.k, &input.x, &input.y)
+        };
+    }
+    if env::var_os("ALEA_BENCH_REPRESENTATION").is_some() {
+        return Err(AssemblyError::Shape);
     }
     let mut b = ModelBuilder::new();
     let zero = b.constant(0.0)?;
@@ -228,13 +241,124 @@ fn regression_execution(value: Option<&str>) -> Result<RegressionExecution, Asse
     }
 }
 
+fn composition_blocks(value: Option<&str>) -> Result<bool, AssemblyError> {
+    match value {
+        None | Some("block") => Ok(true),
+        Some("scalar") => Ok(false),
+        _ => Err(AssemblyError::Shape),
+    }
+}
+
+fn probe_model(model: NativeModel, path: &str) -> Result<(), Box<dyn Error>> {
+    let probes: Vec<Vec<f64>> = serde_json::from_str(&fs::read_to_string(path)?)?;
+    let target = model.select_posterior()?.into_target()?;
+    let mut records = Vec::new();
+    for q in probes {
+        let mut g = vec![0.; target.dimension()];
+        match alea::target::evaluate(&target, &q, &mut g) {
+            Ok(value) => records.push(serde_json::json!({"q":q,"logp":value,"gradient":g})),
+            Err(error) => records.push(serde_json::json!({"q":q,"error":format!("{error:?}")})),
+        }
+    }
+    println!("{}", serde_json::json!(records));
+    Ok(())
+}
+
+struct RadonInput {
+    j: usize,
+    county: Vec<usize>,
+    floor: Vec<f64>,
+    y: Vec<f64>,
+}
+impl RadonInput {
+    fn parse(data: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
+        let count = |name: &str| {
+            data[name]
+                .as_u64()
+                .and_then(|n| usize::try_from(n).ok())
+                .ok_or("invalid Radon dimension")
+        };
+        let j = count("J")?;
+        let n = count("N")?;
+        let county = data["county_idx"]
+            .as_array()
+            .ok_or("missing county indices")?
+            .iter()
+            .map(|i| {
+                i.as_u64()
+                    .and_then(|i| usize::try_from(i).ok())
+                    .and_then(|i| i.checked_sub(1))
+                    .ok_or("invalid one-based county index")
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let values = |name: &str| -> Result<Vec<f64>, Box<dyn Error>> {
+            data[name]
+                .as_array()
+                .ok_or("missing Radon observations")?
+                .iter()
+                .map(|v| v.as_f64().ok_or_else(|| "invalid Radon observation".into()))
+                .collect()
+        };
+        let floor = values("floor_measure")?;
+        let y = values("log_radon")?;
+        if y.len() != n {
+            return Err("Radon N/observation mismatch".into());
+        }
+        Ok(Self {
+            j,
+            county,
+            floor,
+            y,
+        })
+    }
+    fn build(&self) -> Result<NativeModel, AssemblyError> {
+        if composition_blocks(env::var("ALEA_BENCH_REPRESENTATION").ok().as_deref())? {
+            conformance::radon(self.j, &self.county, &self.floor, &self.y)
+        } else {
+            conformance::radon_scalar(self.j, &self.county, &self.floor, &self.y)
+        }
+    }
+}
+#[cfg(test)]
+fn radon_input(data: &serde_json::Value) -> Result<NativeModel, Box<dyn Error>> {
+    Ok(RadonInput::parse(data)?.build()?)
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let process_start = Instant::now();
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
-        return Err("usage: alea-stan-bench <mean|linear|logistic|funnel|schools|schools_nc|covariance> <input.txt>".into());
+        return Err("usage: alea-stan-bench <mean|linear|logistic|funnel|schools|schools_nc|covariance|radon> <input.txt>".into());
     }
     let name = args[1].as_str();
+    if name == "radon" {
+        if env::var("ALEA_BENCH_BACKEND").as_deref() == Ok("enzyme") {
+            return Err("Radon block source export is unsupported".into());
+        }
+        let data = serde_json::from_str(&fs::read_to_string(&args[2])?)?;
+        let input = RadonInput::parse(&data)?;
+        let admitted = input.build()?;
+        let dimension = admitted.dimension();
+        if let Ok(path) = env::var("ALEA_BENCH_PROBES") {
+            return probe_model(admitted, &path);
+        }
+        if let Ok(paths) = env::var("ALEA_BENCH_STAN_CSVS") {
+            return stan_diagnostics(name, dimension, &paths);
+        }
+        if env::var_os("ALEA_BENCH_EVALUATIONS").is_some() {
+            return Err("Radon fixed-work evaluation is unsupported by this CLI".into());
+        }
+        if env::var_os("ALEA_BENCH_KERNEL").is_some() {
+            return kernel_profile(name, dimension, || input.build());
+        }
+        return sample_model(
+            name,
+            dimension,
+            format!("radon:{}:{}", input.j, input.y.len()),
+            process_start,
+            || input.build(),
+        );
+    }
     if ![
         "mean",
         "linear",
@@ -269,6 +393,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         _ => unreachable!(),
     };
     if env::var("ALEA_BENCH_BACKEND").as_deref() == Ok("enzyme") {
+        if let Ok(representation) = env::var("ALEA_BENCH_REPRESENTATION")
+            && composition_blocks(Some(&representation))?
+        {
+            return Err(
+                "block source export is unsupported; retained source target is scalar".into(),
+            );
+        }
         #[cfg(feature = "enzyme")]
         {
             let (x, y) = conformance::covariance_data();
@@ -276,75 +407,19 @@ fn main() -> Result<(), Box<dyn Error>> {
             {
                 return Err("unsupported source model or changed frozen binding (schools Cauchy lacks a source rule)".into());
             }
-            return evaluation_protocol(&generated_covariance::target(), dimension);
+            return evaluation_protocol(generated_covariance::target, dimension);
         }
         #[cfg(not(feature = "enzyme"))]
         return Err("Enzyme backend was not compiled".into());
     }
     if let Ok(path) = env::var("ALEA_BENCH_PROBES") {
-        let probes: Vec<Vec<f64>> = serde_json::from_str(&fs::read_to_string(path)?)?;
-        let target = build_model(name, &input)?
-            .select_posterior()?
-            .into_target()?;
-        let mut records = Vec::new();
-        for q in probes {
-            let mut g = vec![0.; dimension];
-            match alea::target::evaluate(&target, &q, &mut g) {
-                Ok(value) => records.push(serde_json::json!({"q":q,"logp":value,"gradient":g})),
-                Err(error) => records.push(serde_json::json!({"q":q,"error":format!("{error:?}")})),
-            }
-        }
-        println!("{}", serde_json::json!(records));
-        return Ok(());
+        return probe_model(build_model(name, &input)?, &path);
     }
     if let Ok(paths) = env::var("ALEA_BENCH_STAN_CSVS") {
-        let mut chains = Vec::new();
-        for path in paths.split(':') {
-            let text = fs::read_to_string(path)?;
-            let mut rows = text
-                .lines()
-                .filter(|l| !l.starts_with('#') && !l.is_empty());
-            let header: Vec<_> = rows
-                .next()
-                .ok_or("missing CSV header")?
-                .split(',')
-                .collect();
-            let indices: Vec<_> = header
-                .iter()
-                .enumerate()
-                .filter_map(|(i, s)| (!s.ends_with("__")).then_some(i))
-                .collect();
-            let mut values = vec![Vec::new(); indices.len()];
-            for row in rows {
-                let fields: Vec<_> = row.split(',').collect();
-                for (column, &i) in values.iter_mut().zip(&indices) {
-                    let value = fields[i].parse::<f64>()?;
-                    column.push(if ["sigma", "tau", "s0", "s1"].contains(&header[i]) {
-                        value.ln()
-                    } else {
-                        value
-                    });
-                }
-            }
-            chains.push(values);
-        }
-        let mut diagnostics = Vec::new();
-        for j in 0..dimension {
-            let refs: Vec<_> = chains.iter().map(|c| c[j].as_slice()).collect();
-            let s = alea::diagnostics::modern::summarize(&refs)?;
-            diagnostics.push(
-                serde_json::json!({"rhat":s.rhat,"bulk_ess":s.bulk_ess,"tail_ess":s.tail_ess,"mean":s.mean,"mcse_mean":s.mcse_mean,"mean_ess":s.mean_ess}),
-            );
-        }
-        let constrained_diagnostics = constrained_summaries(name, dimension, &chains);
-        println!(
-            "{}",
-            serde_json::json!({"diagnostics":diagnostics,"constrained_diagnostics":constrained_diagnostics})
-        );
-        return Ok(());
+        return stan_diagnostics(name, dimension, &paths);
     }
     if env::var_os("ALEA_BENCH_KERNEL").is_some() {
-        return kernel_profile(name, &input, dimension);
+        return kernel_profile(name, dimension, || build_model(name, &input));
     }
     if let Ok(count) = env::var("ALEA_BENCH_EVALUATIONS") {
         let count: usize = count.parse()?;
@@ -383,6 +458,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         );
         return Ok(());
     }
+    sample_model(
+        name,
+        dimension,
+        format!("alea-stan-native:{name}:{}:{}", input.n, input.k),
+        process_start,
+        || build_model(name, &input),
+    )
+}
+
+fn sample_model(
+    name: &str,
+    dimension: usize,
+    identity: String,
+    process_start: Instant,
+    build: impl Fn() -> Result<NativeModel, AssemblyError> + Sync,
+) -> Result<(), Box<dyn Error>> {
+    let output_mode = sampling_output(
+        env::var("ALEA_BENCH_OUTPUT").ok().as_deref(),
+        env::var_os("ALEA_BENCH_CSV").is_some(),
+    )?;
     let chains: usize = env::var("ALEA_BENCH_CHAINS")
         .ok()
         .map(|s| s.parse())
@@ -410,28 +505,36 @@ fn main() -> Result<(), Box<dyn Error>> {
         .map(|_| Arc::new(Mutex::new(Metrics::default())))
         .collect();
     let factory_metrics = metrics.clone();
-    let session = SessionBuilder::new(
-        format!("alea-stan-native:{name}:{}:{}", input.n, input.k),
-        dimension,
-        vec![vec![0.0; dimension]; chains],
-    )
-    .seed([17; 32])
-    .draws(1_000)
-    .sampler(SamplerConfig::Nuts(NutsOptions::new(0.2, 10)?))
-    .warmup(Warmup::Covariance {
-        iterations: 1_000,
-        metric: MetricKind::Diagonal,
-        target: target_acceptance.try_into()?,
-        search: None,
-    })
-    .build()?;
+    let session = SessionBuilder::new(identity, dimension, vec![vec![0.0; dimension]; chains])
+        .seed([seed_option()?; 32])
+        .draws(1_000)
+        .collect(output_mode != "discard")
+        .sampler(SamplerConfig::Nuts(NutsOptions::new(0.2, 10)?))
+        .warmup(Warmup::Covariance {
+            iterations: 1_000,
+            metric: MetricKind::Diagonal,
+            target: target_acceptance.try_into()?,
+            search: None,
+        })
+        .build()?;
 
     // Alea's session factory takes an independent target per chain.
     // All datasets and factors use the public model API; no custom scores.
+    let evidence: Vec<_> = (0..chains)
+        .map(|_| Mutex::new(RetainedEvidence::default()))
+        .collect();
+    let observer = alea::session::storage::Observer(|draw: &alea::session::OwnedDraw| {
+        evidence[draw.chain.0 as usize]
+            .lock()
+            .expect("evidence lock")
+            .record(draw);
+        Ok(())
+    });
+    let sampling_start = Instant::now();
     let outcome = session.run(
         move |chain| {
             let start = Instant::now();
-            let model = build_model(name, &input).expect("validated benchmark model must assemble");
+            let model = build().expect("validated benchmark model must assemble");
             let model = model
                 .select_posterior()
                 .expect("named prior/likelihood factors");
@@ -446,8 +549,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         },
         pool.as_ref()
             .map_or(Execution::Sequential, Execution::Parallel),
-        &Discard,
+        &observer,
     )?;
+    let session_seconds = sampling_start.elapsed().as_secs_f64();
+    let evidence: Vec<_> = evidence
+        .into_iter()
+        .map(|e| e.into_inner().expect("evidence lock"))
+        .collect();
+    let energy_diagnostics: Vec<_> = evidence.iter().map(RetainedEvidence::energy).collect();
+    let depth_saturations = if evidence.iter().any(|e| e.missing_depth) {
+        None
+    } else {
+        Some(evidence.iter().map(|e| e.saturated).sum::<usize>())
+    };
+    let output_hashes: Vec<_> = evidence
+        .iter()
+        .map(|e| format!("{:016x}", e.hash.finish()))
+        .collect();
     let serialization = Instant::now();
     if let Ok(path) = env::var("ALEA_BENCH_CSV") {
         use std::io::{BufWriter, Write};
@@ -482,7 +600,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut divergences = 0;
     let mut step_sizes = Vec::new();
     let mut failures = Vec::new();
-    use std::hash::{Hash, Hasher};
     let mut trajectory_hash = std::collections::hash_map::DefaultHasher::new();
     for chain in &outcome.chains {
         if let Some(failure) = &chain.failure {
@@ -535,12 +652,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             m.first_error = chain.first_error.clone();
         }
     }
+    if output_mode == "discard" {
+        steps = evidence.iter().map(|e| e.steps).sum();
+        divergences = evidence.iter().map(|e| e.divergences).sum();
+        depths = evidence
+            .iter()
+            .flat_map(|e| e.depths.iter().copied())
+            .collect();
+    }
     let completed: usize = outcome.chains.iter().map(|c| c.completed).sum();
     println!(
         "{}",
         serde_json::json!({
             "completed":completed,"chains":chains,"chain_threads":chain_threads,"dimension":dimension,"status":format!("{:?}",outcome.status),"target_acceptance":target_acceptance,
-        "serialization_seconds":serialization_seconds,
+        "serialization_seconds":serialization_seconds,"session_seconds":session_seconds,"output_mode":output_mode,"output_scope":"discard disables retained-position collection; energy evidence and bounded runtime diagnostics remain","output_trajectory_hashes":output_hashes,"energy_diagnostics":energy_diagnostics,"retained_depth_saturations":depth_saturations,"scientific_quantities":if output_mode=="discard" {vec![]} else {scientific_summaries(name,dimension,&coordinates)},"final_positions":outcome.chains.iter().map(|c|c.checkpoint.as_ref().map(|p|p.position())).collect::<Vec<_>>(),
         "trajectory_hash":format!("{:016x}",trajectory_hash.finish()),
             "failures":failures,"seconds":elapsed,"construction_seconds":m.construction_ns as f64/1e9,
             "evaluations":m.calls,"evaluation_seconds":timed.then_some(m.evaluation_ns as f64/1e9),
@@ -575,6 +700,7 @@ fn constrained_summaries(
             "mean" | "linear" => j+1==dimension,
             "schools" | "schools_nc" => j+1==dimension,
             "covariance" => j==2 || j==3,
+            "radon" => j+2>=dimension,
             _ => false,
         };
         let values:Vec<Vec<f64>> = chains.iter().map(|c|c[j].iter().map(|&x|if positive {x.exp()} else {x}).collect()).collect();
@@ -588,16 +714,17 @@ fn constrained_summaries(
 
 #[cfg(feature = "enzyme")]
 fn evaluation_protocol<T: LogDensityGradient>(
-    target: &T,
+    factory: impl FnOnce() -> T,
     dimension: usize,
 ) -> Result<(), Box<dyn Error>> {
     if let Ok(path) = env::var("ALEA_BENCH_PROBES") {
+        let target = factory();
         let points: Vec<Vec<f64>> = serde_json::from_str(&fs::read_to_string(path)?)?;
         let records: Vec<_> = points
             .into_iter()
             .map(|q| {
                 let mut g = vec![0.; dimension];
-                match alea::target::evaluate(target, &q, &mut g) {
+                match alea::target::evaluate(&target, &q, &mut g) {
                     Ok(logp) => serde_json::json!({"q":q,"logp":logp,"gradient":g}),
                     Err(error) => serde_json::json!({"q":q,"error":format!("{error:?}")}),
                 }
@@ -612,8 +739,11 @@ fn evaluation_protocol<T: LogDensityGradient>(
     if calls == 0 {
         return Err("positive evaluations required".into());
     }
-    let mut q = vec![0.; dimension];
+    let setup = Instant::now();
     let states = state_bank(dimension)?;
+    let target = factory();
+    let construction = setup.elapsed().as_secs_f64();
+    let mut q = vec![0.; dimension];
     let mut g = vec![0.; dimension];
     let mut value = 0.;
     let mut checksum = 0.;
@@ -637,14 +767,18 @@ fn evaluation_protocol<T: LogDensityGradient>(
     }
     println!(
         "{}",
-        serde_json::json!({"evaluations":calls,"evaluation_seconds":start.elapsed().as_secs_f64(),"construction_seconds":0.,"construction_scope":"frozen source target; preparation charged at build time","logp":value,"gradient":g,"checksum":checksum,"gradient_checksum":gradient_checksum})
+        serde_json::json!({"evaluations":calls,"evaluation_seconds":start.elapsed().as_secs_f64(),"construction_seconds":construction,"construction_scope":"state bank loading and source target factory; excludes source generation and compilation","logp":value,"gradient":g,"checksum":checksum,"gradient_checksum":gradient_checksum})
     );
     Ok(())
 }
 
 // A diagnostic control using the SAME public native target, seed/stream and
 // native covariance warmup as SessionBuilder. No probability or NUTS code here.
-fn kernel_profile(name: &str, input: &Input, dimension: usize) -> Result<(), Box<dyn Error>> {
+fn kernel_profile(
+    name: &str,
+    dimension: usize,
+    build: impl Fn() -> Result<NativeModel, AssemblyError>,
+) -> Result<(), Box<dyn Error>> {
     use alea::{
         math::buffer::OwnedBuffer,
         output::ChainId,
@@ -652,13 +786,20 @@ fn kernel_profile(name: &str, input: &Input, dimension: usize) -> Result<(), Box
     };
     let metrics = Arc::new(Mutex::new(Metrics::default()));
     let target = Observed {
-        target: build_model(name, input)?
-            .select_posterior()?
-            .into_target()?,
+        target: build()?.select_posterior()?.into_target()?,
         metrics: Arc::clone(&metrics),
         timed: true,
     };
-    let mut rng = alea::ensemble::chain_rng([17; 32], ChainId(0));
+    let chain_id: u64 = env::var("ALEA_BENCH_CHAIN")
+        .ok()
+        .map(|s| s.parse())
+        .transpose()?
+        .unwrap_or(0);
+    if chain_id >= 16 {
+        return Err("logical chain must be below16".into());
+    }
+    let mut rng = alea::ensemble::chain_rng([seed_option()?; 32], ChainId(chain_id));
+    let start = Instant::now();
     let warmup = NutsWarmup::new(
         &target,
         OwnedBuffer::new(dimension),
@@ -670,7 +811,6 @@ fn kernel_profile(name: &str, input: &Input, dimension: usize) -> Result<(), Box
             )
             .with_search(None),
     )?;
-    let start = Instant::now();
     let mut depths = Vec::new();
     let (mut chain, report) = warmup.run_observed(&mut rng, |observation| {
         depths.push(observation.transition.tree_depth)
@@ -692,7 +832,281 @@ fn kernel_profile(name: &str, input: &Input, dimension: usize) -> Result<(), Box
     let m = metrics.lock().expect("metrics lock");
     println!(
         "{}",
-        serde_json::json!({"warmup_report":format!("{report:?}"),"warmup_seconds":warmup_seconds,"sampling_seconds":sampling_seconds,"warmup_evaluations":warmup_evaluations,"sampling_evaluations":m.calls-warmup_evaluations,"evaluation_seconds":m.evaluation_ns as f64/1e9,"evaluation_errors":m.errors,"first_error":m.first_error,"warmup_mean_depth":depths.iter().sum::<usize>() as f64/depths.len() as f64,"warmup_max_depth":depths.iter().max(),"retained_leapfrog_steps":steps,"retained_divergences":divergences,"final_position":chain.point().position()})
+        serde_json::json!({"logical_chain":chain_id,"case":name,"phase_scope":"separate logical-chain diagnostic; initialization counted with warmup","warmup_report":format!("{report:?}"),"warmup_seconds":warmup_seconds,"sampling_seconds":sampling_seconds,"warmup_evaluations":warmup_evaluations,"sampling_evaluations":m.calls-warmup_evaluations,"evaluation_seconds":m.evaluation_ns as f64/1e9,"evaluation_errors":m.errors,"first_error":m.first_error,"warmup_mean_depth":depths.iter().sum::<usize>() as f64/depths.len() as f64,"warmup_max_depth":depths.iter().max(),"retained_leapfrog_steps":steps,"retained_divergences":divergences,"final_position":chain.point().position()})
+    );
+    Ok(())
+}
+
+fn seed_option() -> Result<u8, Box<dyn Error>> {
+    Ok(env::var("ALEA_BENCH_SEED")
+        .ok()
+        .map(|s| s.parse())
+        .transpose()?
+        .unwrap_or(17))
+}
+
+fn sampling_output(value: Option<&str>, csv: bool) -> Result<&'static str, &'static str> {
+    match (value, csv) {
+        (None, false) | (Some("memory"), false) => Ok("memory"),
+        (None | Some("csv"), true) => Ok("csv"),
+        (Some("discard"), false) => Ok("discard"),
+        _ => Err("output must be memory/discard without CSV, or csv with a create-new CSV path"),
+    }
+}
+
+#[derive(Default)]
+struct RetainedEvidence {
+    hash: std::collections::hash_map::DefaultHasher,
+    energies: Vec<f64>,
+    missing_energy: bool,
+    missing_depth: bool,
+    steps: usize,
+    divergences: usize,
+    saturated: usize,
+    depths: Vec<usize>,
+}
+impl RetainedEvidence {
+    fn record(&mut self, draw: &alea::session::OwnedDraw) {
+        draw.chain.0.hash(&mut self.hash);
+        draw.index.hash(&mut self.hash);
+        for q in &draw.position {
+            q.to_bits().hash(&mut self.hash);
+        }
+        if let Some(e) = draw.stats.energy {
+            self.energies.push(e);
+        } else {
+            self.missing_energy = true;
+        }
+        if let Some(d) = draw.stats.tree_depth {
+            self.depths.push(d);
+        }
+        if let Some(s) = draw.stats.depth_saturated {
+            self.saturated += usize::from(s);
+        } else {
+            self.missing_depth = true;
+        }
+        self.steps += draw.stats.integration_steps.unwrap_or(0);
+        self.divergences += usize::from(draw.stats.divergent.unwrap_or(false));
+    }
+    fn energy(&self) -> serde_json::Value {
+        if self.missing_energy {
+            return serde_json::json!({"error":"missing transition energy"});
+        }
+        match alea::diagnostics::modern::ebfmi(&self.energies) {
+            Ok(value) => serde_json::json!({"ebfmi":value,"transitions":self.energies.len()}),
+            Err(error) => serde_json::json!({"error":format!("{error:?}")}),
+        }
+    }
+}
+
+// Reuse the production rank/folded ESS/MCSE routines on explicit scientific
+// observables. Squares are second-moment estimands, not variance MCSE estimates.
+fn scientific_summaries(
+    name: &str,
+    dimension: usize,
+    chains: &[Vec<Vec<f64>>],
+) -> Vec<serde_json::Value> {
+    let positive = |j| match name {
+        "mean" | "linear" | "schools" | "schools_nc" => j + 1 == dimension,
+        "covariance" => j == 2 || j == 3,
+        "radon" => j + 2 >= dimension,
+        _ => false,
+    };
+    let labels: Vec<String> = match name {
+        "schools" | "schools_nc" => (0..dimension)
+            .map(|j| {
+                if j + 2 < dimension {
+                    format!("theta[{}]", j + 1)
+                } else if j + 1 == dimension {
+                    "tau".into()
+                } else {
+                    "mu".into()
+                }
+            })
+            .collect(),
+        "radon" => (0..dimension)
+            .map(|j| {
+                if j + 4 < dimension {
+                    format!("alpha[{}]", j + 1)
+                } else {
+                    ["beta", "mu_alpha", "sigma_alpha", "sigma_y"][j + 4 - dimension].into()
+                }
+            })
+            .collect(),
+        "covariance" => ["mu0", "mu1", "s0", "s1", "loading"]
+            .map(String::from)
+            .to_vec(),
+        _ => (0..dimension).map(|j| format!("parameter[{j}]")).collect(),
+    };
+    let series: Vec<Vec<Vec<f64>>> = (0..dimension)
+        .map(|j| {
+            chains
+                .iter()
+                .map(|c| {
+                    c[j].iter()
+                        .enumerate()
+                        .map(|(i, &q)| {
+                            if name == "schools_nc" && j + 2 < dimension {
+                                c[dimension - 2][i] + c[dimension - 1][i].exp() * q
+                            } else if name == "radon" && j + 4 < dimension {
+                                c[dimension - 3][i] + c[dimension - 2][i].exp() * q
+                            } else if positive(j) {
+                                q.exp()
+                            } else {
+                                q
+                            }
+                        })
+                        .collect()
+                })
+                .collect()
+        })
+        .collect();
+    let mut observables = Vec::new();
+    for (j, values) in series.iter().enumerate() {
+        observables.push((labels[j].clone(), "mean", Some(j), values.clone()));
+        observables.push((
+            format!("{}:second_moment", labels[j]),
+            "second_moment",
+            Some(j),
+            values
+                .iter()
+                .map(|c| c.iter().map(|v| v * v).collect())
+                .collect(),
+        ));
+    }
+    if name == "covariance" {
+        for (label, kind) in [
+            ("cov[0,0]", 0),
+            ("cov[0,1]", 1),
+            ("cov[1,1]", 2),
+            ("correlation", 3),
+        ] {
+            let values = series[0]
+                .iter()
+                .enumerate()
+                .map(|(c, x)| {
+                    (0..x.len())
+                        .map(|i| {
+                            let (s0, s1, l) = (series[2][c][i], series[3][c][i], series[4][c][i]);
+                            match kind {
+                                0 => s0 * s0,
+                                1 => s0 * l,
+                                2 => l * l + s1 * s1,
+                                _ => l / l.hypot(s1),
+                            }
+                        })
+                        .collect()
+                })
+                .collect();
+            observables.push((label.into(), "derived", None, values));
+        }
+    }
+    observables.into_iter().map(|(name,kind,coordinate,values)| {
+        let refs:Vec<_>=values.iter().map(Vec::as_slice).collect();
+        match alea::diagnostics::modern::summarize(&refs) {
+            Ok(s)=>serde_json::json!({"name":name,"kind":kind,"coordinate":coordinate,"mean":s.mean,"mcse_mean":s.mcse_mean,"mean_ess":s.mean_ess,"rhat":s.rhat,"rank_rhat":s.rank_rhat,"folded_rhat":s.folded_rhat,"bulk_ess":s.bulk_ess,"tail_ess":s.tail_ess}),
+            Err(e)=>serde_json::json!({"name":name,"kind":kind,"coordinate":coordinate,"error":format!("{e:?}")}),
+        }
+    }).collect()
+}
+
+fn stan_diagnostics(name: &str, dimension: usize, paths: &str) -> Result<(), Box<dyn Error>> {
+    let names: Option<Vec<String>> = match name {
+        "covariance" => Some(
+            ["mu0", "mu1", "s0", "s1", "loading"]
+                .map(String::from)
+                .to_vec(),
+        ),
+        "schools" | "schools_nc" => Some(
+            (1..=dimension - 2)
+                .map(|i| format!("effect.{i}"))
+                .chain(["mu".into(), "tau".into()])
+                .collect(),
+        ),
+        "radon" => Some(
+            (1..=dimension - 4)
+                .map(|i| format!("alpha_raw.{i}"))
+                .chain(["beta", "mu_alpha", "sigma_alpha", "sigma_y"].map(String::from))
+                .collect(),
+        ),
+        _ => None,
+    };
+    let mut chains = Vec::new();
+    let mut energies = Vec::new();
+    let mut saturated = Some(0_usize);
+    for path in paths.split(':') {
+        let text = fs::read_to_string(path)?;
+        let mut rows = text
+            .lines()
+            .filter(|l| !l.starts_with('#') && !l.is_empty());
+        let header: Vec<_> = rows
+            .next()
+            .ok_or("missing CSV header")?
+            .split(',')
+            .collect();
+        let indices = if let Some(names) = &names {
+            names
+                .iter()
+                .map(|n| {
+                    header
+                        .iter()
+                        .position(|h| *h == n)
+                        .ok_or("missing named Stan parameter")
+                })
+                .collect::<Result<Vec<_>, _>>()?
+        } else {
+            header
+                .iter()
+                .enumerate()
+                .filter_map(|(i, h)| (!h.ends_with("__")).then_some(i))
+                .take(dimension)
+                .collect()
+        };
+        if indices.len() != dimension {
+            return Err("CSV coordinate dimension mismatch".into());
+        }
+        let e = header.iter().position(|h| *h == "energy__");
+        let depth = header.iter().position(|h| *h == "treedepth__");
+        let mut values = vec![Vec::new(); dimension];
+        let mut energy = Vec::new();
+        for row in rows {
+            let fields = row.split(',').collect::<Vec<_>>();
+            if fields.len() != header.len() {
+                return Err("CSV row dimension mismatch".into());
+            }
+            for (j, &index) in indices.iter().enumerate() {
+                let value = fields[index].parse::<f64>()?;
+                let positive = match name {
+                    "mean" | "linear" | "schools" | "schools_nc" => j + 1 == dimension,
+                    "covariance" => j == 2 || j == 3,
+                    "radon" => j + 2 >= dimension,
+                    _ => false,
+                };
+                values[j].push(if positive { value.ln() } else { value });
+            }
+            if let Some(i) = e {
+                energy.push(fields[i].parse::<f64>()?);
+            }
+            if let (Some(i), Some(count)) = (depth, &mut saturated) {
+                *count += usize::from(fields[i].parse::<usize>()? >= 10);
+            } else {
+                saturated = None;
+            }
+        }
+        let refs = energy.as_slice();
+        energies.push(match alea::diagnostics::modern::ebfmi(refs) {
+            Ok(v) => serde_json::json!({"ebfmi":v,"transitions":energy.len()}),
+            Err(err) => serde_json::json!({"error":format!("{err:?}")}),
+        });
+        chains.push(values);
+    }
+    let diagnostics:Vec<_>=(0..dimension).map(|j| {
+        let refs:Vec<_>=chains.iter().map(|c|c[j].as_slice()).collect();
+        match alea::diagnostics::modern::summarize(&refs) {Ok(s)=>serde_json::json!({"rhat":s.rhat,"bulk_ess":s.bulk_ess,"tail_ess":s.tail_ess,"mean":s.mean,"mcse_mean":s.mcse_mean,"mean_ess":s.mean_ess}),Err(e)=>serde_json::json!({"error":format!("{e:?}")})}
+    }).collect();
+    println!(
+        "{}",
+        serde_json::json!({"diagnostics":diagnostics,"constrained_diagnostics":constrained_summaries(name,dimension,&chains),"scientific_quantities":scientific_summaries(name,dimension,&chains),"energy_diagnostics":energies,"retained_depth_saturations":saturated})
     );
     Ok(())
 }

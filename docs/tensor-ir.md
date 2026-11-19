@@ -126,8 +126,89 @@ element in declared argument order, including repeated inputs. Native-only
 callbacks cannot be checkpoint-replayed or exported as Rust source.
 
 Whole-value model calls currently execute natively. Existing scalar-result
-source models use `ModelBuilder::apply_region`. Native `NormalBatch` and
-logit composition with whole tensor predictors remains a separate cutover.
+source models use `ModelBuilder::apply_region`. The production
+`distributions::modeling::observations` adapter connects whole tensor predictors
+to native Normal, Bernoulli-logit and Poisson-log laws. This parameter-score map
+does not replace `NormalBatch` preparation, event-score or reporting contracts,
+and has no source, higher-order or checkpoint-replay route.
+
+### Bounded operation inventory for the integration models
+
+The named integration cases require **no additional tensor operator**. This is
+an expressiveness inventory, not a completed migration, full model conformance,
+or posterior qualification. It follows the existing covariance/schools builders
+in `tools/native-benchmark/src/conformance.rs`, their Stan models, and the Radon
+case selected by `tools/bench/corpus/pdb-v3.json` (PosteriorDB revision
+`91027f9cdd13b7e76283fec3f2898f59d4b83ec4`). The historical Radon Rust source
+port remains a separate reference; its density constants may differ.
+
+| Named case | Whole-value computation and shape contract | Existing operations and boundary |
+| --- | --- | --- |
+| Native covariance, two-dimensional Cholesky likelihood | Fixed data columns `a,c: [N]`; `slope = loading * exp(-log(s0)): []`; `mean = mu1 + (a - mu0) * slope: [N]`. Two conditional Normal blocks give `Normal(a; mu0,s0)` and `Normal(c; mean,s1)`, equivalent to `L=[[s0,0],[loading,s1]]`. | Fixed-data column packing (or constant gather), existing log/negation/exp and multiply/add broadcasts. Retain the builder's reciprocal and subtraction operation order. No inverse matrix, Cholesky operator or batched GEMM is needed. Preserve all five priors and both positive-scale charts. |
+| Logistic and Poisson regression controls | Row-major `X: [N,K]`, `beta: [K,1]` produce `[N,1]`, reshaped to predictor `[N]`; a log-exposure offset, when present, is `[N]`. | Existing rank-two `matmul`, reshape and broadcast/add; typed Boolean/count observations use the existing logit/Poisson laws. No floating conversion of events or benchmark-local law formula. |
+| Radon variable-intercept noncentered | `alpha_raw: [J]`; `alpha = mu_alpha + sigma_alpha * alpha_raw: [J]`; fixed county indices select `[N]`; `mu = gather(alpha) + floor_measure * beta: [N]`. | Scalar broadcasts and constant-index gather. Validate Stan indices in `1..=J` before converting to zero-based `usize`; repeated counties accumulate into the same adjoint. Preserve both positive scales, all priors and one Jacobian per chart. No axis reduction or dynamic index differentiation. |
+| Centered/noncentered eight schools | Centered `theta: [8]`; noncentered `z: [8]` gives `theta = mu + tau*z: [8]`. Observation scales are fixed `[8]`; group priors use scalar or `[8]` means. | Broadcast multiply/add and native Normal blocks. Centering is an explicit model choice, not a lowering rewrite. Retain the existing Cauchy prior on positive `tau`; its opaque source gap is not a missing tensor operator. |
+
+All block likelihood results above are scalar joint factors. Where a deterministic
+scalar total is required, the existing full `sum` maps any fixed shape to `[]`
+with a broadcast pullback. A sum does not define independent reporting units;
+per-row reporting and preparation preservation have separate integration gates.
+Rank-two GEMV is simply `[N,K] @ [K,1]`; the current compensated default and
+explicit provider/arithmetic contracts remain unchanged.
+
+For example, the Radon predictor alone can be expressed and differentiated
+without scalarizing the group effects. This small fixture uses repeated county
+indices and independent exact value/score answers; it is not a Radon density port:
+
+```rust
+use alea::model::{
+    assembly::ModelBuilder,
+    tensor::{BinaryOp as B, Shape},
+};
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+let mut r = ModelBuilder::new().region();
+let groups = Shape::new(vec![3])?;
+let rows = Shape::new(vec![4])?;
+let raw = r.input("alpha_raw", groups)?;
+let mean = r.input("mu_alpha", Shape::scalar())?;
+let scale = r.input("sigma_alpha", Shape::scalar())?;
+let beta = r.input("beta", Shape::scalar())?;
+let scaled = r.binary(B::Multiply, scale, raw)?;
+let alpha = r.binary(B::Add, mean, scaled)?;
+let county = r.gather(alpha, rows.clone(), vec![2, 0, 2, 1])?;
+let floor = r.constant(rows, vec![0., 1., 1., 0.])?;
+let floor_effect = r.binary(B::Multiply, floor, beta)?;
+let predictor = r.binary(B::Add, county, floor_effect)?;
+let p = r.compile(predictor)?.bind(&[])?;
+let mut values = [0.; 4];
+let mut scores = [0.; 6];
+// Inputs: three group effects, mean, positive scale, floor coefficient.
+p.value_and_vjp(
+    &[1., 2., 3., 10., 2., -1.],
+    &[1.; 4],
+    &mut values,
+    &mut scores,
+    &mut p.workspace(),
+)?;
+assert_eq!(values, [16., 11., 15., 14.]);
+assert_eq!(scores, [2., 2., 4., 4., 9., 2.]);
+# Ok(())
+# }
+```
+
+Existing `alea-core/tests/tensor_ir.rs` controls cover repeated-gather scatter
+addition and seed linearity, broadcast reduction, reshape aliases, rectangular
+and empty matrix products, foreign owners, invalid shapes/indices, staged errors
+and recovery. The distribution `block_observations` suite exercises all three
+laws on shared nonlinear predictors. Native benchmark compound-model and
+downstream eight-schools controls cover the existing scalar model routes; they
+do not establish the future block ports' conformance.
+
+No operator, generated primal, derivative rule or replay closure is added by
+this inventory. Builtin region source support is separate from whole-value model
+and observed-law export. Native first-order evidence here does not promote
+source derivatives, higher orders, provider AD or replay. None of these named
+computations requires placing a new operation inside checkpoint replay.
 
 ### Numerical admission is part of the execution contract
 
@@ -643,6 +724,14 @@ The final binary-kernel tests also compare scalar **bits**, including aliased
 reshapes, inactive data, scalar broadcasts, zero seeds, extreme finite values and
 nonzero preexisting adjoints. Contiguous fast paths must retain the original
 interleaved two additions for repeated operands and ordered scalar reductions.
+
+Scalar/vector binary pullbacks use contiguous shortcuts for one-active-operand
+cases. With both operands active, ordered generic map traversal retains the
+original element/operand accumulation and existing scores; reshape aliases keep
+interleaved contributions. Shared scalar reductions remain untiled, and
+forward/local-score admission is unchanged. A proposed both-active two-pass
+specialization passed correctness checks but was rejected by paired total-cost
+admission because unchanged controls regressed; it is absent from production.
 
 Actual compiled tensor source and compiler-generated derivatives are checked
 against native execution and independent references. The original matrix compiler

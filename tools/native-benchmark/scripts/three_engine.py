@@ -116,7 +116,9 @@ def cargo_route_receipts(path):
         expected_provider = next((p for p in ('faer', 'blas') if fixture.startswith('provider_' + p + '_')), 'rust')
         if provider != expected_provider:
             raise ValueError('provider receipt disagrees with its explicit fixture identity')
-        if ((requested == 'N' and (admission != 'N' or checkpoint != 'false'))
+        unresolved = (requested != 'N' and resolved == admission == 'none'
+                      and checkpoint == 'false' and status == 'unsupported')
+        if not unresolved and ((requested == 'N' and (admission != 'N' or checkpoint != 'false'))
                 or (requested != 'N' and admission == 'N')
                 or (checkpoint == 'true' and order != 'value' and admission != 'H')
                 or (order == 'first' and (admission == 'none' or
@@ -1423,7 +1425,7 @@ def main():
     parser.add_argument('--evaluations',type=int,default=10000)
     args=parser.parse_args()
     if args.cases is None:
-        args.cases=list(CASES) if args.action in ('matrix-plan','matrix-stan-build','suite') else DEFAULT_CASES
+        args.cases=[case for case in CASES if case!='radon'] if args.action in ('matrix-plan','matrix-stan-build','suite') else DEFAULT_CASES
     if len(args.phases)!=len(set(args.phases)): parser.error('duplicate phases')
     if args.action=='cargo-inventory': save(args.output,cargo_bench_inventory(REPO))
     elif args.action=='cargo-report': save(args.output/'summary.json',cargo_bench_report(args.output))

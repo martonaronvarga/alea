@@ -426,3 +426,259 @@ fn original_seed_large_regression_recovers_from_second_warmup_transition() {
             .contains("PrecisionLoss { index: 0 }")
     );
 }
+
+#[test]
+fn block_models_match_retained_scalar_references_and_keep_source_limits_explicit() {
+    for name in ["schools", "schools_nc", "covariance"] {
+        let (n, k, x, y) = if name == "covariance" {
+            let (x, y) = conformance::covariance_data();
+            (32, 2, x, y)
+        } else {
+            (
+                8,
+                1,
+                vec![15., 10., 16., 11., 9., 11., 10., 18.],
+                vec![28., 8., -3., 7., -1., 1., 18., 12.],
+            )
+        };
+        let native = conformance::native(name, n, k, &x, &y).unwrap();
+        assert!(matches!(
+            native.rust_primal(),
+            Err(AssemblyError::MissingPrimal { .. })
+        ));
+        let reference = conformance::build(name, n, k, &x, &y).unwrap();
+        assert_eq!(reference.rust_primal().is_ok(), name == "covariance");
+        let native = native.into_target().unwrap();
+        let reference = reference.into_target().unwrap();
+        let d = native.dimension();
+        let mut points: Vec<Vec<_>> = [-3., 0., 2.]
+            .into_iter()
+            .map(|level| (0..d).map(|i| level + (i % 5) as f64 / 8.).collect())
+            .collect();
+        if name == "covariance" {
+            // A zero predictor slope still needs its loading score. Opposite
+            // mean/scale directions also check the grouped region's input order.
+            points.push(vec![0.25, -0.5, -0.3, 0.4, 0.]);
+            points.push(vec![-0.5, 0.25, 0.4, -0.3, -1.25]);
+        }
+        for q in points {
+            let mut a = vec![0.; d];
+            let mut b = a.clone();
+            close(
+                native.logp_grad(&q, &mut a).unwrap(),
+                reference.logp_grad(&q, &mut b).unwrap(),
+                2e-11,
+            );
+            for (a, b) in a.into_iter().zip(b) {
+                close(a, b, 2e-10);
+            }
+        }
+    }
+}
+
+#[test]
+fn radon_native_port_has_checked_indices_and_explicit_source_gap() {
+    let model = conformance::radon(2, &[0, 1, 0], &[0., 1., 1.], &[0.5, 1., -0.25]).unwrap();
+    assert!(matches!(
+        model.rust_primal(),
+        Err(AssemblyError::MissingPrimal { .. })
+    ));
+    assert!(conformance::radon(2, &[2], &[0.], &[1.]).is_err());
+    assert!(
+        model
+            .into_target()
+            .unwrap()
+            .logp_grad(&[0.; 6], &mut [0.; 6])
+            .unwrap()
+            .is_finite()
+    );
+}
+
+#[test]
+fn block_predictor_graph_size_does_not_scalarize_observation_rows() {
+    let nodes: Vec<_> = [8, 257]
+        .into_iter()
+        .map(|n| {
+            conformance::native("covariance", n, 2, &vec![0.25; 2 * n], &vec![0.; n])
+                .unwrap()
+                .expression_count()
+        })
+        .collect();
+    assert_eq!(nodes[0], nodes[1]);
+    let nodes: Vec<_> = [8, 257]
+        .into_iter()
+        .map(|n| {
+            conformance::radon(
+                2,
+                &(0..n).map(|i| i % 2).collect::<Vec<_>>(),
+                &vec![0.25; n],
+                &vec![0.; n],
+            )
+            .unwrap()
+            .expression_count()
+        })
+        .collect();
+    assert_eq!(nodes[0], nodes[1]);
+    assert!(conformance::native("schools", 0, 1, &[], &[]).is_err());
+    assert!(conformance::native("covariance", 1, 1, &[0.], &[0.]).is_err());
+    for build in [conformance::build, conformance::native] {
+        assert!(matches!(
+            build("schools", 1, 1, &[1.], &[f64::NAN]),
+            Err(AssemblyError::Numerical)
+        ));
+        assert!(matches!(
+            build("covariance", 1, 2, &[0., f64::NAN], &[0.]),
+            Err(AssemblyError::Numerical)
+        ));
+    }
+    assert!(matches!(
+        conformance::radon(1, &[0], &[0.], &[f64::NAN]),
+        Err(AssemblyError::Numerical)
+    ));
+}
+
+#[test]
+fn radon_json_admission_never_rounds_or_wraps_county_indices() {
+    let mut data = serde_json::json!({"J":2,"N":3,"county_idx":[1,2,1],"floor_measure":[0.,1.,1.],"log_radon":[0.5,1.,-0.25]});
+    assert!(radon_input(&data).is_ok());
+    for bad in [
+        serde_json::json!(0),
+        serde_json::json!(3),
+        serde_json::json!(1.5),
+        serde_json::json!(u64::MAX),
+    ] {
+        data["county_idx"][1] = bad;
+        assert!(radon_input(&data).is_err());
+    }
+    data["county_idx"][1] = serde_json::json!(2);
+    data["J"] = serde_json::json!(u64::MAX);
+    assert!(radon_input(&data).is_err());
+    data["J"] = serde_json::json!(2);
+    data["N"] = serde_json::json!(2);
+    assert!(radon_input(&data).is_err());
+}
+
+#[test]
+fn composition_representation_is_explicit_and_defaults_to_the_existing_block_path() {
+    assert!(composition_blocks(None).unwrap());
+    assert!(composition_blocks(Some("block")).unwrap());
+    assert!(!composition_blocks(Some("scalar")).unwrap());
+    for invalid in ["auto", "source", "", "v2"] {
+        assert!(composition_blocks(Some(invalid)).is_err());
+    }
+}
+
+#[test]
+fn scientific_quantities_recover_original_noncentered_effects_and_scale_moments() {
+    for (name, d, groups) in [("schools_nc", 10, 8), ("radon", 7, 3)] {
+        let chains: Vec<Vec<Vec<f64>>> = (0..4)
+            .map(|c| {
+                (0..d)
+                    .map(|j| {
+                        (0..16)
+                            .map(|i| 0.1 + (i + c) as f64 * 0.03 + j as f64 * 0.02)
+                            .collect()
+                    })
+                    .collect()
+            })
+            .collect();
+        let result = scientific_summaries(name, d, &chains);
+        assert_eq!(result.len(), 2 * d);
+        for j in 0..groups {
+            let values: Vec<Vec<f64>> = chains
+                .iter()
+                .map(|c| {
+                    (0..16)
+                        .map(|i| {
+                            let (mu, tau) = if name == "radon" {
+                                (d - 3, d - 2)
+                            } else {
+                                (d - 2, d - 1)
+                            };
+                            c[mu][i] + c[tau][i].exp() * c[j][i]
+                        })
+                        .collect()
+                })
+                .collect();
+            let expected = values.iter().flatten().sum::<f64>() / 64.;
+            let second = values.iter().flatten().map(|v| v * v).sum::<f64>() / 64.;
+            assert!((result[2 * j]["mean"].as_f64().unwrap() - expected).abs() < 1e-12);
+            assert!((result[2 * j + 1]["mean"].as_f64().unwrap() - second).abs() < 1e-12);
+            assert!(result[2 * j]["mcse_mean"].as_f64().unwrap() > 0.);
+        }
+    }
+}
+
+#[test]
+fn output_modes_validate_paths_and_discard_preserves_the_actual_trajectory() {
+    assert_eq!(sampling_output(None, false), Ok("memory"));
+    assert_eq!(sampling_output(None, true), Ok("csv"));
+    assert_eq!(sampling_output(Some("discard"), false), Ok("discard"));
+    for (mode, path) in [
+        (Some("csv"), false),
+        (Some("discard"), true),
+        (Some("memory"), true),
+        (Some("other"), false),
+    ] {
+        assert!(sampling_output(mode, path).is_err());
+    }
+    let run = |collect| {
+        let input = Input {
+            n: 32,
+            k: 0,
+            x: vec![],
+            y: vec![0.25; 32],
+        };
+        let session = SessionBuilder::new("output control", 2, vec![vec![0.; 2]; 4])
+            .seed([17; 32])
+            .draws(16)
+            .collect(collect)
+            .sampler(SamplerConfig::Nuts(NutsOptions::new(0.05, 5).unwrap()))
+            .build()
+            .unwrap();
+        let evidence: Vec<_> = (0..4)
+            .map(|_| Mutex::new(RetainedEvidence::default()))
+            .collect();
+        let observer = alea::session::storage::Observer(|draw: &alea::session::OwnedDraw| {
+            evidence[draw.chain.0 as usize].lock().unwrap().record(draw);
+            Ok(())
+        });
+        let result = session
+            .run(
+                |_| {
+                    Ok::<_, alea::model::ModelError<AssemblyError>>(
+                        build_model("mean", &input).unwrap().into_target().unwrap(),
+                    )
+                },
+                Execution::Sequential,
+                &observer,
+            )
+            .unwrap();
+        assert!(
+            result
+                .chains
+                .iter()
+                .all(|c| c.failure.is_none() && c.completed == 16)
+        );
+        assert!(
+            result
+                .chains
+                .iter()
+                .all(|c| c.draws.len() == if collect { 16 } else { 0 })
+        );
+        evidence
+            .into_iter()
+            .map(|e| {
+                let e = e.into_inner().unwrap();
+                (
+                    e.hash.finish(),
+                    e.steps,
+                    e.divergences,
+                    e.saturated,
+                    e.energies,
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(run(true), run(false));
+}

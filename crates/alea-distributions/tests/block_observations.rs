@@ -732,3 +732,161 @@ fn poisson_invalid_nonlinear_predictor_rejects_before_law_invocation_and_recover
     assert_eq!(calls.load(Ordering::Relaxed), 5);
     assert_eq!(maps.load(Ordering::Relaxed), 2);
 }
+
+#[test]
+fn repeated_group_predictors_refresh_after_parameter_changes_and_immutable_data_rebinds() {
+    use alea_core::model::{
+        assembly::{PointwiseLikelihood, PredictiveUnit},
+        tensor::BinaryOp as B,
+    };
+    for n in [0, 1, 5] {
+        let mut b = ModelBuilder::new();
+        let effects = b.real_vector("group", &["A", "B"]).unwrap();
+        let groups = b.vector_value(&effects, shape(&[2])).unwrap();
+        let beta = b.real("beta").unwrap();
+        let tau = b.positive("tau").unwrap();
+        let sigma = b.positive("sigma").unwrap();
+        let floors: Vec<_> = (0..n).map(|i| (i % 3) as f64 / 2.).collect();
+        let mut r = b.region();
+        let groups_input = r.input("groups", shape(&[2])).unwrap();
+        let beta_input = r.input("beta", Shape::scalar()).unwrap();
+        let tau_input = r.input("tau", Shape::scalar()).unwrap();
+        let floor = r.data("floor", shape(&[n])).unwrap();
+        let selected = r
+            .gather(groups_input, shape(&[n]), (0..n).map(|i| i % 2).collect())
+            .unwrap();
+        let scaled = r.binary(B::Multiply, tau_input, selected).unwrap();
+        let floor_effect = r.binary(B::Multiply, beta_input, floor).unwrap();
+        let mean = r.binary(B::Add, scaled, floor_effect).unwrap();
+        let region = r
+            .compile(mean)
+            .unwrap()
+            .bind(&[("floor", &floors)])
+            .unwrap();
+        let predictor = b
+            .call_region(&[groups, beta.expr(), tau.expr()], region)
+            .unwrap();
+        let events: Vec<_> = (0..n).map(|i| i as f64 / 4. - 0.5).collect();
+        let rows =
+            observations::<Normal, _, _>(&mut b, events.clone(), &[predictor, sigma.expr()], |p| {
+                Normal::new(p[0], p[1])
+            })
+            .unwrap();
+        let joint = b.sum_value(rows).unwrap();
+        b.likelihood("conditional data", joint).unwrap();
+        let original = b.compile().unwrap().binding().clone();
+        let replacements: Vec<_> = floors.iter().map(|f| f + 0.25).collect();
+        let changed = original
+            .rebind_region(predictor, "floor", &replacements)
+            .unwrap();
+        assert!(
+            original
+                .rebind_region(predictor, "floor", &vec![0.; n + 1])
+                .is_err()
+        );
+        if n > 0 {
+            assert!(
+                original
+                    .rebind_region(predictor, "floor", &vec![f64::NAN; n])
+                    .is_err()
+            );
+        }
+        for (binding, floors) in [
+            (&original, &floors),
+            (&changed, &replacements),
+            (&original, &floors),
+        ] {
+            let target = binding
+                .compile()
+                .unwrap()
+                .into_native_model()
+                .into_target()
+                .unwrap();
+            let states = [
+                [0.25, -0.5, 0.2, 0., -0.25],
+                [-0.75, 0.5, -0.3, 0.5, 0.25],
+                [0.25, -0.5, 0.2, 0., -0.25],
+            ];
+            for q in states {
+                let tau = f64::exp(q[3]);
+                let sigma = f64::exp(q[4]);
+                let mut expected = [0., 0., 0., 1., 1.];
+                let mut likelihood = 0.;
+                for (i, (&y, &floor)) in events.iter().zip(floors).enumerate() {
+                    let effect = q[i % 2];
+                    let mean = tau * effect + q[2] * floor;
+                    let z = (y - mean) / sigma;
+                    likelihood += -0.5 * z * z - q[4] - 0.5 * std::f64::consts::TAU.ln();
+                    let score = z / sigma;
+                    expected[i % 2] += score * tau;
+                    expected[2] += score * floor;
+                    expected[3] += score * tau * effect;
+                    expected[4] += z * z - 1.;
+                }
+                let mut gradient = [91.; 5];
+                close(
+                    target.logp_grad(&q, &mut gradient).unwrap(),
+                    likelihood + q[3] + q[4],
+                );
+                for (a, e) in gradient.into_iter().zip(expected) {
+                    close(a, e);
+                }
+                for h in [1e-4, 1e-5, 1e-6] {
+                    for k in 0..5 {
+                        let mut plus = q;
+                        let mut minus = q;
+                        plus[k] += h;
+                        minus[k] -= h;
+                        let difference = (target.logp_grad(&plus, &mut [0.; 5]).unwrap()
+                            - target.logp_grad(&minus, &mut [0.; 5]).unwrap())
+                            / (2. * h);
+                        assert!((difference - gradient[k]).abs() < 1e-7 * (1. + gradient[k].abs()));
+                    }
+                }
+                let saved = gradient;
+                let mut invalid = q;
+                invalid[4] = -1000.;
+                assert!(target.logp_grad(&invalid, &mut gradient).is_err());
+                assert_eq!(gradient, saved);
+                close(
+                    target.logp_grad(&q, &mut gradient).unwrap(),
+                    likelihood + q[3] + q[4],
+                );
+                // A vector of row values does not implicitly grant a reporting rule.
+                assert!(
+                    binding
+                        .compile()
+                        .unwrap()
+                        .into_native_model()
+                        .batch_likelihood()
+                        .is_err()
+                );
+                if n > 0 {
+                    let report = PointwiseLikelihood::new(
+                        binding.compile().unwrap().into_native_model(),
+                        vec![PredictiveUnit {
+                            name: "joint conditional".into(),
+                            factors: vec!["conditional data".into()],
+                            observations: (0..n).map(|i| format!("row{i}")).collect(),
+                            conditioned_on: vec![
+                                "group".into(),
+                                "beta".into(),
+                                "tau".into(),
+                                "sigma".into(),
+                            ],
+                            integrated_out: vec![],
+                        }],
+                    )
+                    .unwrap();
+                    let mut out = [91.];
+                    close(report.evaluate(&q, &mut out).unwrap(), likelihood);
+                    close(out[0], likelihood);
+                    assert!(report.units()[0].integrated_out.is_empty());
+                    assert!(report.evaluate(&invalid, &mut out).is_err());
+                    close(out[0], likelihood);
+                    close(report.evaluate(&q, &mut out).unwrap(), likelihood);
+                }
+            }
+        }
+    }
+}

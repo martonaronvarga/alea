@@ -1,4 +1,6 @@
 #[cfg(feature = "enzyme")]
+// This shared file also contains runtime native fixtures, unused by this exporter.
+#[allow(dead_code)]
 #[path = "src/conformance.rs"]
 mod conformance;
 

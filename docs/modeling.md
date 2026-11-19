@@ -722,6 +722,14 @@ exactly identical design rows **and offsets** use count sufficient statistics,
 retaining the full log-factorial constants. Distinct predictors retain their
 fused row kernel. Both optimizations retry original rows at numerical limits;
 rebinding refreshes preparation, while pointwise reporting/source keep all rows.
+Preparation depends on the bound design, responses and offsets, not the current
+coefficients, group effects or scale. Changing those parameters recomputes their
+residuals and scores at the current point. Immutable replacement bindings do not
+alter old executables or reporting workspaces. Conditional row reports retain
+their original order and full constants and exclude parameter-chart Jacobians;
+an explicit reporting partition may regroup those rows without marginalizing
+latent effects. Shared observation maps still require explicit joint reporting
+and do not acquire a row-reporting rule merely by returning a vector.
 These paths change floating-point rounding, not the model. See the
 [sufficient-statistics case study](native-model-performance.md#14-applying-the-sufficient-statistics-paper).
 

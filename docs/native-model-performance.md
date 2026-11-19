@@ -1515,3 +1515,1324 @@ geometries, simulation-based calibration, documented unsupported cases, failure
 recovery and independent reproduction. A missing criterion stays missing rather
 than being inferred from a successful run. These criteria do not promote the
 current experimental compiler or API maturity classifications.
+
+## 16. Composition and feature costs (2026-11-17)
+
+This study measures the current scalar and block implementations, including their
+cold costs. It changes benchmark coverage and admission records, with no new
+production optimization. The synthetic covariance fixture has 32 observations; the
+centered/noncentered school fixtures have eight schools; Radon uses the existing
+pinned PosteriorDB J=85/N=919 data. The scalar Radon control reuses the same
+declarations and production Normal laws. All four retain their priors, constants,
+charts and free-coordinate order. Five positive states qualify each scalar/block
+pair. Criterion hot loops reuse state 0; fixed-work receipts evaluate state 0
+first and states 1–4 as steady work. The separate named-source cohort cycles all
+five states. Scalar `effect0...` names are explicit aliases for the school block's
+`theta`/`z` ordering.
+
+Measurements ran serially in exclusive ELTE `hpc2019` allocations on `cn18-42`,
+a virtualized Xeon Gold 6240 node, CPU 0 affinity and one runtime/provider thread.
+Stable Rust 1.95.0 and pinned nightly 2026-06-23 are separate cohorts; all use
+`-Cembed-bitcode=yes -Ctarget-cpu=native`. The nightly AD control additionally uses
+`-Zautodiff=Enable`. Builds and numerical tests precede timing; the saved
+executables are hash-verified before reuse. Seven paired repetitions reverse
+lane and representation order on alternating runs. Tables use medians; displayed
+ranges are observed min–max over seven runs, not confidence intervals or posterior
+uncertainty. Raw repetitions retain the spread where a table shows only medians.
+Individual Criterion runs use 20 samples, 0.1s warmup and
+0.3s measurement; their bootstrap intervals remain in the raw artifacts.
+
+The first allocation, job 2781887, passed preparation and tests but omitted
+`--bench` when invoking Criterion executables directly. It produced test-mode
+outputs and no Criterion estimates. Its logs are preserved; the corrected timing
+allocation reuses the same binaries. No result below is inferred from that
+mistaken run. Gnuplot's loader failed on the cluster, so Criterion used its
+Plotters fallback; the numerical and JSON sample outputs were unaffected.
+
+### The named covariance source control
+
+A separate same-node cohort uses the existing matrix runner and one pinned
+nightly/Enzyme-enabled CLI binary for scalar, block and generated-source paths.
+The existing Stan Math evaluator supplies independent numerical answers. All
+variants replay the native five-state bank twice per ten-call cycle, with 100,000
+full-density/all-gradient calls per repetition, seven rotated repetitions. State
+copying and checksum accumulation remain in each loop. All 28 planned runs pass
+raw-output replay admission; each Alea variant also passes 18 density and 90 score
+comparisons, including scale tails and finite-difference probes. Maximum
+normalized score disagreement against Stan is below 9.2e-16 on this bank.
+
+| Covariance implementation | Median µs/call [observed range] | Setup µs [observed range] |
+| --- | --- | --- |
+| Native scalar | 4.354 [4.349–4.371] | 214.779 [197.217–222.316] |
+| Native block | 6.429 [6.251–6.646] | 125.010 [123.737–127.655] |
+| Generated first-order H | 3.194 [3.190–3.224] | 31.148 [29.888–32.704] |
+| Stan Math vectorized | 3.087 [2.970–3.337] | 128.517 [123.923–137.893] |
+
+The paired scalar/block ratio is 0.677 (0.655–0.697): block composition is slower
+for this small covariance fixture. Generated first-order H is numerically
+admitted, but reuses trusted analytic rules: emitted
+`SOURCE_EXPLICIT_FIRST_ORDER=true`, checkpoint=false, tensor-score-validation=false.
+It is not a pure compiler-reverse first-order result. Native/generated/Stan
+accumulation orders differ, so their timings are numerical tradeoffs rather than
+pure abstraction ratios. Neither this result nor construction amortization
+establishes NUTS efficiency. The setup column includes state-bank loading and native model construction or the
+source-target factory; input-file parsing happens earlier. Stan's setup builds
+its input/observation arrays rather than a native executable, so those cold scopes
+are not interchangeable. Source rendering and Rust compilation are separate
+preparation costs. The original CLI source construction=0 placeholder was removed
+for this study. Earlier cohort 2781895 retained that placeholder and is preserved
+separately; the table uses rerun 2781898, with no pooling of cohorts. First-order
+numeric/source flags are unchanged by the setup timer.
+
+The updated CLI release-test/build stages took 66.28s/25.99s; dependencies were
+copied from the prior source cohort. These are single cache-dependent build
+observations, not clean compiler speed ratios. The captured Stan executable uses
+GCC 8.3.0 (`.comment`), existing Stan Math 2.40.0, `-O3`, C++17 and
+`-march=native`; its sealed binary is reused in the rerun.
+
+### Native scalar/block lifecycle
+
+All rows use the same full posterior and compensated policy within each pair; no
+sufficient-statistics compression replaces observation rows. Ratios are
+scalar/block: above 1 favors block. Times are µs.
+
+| Stable default | Scalar hot µs | Block hot µs | Paired scalar/block |
+| --- | --- | --- | --- |
+| covariance,N=32 | 3.651 [3.565–3.681] | 5.678 [5.630–5.759] | 0.642 [0.632–0.647] |
+| schools,N=8 | 1.367 [1.343–1.372] | 2.838 [2.830–2.891] | 0.475 [0.469–0.485] |
+| schools_nc,N=8 | 1.514 [1.512–1.517] | 3.026 [3.016–3.055] | 0.500 [0.496–0.503] |
+| radon,N=919 | 62.042 [59.503–67.017] | 68.587 [68.071–69.092] | 0.905 [0.861–0.980] |
+
+Cold medians below are scalar/block pairs in µs. Returned objects are dropped in
+the timed cold cases. Binding uses an already-built immutable definition; JSON
+parsing is outside these Criterion cases. Full seven-run ranges remain in the
+replayed artifact. These stages overlap with full construction and must not be
+added together.
+
+| Model | Full construction +drop | Bind snapshot +drop | Executable compile +drop | Context create +drop |
+| --- | --- | --- | --- | --- |
+| covariance | 118.436/28.376 | 8.423/0.591 | 19.290/1.649 | 15.056/8.308 |
+| schools | 35.535/24.491 | 1.868/0.311 | 4.198/0.968 | 4.251/6.482 |
+| schools_nc | 36.912/26.740 | 1.909/0.328 | 4.886/0.973 | 4.253/7.900 |
+| radon | 3481.896/176.389 | 120.174/0.571 | 299.886/2.121 | 202.588/27.060 |
+
+The Criterion first case includes setup-target destruction. Fixed-work phase
+receipts exclude construction/destruction/logging but include gradient poisoning,
+admission and output copies; their first/steady columns must not be pooled with
+the uninstrumented hot-loop estimates. Steady receipts average four distinct
+states per run; first receipts contain one cold call.
+
+| Model | Criterion first +drop µs | Phase first µs/call | Phase steady µs/call |
+| --- | --- | --- | --- |
+| covariance | 35.213/14.251 | 11.113/40.547 | 4.375/7.016 |
+| schools | 8.420/10.073 | 7.594/16.431 | 1.949/4.034 |
+| schools_nc | 8.546/10.879 | 6.244/14.830 | 2.015/4.069 |
+| radon | 496.187/124.996 | 81.982/108.492 | 61.951/80.290 |
+
+Scalar covariance primal rendering: 80.295 [80.016–81.902]µs. Scalar radon primal
+rendering: 1813.803 [1795.663–1847.534]µs. Rendering eligibility is not generated
+derivative execution.
+
+### Features, arithmetic and providers
+
+The following ratios are reference/candidate, measured within the same paired run
+index. Default Compensated Auto stays on its compatible reference provider;
+feature availability alone does not select Faer/BLAS or prove SIMD use. Compiler
+cohorts and AD compiler flags remain distinct axes.
+
+| Candidate/reference | Covariance | Schools | Schools NC | Radon |
+| --- | --- | --- | --- | --- |
+| stable-faer/stable-default | 1.012 [0.996–1.028] | 1.004 [0.981–1.017] | 1.018 [1.004–1.023] | 0.997 [0.990–1.002] |
+| stable-blas/stable-default | 1.006 [0.991–1.023] | 1.005 [0.993–1.014] | 1.005 [0.979–1.015] | 0.987 [0.937–0.999] |
+| stable-both/stable-default | 1.001 [0.988–1.016] | 0.992 [0.987–1.018] | 0.999 [0.980–1.014] | 1.000 [0.991–1.009] |
+| nightly-native/stable-default | 0.990 [0.983–1.017] | 0.987 [0.983–1.001] | 0.986 [0.974–0.994] | 0.973 [0.956–0.979] |
+| nightly-simd/nightly-native | 0.995 [0.983–1.015] | 0.993 [0.957–1.005] | 1.007 [0.999–1.023] | 1.002 [0.986–1.027] |
+| nightly-ad-native/nightly-native | 0.895 [0.885–0.899] | 0.988 [0.959–0.999] | 1.000 [0.981–1.018] | 0.679 [0.673–0.688] |
+
+Arithmetic controls use the unchanged 1000×65 row kernels, outside Gaussian
+compression eligibility. Standard changes the accuracy contract; these are policy
+tradeoffs, not equal-accuracy abstraction wins. Existing cancellation
+counterexamples remain applicable despite passing this deterministic state bank.
+
+| Nightly SIMD | Compensated µs | Standard µs | Compensated/Standard |
+| --- | --- | --- | --- |
+| normal | 100.289 [99.017–101.848] | 37.504 [37.120–38.432] | 2.661 [2.644–2.716] |
+| logit | 102.068 [101.343–103.241] | 50.876 [50.106–52.200] | 2.003 [1.949–2.055] |
+| poisson | 96.815 [95.710–98.201] | 46.278 [45.538–47.478] | 2.100 [2.036–2.120] |
+
+The existing 8×8 GEMM control requests each provider explicitly. Accelerated
+providers use Standard; the default uses Compensated. No equal-accuracy claim
+compares those policies, and these small-matrix costs do not establish thresholds
+for other shapes. Source differentiation of Faer/BLAS remains unsupported.
+
+| Stable both: requested matrix policy | Value +VJP µs |
+| --- | --- |
+| { arithmetic: Compensated, provider: Auto, cpu: Auto, threads: Sequential } | 3.360 [3.353–3.370] |
+| { arithmetic: Standard, provider: Blas, cpu: Auto, threads: HostConfigured } | 0.908 [0.898–0.915] |
+| { arithmetic: Standard, provider: Faer, cpu: Auto, threads: HostConfigured } | 0.816 [0.804–0.822] |
+
+### Unchanged controls and derivative orders
+
+These current-implementation costs preserve the scalar, logit, funnel, matvec and
+retained/checkpointed scan controls. They are not a matched historical
+before/after comparison. Generated costs include their declared score admission; L
+tensor first-order controls retain native-score admission outside compiler AD. H
+reuses trusted first-order rules. Higher derivatives use original compiler
+reverse, including checkpointed fixtures; their higher reverse is not
+checkpointed.
+
+| Control | First/higher route | Native first µs | Generated first µs | Potential HVP µs | Potential third µs |
+| --- | --- | --- | --- | --- | --- |
+| polynomial_compiler_ad | C/C | 0.122 | 0.030 | 0.050 | 0.206 |
+| normal129 | H/C | 0.319 | 0.227 | 14.173 | 210.438 |
+| logit129 | H/C | 3.381 | 3.322 | 28.357 | 153.896 |
+| poisson129 | H/C | 2.889 | 2.892 | 22.899 | 113.391 |
+| normal_vector | H/C | 0.492 | 0.358 | 0.799 | 37.996 |
+| normal_vector_observed | H/C | 5.116 | 4.510 | 11.064 | 42.939 |
+| tensor_matvec | L/L | 0.285 | 0.284 | 0.486 | 1.478 |
+| tensor_checkpoint_long | H/L | 36.821 | 14.029 | 19.866 | 56.918 |
+| tensor_retained_long | L/L | 36.880 | 22.430 | 28.142 | 68.768 |
+
+| Stable default control | µs/call |
+| --- | --- |
+| model_pipeline/scalar/128/unconstrained_value_gradient_reused | 4.733 [4.359–4.756] |
+| model_pipeline/batch/128/unconstrained_value_gradient_reused | 2.772 [2.709–2.924] |
+| funnel_pipeline/scalar/8/constrained_value_gradient_reused | 0.385 [0.384–0.398] |
+| funnel_pipeline/batch/8/constrained_value_gradient_reused | 0.389 [0.385–0.393] |
+| target_boundary/64/checked_density_only | 0.107 [0.106–0.109] |
+| target_boundary/64/checked_gradient | 0.092 [0.092–0.109] |
+| target_boundary/64/raw_gradient | 0.055 [0.054–0.057] |
+| tensor_broadcast/128/value_vjp | 16.262 [16.239–16.278] |
+
+N/C/L/H inventory retains unrun/unsupported cells rather than guessing routes.
+Native curvature and block source remain unsupported. Scalar schools lacks a
+Cauchy source rule. Scalar Radon rendering is eligible but its compiled
+derivatives remain unqualified/unrun. Covariance H first-order is qualified by the
+separate cohort; covariance higher derivatives are not exercised by that CLI
+experiment. Value-only model timings are not inferred from fused first-order
+calls.
+
+### Memory and build scope
+
+The process RSS below covers the entire benchmark executable, including untimed
+fixture/preflight grids; it cannot be assigned to an individual small model.
+Private scalar/block target workspaces, source-target heap storage and compiler
+reverse tapes are unexposed and remain unknown. Known input+gradient payloads are
+80 B covariance, 160 B schools/NC and 1424 B pinned Radon. They are not total
+memory.
+
+| Whole process | Peak RSS MiB |
+| --- | --- |
+| stable-default/model_pipeline | 25.633 [21.785–26.145] |
+| stable-default/tensor_tape | 205.441 [202.621–207.109] |
+| stable-default/regression_execution | 47.637 [47.523–47.762] |
+| enzyme-controls/native_compiled | 119.895 [119.598–120.219] |
+
+The existing direct tensor 128 ownership counter reports plan 1574 B, workspace
+36533 B (budget 36834 B), and zero first/steady allocations for its measured
+calls. These owned-byte counters exclude compiler/provider state and RSS.
+
+Build observations are one serial build per lane with toolchain-shared caches.
+They are neither seven-run compile distributions nor clean compiler speed ratios.
+Compiler peak RSS is separate from executable peak RSS. Runtime executable
+compilation/rendering is covered by the repeated lifecycle cases above.
+
+| Lane | Observed build elapsed | Build peak RSS MiB |
+| --- | --- | --- |
+| enzyme-controls | 4:18.18 | 2086.6 |
+| nightly-ad-native | 2:17.80 | 630.2 |
+| nightly-native | 2:25.50 | 622.7 |
+| nightly-simd | 1:16.91 | 621.4 |
+| stable-blas | 1:16.45 | 612.6 |
+| stable-both | 1:30.76 | 695.6 |
+| stable-default | 2:44.39 | 616.3 |
+| stable-faer | 2:44.66 | 1076.8 |
+
+### Explicit Scalar/Auto controls
+
+The existing 1000×4 CPU grid repeats descriptor construction from shared prepared
+data, excluding fresh input allocation/packing. All policies here are Compensated.
+Normal retains its eligible sufficient-statistics path, so its Scalar/Auto row is
+not a forced Gaussian row-kernel SIMD comparison. The SIMD plan reports
+V3/AVX2/FMA, four lanes; Auto availability does not prove each internal operation
+uses those lanes. These are separate rows from 1000×65 arithmetic controls. Times
+are µs; ratios Scalar/Auto.
+
+| Lane/law | Build scalar/Auto µs | Scalar µs/call | Auto µs/call | Paired Scalar/Auto |
+| --- | --- | --- | --- | --- |
+| stable-default/normal | 306.989/307.118 | 0.238 [0.238–0.239] | 0.238 [0.238–0.239] | 1.000 [1.000–1.000] |
+| stable-default/logit | 0.695/0.691 | 46.708 [46.691–46.892] | 22.572 [22.544–22.631] | 2.069 [2.063–2.080] |
+| stable-default/poisson | 52.984/52.975 | 30.431 [30.383–30.479] | 18.251 [17.922–18.270] | 1.667 [1.664–1.697] |
+| nightly-native/normal | 305.959/306.042 | 0.239 [0.239–0.251] | 0.239 [0.238–0.251] | 1.001 [1.000–1.013] |
+| nightly-native/logit | 0.692/0.693 | 46.404 [46.354–47.585] | 22.684 [22.667–22.776] | 2.044 [2.036–2.099] |
+| nightly-native/poisson | 53.184/53.177 | 31.043 [30.684–31.249] | 18.003 [17.877–18.312] | 1.721 [1.695–1.742] |
+| nightly-simd/normal | 307.573/307.093 | 0.238 [0.238–0.239] | 0.238 [0.238–0.239] | 1.000 [1.000–1.000] |
+| nightly-simd/logit | 0.694/0.695 | 46.527 [46.495–46.915] | 22.862 [22.832–24.421] | 2.035 [1.904–2.055] |
+| nightly-simd/poisson | 53.191/53.172 | 31.414 [31.297–31.778] | 18.139 [18.100–18.158] | 1.730 [1.725–1.756] |
+
+### Interpretation and reproducibility
+
+The main campaign contains 56 finished cells, 4396 Criterion estimates with 20
+samples each, 6328 timed fixed-work phase rows / 15820 counted boundary calls and
+1764 direct-storage records. Its 16240 route rows comprise 644 supported, 4270
+not-run and 11326 unsupported repeated fixture/order/configuration cells; these
+are not 16240 independent capabilities. The separate CPU campaign has 21 cells /
+252 estimates. The final covariance cohort admits 28/28 process runs with seven
+positive construction measurements per variant. Raw-output replay checks numerical
+admission again instead of trusting saved pass flags. Each frozen study’s source
+hashes, all 22 frozen benchmark binary hashes and the pinned Radon input hashes
+match before/after evidence. The regenerated covariance module is byte-identical
+across the timer change. The main/CPU snapshot precedes the CLI factory timer; the
+updated CLI snapshot preserves the generated numerical code (SHA256
+`d9d6a93deb6a3a70cabef54f826aad604b940758a6d86a2481d7755e6799d9b8`).
+
+Block composition cuts full construction sharply—about 19.7× for pinned Radon— but
+reused evaluation regresses in all four named stable-native fixtures. School block
+calls take about twice as long; Radon block reuse is about 10% slower. The
+separate compensated SIMD controls improve logit/Poisson row throughput, while
+Normal's eligible compressed path is unchanged. These gains do not transfer
+automatically to composed observation maps. Standard arithmetic and accelerated
+GEMM can be faster under their explicit contracts; passing these inputs does not
+remove the cancellation/accuracy distinction. Enabling Faer/BLAS availability does
+not broadly accelerate the default block models. The AD-enabled native compiler
+control is slower for covariance and Radon, with a Radon paired ratio of 0.679
+relative to the matching nightly-native control; no profiling here attributes that
+difference to a particular compiler pass.
+
+This task adds measurement/admission coverage rather than production performance
+changes. The study supports neither a universal block speedup nor an inference
+speedup from pointwise timings. Multichain posterior/ESS efficiency remains a
+separate gate. Build observations have no repeated clean-compile uncertainty;
+private model/compiler memory is unknown; conditional reporting, data parsing,
+serialization and source-target setup use their stated scopes rather than a single
+end-to-end total. All failed/unavailable/unrun cells remain in the raw records,
+including the initial Criterion test-mode mistake and unsupported source
+providers/orders. No existing prior, reduction policy or unsupported source rule
+was replaced to fill a cell.
+
+Completed raw study roots on ELTE, each with scripts, frozen inputs/build
+receipts, raw result JSON/logs and replay outputs:
+
+- Preparation/test-mode attempt: `/users/usumusu/alea-i44-cwwVtIgq`, job 2781887.
+- Corrected seven-pair timing: `/users/usumusu/alea-i44-timing-ndrQtjq2`, job 2781896;
+  `evidence.tar.gz` SHA256 `be54d8d85b63d36c1cfd35a19bb3ff18f8c59c284e61bbbd986c3e8fa5edb609`.
+- Explicit CPU controls: `/users/usumusu/alea-i44-isa-iVbOYU2W`, job 2781897;
+  `evidence.tar.gz` SHA256 `2183f255022fca57f854476942efe74c89f296e82c7400bdda957abed83b655a`.
+- Original covariance cohort: `/users/usumusu/alea-i44-source-Xewql2U9`, job 2781895;
+  `evidence.tar.gz` SHA256 `4fd73c9b3bc0f1cb987499218afd3f7633083158cefbc8764074b3e40aef3676`.
+- Covariance with measured source setup: `/users/usumusu/alea-i44-source-factory-hsfNtLwY`, job 2781898;
+  `evidence.tar.gz` SHA256 `868ef721896cfd981fe9b7203f8ceb77bb48ab1a90df9e523f767a0d7751e27a`.
+
+Pinned Radon data/model SHA256:
+`99c607bdd4e11d2693b27f8fd71d7e79adb6426caf013993b267983fdf598d4f` /
+`db097f50d6f6158ceff725f520179ae74f2debe1ced50d899cac92787fd62861`.
+The existing corpus index remains authoritative; no new posterior corpus is added.
+The original source capsules and immutable executable copies remain at the study
+roots. The corrected timing and CPU studies reuse the preparation binaries and
+have no concurrent builds; dependencies keep all campaigns serial on the same
+node. Reproduce native untimed admission with `cargo bench --manifest-path
+crates/Cargo.toml -p alea-core --bench model_pipeline -- --test`; actual timings
+require an allocated compute node. The existing `three_engine.py cargo-report`
+replays Criterion/route/work records, and `matrix-report` re-admits the sealed
+covariance process outputs. Ratios above are paired by repetition; the generic
+cargo report's all-cell comparisons are not paired uncertainty estimates.
+
+## 17. Four-chain posterior/efficiency qualification (2026-11-18)
+
+The predeclared four-model study qualifies covariance and pinned Radon comparisons.
+Centered schools fails for both engines; noncentered schools improves mixing but
+still fails the zero-divergence policy in several repetitions. Both school
+comparisons remain unranked. These are bounded current-workflow measurements,
+with no production sampler or evaluator change and no universal performance claim.
+
+The existing sampling runner used four chains, 1000 adaptive warmup and 1000
+retained draws per chain, seven independent predeclared seed sets 17–23, zero free
+initials, diagonal adaptation, target acceptance 0.8 and depth 10. Native uses the
+block constructors qualified in I4.3b. Native seeds repeat the selected byte across
+32 seed bytes and use streams 0–3; Stan uses integer seeds 17–23 and chain IDs 1–4.
+These are independent engine trajectories, not common-random-number replay.
+
+All builds and fresh 19 shared-coordinate density/gradient checks preceded timing
+on exclusive ELTE cn18-42, virtualized Xeon Gold 6240, CPU 0/one runtime thread.
+Rust 1.95.0 and GCC 8.3.0/CmdStan 2.40.0 use native CPU specialization; source/flags,
+data, binaries and raw outputs are retained. The pinned Radon Stan body has only
+an added posterior-profile wrapper; its original source is preserved separately.
+No prior, coordinate chart or likelihood was replaced to enter the comparison.
+
+Admission is R-hat<1.01, bulk/tail ESS>=400 in four chains, zero retained
+divergences and depth saturations, and each chain E-BFMI>=0.3. The energy threshold
+is a comparison warning gate, not a convergence theorem. Production rank/folded
+diagnostics and estimand mean MCSE are reused. Scientific quantities include
+original-coordinate means and second moments, recovered school theta/Radon alpha,
+positive scales, and covariance entries/correlation. Second-moment MCSE is not
+variance MCSE. Each native/reference estimand must agree within six combined
+MCSEs, including the finite reference-chain uncertainty. Tail ESS checks local
+mixing; reference quantile accuracy and SBC are not inferred from it.
+
+### Qualified comparisons
+
+Efficiency is the minimum bulk ESS across the declared scientific quantities
+per full workflow wall second. All seven planned pairs must pass before ranking.
+Ratios are native/Stan ESS/sec: above 1 favors native. Intervals are exploratory
+95% percentile bootstrap intervals over seven independent paired repetitions
+(10000 resamples), not guaranteed coverage for ESS estimators or proof of global
+posterior exploration. Fresh Stan chains are a comparison reference with their
+own uncertainty, not exact or long-run PosteriorDB ground truth.
+
+| Case | Qualified pairs | Native workflow s | Stan workflow s | Paired ESS/sec ratio | 95% bootstrap interval |
+| --- | --- | --- | --- | --- | --- |
+| covariance | 7/7 | 0.376 [0.370–0.385] | 0.626 [0.612–0.633] | 1.530 [1.269–1.866] | [1.349–1.686] |
+| schools | 0/7 | 0.625 [0.578–0.668] | 0.624 [0.519–0.699] | withheld | withheld |
+| schools_nc | 2/7 | 0.338 [0.329–0.351] | 0.350 [0.338–0.367] | withheld | withheld |
+| radon | 7/7 | 12.454 [12.354–12.542] | 20.539 [20.078–20.817] | 1.588 [1.386–2.086] | [1.459–1.723] |
+
+Both workflows include diagnostics and output in the qualified denominator.
+Native runs four chains in one process, collects draws and then writes CSV; Stan
+runs four serial processes with streamed CSV, followed by the shared diagnostic
+reader. Reference diagnostic-reader wall time is explicitly included. The native
+legacy `seconds` field ends before diagnostics; it is not the qualified denominator.
+The scopes and process schedules differ and are not an equivalent-adaptation or
+pure kernel comparison. These results therefore do not contradict §16's slower
+block hot evaluation or establish a block-versus-scalar inference speedup.
+
+| Case | Engine | Scientific minimum ESS/workflow second |
+| --- | --- | --- |
+| covariance | alea | 6538.971 [5822.118–8062.728] |
+| covariance | stan | 4320.613 [4198.887–4811.520] |
+| radon | alea | 131.384 [121.103–133.436] |
+| radon | stan | 82.575 [63.885–90.067] |
+
+### Failures and mixing evidence
+
+All 56 four-chain attempts completed (224 logical chains); there are no unstarted
+or computationally incomplete sampling cells. Diagnostic completion is distinct
+from qualification. Values below show extrema across all seven repetitions,
+including failed ones. No failed reference is dropped to produce a favorable ratio.
+
+| Case | Engine | Retained divergences, total | Max depth saturations/run | Min E-BFMI | Max scientific R-hat | Min scientific bulk/tail ESS |
+| --- | --- | --- | --- | --- | --- | --- |
+| covariance | alea | 0 | 0 | 0.910 | 1.0044 | 2206.1/2013.4 |
+| covariance | stan | 0 | 0 | 0.910 | 1.0039 | 2651.0/2240.2 |
+| schools | alea | 499 | 0 | 0.168 | 1.1078 | 28.6/9.3 |
+| schools | stan | 1348 | 0 | 0.131 | 1.2935 | 13.2/5.6 |
+| schools_nc | alea | 7 | 0 | 0.880 | 1.0036 | 1994.9/1438.3 |
+| schools_nc | stan | 9 | 0 | 0.894 | 1.0036 | 2121.7/1338.4 |
+| radon | alea | 0 | 0 | 0.624 | 1.0057 | 1498.9/1860.3 |
+| radon | stan | 0 | 0 | 0.632 | 1.0078 | 1329.9/1964.1 |
+
+Centered schools has poor mixing, low energy mixing and many retained
+divergences in both engines. Noncentered schools clears the reported mixing/energy
+gates but has divergences in four of seven repetitions per engine; only two paired
+repetitions pass. Its improvement does not authorize weakening the zero-divergence
+policy or publishing a favorable subset's efficiency ratio. Numerical trial
+rejections/warnings, including Radon scale-underflow proposals, remain in native
+error counters and Stan stderr. They are distinct from retained divergences and
+do not alone establish a model or sampler defect.
+
+Illustrative seed 17 scientific estimates below use the same original-coordinate
+quantities. Each ±value is an estimated mean MCSE, not a posterior credible
+interval. Admission uses all declared quantities in all seven pairs, not only
+these examples.
+
+| Case | Quantity | Native mean ±MCSE | Reference mean ±MCSE | Difference/combined MCSE |
+| --- | --- | --- | --- | --- |
+| covariance | mu0 | -0.045859 ±0.001577 | -0.045501 ±0.001562 | 0.162 |
+| covariance | correlation | 0.529309 ±0.002154 | 0.530112 ±0.001948 | 0.276 |
+| radon | beta | -0.661638 ±0.000785 | -0.663132 ±0.000794 | 1.339 |
+| radon | sigma_alpha | 0.320267 ±0.001095 | 0.320229 ±0.001032 | 0.025 |
+
+### Counted work, warmup and retained phases
+
+These are actual counters, not gradients inferred from tree depth. Native counts
+are fused full-target calls; Stan counts are posterior-profile autodiff calls.
+Stan profile time can include primal work and excludes chart/Jacobian work outside
+the region. These counter scopes are different; dividing them does not establish
+an equal-work kernel speedup. Timers/instrumentation remain part of the run cost.
+
+| Case | Engine | Actual calls, median [range] | Retained integrator steps, median |
+| --- | --- | --- | --- |
+| covariance | alea | 53394 [52626–55256] | 25478 |
+| covariance | stan | 62234 [60631–63235] | 26400 |
+| schools | alea | 166229 [150415–176644] | 70067 |
+| schools | stan | 185164 [148723–215201] | 72101 |
+| schools_nc | alea | 75108 [72106–78437] | 36052 |
+| schools_nc | stan | 80928 [77502–86391] | 34498 |
+| radon | alea | 172028 [170987–173683] | 59712 |
+| radon | stan | 179640 [174898–181727] | 59920 |
+
+The existing logical-chain phase control ran streams 0–3 separately for seed 17.
+All 16 final points match the primary native runs bit-for-bit, and each four-chain
+phase-call sum equals its primary total. This admits attribution for these
+controls. They are separate single observations, not seven-run phase-speed claims;
+their times are not subtracted from primary workflow times. Initialization is
+counted with warmup. Statistically ineligible school controls remain cost-only.
+
+| Seed17 native, four streams | Warmup calls | Retained calls | Warmup s | Retained s |
+| --- | --- | --- | --- | --- |
+| covariance | 28238 | 26040 | 0.173600 | 0.159104 |
+| schools | 97879 | 78361 | 0.322140 | 0.257948 |
+| schools_nc | 39901 | 35664 | 0.141762 | 0.125850 |
+| radon | 113971 | 59712 | 7.826015 | 4.092895 |
+
+Stan phase footers sum four chains and include their CSV/output scope. Separate
+Stan target-call counts by phase are unexposed and remain unknown.
+
+| Stan four-chain sum | Warmup seconds, median [range] | Retained seconds, median [range] |
+| --- | --- | --- |
+| covariance | 0.271 [0.267–0.275] | 0.297 [0.286–0.302] |
+| schools | 0.267 [0.245–0.302] | 0.254 [0.199–0.343] |
+| schools_nc | 0.118 [0.112–0.120] | 0.151 [0.140–0.164] |
+| radon | 12.612 [12.112–12.899] | 7.387 [7.364–7.463] |
+
+### Output attribution and limits
+
+CSV collection, memory collection and discarded-position runs use the same seed 17
+and native binary. All eight memory/discard controls preserve their primary CSV
+run's per-chain trajectory hashes and evaluation counts. Discard disables retained
+position collection but retains energy evidence and the runtime's bounded
+diagnostic window; it is not allocation-free. It has no scientific-summary rank.
+
+| Seed17 native | CSV session s | Memory session s | Discard session s | Post-collection CSV writing s |
+| --- | --- | --- | --- | --- |
+| covariance | 0.339461 | 0.338286 | 0.340486 | 0.006934 |
+| schools | 0.596080 | 0.590032 | 0.593622 | 0.012701 |
+| schools_nc | 0.273777 | 0.273849 | 0.272103 | 0.012807 |
+| radon | 11.928335 | 11.989759 | 11.995189 | 0.099824 |
+
+These are single matched attribution controls with no repeated output-cost
+uncertainty; their small session differences are not ranked. CSV writing also has
+seven primary observations in raw records. Native Radon post-collection writing
+is about 0.10s against about 12s of session work in this control, so it does not
+justify introducing a new output/concurrency system here. Stan streaming output
+cannot be isolated by subtracting the native CSV timer.
+
+Passing these gates is bounded evidence, not proof of convergence, broad posterior
+accuracy or calibration. There is no source-sampling or higher-derivative support
+promotion. No seeds, priors, adaptation targets, rejection policies or thresholds
+were changed after outcomes. I4.6's reviewed generative/SBC protocol remains a
+separate prerequisite; I5.1 is the next ready nonconditional task.
+
+### Reproduction and preserved failures
+
+Preparation job 2781899 failed before timing because an explicit block-selection
+environment variable leaked into unrelated mean/regression unit tests. Its six
+Shape failures and environment/logs are preserved. Corrected job 2781900 unsets
+that selection during tests and enables it for the four named models afterward;
+it completed 0:0 in 15m23s on cn18-42. All builds/preflights precede timing, and
+source plus five measured-binary hashes match before/after checks. Local replay
+matches the compute-node report exactly and re-admits raw process outputs/CSV,
+phase/profile files and timing witnesses rather than cached pass/metrics fields.
+
+The progress-only sampling log contains 396 NUL bytes. It is preserved unchanged;
+its cause is unresolved, and it is not used for qualification, counts or timing.
+All 56 canonical records and their separate raw outputs/timing witnesses are
+complete, hash-verified and replayed independently. This logging limitation is
+not silently repaired or used to erase any attempt.
+
+Raw study root: `/users/usumusu/alea-i45-fBRjkf0v`; corrected attempt in `attempt2`.
+The frozen source capsule retains the original Radon model plus its temporary
+profile-only wrapper, pinned data, source manifest, exact build commands/flags,
+protocol and scripts. Raw archives and compiled references remain there and in
+the retained local evidence copies. Archive SHA256:
+
+- `attempt2/evidence.tar.gz`: `24a2e1adaece13b1ffb1d9a4673eba8378130009cce25ca22b794836c7d46662`.
+- `attempt2/stan-binaries.tar.gz`: `5eed74fa618353ad2dacab4db2b9b736d46760f5b2c86f0b5d3ae0ac89575b27`.
+- `failed-preparation.tar.gz`: `bf4a7d2b45fd9c0a7f4a12edd424877a44a69e65ee89fd1c2dad35efdaa70907`.
+- `attempt2/preflight-and-progress.tar.gz`: `9e4c2b602c0fb3a5d73caf58574958f5025cacd3d1c0b2d475eb694ef3e97c6c`.
+
+Use the existing `bench.py --qualify` interface for a new allocated-node study,
+with explicit pinned binaries/data and fresh output paths. Re-admit an archived
+sampling directory with `replay.py stan <directory> <new-report.json>`; it does
+not overwrite historical reports. The source artifact has no Git metadata;
+the complete frozen source/data hashes, not a fabricated clean commit identity,
+bind this experiment to the dirty source snapshot.
+
+## 18. Residual-deficit profiling gate (I5.1, November 18)
+
+I5.1 is incomplete. The I4.4 hot-reuse regressions motivate profiling, but do not
+identify a storage-lifetime or reverse-dispatch optimization. No production change
+or negative result closing I5 follows from this attempt.
+
+The existing saved-binary `three_engine.py profile` command was run on exclusive
+ELTE allocation 2782298, hpc2019 node cn18-42, comparing covariance scalar/block
+representations in the same I4.5 native executable, with 100,000 requested
+calls per invocation, CPU 0 and one library thread. Both `perf stat` and `perf
+record` failed before starting the target: `/usr/bin/perf` delegates to missing
+`perf_4.19` (`linux-perf-4.19 is not installed`). The allocation exited 1; its
+source-script and binary SHA-256 checks passed afterward. The recorded child
+wall times measure tool failure, not model execution. No new performance was
+measured. No sysctl, privilege, or system-package changes were made.
+
+The existing accounting boundaries remain relevant to the next attempt:
+
+- Native tensor `execute::workspace_bytes` counts the full primal slots,
+  separately planned adjoints, staged input-gradient storage and frame/cache
+  metadata, recursively including region frames. Reverse reads the same admitted
+  primals; they are not an additional independent residual allocation.
+- Explicit source reverse has a separate residual layout and a complete selected
+  forward/admission frame. Its costs cannot be assigned to the native executable
+  merely because both implement the same objective.
+- Regular broadcast index maps are compact metadata; explicit gathers retain
+  their index payload. Existing tensor broadcast bench receipts distinguish plan
+  ownership, workspace, frozen payload, source text and first/steady allocations.
+  Those totals do not provide a disjoint primal/residual/index/admission breakdown.
+- Native `evaluate` includes validation, selected forward execution and staged
+  output copying. `value_and_vjp` additionally validates seeds, runs reverse and
+  copies staged gradients. Subtracting their wall times would not independently
+  measure reverse, copies or checks. These contributions remain unattributed.
+
+Resume with a working compute-node profiler and the same saved comparison
+controls; retain this failed attempt. Select a bounded problem only after
+separating these costs. No storage reuse, fusion, admission-check removal,
+provider change, generated-AD qualification or inference speed claim is made.
+
+A subsequent tool repair resolved the missing executable without system-package
+changes. Debian's archived `linux-perf-4.19` 4.19.316-1 and `libopencsd0` 0.10.1-1
+were extracted into `/users/usumusu/alea-perf-4.19/extracted`. Both downloaded
+packages matched the SHA-256 digests in ELTE's existing APT package index:
+`3ac63de18c8dd9fa714cf0ef74447d0dfa3581539f3684876202990722a22b01`
+and `eb9663c560804dcb5e6815516ee0aebb4b91588e2a4e481c166ce64caf684077`,
+respectively. With the private library directory on `LD_LIBRARY_PATH`, the
+executable reports `perf version 4.19.316`; no shared libraries remain missing.
+
+Job 2782299 reran the same saved comparison through the existing profiler on
+exclusive cn18-42. All four hardware-counter/sample invocations now reach
+`perf_event_open`, but fail with error 13, Permission denied. An additional
+`task-clock:u` software-event probe also fails. The node has
+`kernel.perf_event_paranoid=3`; installing the tool does not grant event access.
+Binary/script hashes still verify. This attempt supplies no model performance
+or hotspot evidence. ELTE administration must permit user-process events or
+provide an approved privileged profiler command before this route can proceed.
+The private executable can be passed to the existing `--perf-command` option;
+its binary SHA-256 is
+`57052fceaa20c3e7a265e74541ef2343539eb9b8cbd6d7b93bfe6571d00f054d`.
+
+### Authorized local diagnostic and selected follow-up
+
+The maintainer subsequently deferred ELTE administrator access and explicitly
+permitted local profiling. This exception applies to this diagnostic; it does
+not pool laptop results with ELTE measurements or change benchmark defaults.
+I5.1's bounded dispatch-selection condition is met by the following local
+profile. No storage-lifetime change was justified; I5.2 is deferred. I5.3 can
+investigate the specific reverse traversal below, with any performance admission
+still subject to its separate controls and I5.4.
+
+The current default native benchmark was rebuilt using stable Rust 1.98.1,
+release fat LTO, one codegen unit and debug information. No production source was
+changed. Nix supplied perf 6.19.11 from the repository's locked nixpkgs revision
+`68d8aa3d661f0e6bd5862291b5bb263b2a6595c9`. The existing profiler's
+`--local-profile` option ran three alternating scalar/block pairs, one million
+covariance evaluations per cell, CPU 0, one library thread, user-only counters
+and 997 Hz cycle samples with DWARF stacks. Unprivileged counting succeeded but
+recording failed with EACCES; the successful cohort used local `sudo -n perf`
+without changing kernel policy. All six cells' counter, record and report
+commands passed; reports show zero lost samples. Counter/sample numerical
+outputs match exactly within each representation; scalar/block final values,
+gradients and aggregate checksums agree within relative tolerance 1e-9.
+The native correctness suite also passed all 17 tests, including independent
+score/finite-difference, admission and failure/recovery controls.
+
+Local retired instructions per million evaluations were 37.513 billion for
+scalar (observed 37.512–37.514 billion) and 40.585 billion for block
+(40.585250–40.585252 billion). This establishes extra executed instructions in
+this local control, not an ELTE cycle or wall-time speed estimate. Source/data
+and executable hashes were checked unchanged after profiling. Raw perf files,
+commands, numerical outputs and the 763-file source snapshot are retained
+locally; this is not a publicly reproduced campaign.
+
+The following are flat **self-sample** percentages of the complete block
+process, with median and observed range across three runs. They are not
+independently timed phases. Inlined checks/arithmetic remain charged to their
+containing symbol; libc operations are not uniquely attributable to a caller.
+Nested reverse-index symbols are a separate category, not included in the tensor
+reverse row. Ranges are descriptive, not confidence intervals.
+
+| Work visible in symbols | Median % | Observed range % |
+| --- | ---: | ---: |
+| Observation forward, including law construction, scores and local checks | 27.27 | 27.14–27.57 |
+| Observation cached-score reverse | 5.64 | 5.45–5.69 |
+| Assembly region-call forward boundary | 6.44 | 5.82–6.46 |
+| Assembly region-call reverse boundary | 5.95 | 5.77–6.15 |
+| Tensor forward interpreter | 7.29 | 6.53–7.43 |
+| Tensor reverse interpreter and reverse-node symbols | 9.61 | 9.21–9.67 |
+| Binary reverse generic index traversal | 6.16 | 5.71–6.66 |
+| Outlined copy routines | 4.46 | 4.13–4.85 |
+| Outlined clearing routines | 2.25 | 2.01–2.54 |
+| Outlined finite-check routines | 4.90 | 4.60–4.95 |
+
+**Selected bounded problem:** `tensor/kernels.rs::reverse_with` sends
+Scalar/Identity and Identity/Scalar maps with **both operands active** through
+`for_each_index`; existing contiguous special cases cover one-active broadcast
+operands. The covariance predictor contains the relevant active vector/scalar
+multiply and add. Their generic add/multiply traversal symbols together account
+for 5.71–6.66% of block samples. Source-line reporting also locates samples in the
+generic reverse loop. This justifies testing an ordered contiguous reverse loop
+for these two maps, not replacing the scheduler or promising a 6% total speedup.
+The retained scalar covariance model is the same-posterior numerical comparison
+control; the existing generic reverse implementation is the future implementation
+control. Preserve per-element operand order, zero-seed skipping, inactive
+admission, shared destinations and generic-map fallbacks. No such optimization
+is implemented in this report.
+
+Memory attribution is deliberately narrower than total ownership: the following
+are **code-derived f64 payloads**, not new peak-allocation measurements. At n=32,
+each of the two selected binary regions has scalar+vector inputs (33 elements)
+and a vector output (32). Shapes/maps and metadata remain additional costs.
+
+| Category | Payload and boundary |
+| --- | --- |
+| Primal frame | 65 × 8 = 520 bytes per selected binary region; full admitted inputs/output retained |
+| Reverse residuals | Binary reverse borrows those primals, no separate residual cache; the two observed-Normal blocks separately cache 2 × 32 × 2 × 8 = 1,024 bytes of parameter scores |
+| Index payload | Scalar/Identity maps need no heap index table; inline map tags, shape axes and graph metadata still exist; no gather in the selected two regions |
+| Admission | Native selected-forward checks read existing primal/score storage; no separate full admission f64 frame is introduced. Observation parameter-point scratch is 2 × 2 × 8 = 32 bytes. Source residual/admission layouts are separate and not measured here |
+| Outer region staging | Per selected region: arguments 264, value 256, scores 264, adjoint 256 bytes, totaling 1,040; tensor adjoints/gradient and metadata are additional |
+
+These categories must not be added as a total peak: residuals can overlap
+primals, and staging, tensor adjoints, binding caches, allocator overhead and
+other model regions have separate ownership. Existing I2.4/I4.4 workspace and
+allocation receipts remain the authority for their measured totals. No
+compiler/provider/stack/RSS bound, storage saving or removal of admission checks
+follows from this dispatch selection. Full forward/reverse/copy/check timings
+remain unseparated where the compiler inlines them; the symbol table exposes
+that limitation rather than subtracting mismatched phase measurements.
+
+
+## 19. Scoped reverse specialization (I5.3, November 18)
+
+The I5.3 candidate reused contiguous loops for the I5.1-selected Scalar/Identity
+and Identity/Scalar reverse cases when both operands were active and their
+producer adjoint starts differed. I5.4 subsequently rejected this candidate and
+restored the original kernel; see §20. Each destination retains its original row accumulation
+order and zero-seed skipping; a scalar score starts with its existing adjoint.
+Length-one aliases keep the original interleaved generic path. This changes only
+native reverse dispatch: no scheduler, storage layout, source emitter, admission
+check, provider policy, public API or derivative capability is replaced.
+
+The expanded scalar-bit oracle passed on the original kernel before the change
+and on the candidate (including the optimized scalar test run): all four
+arithmetic operations, both broadcast orientations,
+inactive/alias controls, extreme finite values, cancellation and signed-zero
+seeds. An independent finite-difference/shared-consumer case checks preexisting
+scores and scalar/length-one reshape aliases. Existing fused/unfused controls
+confirm large shared-DAG parity and retain the untiled active scalar reduction.
+Core unit/integration/property checks passed 159 tests; combined Faer/OpenBLAS
+tensor/checkpoint checks passed 31; native model checks passed 17; production
+observed-law checks passed 11. Actual pinned-toolchain compiled source/replay
+checks passed 13, including independent derivatives and failure/recovery. These
+are regression checks for existing capabilities, not broader generated-AD support.
+Default core-library and combined-provider test Clippy checks and scoped format
+checks passed.
+
+Performance is **not measured** for this candidate. I5.4 owns matched before/after
+cold/steady controls and total-cost admission; the local I5.1 hotspot fraction is
+not a candidate speed estimate. ELTE SSH was unreachable during this task; no
+local timings were substituted. Matched 763-file baseline/candidate snapshots
+retain identical new tests, harnesses and data, differing only in the kernel
+source, for the later allocated-node comparison. There is no storage or inference
+speed claim, and no previously qualified source/measurement artifact was changed.
+
+
+## 20. Paired total-cost admission: candidate rejected (I5.4)
+
+The November 18 ELTE cohort rejects the I5.3 both-active scalar/vector two-pass
+specialization. Review completed November 19. Stable covariance improved, but
+five unchanged controls met the predeclared repeatable >5% regression rule.
+Only the candidate kernel delta was reverted; the expanded correctness tests
+remain. Production therefore retains the original generic both-active reverse
+path and existing one-active contiguous shortcuts. I5.2 remains deferred: no
+storage-lifetime deficit or memory-only tradeoff justified a change.
+
+### Matched experiment and admission
+
+Job 2783274 completed 0:0 in 1h29m08s on exclusive hpc2019 node cn18-42, a KVM
+Xeon Gold 6240 host. Seven alternating baseline/candidate pairs used CPU 0,
+one library thread, identical data and shared benchmark code. Both revisions
+were built serially at one canonical source path, with only `kernels.rs` changed;
+all builds and numerical preflights finished before timing. Copied executables
+were frozen and verified before and after timing; no running source was edited.
+
+Stable lanes used Rust 1.95.0; the pinned native/SIMD/AD lanes used
+nightly-2026-06-23 (4429659e4), with native and AD-enabled flags distinguished.
+All lanes used `-Cembed-bitcode=yes -Ctarget-cpu=native`; compiler-AD lanes
+add `-Zautodiff=Enable`. Stable default/Faer/OpenBLAS/both, plain nightly,
+nightly portable-SIMD, nightly AD-enabled native, and pinned source controls
+were retained. Feature availability is not evidence of provider selection:
+compensated Auto remains the reference; explicit Standard Faer/BLAS matrix
+cases keep their different arithmetic guarantees. There is no cross-provider
+or cross-accuracy speed ranking here.
+
+The existing Criterion benches used 20 samples, 0.1s warmup and 0.3s requested
+measurement. Stable default covered broad lifecycle and small/large controls;
+other lanes used focused steady/provider controls plus broadcast cold stages.
+The existing tensor-storage kernel suite supplied additional scalar, matvec,
+lazy branch, shared DAG, retained/checkpointed scan and vector/reuse controls.
+No timing runner, kernel formula, distribution or sampler was added.
+
+All 112 planned cells finished: 5,124 Criterion estimates, 12,656 first/steady
+work records describing 31,640 actual public fused calls, and 3,528 broadcast
+storage records. All 23 kernel-suite cases completed seven compatible pairs
+(322 child attempts); no failed, incompatible or unstarted pair was discarded.
+Recorded work/query/data/coordinate/algorithm/route identities match across
+revisions. Full-ID completeness was checked against the untimed fixture list,
+resolving Criterion's abbreviated display names uniquely. Both revisions passed
+159 core, 33 distribution and 47 actual pinned source/AD independent tests.
+The complete native benchmark preflight also exercised 110 model, 261 tensor
+and 12 regression cases in each applicable lane.
+
+Ratios below are baseline/candidate, so values above one favor the candidate.
+Intervals are exploratory 95% paired-repetition percentile bootstrap intervals
+(10,000 resamples, fixed seed 5401); they do not establish simultaneous coverage
+or independent-host reproducibility. Before timing, the >5% gate was fixed as
+at least six of seven ratios below 1/1.05, median below that threshold, and
+bootstrap upper endpoint below it. Cases failing the median threshold but not
+that repeatability condition remain inconclusive, not regression-free.
+
+### Primary stable-default block results
+
+| Model | Baseline median µs | Candidate median µs | Paired ratio [interval] |
+| --- | ---: | ---: | --- |
+| covariance | 5.600 | 5.395 | 1.039 [1.028, 1.059] |
+| schools | 2.819 | 2.816 | 1.001 [0.989, 1.028] |
+| schools_nc | 3.046 | 2.905 | 1.051 [1.017, 1.069] |
+| radon | 68.501 | 68.732 | 0.995 [0.984, 0.999] |
+
+Covariance's median paired throughput gain is 3.9%, and noncentered schools'
+is 5.1%. These are candidate measurements, not shipped improvements. Centered
+schools is inconclusive; Radon has no favorable candidate gain. The original
+scalar-versus-block abstraction deficit is not solved by this experiment.
+
+### Blocking unchanged-control regressions
+
+Absolute columns are medians of each arm; paired ratios are medians of the
+within-repetition ratios, which need not equal a ratio of those arm medians.
+
+| Lane / control | Baseline median µs/call | Candidate median µs/call | Paired ratio [interval] | Pairs beyond 5% |
+| --- | ---: | ---: | --- | ---: |
+| nightly-native / scalar Radon | 65.206 | 75.906 | 0.869 [0.845, 0.911] | 7/7 |
+| nightly-simd / scalar Radon | 60.311 | 65.027 | 0.896 [0.849, 0.949] | 6/7 |
+| nightly-simd / 8×8 compensated GEMM | 3.173 | 3.494 | 0.904 [0.900, 0.910] | 7/7 |
+| enzyme-controls / 129-row Normal compiled first order (H) | 0.227 | 0.239 | 0.949 [0.949, 0.951] | 6/7 |
+| stable default / scalar tensor, n=1000 | 21.020 | 22.150 | 0.950 [0.949, 0.951] | 7/7 |
+
+The matching kernel scalar control also fails after including construction:
+baseline/candidate total-cost ratio 0.950 [0.949, 0.951] at K=10,000 requested
+steady calls. Its paired candidate latency increase is about 5.3%; the nightly
+GEMM increase is about 10.7%. The scalar Radon and compiled Normal paths are
+controls, not demonstrations that their arithmetic executed the new branch.
+Whole-binary codegen/layout effects are possible; the mechanism was not isolated.
+No claim is made that all measured slowdowns are direct index-loop overhead.
+
+Across all lane/case pairs, 122 Criterion cases showed an exploratory improvement,
+233 were inconclusive, seven had an inconclusive >5% median regression and four
+met the blocking gate. The kernel suite had 13 improvements, eight inconclusive
+cases, one inconclusive >5% median regression and one blocking regression. These
+counts are not a weighted global score or evidence that unflagged cases cannot
+regress. Favorable cases do not override the declared unchanged-control gate.
+
+### Cold, first-call and total-cost scopes
+
+The stable-default lifecycle medians below keep nested scopes separate.
+`construct_compile_context_and_drop` already contains construction, compilation,
+context creation and destruction; do not add bind/compile/context benchmarks
+to it as though they were independent stages. `first_value_gradient` excludes
+its batched setup but includes destruction, as in the existing I4.4 protocol.
+Source-generation and native/compiler setup costs remain distinct; serial build
+resource logs are not matched clean-build performance estimates.
+
+| Block model | Construct/compile/context/drop µs, before → candidate | First-call benchmark µs, before → candidate | Five-state fixed-work batch µs, before → candidate |
+| --- | ---: | ---: | ---: |
+| covariance | 28.517 → 28.248 | 14.273 → 14.053 | 79.090 → 84.596 |
+| schools | 24.782 → 24.390 | 10.069 → 10.000 | 34.027 → 41.106 |
+| schools_nc | 26.858 → 26.581 | 10.844 → 10.732 | 33.821 → 33.084 |
+| radon | 176.973 → 172.603 | 124.920 → 124.846 | 437.093 → 433.932 |
+
+The five-state batch is exactly one first plus four steady fused calls; its
+measured scope includes poisoning, admission and output copies and excludes
+receipt logging. It uses changing states and is not interchangeable with
+Criterion's fixed-state steady benchmark. Its variability does not support a
+blanket cold/first-call improvement claim.
+
+For every kernel case, total cost was also reconstructed per repetition as the
+reported construction time plus the measured K-call loop. Construction includes
+one initial admission evaluation, while K counts the requested steady calls;
+process launch, serialization and compiler time are excluded. At retained scan
+n=10000, K=100, paired steady/total ratios were 1.010/1.011; checkpointed scan
+was 0.999/0.999. Shared-DAG n=100000, K=100 was 1.026/1.025, while vector n=100000,
+K=10 was 0.999/0.999. The complete case-level distributions are retained rather
+than treating these representative medians as universal wins. No break-even
+claim is needed for a rejected candidate, and no nested lifecycle timings were
+summed to manufacture an end-to-end figure.
+
+### Memory, cleanup and evidence limits
+
+All matched broadcast storage payloads are identical across revisions: plan
+ownership, workspace budget/ownership, source lengths, frozen payload and
+first/steady allocations. For regular 128×8 broadcasting, measured plan ownership
+is 1,574 bytes and workspace ownership 36,533 bytes (budget 36,834); explicit
+gather is 17,944/69,495 bytes (budget 69,814). Regular 65536×8 retains 1,574 bytes
+of plan ownership and 18,350,773 workspace bytes. First and steady calls allocate
+zero in these receipts. These are unchanged fixtures, not candidate storage
+savings. Compiler/provider scratch and stack/process RSS are outside these
+ownership totals. Saved per-process peak-RSS resource records include the entire
+Criterion executable and all its setup; they are not per-fixture arena bounds.
+
+I5.4 is complete by rejecting the candidate under its predeclared gate and
+restoring the exact baseline kernel. The 19-added/2-removed I5.3 specialization
+is absent from production; its tests remain useful regression coverage. No new
+planner, runner, API, backend policy or source/derivative capability is promoted.
+The pinned compiler remains optional, native stable remains first-class, and
+source higher-order/checkpoint limits remain as previously qualified. This closes
+the measured optimization branch negatively; it is not a general fastest-runtime,
+posterior-efficiency or SBC claim.
+
+The primary raw archive SHA-256 is
+`a3ec4a5bd5c75e9cf936155ffeb2190c6b549e29833f7ff346d3cc1e3f39353e`.
+The separately preserved 46 frozen executables, build metadata, generated source
+and input snapshot archive has SHA-256
+`a9090c245649558303a4a5a0431f43f1cdc5df0c68b065507be3b48fc5e3de1f`.
+Both archives verify locally; every saved executable matches its recorded hash.
+The existing kernel journal replays exactly, and the existing Criterion reader
+reconstructs every planned case and work/storage receipt. This is private
+retained evidence, not a claim of independent public reproduction or an offline
+toolchain distribution. Remote study root:
+`/users/usumusu/alea-i54-LWPIjuQc`. Job 2783275 only archived artifacts on cn18-14;
+it supplies no additional timing host. An interrupted archive transfer was
+resumed and hash-verified. A transient remote progress read showed NULs, but final
+sealed build logs and all benchmark/preflight records contain none; the cause
+of that progress display was not established.
+
+## 21. I5.3 implementation and architecture investigation
+
+The follow-up investigates the rejected candidate; it does not reinstate it.
+Production retains the baseline kernel and the expanded I5.3 tests. Three
+questions must be separated: mathematical correctness, direct broadcast-loop
+cost, and effects of the change on other compiled paths.
+
+### Correctness and what the original tests establish
+
+No mathematical implementation defect was found in the two-pass candidate.
+The scalar accumulator retains the original row order and initial adjoint;
+vector destinations retain their original per-row additions. Zero seeds still
+skip both destinations. Distinct producer starts denote disjoint live ranges
+under the existing planner; reshape aliases share starts and retain the generic
+interleaved fallback. The four existing arithmetic closures are pure. Required
+forward values and local scores remain admitted before reverse execution.
+
+The retained scalar-bit grid exercises all four binary operations, both active
+broadcast orientations, inactive operands, aliases, cancellation and signed-zero
+seeds. Related tests cover shared DAGs, gathers, lazy branches, failure/recovery
+and independent finite differences. I5.4 additionally executed actual pinned
+source/replay tests on both revisions. These are evidence for the I5.3 numerical
+Done condition, not for profitability or compiler stability. I5.4's independent
+performance rejection therefore remains valid.
+
+### Exact executable evidence: integration matters
+
+Disassembly of the frozen I5.4 executables shows substantial code growth despite
+the small source delta. In `kernel_audit`, the enclosing tensor reverse function
+grows from 74,300 to 90,907 bytes; one reverse-node interpreter grows from 23,336
+to 28,137 bytes. The helper is forced inline and instantiated inside a shared,
+already large interpreter. Two contiguous passes remove generic index traversal
+but also revisit seeds and vector values; cheaper indexing alone does not imply
+a cheaper complete executable.
+
+The nightly SIMD GEMM control exposes an inlining boundary change. Its enclosing
+`BoundProgram::reverse` has 5,849 instructions before and 373 after, with new
+out-of-line calls to the enlarged reverse-node interpreters. The matrix forward
+and reverse kernels themselves retain identical normalized instructions (291
+and 567 respectively). This is a demonstrated compiler integration effect,
+not proof that the matrix arithmetic became more expensive.
+
+The scalar polynomial control uses scalar assembly `Multiply` operations and
+never executes the changed tensor broadcast path. Its normalized scalar
+`NativeModel::logp_grad` body has the same 2,295 instructions in both binaries,
+but changes placement/alignment. The source Normal-129 control likewise has
+identical normalized generated-gradient (392 instructions) and native
+`NormalRegression::evaluate` (436 instructions) bodies at changed addresses.
+Thus their measured regressions cannot be attributed to executing the extra
+broadcast pass. Code placement and front-end interactions are plausible, but
+cache misses, branch misses and cycle attribution were not established.
+Normalization removes address-dependent displacements and LLVM suffixes; it
+is not an independent proof that all referenced data are identical.
+
+### No-admin CPU profiles and limits
+
+A private gperftools 2.7 `libprofiler` successfully sampled the exact frozen
+executables on allocated ELTE node cn18-42. It uses CPU-time timer signals rather
+than restricted performance events, following the
+[gperftools CPU profiler documentation](https://gperftools.github.io/gperftools/cpuprofile.html).
+Job 2783277 completed all 12 baseline/candidate profiles. Sampling used 250 Hz
+(4 ms period); Criterion cases requested eight seconds of profiling. Scalar
+polynomial controls used 200,000 requested calls plus initial admission.
+
+Profiles were symbolized with exact main executables and matching glibc 2.28
+library/debug build IDs. Nearest exported symbols from stripped libraries were
+initially misleading; those preliminary labels were replaced, and every graph
+was regenerated. Collapsed stacks preserve full Rust names and inline frames;
+checked totals equal the raw sample counts. Both whole-process and measured-loop
+flamegraphs are retained. Criterion measured-loop graphs select stacks inside
+`criterion::bencher::Bencher`; this matters for GEMM, where setup accounts for
+about 14% of whole-process samples. Flat and inclusive percentages are different
+scopes and must not be added together.
+
+| Baseline measured loop | CPU attribution | Interpretation |
+| --- | --- | --- |
+| covariance block | Normal observation forward about 39% inclusive; `log` about 20% flat | Forward law preparation dominates the selected reverse indexing loop |
+| covariance block | generic index traversal 6.1% flat | Removing only this work has a limited whole-call ceiling |
+| scalar polynomial | scalar reverse 42%, scalar forward 30%, finite checks 11% flat | No execution of the changed broadcast kernel |
+| compensated GEMM 8×8 | matrix forward 52%, reverse 37% flat | Matrix kernels dominate; wrapper/inlining effects still matter |
+| source Normal-129 | regression evaluation 59% inclusive; `hypot` 23% flat | Qualified compressed regression and its numerical guards, not broadcast work |
+
+These are statistical CPU-stack samples, not exact internal call counts or
+per-function elapsed-time measurements. Inclusive frames overlap. Instrumented
+profile durations are not new speed-ranking evidence. Hardware events remain
+unavailable without administrator changes. An exact-binary Callgrind attempt
+failed in its old AVX-512 instruction decoder before model execution; recompiling
+for another ISA would no longer profile the same executable. The failed attempt
+and the initial profiler/loader failures remain preserved.
+
+### Architecture costs outside the I5.3 delta
+
+The covariance block constructor's private `binary` helper creates a separate
+lexical region for each binary operation. The current predictor therefore has
+three model-to-region call boundaries plus a constant-data region. Two observed
+law maps and their two sum regions bring the complete model to eight region
+forward evaluations and seven dynamic region pullbacks per gradient call.
+`assembly::blocks::Call` packs arguments, executes and admits the region, stages its
+outputs and seeds, and copies/accumulates reverse scores. These boundaries are
+useful for shared whole-value calls, but unnecessarily fine for this straight
+three-operation predictor.
+
+A second asymmetry is in law preparation. Generic `observations::forward`
+constructs the Normal and requests its parameter scores for every row. The
+existing Normal combined score kernel computes `ln(scale)` on each invocation.
+For the two 32-row covariance observation maps, scales are shared scalars.
+The scalar `NormalFactor` route instead explicitly declares `scalar_preparation`
+and reuses its prepared log scale. This explains a real architectural opportunity
+that a reverse-loop specialization cannot address. It predates I5.3 and belongs
+to the block-observation/model-port increments, not to a newly incorrect density.
+
+Any preparation improvement must retain law construction/error semantics,
+parameter-only score admission, exclusive point-dependent workspaces and valid
+recovery after failure. Generic user callbacks cannot be assumed pure and
+silently memoized. Reuse an explicit preparation capability and the existing
+law kernels; do not add a parallel Normal implementation, type-based cache or
+second graph. The expensive `hypot` calls in compressed Normal regression serve
+stable residual norms and conditioning screens. Deleting those safeguards or
+replacing them with cancellation-prone Gram subtraction is not justified by
+this profile.
+
+### Counterfactual experiment design
+
+A separate source snapshot tests three kernel variants: the restored baseline,
+the original I5.3 inline candidate, and the same two-pass arithmetic in a
+selectively outlined helper for both-active disjoint broadcasts only. Existing
+one-active shortcuts and alias fallback are unchanged. The outlined form tests
+the inlining interaction rather than replacing the arithmetic or broadly
+outlining the interpreter. In this snapshot's SIMD tensor executable, reverse
+wrapper sizes are 27,196 / 1,578 / 27,433 bytes respectively: selective outlining
+restores the baseline inlining structure, although helper instantiations still
+add code elsewhere. This observation alone establishes no speed improvement.
+
+A cold construction switch also tests grouping covariance's three predictor
+operations into one existing lexical region. Both architecture arms use exactly
+the same executable. Arithmetic operations, laws, charts, observations and
+per-node admission remain; no density, gradient or sampler is reimplemented.
+The grouping removes three forward and two reverse region boundaries. Normal
+scale preparation is deliberately unchanged, so any gain is not attributed to
+an unimplemented law optimization.
+
+The experiment freezes three source manifests, builds at one canonical path,
+then completes all numerical preflights before timing. Each kernel variant passes
+159 core tests and the 17 native CLI tests with grouping both off and on. Six
+variant/architecture probe sets match full densities, gradients and errors on
+seven valid/extreme-scale inputs. The probe agreement tolerance is 3e-10 relative
+plus absolute; it is finite input evidence, not global bitwise equivalence.
+
+The main study uses seven rotating three-arm repetitions, stable Rust 1.95 and
+pinned nightly SIMD, identical native flags, one CPU/thread, the existing
+Criterion benches and existing fixed-work kernel runner. Its grouped arms follow
+the main arms within each repetition. A separate confirmation therefore repeats
+the same-executable architecture comparison with alternating arm order. All
+experiments use allocated cn18-42 compute resources; instrumentation runs after
+uninstrumented timing. Results compare only within each new matched cohort,
+not against old absolute I5.4 times. Exploratory 95% intervals use 10,000 paired
+percentile-bootstrap resamples, seed 53019; they do not provide simultaneous or
+independent-host coverage. These focused experiments do not replace the full
+eight-lane I5.4 admission protocol.
+
+### Results: outlining is insufficient; region grouping improves this fixture
+
+All 56 main Criterion cells completed, yielding 1,442 estimates. Both ten-case
+kernel comparisons completed seven pairs (280 compatible child attempts), and
+raw journal replay exactly reconstructs their summaries. All 18 copied binaries
+match their frozen hashes; the three 763-file source manifests differ only in
+`kernels.rs`. The confirmation contributes another 14 cells and 182 estimates.
+No failed timed cell was omitted.
+
+Ratios are paired baseline/candidate throughput ratios; above one favors the
+candidate. Arm latencies are separate medians, so their quotient need not equal
+the median paired ratio.
+
+| Main matched control | Baseline µs | Inline µs / ratio [interval] | Outlined µs / ratio [interval] |
+| --- | ---: | --- | --- |
+| stable covariance block | 5.587 | 5.350 / 1.046 [1.030, 1.056] | 5.367 / 1.048 [1.035, 1.055] |
+| nightly SIMD compensated GEMM 8×8 | 3.186 | 3.512 / 0.908 [0.905, 0.911] | 3.530 / 0.901 [0.890, 0.905] |
+| stable fixed-work scalar polynomial n=1000 | 21.049 / 21.061 | 22.160 / 0.949 [0.947, 0.951] | 22.179 / 0.950 [0.947, 0.951] |
+
+The fixed-work baseline is taken from each runner's own paired cohort; the
+inline and outlined runners' baseline medians are 21.049 and 21.061 µs
+respectively (shown in the same order in the table). At n=1000, including
+construction gives inline and outlined ratios 0.949 [0.947, 0.951] and 0.950 [0.947, 0.951]. Both retain the
+scalar regression. Stable GEMM improves in these new candidate binaries, whereas
+nightly SIMD GEMM regresses; scalar Radon also varies by compiler/variant. These
+mixed controls are retained in full, not averaged into a favorable global score.
+
+Selective outlining restores the reverse wrapper's inlining structure but
+**does not fix the SIMD GEMM or scalar-polynomial regression**. Fresh SIMD matrix
+leaf bodies are normalized-identical across all three variants (285 forward,
+567 reverse instructions), yet their complete executable timings differ. The
+observed inlining boundary change is therefore not a sufficient causal
+explanation. Code placement, caller/control-path changes and microarchitectural
+interactions remain unresolved without further isolation. Neither candidate is
+qualified for promotion, and blanket `inline(never)` is not a demonstrated fix.
+
+The more useful result is the independent architecture comparison using the
+baseline kernel. Alternating-order confirmation measures:
+
+| Covariance block scope | Separate regions µs | Grouped predictor µs | Paired ratio [interval] |
+| --- | ---: | ---: | --- |
+| full construction/compile/context/drop | 28.533 | 23.901 | 1.195 [1.186, 1.203] |
+| bind snapshot | 0.596 | 0.574 | 1.036 [1.031, 1.056] |
+| executable compile | 1.644 | 1.605 | 1.032 [1.023, 1.038] |
+| context creation | 8.906 | 5.926 | 1.495 [1.417, 1.544] |
+| first value/gradient benchmark | 13.836 | 12.072 | 1.146 [1.139, 1.150] |
+| reused value/gradient | 5.571 | 4.930 | 1.129 [1.114, 1.138] |
+
+The reused latency falls about 11.5%, corresponding to 12.9% more calls per
+second by the paired ratio. All seven steady pairs favor grouping. The first
+cohort gives 1.133 [1.122, 1.139]; grouping with the outlined kernel
+gives 1.143 [1.125, 1.154] within that binary. The combined baseline-to-outlined-
+plus-grouped ratio is 1.190, but this cross-binary result retains outlined
+controls and is not a promotion argument. No nested lifecycle stages were added
+together. The first-call benchmark retains its existing destruction scope.
+Scalar covariance, which the switch does not change, has an inconclusive paired
+steady ratio of 0.997 [0.985, 1.145] in the confirmation.
+
+Two subsequent same-executable CPU profiles remain consistent with reduced
+boundary overhead: `Call::forward` falls from about 6.8% to 4.1% of measured-loop
+samples, while the Normal observation/log work remains prominent. Proportions
+are normalized to different total runtimes, so their changes are not absolute
+per-function time savings. Region grouping does not solve the whole abstraction
+deficit: grouped block reuse at 4.930 µs still exceeds scalar reuse at 3.661 µs
+in the confirmation. Shared law preparation remains a separate, unmeasured
+opportunity.
+
+### Disposition and preserved evidence
+
+Keep the I5.3 candidate rejected. Prioritize a small production construction
+change that groups the predictor through the existing region API, with a final
+clean compiled-candidate control gate. The experiment's cold environment switch
+is an investigative tool, not a proposed permanent API. Removing it changes
+the compiled binary again, so even this same-executable architectural result
+cannot waive final unchanged-control measurements. An explicit preparation
+capability for shared observation parameters is the next architectural question;
+its speedup has not been measured. A single-pass disjoint scalar/vector pullback
+is another possible future experiment, not a demonstrated improvement here.
+No new planner, law kernel, source capability, memory saving, posterior-efficiency
+claim or production optimization follows from this review.
+
+Job 2783773 completed all main timings and hash verification, then failed in the
+optional profiling tail because its output directory was created relative to
+the source tree rather than the study root. Job 2783775 was cancelled while
+waiting on that failed dependency and ran no work. Recovery/confirmation job
+2783776 completed 0:0 in 2m04s on cn18-42: alternating architecture timings,
+then the two optional profiles and packaging. Original timings were not rerun,
+replaced or pooled with recovery timings. The original failure and scripts are
+retained. The two evidence archives verify locally:
+
+- main counterfactual SHA-256:
+  `ca9640d816d639b5365f6cbbd6a453a10cb854f68b5a6ebcd8241e79dc4fa217`;
+- architecture confirmation SHA-256:
+  `a3c28a84881c2687f69bb80f3b11b12181ffff31a931f6acca397f81f2de0158`.
+
+Remote roots are `/users/usumusu/alea-i53-counterfactual-9NCdWMZp` and
+`/users/usumusu/alea-i53-architecture-confirmation`. Frozen executables, source
+snapshot, raw profiles, matching library symbols, 28 whole/measured-loop SVGs,
+analysis scripts and replay outputs are retained privately. SVGs use the official
+[FlameGraph implementation](https://github.com/brendangregg/FlameGraph), revision
+`41fee1f99f9276008b7cd112fca19dc3ea84ac32`, and
+[pprof](https://github.com/google/pprof) for symbolized stacks. Profile job
+2783277, its twelve exact-I5.4-binary profiles, preliminary failed attempts and
+Callgrind decoder failure are retained separately. None of the instrumented
+profile durations is used as throughput evidence. Existing report-reader tests
+pass 31 + 32 cases. Production Rust and all other starting worktree patches are
+unchanged by this investigation; roadmap admission remains as recorded in §20.
+
+## 22. I5.5 production-candidate admission: no optimization accepted
+
+The construction change proposed in §21 was implemented and tested, but neither
+final-source candidate qualified. The original covariance constructor is restored
+byte for byte. Only two additional scalar-reference test states remain: zero
+loading, which still requires its loading score, and mixed mean/scale/loading
+directions. The I5.3 kernel also remains reverted. There is **no accepted runtime
+improvement** from I5.5.
+
+The measured covariance saving is real within each stated experiment. It is not
+evidence that the complete compiled change is safe to accept: unrelated model
+controls regress. Earlier language describing a “genuine improvement” should be
+read as a local architectural cost saving, not a qualified repository-wide win.
+There is no weighted aggregate performance score or inferred NUTS/ESS improvement.
+
+### Scope and mathematical checks
+
+Both candidates used the existing lexical-region API for fixed first-coordinate
+data and the original add/multiply/add predictor. Offset, slope and location
+remained scalar formal inputs; priors, scales, charts, conditional reporting and
+all observation-law calls remained unchanged. Four old predictor/data calls
+became one, reducing eight region forwards to five and seven pullbacks to five.
+No distribution, analytic gradient, sampler, shared preparation, source capability
+or public API was added. Required intermediate and local-score admission was
+retained through the existing executor. Generic Normal scale preparation remains
+unimplemented.
+
+Candidate A placed the region construction directly in the existing constructor.
+Candidate B isolated precisely that construction in a private `#[cold]`,
+`#[inline(never)]` helper. It did not add padding or global compiler flags.
+Neither mathematical correctness nor source capability was the rejection reason.
+Both full qualification studies passed, per revision, 159 core, 33 distribution,
+47 actual pinned source/AD and 17 native CLI tests, plus all benchmark numerical
+preflights. The native reference tests now exercise the two added states.
+Local native, optimized reference, related tensor/distribution, Clippy and
+format checks also passed. No universal bitwise or new derivative-support claim
+follows from these finite tests.
+
+### Matched final-source studies
+
+Both full studies reused the existing I5.4 eight-lane protocol and predeclared
+>5% unchanged-control gate: seven alternating pairs, 20 Criterion samples,
+0.1s warmup and 0.3s requested measurement, one selected CPU/library thread,
+identical arithmetic/provider requests and inputs. Builds and numerical
+preflights preceded timing; copied executables were frozen and verified before
+and after timing. Source snapshots contained 763 files and differed only in
+`tools/native-benchmark/src/conformance.rs`; both arms shared the expanded tests.
+The 18 existing benchmark fixture files were sealed experiment inputs, not
+additions to the release source allowlist. Pinned Radon input bytes were unchanged.
+
+All timing ran on exclusive ELTE compute node cn18-26. The initially preferred
+cn18-42 was occupied; its constraint was removed before the first study started.
+No laptop or login-node timing was used. Candidate A job 2783780 completed 0:0
+in 1h21m05s. Candidate B job 2783785 completed 0:0 in 1h00m04s. Preservation jobs
+2783781 and 2783786 only packaged artifacts on cn18-14; they are not timing hosts.
+The local calendar crossed into November 20 during qualification.
+
+Each full study completed 112 cells / 5,124 Criterion estimates, 12,656 first/steady
+work receipts representing 31,640 actual public calls, 3,528 storage receipts,
+and 23 kernel cases / 322 compatible child attempts. Expected complete case IDs,
+work/data/coordinate/query identities, source hashes and all 46 executable hashes
+verify. The existing kernel journal replays exactly. All sealed preflight,
+result and build logs contain zero NUL bytes; transient concurrent NFS progress
+reads with NULs or missing early lines were recorded rather than normalized.
+
+Candidate B reused the exact original baseline executables and build metadata
+from A, with explicit origin records, matching source manifests, canonical
+compiler path, toolchains and flags. Its baseline numerical preflights and
+independent tests were rerun at the restored baseline source; B was then rebuilt
+and tested before measurement. No old timing observations were pooled into the
+new study. The canonical source directory was reused serially only after the
+previous measurements and preservation finished. Historical source receipts
+refer to their sealed snapshots, not the later live source directory.
+
+### Local gain versus failed control admission
+
+Ratios are paired baseline/candidate throughput ratios; values above one favor
+the candidate. Intervals retain the §20 exploratory paired-bootstrap method
+(10,000 resamples, seed 5401), without simultaneous or independent-host coverage.
+Arm columns are separate medians; their quotient need not equal the median
+within-pair ratio.
+
+| Study / scope | Baseline µs | Candidate µs | Paired ratio [interval] |
+| --- | ---: | ---: | --- |
+| A / covariance reused value-gradient | 5.649 | 5.000 | 1.132 [1.126, 1.137] |
+| A / full construction/compile/context/drop | 28.253 | 23.669 | 1.195 [1.183, 1.201] |
+| B / covariance reused value-gradient | 5.676 | 5.035 | 1.125 [1.123, 1.135] |
+| B / full construction/compile/context/drop | 28.451 | 23.811 | 1.198 [1.190, 1.205] |
+| B / context creation | 8.333 | 5.885 | 1.414 [1.386, 1.479] |
+| B / first value-gradient benchmark | 14.199 | 12.058 | 1.178 [1.173, 1.180] |
+
+These are candidate measurements, not shipped gains. Nested lifecycle stages
+were not summed; first-call measurements keep their existing destruction scope.
+The target does not expose total workspace ownership, so fewer frames and faster
+context creation are not promoted into a measured memory-saving claim.
+
+A fails eight repeatable unchanged controls: SIMD scalar covariance, Radon,
+centered/noncentered schools, constrained/unconstrained batch-128 reuse, plus
+AD-enabled native scalar covariance and Radon. For example, SIMD scalar Radon
+moves from 59.119 to 74.659 µs, paired ratio 0.790 [0.778, 0.836], with all seven
+pairs beyond the 5% threshold. Four additional >5% median cases remain
+inconclusive. Its kernel controls have no regression meeting that gate.
+
+B removes those eight repeatable failures in its focused pilot, but **the final
+full study still fails**:
+
+| B unchanged control | Baseline µs | Candidate µs | Paired ratio [interval] | Pairs beyond 5% |
+| --- | ---: | ---: | --- | ---: |
+| stable default / funnel batch-8 constrained reuse | 0.391 | 0.412 | 0.9492 [0.9203, 0.9522] | 6/7 |
+
+The paired median latency increase is about 5.4%. The gain interval's upper
+endpoint, approximately 0.952180, is below the fixed 1/1.05 threshold. It therefore
+meets the stated rule even though the boundary is close. The threshold was not
+relaxed after seeing the result. Four additional >5% median cases—stable scalar
+covariance/Radon and two transactional-boundary controls—remain inconclusive.
+All 23 B kernel cases are inconclusive rather than demonstrated changes.
+Because one repeatable failure already blocks admission, no additional
+confirmation was used to rescue this final candidate.
+
+### What the follow-up establishes and leaves unresolved
+
+In both full studies, 16 of 23 executable pairs are byte-identical. Only the seven
+`model_pipeline` lane executables change. Thus the construction-only delta avoids
+the broad tensor/regression/source binary changes seen with I5.3, but it does
+not reliably preserve the other models in the shared model benchmark executable.
+For A's SIMD scalar `NativeModel::logp_grad`, normalized disassembly has the same
+1,749 instructions and 8,464 bytes at addresses 0x12aa80 and 0x12b8b0. This
+supports investigating code placement, callees and benchmark interactions;
+it does not identify cache misses, branch effects or a complete causal mechanism.
+Address normalization also does not prove referenced data/callees identical.
+Cold construction isolation alone is not a generally qualified remedy.
+
+The B pilot history is retained explicitly. Job 2783782 was cancelled after an
+audit found that its narrower Cargo package selection changed transitive feature
+unification (`libc`/`bitflags`, among others). This setup mistake made the comparison
+unmatched; none of those timings was interpreted. Corrected job 2783783 used the
+original package/target selection and matched all 175 dependency artifacts per
+lane by features, profiles and artifact identities. It completed 42 cells /
+1,050 estimates in stable default, SIMD and AD-enabled native lanes, with no
+repeatable >5% failure but two inconclusive controls. Predeclared longer
+confirmation job 2783784 used 40 samples, 0.2s warmup and 1s requested measurement
+for seven alternating pairs: scalar Radon 0.988 [0.936, 1.025], and checked-gradient
+boundary 1.002 [1.000, 1.042]. These permitted the final study; they did not waive
+it or replace its failing funnel control. Cohorts were never pooled. There was
+no further code variant after B.
+
+Both candidates are rejected and the constructor is restored exactly. The
+remaining problem is performance qualification under compiler/benchmark
+interactions, not an identified density/gradient defect. Broader investigation
+would need a separately scoped plan for that interaction; another unqualified
+local saving is insufficient. No benchmark framework, parallel graph, permanent
+experimental switch or superseded predictor implementation remains in production.
+
+### Preserved evidence
+
+The full studies' verified SHA-256 digests are:
+
+| Study | Raw results | Frozen binaries/builds |
+| --- | --- | --- |
+| A | `c66830b8d92ecc739a27aa3c1c36910be6c36681602e6d20721d30ed3cc5a1fb` | `7d74d5488b7e89236cf01ca1f14589f2f761689bb64b632777340c7c73ad3a64` |
+| B | `01ed41821fd8a09dc60d7a07a03b4a81c195f84000322b69851d23001c117f40` | `04a7f3f64702078c0edd4e793196fe24d279a26487f75ab4f241874e21ff54b8` |
+
+Remote roots are `/users/usumusu/alea-i55-xNouQtHx` and its `candidate-b-full`,
+`candidate-b`, `candidate-b-matched` and `candidate-b-confirm` subdirectories.
+Frozen source, protocols, full case distributions, rejected variants, invalid
+pilot, dependency audit and exact scripts remain private retained evidence.
+This is not a public independent reproduction or offline toolchain distribution.

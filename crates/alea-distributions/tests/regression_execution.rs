@@ -533,3 +533,184 @@ fn both_dispatch_modes_keep_tail_scores_domain_errors_and_recovery() {
         assert_eq!(g, [10.]); // Underflowed rate still has a finite log-rate score.
     }
 }
+
+#[test]
+fn compressed_binding_snapshots_keep_parameter_dependent_scores_and_original_rows() {
+    use alea_core::model::assembly::{PointwiseLikelihood, PredictiveUnit};
+    const N: usize = 257;
+    let original = data(N, 2, |i| (i % 7) as f64 / 8. - 0.25);
+    let mut b = ModelBuilder::new();
+    let a = b.real("a").unwrap();
+    let c = b.real("c").unwrap();
+    let sigma = b.positive("sigma").unwrap();
+    let root = b
+        .primitive(
+            &[a.expr(), c.expr(), sigma.expr()],
+            NormalRegression::new(original.clone()).unwrap(),
+        )
+        .unwrap();
+    b.likelihood("observations", root).unwrap();
+    let binding = b.compile().unwrap().binding().clone();
+    let old = binding
+        .compile()
+        .unwrap()
+        .into_native_model()
+        .into_target()
+        .unwrap();
+    let mut old_gradient = [0.; 3];
+    let old_value = old.logp_grad(&[0.25, -0.5, 0.], &mut old_gradient).unwrap();
+    let old_bits = old_gradient.map(f64::to_bits);
+
+    // Replace each dependency separately, then revisit the original binding.
+    for change in [1, 2, 3, 0] {
+        let d = RegressionData::new(
+            2,
+            original
+                .design()
+                .iter()
+                .map(|&x| if change == 1 { 2. * x + 0.125 } else { x })
+                .collect(),
+            original
+                .observations()
+                .iter()
+                .map(|&y| if change == 2 { y - 0.5 } else { y })
+                .collect(),
+        )
+        .unwrap()
+        .with_offsets(
+            original
+                .offsets()
+                .iter()
+                .map(|&o| if change == 3 { o + 0.75 } else { o })
+                .collect(),
+        )
+        .unwrap();
+        let next = binding
+            .rebind::<NormalRegression>(root, |p| p.with_data(d.clone()))
+            .unwrap();
+        let target = next
+            .compile()
+            .unwrap()
+            .into_native_model()
+            .into_target()
+            .unwrap();
+        let batch = next
+            .compile()
+            .unwrap()
+            .into_native_model()
+            .batch_likelihood()
+            .unwrap();
+        assert_eq!(batch.units().len(), N);
+        assert!(
+            batch
+                .units()
+                .iter()
+                .enumerate()
+                .all(|(i, u)| u.factor == "observations" && u.row == i)
+        );
+        let states: [[f64; 3]; 4] = [
+            [0.25, -0.5, 0.],
+            [-0.75, 0.125, 0.5],
+            [0., 1., -0.5],
+            [0.25, -0.5, 0.],
+        ];
+        for q in states {
+            let sigma = q[2].exp();
+            let mut expected = [0., 0., 1.]; // Exactly one chart Jacobian.
+            let mut rows = [91.; N];
+            let likelihood = batch.evaluate(&q, &mut rows).unwrap();
+            let mut total = 0.;
+            for (i, &row) in rows.iter().enumerate() {
+                let x = &d.design()[2 * i..2 * i + 2];
+                let residual = d.observations()[i] - (x[0] * q[0] + x[1] * q[1] + d.offsets()[i]);
+                let z = residual / sigma;
+                let density = -0.5 * z * z - q[2] - 0.5 * std::f64::consts::TAU.ln();
+                close(row, density, 3e-12);
+                total += density;
+                expected[0] += x[0] * z / sigma;
+                expected[1] += x[1] * z / sigma;
+                expected[2] += z * z - 1.;
+            }
+            close(likelihood, total, 3e-12);
+            let mut gradient = [91.; 3];
+            close(
+                target.logp_grad(&q, &mut gradient).unwrap(),
+                total + q[2],
+                3e-12,
+            );
+            for (actual, expected) in gradient.into_iter().zip(expected) {
+                close(actual, expected, 3e-12);
+            }
+            let retained = gradient;
+            assert!(
+                target
+                    .logp_grad(&[q[0], q[1], -1000.], &mut gradient)
+                    .is_err()
+            );
+            assert_eq!(gradient, retained);
+            let retained_rows = rows;
+            assert!(batch.evaluate(&[q[0], q[1], -1000.], &mut rows).is_err());
+            assert_eq!(rows, retained_rows);
+            close(batch.evaluate(&q, &mut rows).unwrap(), total, 3e-12);
+        }
+        // Explicit conditional partitions retain the requested order, not row order.
+        let partitions: Vec<Vec<_>> = [1, 0]
+            .into_iter()
+            .map(|parity| {
+                batch
+                    .units()
+                    .iter()
+                    .filter(|u| u.row % 2 == parity)
+                    .cloned()
+                    .collect()
+            })
+            .collect();
+        let units = ["odd", "even"]
+            .into_iter()
+            .zip(&partitions)
+            .map(|(name, rows)| PredictiveUnit {
+                name: name.into(),
+                factors: vec!["observations".into()],
+                observations: rows.iter().map(|u| format!("row{}", u.row)).collect(),
+                conditioned_on: vec!["a".into(), "c".into(), "sigma".into()],
+                integrated_out: vec![],
+            })
+            .collect();
+        let mut rows = [0.; N];
+        let total = batch.evaluate(&states[0], &mut rows).unwrap();
+        let report = PointwiseLikelihood::from_batch(batch, units, partitions).unwrap();
+        let mut grouped = [91.; 2];
+        close(
+            report.evaluate(&states[0], &mut grouped).unwrap(),
+            total,
+            3e-12,
+        );
+        for (value, parity) in grouped.into_iter().zip([1, 0]) {
+            close(
+                value,
+                rows.iter()
+                    .enumerate()
+                    .filter(|(i, _)| i % 2 == parity)
+                    .map(|(_, x)| x)
+                    .sum(),
+                3e-12,
+            );
+        }
+        assert_eq!(report.units()[0].name, "odd");
+        assert!(report.units().iter().all(|u| u.integrated_out.is_empty()));
+    }
+    assert!(
+        binding
+            .rebind::<NormalRegression>(root, |p| {
+                p.with_data(RegressionData::new(2, vec![0.; 4], vec![0.; 2]).unwrap())
+            })
+            .is_err()
+    );
+    assert_eq!(
+        old.logp_grad(&[0.25, -0.5, 0.], &mut old_gradient)
+            .unwrap()
+            .to_bits(),
+        old_value.to_bits()
+    );
+    assert_eq!(old_gradient.map(f64::to_bits), old_bits);
+}

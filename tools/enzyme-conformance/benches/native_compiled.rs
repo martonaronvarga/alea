@@ -434,6 +434,16 @@ fn native_compiled(c: &mut Criterion) {
         "normal_vector_observed",
         flags!(normal_vector_observed),
     );
+    // Existing qualified matrix-vector fixture; retain its original arithmetic
+    // and compiler/admission rules as an unchanged control for composition costs.
+    compare(
+        c,
+        "tensor_matvec",
+        models::tensor_matrix().unwrap(),
+        generated::tensor_matrix::target(),
+        "tensor_matrix",
+        flags!(tensor_matrix),
+    );
     let mut all = models::all().unwrap();
     let name = "tensor_checkpoint_long";
     let i = all.iter().position(|(n, _)| *n == name).unwrap();
