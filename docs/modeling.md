@@ -132,11 +132,23 @@ continues to use compressed regression when all observations share one mean.
 For arbitrary shared whole-value predictors, `modeling::observations` maps any
 existing parameter-score law through the common native block boundary. Normal,
 Bernoulli-logit, and Poisson-log use the same adapter; captured events retain their Rust types.
-Scalar parameters broadcast, while vector parameters match the observation count:
+Scalar parameters broadcast, while vector parameters match the observation count.
+When building Normal blocks, `normal_observation_block` shares the logarithm of
+a scalar scale across calls that use the same model value in one evaluation.
+Vector scales retain per-row evaluation, and empty batches skip preparation.
+The existing Normal kernel still validates each row and its local scores.
+
+Within a tensor region, `normal_region_observations`,
+`bernoulli_logit_region_observations` and `poisson_log_region_observations`
+supply both native first derivative rules. `BoundProgram::jvp` selects which
+formal inputs receive directions. The directional callbacks read the admitted
+row scores from the same forward workspace used by the VJP. The generic
+whole-model observation constructor and `NormalBatch` keep their existing
+contracts.
 
 ```rust
 use alea::{model::{assembly::ModelBuilder, tensor::Shape},
-    distributions::{modeling::observations, scalar::{Normal, BernoulliLogit, PoissonLog}}};
+    distributions::{modeling::{normal_observation_block, observations}, scalar::{BernoulliLogit, PoissonLog}}};
 let mut builder = ModelBuilder::new();
 let beta = builder.real_vector("beta", &["intercept", "slope"])?;
 let beta = builder.vector_value(&beta, Shape::new(vec![2, 1])?)?;
@@ -145,9 +157,8 @@ let design = builder.constant_block(Shape::new(vec![3, 2])?,
 let predictor = builder.matmul(design, beta)?;
 let predictor = builder.reshape(predictor, Shape::new(vec![3])?)?;
 let sigma = builder.positive("sigma")?;
-let continuous = observations::<Normal, _, _>(&mut builder,
-    vec![0.2, -0.4, 1.1], &[predictor, sigma.expr()],
-    |p| Normal::new(p[0], p[1]))?;
+let continuous = normal_observation_block(&mut builder,
+    vec![0.2, -0.4, 1.1], predictor, sigma.expr())?;
 let binary = observations::<BernoulliLogit, _, _>(&mut builder,
     vec![true, false, true], &[predictor], |p| BernoulliLogit::new(p[0]))?;
 // Fixed offsets are log exposures; counts remain exact Rust u64 data.
@@ -1262,9 +1273,12 @@ use alea::{distributions::modeling::regression::RegressionData,
            model::assembly::ModelBuilder};
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 let mut builder = ModelBuilder::new();
-let beta = builder.real_vector("beta", &["intercept", "slope"])?;
-let data = RegressionData::new(2, vec![1.0, -1.0, 1.0, 1.0], vec![false, true])?;
-let map = data.clone().linear_map(beta.expressions())?.bernoulli_logit()?;
+let intercept = builder.real("intercept")?;
+let slope = builder.real("slope")?;
+let data = RegressionData::new(1, vec![-1.0, 1.0], vec![false, true])?;
+let map = data.clone()
+    .linear_map_with_intercept(&[slope.expr()], intercept.expr())?
+    .bernoulli_logit()?;
 let likelihood = map.sum_log_prob(&mut builder)?;
 builder.likelihood("responses", likelihood)?;
 let model = builder.compile()?;
@@ -1274,10 +1288,18 @@ assert_eq!(replacement.design(), data.design());
 # Ok(()) }
 ```
 
-The typed map retains the existing native descriptor and selects its normal,
-Bernoulli-logit or Poisson-log kernel on reduction. It is not an optimizer that
-recognizes arbitrary scalar/tensor graphs, nor a transformation of Rust closures.
-`plate` still expands scalar factors. No independence or prior is inferred.
+The typed map lowers to the same compound Normal, Bernoulli-logit, and
+Poisson-log calls used by the regression helpers. The broadcast intercept appends
+a unit column at model construction. It occupies the last coefficient position in
+the ordered regression calculation, and fixed row offsets keep their usual
+placement. The descriptor retains the original observations for conditional row
+queries and same-shape data replacement.
+
+Use the generic observation path for nonlinear predictors, or when a predictor
+already has an explicit tensor matrix request. Those paths keep the declared
+matrix arithmetic, provider and thread policy.
+`plate` still expands scalar factors. The caller declares priors and predictive
+units separately.
 
 Regression clones and `with_observations` share immutable predictor packs once
 prepared. Offsets and dispatch remain per binding; standardized designs get a

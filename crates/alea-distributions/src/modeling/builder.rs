@@ -153,10 +153,14 @@ impl ModelBuilderExt for ModelBuilder {
         location: impl Into<ScalarInput>,
         scale: &Parameter<Positive>,
     ) -> Result<(), AssemblyError> {
-        let data = RegressionData::new(1, vec![1.; observations.len()], observations.to_vec())
-            .map_err(super::error)?;
+        let data =
+            RegressionData::new(0, Vec::new(), observations.to_vec()).map_err(super::error)?;
         let location = self.expression(location)?;
-        self.normal_regression_likelihood(name, &[location], scale, data)
+        let likelihood = data
+            .linear_map_with_intercept(&[], location)?
+            .normal(scale)?
+            .sum_log_prob(self)?;
+        self.likelihood(name, likelihood)
     }
     fn normal_vector_likelihood(
         &mut self,

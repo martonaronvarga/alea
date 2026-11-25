@@ -19,6 +19,39 @@ impl<Y> RegressionData<Y> {
             data: self,
         })
     }
+
+    /// Declares `eta = X beta + intercept + offsets` with one shared scalar intercept.
+    /// The intercept is the last coefficient in the existing ordered regression
+    /// kernel. Observation rows and offsets retain their original order and storage.
+    /// # Errors
+    /// Rejects coefficient-count mismatch and an unrepresentable expanded design.
+    /// Ownership is checked during lowering.
+    pub fn linear_map_with_intercept(
+        mut self,
+        coefficients: &[Value],
+        intercept: Value,
+    ) -> Result<LinearPredictor<Y>, E> {
+        check_columns(&self, coefficients)?;
+        let columns = self.columns.checked_add(1).ok_or(E::Shape)?;
+        let elements = columns.checked_mul(self.rows()).ok_or(E::Shape)?;
+        let mut design = Vec::new();
+        design.try_reserve_exact(elements).map_err(|_| E::Shape)?;
+        for row in 0..self.rows() {
+            let start = row * self.columns;
+            design.extend_from_slice(&self.design[start..start + self.columns]);
+            design.push(1.);
+        }
+        self.columns = columns;
+        self.design = design.into();
+        self.packed = Arc::new(OnceLock::new());
+        let mut inputs = Vec::with_capacity(columns);
+        inputs.extend_from_slice(coefficients);
+        inputs.push(intercept);
+        Ok(LinearPredictor {
+            coefficients: inputs.into_boxed_slice(),
+            data: self,
+        })
+    }
 }
 /// Typed conditional log-probability map awaiting a sum reduction. Lowering
 /// selects the law's existing fused native implementation and CPU plan; it does

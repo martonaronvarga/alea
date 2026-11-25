@@ -1225,6 +1225,7 @@ fn model_block_edges_share_forward_residuals_and_accumulate_consumer_seeds() {
             &[input, count, enabled, index],
             Arc::clone(&calls),
             BlockRules {
+                preparation: None,
                 inputs: [
                     ElementType::Real,
                     ElementType::Count,

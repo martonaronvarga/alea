@@ -37,74 +37,13 @@ fn residual_layout(p: &Plan, active: &[bool], full: &[usize]) -> Result<Residual
             owner[i] = owner[v.node];
         }
     }
-    let mut mark = |v: Value| {
-        needed[owner[v.node]] = true;
-    };
-    for (i, n) in p.nodes.iter().enumerate() {
-        if !p.active[i] || !active[i] {
-            continue;
-        }
-        match &n.op {
-            Op::Registered(_) => return Err(E::MissingPrimal { node: i }),
-            Op::Unary(op, v) => match op {
-                UnaryOp::Neg => {}
-                UnaryOp::Exp | UnaryOp::Tanh | UnaryOp::Sqrt => mark(Value {
-                    owner: p.owner,
-                    node: i,
-                }),
-                UnaryOp::Log | UnaryOp::Log1p | UnaryOp::Expm1 | UnaryOp::Sin | UnaryOp::Cos => {
-                    mark(*v)
-                }
-            },
-            Op::Binary(b) => match b.kind {
-                BinaryOp::Add | BinaryOp::Subtract => {}
-                BinaryOp::Multiply => {
-                    if active[b.a.node] {
-                        mark(b.b);
-                    }
-                    if active[b.b.node] {
-                        mark(b.a);
-                    }
-                }
-                BinaryOp::Divide => {
-                    mark(b.b);
-                    if active[b.b.node] {
-                        mark(b.a);
-                    }
-                }
-            },
-            Op::Matmul { a, b, .. } => {
-                if active[a.node] {
-                    mark(*b);
-                }
-                if active[b.node] {
-                    mark(*a);
-                }
-            }
-            Op::Cond(c) => {
-                mark(c.lhs);
-                mark(c.rhs);
-                for &arg in &c.args {
-                    mark(arg);
-                }
-            }
-            Op::Scan(s) if s.steps != 0 => {
-                mark(s.initial);
-                mark(s.xs);
-                for &arg in &s.captures {
-                    mark(arg);
-                }
-            }
-            Op::Input(_)
-            | Op::Data(_)
-            | Op::Constant(_)
-            | Op::Alias(_)
-            | Op::Sum(_)
-            | Op::Gather(_, _)
-            | Op::Scan(_) => {}
-        }
+    let demand = p.facts.demands(active);
+    for read in demand.backward_reads() {
+        debug_assert_eq!(read.reader.owner, p.owner);
+        debug_assert_eq!(read.value.owner, p.owner);
+        needed[owner[read.value.node]] = true;
     }
-    let output = owner[p.output.node];
+    let output = owner[demand.result().node];
     let mut offsets = vec![0; p.nodes.len()];
     let mut slots = p.nodes[p.output.node].shape.elements;
     let mut copies = Vec::new();
@@ -144,7 +83,7 @@ pub(super) fn adjoint_layout(p: &Plan, active: &[bool]) -> Result<(Vec<usize>, u
         if n.discrete() {
             continue;
         }
-        if !p.active[i] || !active[i] || matches!(n.op, Op::Data(_) | Op::Constant(_)) {
+        if !p.facts.demands(active).cotangent(i) || matches!(n.op, Op::Data(_) | Op::Constant(_)) {
             continue;
         }
         if let Op::Alias(v) = n.op {
@@ -260,55 +199,13 @@ fn replay_interval(steps: usize, carry: usize, primal: usize) -> usize {
 }
 impl BoundProgram {
     pub(crate) fn requires_explicit_source(&self) -> bool {
-        self.plan.nodes.iter().enumerate().any(|(i, n)| {
-            self.plan.active[i]
-                && match &n.op {
-                    Op::Matmul { kernel, .. } => kernel.is_accelerated(),
-                    Op::Cond(c) => {
-                        c.yes.requires_explicit_source() || c.no.requires_explicit_source()
-                    }
-                    Op::Scan(s) => s.steps != 0 && s.body.requires_explicit_source(),
-                    _ => false,
-                }
-        })
+        self.plan.facts.explicit_source
     }
     pub(crate) fn has_source_checkpoints(&self) -> bool {
-        self.plan.nodes.iter().enumerate().any(|(i, n)| {
-            self.plan.active[i]
-                && match &n.op {
-                    Op::Scan(s) => s.checkpointed || s.body.has_source_checkpoints(),
-                    Op::Cond(c) => c.yes.has_source_checkpoints() || c.no.has_source_checkpoints(),
-                    _ => false,
-                }
-        })
+        self.plan.facts.source_checkpoints
     }
     pub(super) fn activity(&self, inputs: &[bool]) -> Vec<bool> {
-        let p = &self.plan;
-        let mut active = vec![false; p.nodes.len()];
-        for (i, n) in p.nodes.iter().enumerate() {
-            if !p.active[i] {
-                continue;
-            }
-            active[i] = match &n.op {
-                Op::Input(j) => inputs[*j],
-                Op::Cond(c) => {
-                    let args: Vec<_> = c.args.iter().map(|v| active[v.node]).collect();
-                    c.yes.activity(&args)[c.yes.plan.output.node]
-                        || c.no.activity(&args)[c.no.plan.output.node]
-                }
-                Op::Scan(s) if s.steps != 0 => {
-                    let args: Vec<_> = [s.initial, s.xs]
-                        .iter()
-                        .chain(s.captures.iter())
-                        .map(|v| active[v.node])
-                        .collect();
-                    s.body.activity(&args)[s.body.plan.output.node]
-                }
-                Op::Scan(s) => active[s.initial.node],
-                _ => n.inputs().iter().any(|v| active[v.node]),
-            };
-        }
-        active
+        self.plan.facts.activity(inputs)
     }
     pub(crate) fn pullback_source(&self, name: &str) -> Result<PullbackSource, E> {
         self.pullback_with_activity(name, &vec![true; self.plan.inputs.len()])

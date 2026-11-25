@@ -1,4 +1,5 @@
 //! Whole-value calls lowered to immutable tensor regions and private execution frames.
+use super::prepare;
 use super::{AssemblyError as E, ModelBuilder, Op, Value, VectorDomain, VectorParameter};
 use crate::model::tensor::{
     BlockRules, BlockType, BoundProgram, ElementType, RegionBuilder, Shape, TensorWorkspace,
@@ -8,6 +9,7 @@ pub(super) struct Call {
     pub inputs: Box<[usize]>,
     pub binding: BoundProgram,
     pub slot: usize,
+    pub preparation: Option<prepare::BlockRule>,
 }
 
 pub(super) struct Work {
@@ -44,6 +46,7 @@ impl Call {
         nodes: &[Op],
         values: &[f64],
         blocks: &mut [Option<Work>],
+        preparation: Option<&mut prepare::Plan>,
     ) -> Result<Option<f64>, E> {
         let (previous, current) = blocks.split_at_mut(self.slot);
         let work = current[0].as_mut().expect("active region frame");
@@ -62,8 +65,17 @@ impl Call {
             work.arguments[offset..end].copy_from_slice(value);
             offset = end;
         }
-        work.binding
-            .evaluate(&work.arguments, &mut work.value, &mut work.tensor)?;
+        let prepared = self.preparation.as_ref().and_then(|rule| {
+            preparation?
+                .blocks
+                .value(self.slot, values[self.inputs[rule.argument]])
+        });
+        work.binding.evaluate_with_preparation(
+            &work.arguments,
+            &mut work.value,
+            &mut work.tensor,
+            prepared,
+        )?;
         work.adjoint.fill(0.);
         Ok(self
             .binding
@@ -146,6 +158,7 @@ impl ModelBuilder {
             inputs: indices,
             binding,
             slot,
+            preparation: None,
         }))))
     }
 
@@ -187,7 +200,9 @@ impl ModelBuilder {
     }
 
     /// Registers typed native rules on ordered whole model values.
-    /// Use a lexical region for operations that also read discrete data.
+    /// Use a lexical region for operations that also read discrete or immutable
+    /// data leaves. This convenience binds immediately: an opted-in descriptor-
+    /// only preparation recipe may fail during construction, before registration.
     /// # Errors
     /// Rejects foreign handles, non-real formal inputs or shape/layout mismatch.
     pub fn register_block<D, W>(
@@ -203,6 +218,45 @@ impl ModelBuilder {
         self.region_operation(inputs, |region, arguments| {
             region.register_block(arguments, descriptor, rules)
         })
+    }
+
+    /// Registers native rules with pure, typed preparation of one scalar argument.
+    ///
+    /// Calls using the same recipe and model value share its result during one
+    /// forward evaluation. Pass a function item or captureless closure as the
+    /// recipe. Its type identifies the recipe across code generation units.
+    /// It must be deterministic and side-effect free.
+    /// Its payload is available only during forward via
+    /// [crate::model::tensor::BlockInputs::evaluation_prepared]. The forward rule
+    /// still owns domain validation and must save any residuals its VJP needs.
+    /// # Errors
+    /// Rejects an invalid or nonscalar argument and recipes with runtime state,
+    /// including function pointers, in addition to ordinary registration errors.
+    pub fn register_block_with_preparation<D, W, P, F>(
+        &mut self,
+        inputs: &[Value],
+        descriptor: D,
+        rules: BlockRules<D, W>,
+        argument: usize,
+        prepare: F,
+    ) -> Result<Value, E>
+    where
+        D: Send + Sync + 'static,
+        W: Send + 'static,
+        P: Copy + Send + Sync + 'static,
+        F: Fn(f64) -> P + Copy + Send + Sync + 'static,
+    {
+        if size_of::<F>() != 0
+            || self.value_shape(*inputs.get(argument).ok_or(E::Shape)?)? != Shape::scalar()
+        {
+            return Err(E::Shape);
+        }
+        let value = self.register_block(inputs, descriptor, rules)?;
+        let Op::Region(call) = self.nodes.last_mut().expect("registered block") else {
+            unreachable!("registered region")
+        };
+        call.preparation = Some(prepare::BlockRule::new(argument, prepare));
+        Ok(value)
     }
 
     /// Views an existing vector parameter as one shaped model value.
@@ -221,6 +275,7 @@ impl ModelBuilder {
             expressions,
             (),
             BlockRules {
+                preparation: None,
                 inputs: vec![
                     BlockType {
                         dtype: ElementType::Real,

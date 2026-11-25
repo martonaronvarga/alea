@@ -1,8 +1,29 @@
 //! Block dispatch and contiguous pullbacks. The default preserves scalar order
 //! and repeated-operand writes; explicit accelerated policies allow reassociation.
-use super::{Binary, BinaryOp, Map, ResolvedMatrix, UnaryOp, execute};
+use super::{Binary, BinaryOp, E, Map, ResolvedMatrix, UnaryOp, execute};
 use alea_math::gemm::try_gemm;
 use alea_math::numeric::CompensatedSum;
+
+#[inline]
+pub(super) fn unary_forward(op: UnaryOp, input: &[f64], out: &mut [f64]) {
+    for (out, &x) in out.iter_mut().zip(input) {
+        *out = execute::unary(op, x);
+    }
+}
+#[inline]
+pub(super) fn sum_forward(input: &[f64]) -> f64 {
+    let mut sum = CompensatedSum::default();
+    for &value in input {
+        sum.add(value);
+    }
+    sum.total()
+}
+#[inline]
+pub(super) fn gather_forward(input: &[f64], indices: &[usize], out: &mut [f64]) {
+    for (out, &index) in out.iter_mut().zip(indices) {
+        *out = input[index];
+    }
+}
 
 // Keep matrix-sized loop bodies out of the shared pointwise/control interpreter.
 // These calls amortize over a block, not one call per matrix element.
@@ -26,16 +47,69 @@ pub(super) fn matmul_forward(
             *out = sum.total();
         }
     } else {
-        for row in 0..m {
-            for column in 0..n {
-                let mut sum = CompensatedSum::default();
-                for j in 0..k {
-                    sum.add_product(a[row * k + j], b[j * n + column]);
-                }
-                out[row * n + column] = sum.total();
+        compensated_matmul((m, k, n), out, |sum, left, right| {
+            sum.add_product(a[left], b[right]);
+        });
+    }
+}
+
+#[inline]
+fn compensated_matmul(
+    (m, k, n): (usize, usize, usize),
+    out: &mut [f64],
+    mut accumulate: impl FnMut(&mut CompensatedSum, usize, usize),
+) {
+    for row in 0..m {
+        for column in 0..n {
+            let mut sum = CompensatedSum::default();
+            for j in 0..k {
+                accumulate(&mut sum, row * k + j, j * n + column);
             }
+            out[row * n + column] = sum.total();
         }
     }
+}
+
+pub(super) fn matmul_jvp(
+    (a, b): (&[f64], &[f64]),
+    (da, db): (Option<&[f64]>, Option<&[f64]>),
+    out: &mut [f64],
+    dimensions: (usize, usize, usize),
+    kernel: ResolvedMatrix,
+) -> Result<(), E> {
+    if out.is_empty() {
+        return Ok(());
+    }
+    if kernel.is_accelerated() {
+        if let Some(da) = da
+            && !try_gemm(kernel, da, b, out, dimensions, (false, false), false)
+        {
+            return Err(E::Shape);
+        }
+        if let Some(db) = db
+            && !try_gemm(kernel, a, db, out, dimensions, (false, false), da.is_some())
+        {
+            return Err(E::Shape);
+        }
+        if da.is_none() && db.is_none() {
+            out.fill(0.);
+        }
+        return Ok(());
+    }
+    match (da, db) {
+        (Some(da), Some(db)) => {
+            // Retain compensation until both terms of the product rule
+            // have been accumulated, in contraction and operand order.
+            compensated_matmul(dimensions, out, |sum, left, right| {
+                sum.add_product(da[left], b[right]);
+                sum.add_product(a[left], db[right]);
+            });
+        }
+        (Some(da), None) => matmul_forward(da, b, out, dimensions, kernel),
+        (None, Some(db)) => matmul_forward(a, db, out, dimensions, kernel),
+        (None, None) => out.fill(0.),
+    }
+    Ok(())
 }
 
 #[inline(never)]
@@ -248,6 +322,16 @@ pub(super) fn unary_reverse_range(
     unary_reverse(op, x, y, seeds, scores);
 }
 
+#[inline(always)]
+pub(super) fn divide_left(right: f64) -> f64 {
+    1. / right
+}
+
+#[inline(always)]
+pub(super) fn divide_right(left: f64, right: f64) -> f64 {
+    -(left / right) / right
+}
+
 // Keep operation/map specialization at both interpreter and tiled call sites.
 // Outlining this shared wrapper adds argument traffic to every scalar scan trip.
 #[inline(always)]
@@ -256,7 +340,7 @@ pub(super) fn reverse(b: &Binary, work: Pullback<'_>) {
         BinaryOp::Add => reverse_with(b, work, |_, _| (1., 1.)),
         BinaryOp::Subtract => reverse_with(b, work, |_, _| (1., -1.)),
         BinaryOp::Multiply => reverse_with(b, work, |a, r| (r, a)),
-        BinaryOp::Divide => reverse_with(b, work, |a, r| (1. / r, -(a / r) / r)),
+        BinaryOp::Divide => reverse_with(b, work, |a, r| (divide_left(r), divide_right(a, r))),
     }
 }
 // Same derivative expressions and repeated-operand addition order as reverse.
@@ -306,7 +390,7 @@ pub(super) fn reverse_range(b: &Binary, work: Pullback<'_>, start: usize) {
             BinaryOp::Add => (1., 1.),
             BinaryOp::Subtract => (1., -1.),
             BinaryOp::Multiply => (r[index], a[l]),
-            BinaryOp::Divide => (1. / r[index], -(a[l] / r[index]) / r[index]),
+            BinaryOp::Divide => (divide_left(r[index]), divide_right(a[l], r[index])),
         };
         if da {
             adjoints[lhs + l] += seed * left;

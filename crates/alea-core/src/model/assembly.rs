@@ -933,6 +933,7 @@ impl Executable {
                     &self.nodes,
                     &self.primitives,
                     self.callbacks.len(),
+                    self.active_nodes.as_deref(),
                 ),
             },
         }
@@ -1223,7 +1224,9 @@ impl Executable {
             }
             values[i] = match op {
                 Op::Region(call) => {
-                    let Some(value) = call.forward(&self.nodes, values, blocks)? else {
+                    let Some(value) =
+                        call.forward(&self.nodes, values, blocks, preparation.as_deref_mut())?
+                    else {
                         continue;
                     };
                     value

@@ -2,7 +2,10 @@
 mod builder;
 mod normal;
 mod observations;
-pub use observations::observations;
+pub use observations::{
+    bernoulli_logit_region_observations, normal_observation_block, normal_region_observations,
+    observations, poisson_log_region_observations,
+};
 pub mod regression;
 use crate::{
     scalar::Bernoulli,

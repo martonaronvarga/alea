@@ -7,16 +7,16 @@ mod binding_tests;
 #[cfg(test)]
 mod observations;
 
-// Binding-dependent preparations are immutable and separate from Work's
-// parameter-dependent residual/scratch. Clones retain the same snapshot identity.
-#[cfg(test)]
+// Immutable payloads belong to binding snapshots, not execution scratch.
+type Prepared = dyn Any + Send + Sync;
 pub(super) struct BindingState {
-    prepared: Box<[Option<Arc<[f64]>>]>,
+    prepared: Box<[Option<Arc<Prepared>>]>,
+    pub(super) fixed: Box<[Option<binding::Fixed>]>,
 }
-#[cfg(test)]
 pub(super) fn bind_snapshot(plan: Arc<Plan>, data: Vec<Arc<[f64]>>) -> Result<BoundProgram, E> {
-    let mut prepared = Vec::with_capacity(plan.nodes.len());
-    for (i, node) in plan.nodes.iter().enumerate() {
+    let mut prepared = Vec::new();
+    let end = plan.last_native_block().map_or(0, |last| last + 1);
+    for (i, node) in plan.nodes[..end].iter().enumerate() {
         let rule = match &node.op {
             Op::Registered(op) if plan.active[i] => match &**op {
                 Operation::Native(call) => call.binding.as_ref(),
@@ -24,41 +24,45 @@ pub(super) fn bind_snapshot(plan: Arc<Plan>, data: Vec<Arc<[f64]>>) -> Result<Bo
             },
             _ => None,
         };
-        let value = if let Some(rule) = rule {
-            let mut output = vec![f64::NAN; rule.elements];
-            let Op::Registered(op) = &node.op else {
-                unreachable!()
-            };
-            (rule.prepare)(
-                BindingInputs {
-                    call: op.inputs(),
-                    rule,
-                    nodes: &plan.nodes,
-                    data: &data,
-                },
-                &mut output,
-            )?;
-            if output.iter().any(|v| !v.is_finite()) {
-                return Err(E::Numerical);
-            }
-            Some(Arc::from(output))
-        } else {
-            None
-        };
-        prepared.push(value);
+        if let Some(rule) = rule {
+            // Allocate only for bindings with an opted-in recipe. Preserve node
+            // indexing without charging every ordinary binding for a table.
+            prepared.resize_with(i + 1, || None);
+            prepared[i] = Some((rule.prepare)(BindingInputs {
+                call: op_inputs(node),
+                arguments: &rule.arguments,
+                nodes: &plan.nodes,
+                data: &data,
+            })?);
+        }
     }
+    let fixed = binding::materialize(&plan, &data);
     Ok(BoundProgram {
         plan,
         data,
-        snapshot: Arc::new(BindingState {
-            prepared: prepared.into_boxed_slice(),
+        snapshot: (!prepared.is_empty() || !fixed.is_empty()).then(|| {
+            Arc::new(BindingState {
+                prepared: prepared.into_boxed_slice(),
+                fixed: fixed.into_boxed_slice(),
+            })
         }),
     })
 }
-#[cfg(test)]
+fn op_inputs(node: &Node) -> &[Value] {
+    let Op::Registered(op) = &node.op else {
+        unreachable!("prepared registered call")
+    };
+    op.inputs()
+}
 impl BoundProgram {
-    pub(super) fn preparation(&self, node: usize) -> &[f64] {
-        self.snapshot.prepared[node].as_deref().unwrap_or(&[])
+    pub(super) fn fixed(&self, node: usize) -> Option<&binding::Fixed> {
+        self.snapshot.as_ref()?.fixed.get(node)?.as_ref()
+    }
+    pub(super) fn has_fixed(&self) -> bool {
+        self.snapshot.as_ref().is_some_and(|s| !s.fixed.is_empty())
+    }
+    pub(super) fn preparation(&self, node: usize) -> Option<&Arc<Prepared>> {
+        self.snapshot.as_ref()?.prepared.get(node)?.as_ref()
     }
 }
 
@@ -79,7 +83,7 @@ pub struct BlockType {
     pub shape: Shape,
 }
 impl BlockType {
-    fn of(node: &Node) -> Self {
+    pub(super) fn of(node: &Node) -> Self {
         let dtype = match &node.op {
             Op::Registered(op) => match &**op {
                 Operation::Data(Data::Bool(_)) => ElementType::Bool,
@@ -124,6 +128,9 @@ pub struct BlockRules<D, W> {
     pub heap_bytes: usize,
     /// Writes every element of the result.
     pub forward: fn(&D, BlockInputs<'_>, &mut [f64], &mut W) -> Result<(), E>,
+    /// Optional eager binding recipe, independent of the VJP. Only declared
+    /// direct immutable leaves may be read; this never runs `forward` early.
+    pub preparation: Option<BlockPreparation<D>>,
     /// Optional reverse rule. Writes contributions for real arguments in order.
     pub vjp: Option<BlockVjp<D, W>>,
 }
@@ -132,6 +139,36 @@ pub struct BlockRules<D, W> {
 /// contributions are flattened in argument order, including repeated inputs.
 pub type BlockVjp<D, W> =
     fn(&D, BlockInputs<'_>, &[f64], &[f64], &mut [f64], &mut W) -> Result<(), E>;
+
+/// Explicit directional rule over already admitted primals and read-only
+/// forward workspace. The rule writes the entire output tangent in row-major
+/// order. It does not imply a transpose, replay, source or higher derivatives.
+pub type BlockJvp<D, W> =
+    fn(&D, BlockInputs<'_>, BlockTangents<'_>, &[f64], &mut [f64], &W) -> Result<(), E>;
+
+/// Directions for the real argument occurrences of one registered call.
+pub struct BlockTangents<'a> {
+    arguments: &'a [Value],
+    nodes: &'a [Node],
+    ranges: &'a [Option<Range<usize>>],
+    values: &'a [f64],
+}
+impl BlockTangents<'_> {
+    /// Returns a real direction, or `None` for a symbolic zero.
+    /// # Errors
+    /// Rejects nonexistent or discrete arguments.
+    pub fn real(&self, i: usize) -> Result<Option<&[f64]>, E> {
+        let argument = self.arguments.get(i).ok_or(E::Shape)?;
+        if self.nodes[argument.node].discrete() {
+            return Err(E::Shape);
+        }
+        Ok(self.ranges[i].as_ref().map(|r| &self.values[r.clone()]))
+    }
+}
+
+type ErasedJvp = dyn Fn(BlockInputs<'_>, BlockTangents<'_>, &[f64], &mut [f64], &Workspace) -> Result<(), E>
+    + Send
+    + Sync;
 
 type Workspace = dyn Any + Send;
 type ErasedForward =
@@ -156,38 +193,58 @@ struct Kernel {
     forward: Box<Forward>,
     // An optional native VJP implies neither JVP, source nor higher derivatives.
     vjp: Option<Box<Vjp>>,
-    binding: Option<BindingRule>,
 }
-#[cfg(test)]
-type Prepare = dyn Fn(BindingInputs<'_>, &mut [f64]) -> Result<(), E> + Send + Sync;
-#[cfg(test)]
-struct BindingRule {
-    // Logical argument positions, independent of graph handles. Only direct
-    // immutable data/constants may be read during this bounded binding proof.
+type Prepare<D> = dyn Fn(&D, BindingInputs<'_>) -> Result<Arc<Prepared>, E> + Send + Sync;
+/// Explicit opt-in to eager preparation at `bind`/`rebind`, not at evaluation.
+/// The callback must validate its own typed payload and return any domain error.
+/// Failed preparation (or unwind) leaves old snapshots/contexts intact. Ordinary
+/// guarded forward callbacks are never inferred pure or hoisted by this recipe.
+/// Clones of a binding share the returned immutable payload; per-point residuals
+/// and mutable scratch must remain in the execution workspace.
+pub struct BlockPreparation<D> {
     arguments: Box<[usize]>,
-    elements: usize,
-    prepare: Box<Prepare>,
+    prepare: Box<Prepare<D>>,
 }
-#[cfg(test)]
+impl<D: 'static> BlockPreparation<D> {
+    /// Declares logical block argument positions available to the recipe.
+    /// Registration rejects parameters, derived values and bad positions before
+    /// graph mutation. The function runs once per active call per new binding;
+    /// the model convenience registration may bind immediately during construction.
+    /// P is erased once; `BlockInputs::prepared::<P>` checks its type at access.
+    pub fn new<P: Any + Send + Sync>(
+        arguments: Vec<usize>,
+        prepare: fn(&D, BindingInputs<'_>) -> Result<P, E>,
+    ) -> Self {
+        Self {
+            arguments: arguments.into_boxed_slice(),
+            prepare: Box::new(move |d, inputs| Ok(Arc::new(prepare(d, inputs)?) as Arc<Prepared>)),
+        }
+    }
+}
+type ErasedPrepare = dyn Fn(BindingInputs<'_>) -> Result<Arc<Prepared>, E> + Send + Sync;
+struct PreparationCall {
+    arguments: Box<[usize]>,
+    prepare: Box<ErasedPrepare>,
+}
 enum BindingValue<'a> {
     Real(&'a [f64]),
     Bool(&'a [bool]),
     Count(&'a [u64]),
     Index(&'a [usize]),
 }
-#[cfg(test)]
-struct BindingInputs<'a> {
+/// Read-only immutable leaves in the recipe's declared argument order. Parameters
+/// and undeclared call arguments are not available, even if currently constant.
+pub struct BindingInputs<'a> {
     call: &'a [Value],
-    rule: &'a BindingRule,
+    arguments: &'a [usize],
     nodes: &'a [Node],
     data: &'a [Arc<[f64]>],
 }
-#[cfg(test)]
 impl BindingInputs<'_> {
     fn get(&self, i: usize) -> Result<BindingValue<'_>, E> {
-        let argument = *self.rule.arguments.get(i).ok_or(E::Shape)?;
-        let node = &self.nodes[self.call[argument].node];
-        match &node.op {
+        let argument = *self.arguments.get(i).ok_or(E::Shape)?;
+        let value = self.call.get(argument).ok_or(E::Shape)?;
+        match &self.nodes.get(value.node).ok_or(E::Shape)?.op {
             Op::Data(i) => Ok(BindingValue::Real(&self.data[*i])),
             Op::Constant(v) => Ok(BindingValue::Real(v)),
             Op::Registered(op) => match &**op {
@@ -196,6 +253,42 @@ impl BindingInputs<'_> {
                 Operation::Data(Data::Index(v)) => Ok(BindingValue::Index(v)),
                 _ => Err(E::Shape),
             },
+            _ => Err(E::Shape),
+        }
+    }
+    /// Reads a declared real data/constant leaf.
+    /// # Errors
+    /// Rejects a wrong position or element type.
+    pub fn real(&self, i: usize) -> Result<&[f64], E> {
+        match self.get(i)? {
+            BindingValue::Real(v) => Ok(v),
+            _ => Err(E::Shape),
+        }
+    }
+    /// Reads a declared Boolean leaf.
+    /// # Errors
+    /// Rejects a wrong position or element type.
+    pub fn booleans(&self, i: usize) -> Result<&[bool], E> {
+        match self.get(i)? {
+            BindingValue::Bool(v) => Ok(v),
+            _ => Err(E::Shape),
+        }
+    }
+    /// Reads a declared count leaf without floating conversion.
+    /// # Errors
+    /// Rejects a wrong position or element type.
+    pub fn counts(&self, i: usize) -> Result<&[u64], E> {
+        match self.get(i)? {
+            BindingValue::Count(v) => Ok(v),
+            _ => Err(E::Shape),
+        }
+    }
+    /// Reads a declared index leaf without floating conversion.
+    /// # Errors
+    /// Rejects a wrong position or element type.
+    pub fn indices(&self, i: usize) -> Result<&[usize], E> {
+        match self.get(i)? {
+            BindingValue::Index(v) => Ok(v),
             _ => Err(E::Shape),
         }
     }
@@ -209,8 +302,8 @@ pub(super) struct Call {
     workspace: Box<dyn Fn() -> Box<Workspace> + Send + Sync>,
     forward: Box<ErasedForward>,
     vjp: Option<Box<ErasedVjp>>,
-    #[cfg(test)]
-    binding: Option<BindingRule>,
+    jvp: Option<Box<ErasedJvp>>,
+    binding: Option<PreparationCall>,
 }
 pub(super) enum Operation {
     Data(Data),
@@ -231,10 +324,26 @@ pub struct BlockInputs<'a> {
     arguments: &'a [Value],
     nodes: &'a [Node],
     values: &'a [f64],
-    #[cfg(test)]
-    prepared: &'a [f64],
+    prepared: Option<&'a Prepared>,
+    evaluation_prepared: Option<&'a Prepared>,
 }
 impl BlockInputs<'_> {
+    /// Borrows this block's typed evaluation payload during forward.
+    /// # Errors
+    /// Rejects an absent payload or a different Rust type.
+    pub fn evaluation_prepared<P: Any>(&self) -> Result<&P, E> {
+        self.evaluation_prepared
+            .and_then(|p| p.downcast_ref::<P>())
+            .ok_or(E::Shape)
+    }
+    /// Borrows the immutable payload returned by this call's binding recipe.
+    /// # Errors
+    /// Rejects an absent recipe or a different Rust payload type.
+    pub fn prepared<P: Any + Send + Sync>(&self) -> Result<&P, E> {
+        self.prepared
+            .and_then(|p| p.downcast_ref::<P>())
+            .ok_or(E::Shape)
+    }
     fn node(&self, i: usize) -> Result<&Node, E> {
         let v = self.arguments.get(i).ok_or(E::Shape)?;
         self.nodes.get(v.node).ok_or(E::Shape)
@@ -326,13 +435,74 @@ impl RegionBuilder {
         D: Send + Sync + 'static,
         W: Send + 'static,
     {
+        self.register_block_rules(inputs, descriptor, rules, None)
+    }
+
+    /// Registers an explicitly supplied directional rule alongside native rules.
+    /// The callback reads admitted forward residuals and is independent of VJP.
+    /// # Errors
+    /// Returns the same structural errors as [Self::register_block].
+    pub fn register_block_with_jvp<D, W>(
+        &mut self,
+        inputs: &[Value],
+        descriptor: D,
+        rules: BlockRules<D, W>,
+        jvp: BlockJvp<D, W>,
+    ) -> Result<Value, E>
+    where
+        D: Send + Sync + 'static,
+        W: Send + 'static,
+    {
+        self.register_block_rules(inputs, descriptor, rules, Some(jvp))
+    }
+
+    fn register_block_rules<D, W>(
+        &mut self,
+        inputs: &[Value],
+        descriptor: D,
+        rules: BlockRules<D, W>,
+        jvp: Option<BlockJvp<D, W>>,
+    ) -> Result<Value, E>
+    where
+        D: Send + Sync + 'static,
+        W: Send + 'static,
+    {
         let (scores, contributions) =
             self.check_block_edges(inputs, &rules.inputs, &rules.output)?;
+        if let Some(recipe) = &rules.preparation {
+            for &i in &recipe.arguments {
+                let input = *inputs.get(i).ok_or(E::Shape)?;
+                let node = self.node(input)?;
+                if !matches!(&node.op, Op::Data(_) | Op::Constant(_)) && !node.discrete() {
+                    return Err(E::Shape);
+                }
+            }
+        }
         let elements = extent(scores, rules.output.elements)?;
         let workspace_bytes = checked_workspace_bytes::<W>(elements, rules.heap_bytes)?;
         let descriptor = Arc::new(descriptor);
         let forward_descriptor = Arc::clone(&descriptor);
         let workspace_descriptor = Arc::clone(&descriptor);
+        let binding = rules.preparation.map(|recipe| {
+            let descriptor = Arc::clone(&descriptor);
+            PreparationCall {
+                arguments: recipe.arguments,
+                prepare: Box::new(move |inputs| (recipe.prepare)(&descriptor, inputs)),
+            }
+        });
+        let jvp = jvp.map(|rule| -> Box<ErasedJvp> {
+            let descriptor = Arc::clone(&descriptor);
+            Box::new(move |inputs, tangents, primal, out, workspace| {
+                rule(
+                    &descriptor,
+                    inputs,
+                    tangents,
+                    primal,
+                    out,
+                    workspace.downcast_ref::<W>().expect("typed workspace"),
+                )
+            })
+        });
         let output = rules.output.elements;
         self.push(
             rules.output,
@@ -363,8 +533,8 @@ impl RegionBuilder {
                         )
                     })
                 }),
-                #[cfg(test)]
-                binding: None,
+                jvp,
+                binding,
             }))),
         )
     }
@@ -433,21 +603,7 @@ impl RegionBuilder {
         let elements = extent(scores, signature.output.shape.elements)?;
         checked_workspace_bytes::<Vec<f64>>(elements, heap_bytes)?;
         let kernel = prepare()?;
-        if let Some(rule) = &kernel.binding {
-            extent(0, rule.elements)?;
-            for &i in &rule.arguments {
-                let input = *inputs.get(i).ok_or(E::Shape)?;
-                let node = self.node(input)?;
-                if !matches!(&node.op, Op::Data(_) | Op::Constant(_)) && !node.discrete() {
-                    return Err(E::Shape);
-                }
-            }
-        }
-        let Kernel {
-            forward,
-            vjp,
-            binding,
-        } = kernel;
+        let Kernel { forward, vjp } = kernel;
         struct Fixture {
             forward: Box<Forward>,
             vjp: Option<Box<Vjp>>,
@@ -462,6 +618,7 @@ impl RegionBuilder {
                 scratch: signature.scratch,
             },
             BlockRules {
+                preparation: None,
                 inputs: signature.inputs,
                 output: signature.output.shape,
                 workspace: |fixture| vec![0.; fixture.scratch],
@@ -478,14 +635,15 @@ impl RegionBuilder {
                 ),
             },
         )?;
-        let Op::Registered(operation) = &mut self.nodes[value.node].op else {
-            unreachable!()
-        };
-        let Operation::Native(call) = operation.as_mut() else {
-            unreachable!()
-        };
-        call.binding = binding;
         Ok(value)
+    }
+}
+
+fn same_preparation(old: Option<&Arc<Prepared>>, current: Option<&Arc<Prepared>>) -> bool {
+    match (old, current) {
+        (None, None) => true,
+        (Some(old), Some(current)) => Arc::ptr_eq(old, current),
+        _ => false,
     }
 }
 
@@ -493,13 +651,49 @@ pub(super) struct Work {
     scratch: Box<Workspace>,
     contributions: Vec<f64>,
     seed: Vec<f64>,
+    binding: Option<Arc<Prepared>>,
 }
 impl Call {
+    pub(super) fn supports_jvp(&self) -> bool {
+        self.jvp.is_some()
+    }
+    pub(super) fn arguments(&self) -> &[Value] {
+        &self.inputs
+    }
+    pub(super) fn directional(
+        &self,
+        (nodes, values): (&[Node], &[f64]),
+        (ranges, tangents): (&[Option<Range<usize>>], &[f64]),
+        primal: &[f64],
+        output: &mut [f64],
+        work: &Work,
+    ) -> Result<(), E> {
+        output.fill(f64::NAN);
+        self.jvp.as_ref().expect("compiled JVP")(
+            BlockInputs {
+                arguments: &self.inputs,
+                nodes,
+                values,
+                prepared: work.binding.as_deref(),
+                evaluation_prepared: None,
+            },
+            BlockTangents {
+                arguments: &self.inputs,
+                nodes,
+                ranges,
+                values: tangents,
+            },
+            primal,
+            output,
+            work.scratch.as_ref(),
+        )
+    }
     pub(super) fn workspace(&self) -> Work {
         Work {
             scratch: (self.workspace)(),
             contributions: vec![0.; self.scores],
             seed: vec![0.; self.output],
+            binding: None,
         }
     }
     pub(super) fn workspace_bytes(&self) -> usize {
@@ -511,8 +705,12 @@ impl Call {
         node: &Node,
         values: &mut [f64],
         w: &mut Work,
-        #[cfg(test)] prepared: &[f64],
+        prepared: Option<&Arc<Prepared>>,
+        evaluation_prepared: Option<&Prepared>,
     ) -> Result<(), E> {
+        if !same_preparation(w.binding.as_ref(), prepared) {
+            w.binding = prepared.cloned();
+        }
         let (before, after) = values.split_at_mut(node.start);
         let output = &mut after[..self.output];
         output.fill(f64::NAN);
@@ -521,8 +719,8 @@ impl Call {
                 arguments: &self.inputs,
                 nodes,
                 values: before,
-                #[cfg(test)]
-                prepared,
+                prepared: prepared.map(AsRef::as_ref),
+                evaluation_prepared,
             },
             output,
             w.scratch.as_mut(),
@@ -535,8 +733,11 @@ impl Call {
         seed: &[f64],
         primal: &[f64],
         w: &mut Work,
-        #[cfg(test)] prepared: &[f64],
+        prepared: Option<&Arc<Prepared>>,
     ) -> Result<(), E> {
+        if !same_preparation(w.binding.as_ref(), prepared) {
+            return Err(E::Shape);
+        }
         let vjp = self
             .vjp
             .as_ref()
@@ -548,8 +749,8 @@ impl Call {
                 arguments: &self.inputs,
                 nodes,
                 values,
-                #[cfg(test)]
-                prepared,
+                prepared: prepared.map(AsRef::as_ref),
+                evaluation_prepared: None,
             },
             primal,
             &w.seed,
@@ -576,39 +777,11 @@ impl Call {
 struct MissingVjp;
 
 pub(super) fn missing_source(plan: &Plan) -> Option<usize> {
-    plan.nodes.iter().enumerate().find_map(|(i, node)| {
-        let missing = match &node.op {
-            Op::Registered(_) => true,
-            #[cfg(feature = "openblas")]
-            Op::Matmul {
-                kernel, m, k, n, ..
-            } if kernel.provider() == MatrixProvider::Blas => {
-                *m != 0
-                    && *k != 0
-                    && *n != 0
-                    && [*m, *k, *n].into_iter().any(|d| i32::try_from(d).is_err())
-            }
-            Op::Cond(c) => {
-                missing_source(&c.yes.plan).is_some() || missing_source(&c.no.plan).is_some()
-            }
-            Op::Scan(s) => s.steps != 0 && missing_source(&s.body.plan).is_some(),
-            _ => false,
-        };
-        (plan.active[i] && missing).then_some(i)
-    })
+    plan.facts.missing_source
 }
-// No replay/purity contract is supplied by this native-only experiment. Do not
-// infer it from mathematical shape, a VJP or the absence of a source rule.
+// Native callbacks have no purity/replay contract, regardless of VJP support.
 pub(super) fn blocks_replay(plan: &Plan) -> bool {
-    plan.nodes.iter().enumerate().any(|(i, node)| {
-        plan.active[i]
-            && match &node.op {
-                Op::Registered(op) => matches!(&**op, Operation::Native(_)),
-                Op::Cond(c) => blocks_replay(&c.yes.plan) || blocks_replay(&c.no.plan),
-                Op::Scan(s) => s.steps != 0 && blocks_replay(&s.body.plan),
-                _ => false,
-            }
-    })
+    plan.facts.blocks_replay()
 }
 
 #[cfg(test)]
@@ -631,7 +804,6 @@ mod tests {
     }
     fn identity() -> Kernel {
         Kernel {
-            binding: None,
             forward: Box::new(|x, out, _| {
                 out.copy_from_slice(x.real(0)?);
                 Ok(())
@@ -706,7 +878,6 @@ mod tests {
                 &[squared, squared, mask, counts, indices],
                 || {
                     Ok(Kernel {
-                        binding: None,
                         forward: Box::new(move |x, out, scratch| {
                             count.fetch_add(1, Ordering::Relaxed);
                             scratch[0] = 1.; // Reinitialize, regardless of previous execution.
@@ -1073,7 +1244,6 @@ mod tests {
         let y = b
             .register(sig, &[count, mask, index], || {
                 Ok(Kernel {
-                    binding: None,
                     forward: Box::new(|x, out, _| {
                         assert_eq!(x.counts(0)?, [u64::MAX]);
                         assert_eq!(x.indices(2)?, [usize::MAX - 1]);
@@ -1112,7 +1282,6 @@ mod tests {
         let y = b
             .register(unary_signature(1), &[x], || {
                 Ok(Kernel {
-                    binding: None,
                     forward: Box::new(move |x, out, scratch| {
                         scratch[0] = f64::NAN;
                         match f.load(Ordering::Relaxed) {
@@ -1337,7 +1506,6 @@ mod tests {
         let y = b
             .register(signature, &[x, x, x], || {
                 Ok(Kernel {
-                    binding: None,
                     forward: Box::new(|args, out, _| {
                         out[0] =
                             (1e16 * args.real(0)?[0] + args.real(1)?[0]) - 1e16 * args.real(2)?[0];

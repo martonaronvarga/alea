@@ -2836,3 +2836,94 @@ Remote roots are `/users/usumusu/alea-i55-xNouQtHx` and its `candidate-b-full`,
 Frozen source, protocols, full case distributions, rejected variants, invalid
 pilot, dependency audit and exact scripts remain private retained evidence.
 This is not a public independent reproduction or offline toolchain distribution.
+
+## I4.6 bounded Gaussian SBC protocol (predeclared 2026-11-20)
+
+This scientific pilot uses the existing downstream `modeling::regression`
+fixture, not the covariance, Radon or schools models. Independently generated
+intercept and slope have N(0,1) priors; observations at x = [-1,0,1] have
+independent N(intercept + slope*x, 0.7) errors. All distributions are proper and
+already supported by `Normal::sample`. The generator is checked separately
+against prior-predictive means/covariances and the existing independent density
+and gradient oracle. Centered design makes the posterior coordinates independent:
+variances are 0.49/3.49 and 0.49/2.49, with means sum(y)/3.49 and sum(x*y)/2.49.
+An exact control uses these formulas and the existing Normal sampler.
+
+Before looking at ranks, fix 512 datasets and 31 posterior draws per dataset.
+Native draws each come from a separate independently seeded NUTS chain: zero
+start, step 0.2, depth 7, 256 warmup transitions with the default adaptation,
+then 32 frozen transitions, keeping only the final position. This avoids
+within-chain rank dependence; finite warmup bias remains testable, not assumed
+absent. Exact, ignore-data (prior draws), and wrong-scale (twice the exact
+posterior standard deviation) controls each use 31 independent draws. No failed
+dataset or chain is dropped. Report warmup and frozen divergences and depth hits.
+
+Quantities, fixed in advance, are intercept, slope, joint log posterior, full
+log likelihood, first-observation log likelihood, and remaining-two log
+likelihood. Evaluate densities through existing native models, subtracting the
+prior-only model for likelihoods. Count ranks below the truth, breaking exact
+ties uniformly over 0..=number of ties using a separate random stream. All 32
+rank positions map evenly into four bins. Independent streams have seeds
+`0x14600000 + stream*1000000 + dataset*1000 + draw`, with streams 0 (generator),
+1 (native), 2 (exact), 3 (ignore data), 4 (wrong scale), and 10..13 (rank ties).
+The separate generator check uses seed 0x146fffff and 16384 replicates.
+
+Use a simultaneous Hoeffding count band with family alpha 0.01 over all
+4 methods * 6 quantities * 4 bins: half-width
+sqrt(512/2 * ln(2*96/0.01)), about 50.25 counts (9.81 percentage points).
+Under independent uniform ranks this bounds family false rejection by 1%,
+without requiring independence between quantities or controls. Correct methods
+must stay inside; ignore-data must be detected by at least one likelihood
+quantity and wrong-scale by at least one parameter. All bins and failures are
+reported before assertions. No threshold, seed or budget is tuned to outcomes.
+For one specified bin, a deviation exceeding twice the band width has detection
+probability at least 1 - 0.01/96 under the same independent-dataset assumptions;
+smaller deviations can easily escape detection. This is a low-resolution pilot,
+not a general power guarantee or broad calibration claim. Talts et al. (paper
+10) motivates dependence handling; Modrak et al. (paper 27) motivates
+data-dependent quantities, randomized ties and broken controls.
+
+### Executed pilot and interpretation
+
+Stable native Rust executed all 512 datasets and 15,872 independently warmed
+chains without failed or dropped datasets. Four-bin counts, ordered low to high:
+
+| Quantity | Native NUTS | Exact posterior | Ignore data | Wrong scale |
+| --- | --- | --- | --- | --- |
+| Intercept | 123,127,127,135 | 121,130,129,132 | 121,134,112,145 | 44,213,190,65 |
+| Slope | 128,134,127,123 | 125,127,135,125 | 106,133,125,148 | 54,208,196,54 |
+| Joint log posterior | 110,137,138,127 | 108,140,135,129 | 0,2,34,476 | 1,22,134,355 |
+| Joint log likelihood | 115,125,135,137 | 124,111,142,135 | 0,2,38,472 | 4,38,145,325 |
+| First log likelihood | 116,148,124,124 | 118,139,129,126 | 3,25,142,342 | 19,98,184,211 |
+| Remaining log likelihood | 129,121,108,154 | 124,121,118,149 | 0,14,89,409 | 10,69,174,259 |
+
+The simultaneous count half-width was 50.24780973188845 around 128. Neither
+correct method rejected any quantity. Ignore-data rejected all three likelihood
+quantities and the joint posterior, but neither parameter; wrong-scale rejected
+all six. These controls demonstrate sensitivity to these particular large
+errors. They do not establish power against small errors or other alternatives.
+
+There were 58,962 divergent warmup transitions out of 4,063,232 (about 1.45%)
+and one warmup depth hit. Frozen sampling had zero divergences and zero depth
+hits across 507,904 transitions. Warmup divergences were retained, not used to
+exclude chains or retune the protocol. Thus the result is compatible with
+calibration at this pilot's coarse resolution despite adaptation excursions;
+it does not establish convergence for arbitrary initial states or models.
+Generator and exact draws share the production Normal sampler: the independent
+moment and density/gradient checks reduce, but do not eliminate, common-mode
+implementation risk. Historical hierarchical SBC tests are unchanged and do
+not inherit this pilot's independence or multiplicity guarantees.
+
+Reproduce the explicit (normally ignored) pilot with:
+
+```sh
+cargo test --release --manifest-path tools/downstream-conformance/Cargo.toml \
+  --test modeling gaussian_sbc::bounded_regression_pilot -- \
+  --ignored --exact --nocapture
+```
+
+Its JSON record names all methods/quantities, counts, rejection decisions,
+uncertainty band and warmup/frozen failure diagnostics. Separate routine tests
+check prior-predictive moments, ties and an independently derived conjugate
+posterior density/gradient. No production implementation, derivative capability
+or performance claim changes; performance was not measured.

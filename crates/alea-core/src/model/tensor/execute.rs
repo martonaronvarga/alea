@@ -1,8 +1,137 @@
 //! Dense block execution and reverse propagation, with preallocated region frames.
 use super::*;
-use alea_math::numeric::CompensatedSum;
+
+use super::analysis::{FrameInstance, ResidualGuard};
+pub(super) mod linear;
+use linear::curvature::{Frame, ReversePair, ScanPair};
+
+/// Reusable native directional evaluator for one bound tensor region.
+/// The structural direction mask is selected at construction.
+pub struct TensorJvp<'a> {
+    binding: &'a BoundProgram,
+    program: linear::Program<'a>,
+    work: TensorWorkspace,
+    tangents: Vec<f64>,
+}
+
+impl TensorJvp<'_> {
+    /// Evaluates a primal and its directional derivative. Each direction is
+    /// flat row-major in its formal input's shape. Use `None` only for inputs
+    /// disabled in the structural mask. Both outputs publish on success.
+    /// # Errors
+    /// Rejects shape, direction, domain or nonfinite result errors.
+    pub fn value_and_jvp(
+        &mut self,
+        x: &[f64],
+        directions: &[Option<&[f64]>],
+        out: &mut [f64],
+        tangent: &mut [f64],
+    ) -> Result<(), E> {
+        self.program.value_and_jvp(
+            self.binding,
+            x,
+            directions,
+            (out, tangent),
+            &mut self.work,
+            &mut self.tangents,
+        )
+    }
+}
+
+impl BoundProgram {
+    /// Builds a directional evaluator for the given formal-input mask.
+    /// Primal admission runs even if all directions are disabled. Registered
+    /// calls require an explicit JVP rule. Conditions follow the admitted
+    /// branch, and fixed-trip scans propagate directions through the carry.
+    /// # Errors
+    /// Rejects an incorrect mask arity or a reachable unsupported operation.
+    pub fn jvp(&self, directions: &[bool]) -> Result<TensorJvp<'_>, E> {
+        let program = linear::Program::compile(&self.plan, directions)?;
+        let tangents = vec![0.; program.tangent_elements()];
+        Ok(TensorJvp {
+            binding: self,
+            program,
+            work: self.workspace(),
+            tangents,
+        })
+    }
+}
+
+/// Native potential curvature for a single scalar tensor region.
+/// The region result is interpreted as log density in its flattened inputs.
+pub struct TensorPotential<'a> {
+    binding: &'a BoundProgram,
+    program: linear::Program<'a>,
+    work: std::cell::RefCell<(TensorWorkspace, Frame)>,
+}
+
+impl crate::target::TargetSpace for TensorPotential<'_> {
+    type Error = E;
+
+    fn dimension(&self) -> usize {
+        self.binding.dimension()
+    }
+}
+
+impl crate::target::LogDensityGradient for TensorPotential<'_> {
+    fn is_numerical_error(&self, error: &E) -> bool {
+        matches!(error, E::Numerical)
+    }
+
+    fn logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> Result<f64, E> {
+        let mut value = [0.];
+        let mut work = self.work.try_borrow_mut().map_err(|_| E::WorkspaceBusy)?;
+        self.binding
+            .value_and_vjp(position, &[1.], &mut value, gradient, &mut work.0)?;
+        Ok(value[0])
+    }
+}
+
+impl crate::capability::PotentialHessianVector for TensorPotential<'_> {
+    fn potential_hvp(&self, position: &[f64], vector: &[f64], output: &mut [f64]) -> Result<(), E> {
+        if output.len() != self.binding.dimension() {
+            return Err(E::Shape);
+        }
+        let mut storage = self.work.try_borrow_mut().map_err(|_| E::WorkspaceBusy)?;
+        let (work, frame) = &mut *storage;
+        self.program.seeded_directional_vjp(
+            self.binding,
+            work,
+            frame,
+            [position, vector],
+            [&[1.], &[0.]],
+        )?;
+        for (out, direction) in output.iter_mut().zip(&frame.gradient) {
+            *out = -*direction;
+        }
+        Ok(())
+    }
+}
+
+impl BoundProgram {
+    /// Creates a reusable native curvature target for a scalar builtin region.
+    /// Control flow is differentiated along the selected path. Inputs are the
+    /// target coordinates, with no implicit transforms or Jacobian terms.
+    /// # Errors
+    /// Rejects a nonscalar output or a reachable call without a second rule.
+    pub fn potential_hvp_target(&self) -> Result<TensorPotential<'_>, E> {
+        if !self.output_shape().axes().is_empty() {
+            return Err(E::Shape);
+        }
+        let program = linear::Program::compile_curvature(&self.plan)?;
+        let work = self.workspace();
+        let frame = Frame::new(&program, &work);
+        Ok(TensorPotential {
+            binding: self,
+            program,
+            work: std::cell::RefCell::new((work, frame)),
+        })
+    }
+}
 
 struct RegionWork {
+    site: Value,
+    branch: Option<usize>,
     frames: Vec<TensorWorkspace>,
     args: Vec<f64>,
     seed: Vec<f64>,
@@ -13,6 +142,42 @@ struct RegionWork {
 struct Checkpoint {
     carries: Vec<f64>,
     interval: usize,
+    // Reused slots must refer to the replayed iteration, not their last occupant.
+    iterations: Vec<usize>,
+}
+impl RegionWork {
+    // The exclusive borrow is the context identity: residuals cannot escape
+    // this region or survive the next mutable evaluation. Site and instance
+    // retain the original call's SSA provenance across checkpoint slot reuse.
+    fn residual(&mut self, guard: ResidualGuard, index: usize) -> Result<&mut TensorWorkspace, E> {
+        if guard.site != self.site {
+            return Err(E::Shape);
+        }
+        let matches = match guard.instance {
+            FrameInstance::Branch(choice) => self.branch == Some(choice) && index == choice,
+            FrameInstance::Iteration(step) => self
+                .checkpoint
+                .as_ref()
+                .map_or(index == step, |c| c.iterations.get(index) == Some(&step)),
+        };
+        if !matches {
+            return Err(E::Shape);
+        }
+        let frame = self.frames.get_mut(index).ok_or(E::Shape)?;
+        if !frame.prepared || frame.owner != guard.child {
+            return Err(E::Shape);
+        }
+        Ok(frame)
+    }
+    fn reverse_residual(
+        &mut self,
+        guard: ResidualGuard,
+        index: usize,
+        binding: &BoundProgram,
+    ) -> Result<(), E> {
+        self.residual(guard, index)?;
+        binding.reverse(&self.seed, &mut self.frames[index])
+    }
 }
 // Segment checkpointing only for substantial retained tapes. Short scans keep
 // their original one-forward-pass VJP. Integer sqrt avoids rounded size decisions.
@@ -32,6 +197,7 @@ fn scan_interval(s: &Scan, carry: usize) -> usize {
     let checkpointed = (interval + 1)
         .saturating_mul(s.body.plan.workspace_bytes)
         .saturating_add(size_of::<Checkpoint>())
+        .saturating_add((interval + 1).saturating_mul(size_of::<usize>()))
         .saturating_add(
             s.steps
                 .div_ceil(interval)
@@ -109,7 +275,9 @@ pub(super) fn workspace_bytes(p: &Plan) -> Result<usize, E> {
                                 mul(s.steps.div_ceil(interval), node.shape.elements)?,
                                 size_of::<f64>(),
                             )?,
-                        )?,
+                        )?
+                        .checked_add(mul(interval + 1, size_of::<usize>())?)
+                        .ok_or(E::Shape)?,
                     )?
                 };
                 (frames, s.body.dimension())
@@ -142,6 +310,9 @@ struct AdjointPlan {
 /// public evaluation methods stage caller-visible values and gradients.
 pub struct TensorWorkspace {
     owner: u64,
+    // A residual is usable only after a complete admitted forward. Clear this
+    // before any fallible entry, including shape checks and callback unwinds.
+    prepared: bool,
     values: Vec<f64>,
     adjoints: Vec<f64>,
     adjoint_plan: Option<Box<AdjointPlan>>,
@@ -151,6 +322,7 @@ pub struct TensorWorkspace {
     // Own the cached binding arrays: address-only identity could be reused after
     // the old snapshot is dropped. Arc identity remains valid until refreshed.
     data: Vec<Arc<[f64]>>,
+    snapshot: Option<Arc<registration::BindingState>>,
     regions: Vec<Option<RegionWork>>,
     blocks: Vec<Option<registration::Work>>,
 }
@@ -161,8 +333,9 @@ impl BoundProgram {
         scores: &mut [f64],
         w: &mut TensorWorkspace,
     ) -> Result<(), E> {
-        if seed.iter().any(|v| !v.is_finite()) {
-            return Err(E::Numerical);
+        if scores.len() != self.dimension() {
+            w.prepared = false;
+            return Err(E::Shape);
         }
         self.reverse(seed, w)?;
         scores.copy_from_slice(&w.gradient);
@@ -194,7 +367,7 @@ impl BoundProgram {
     // Closed data and constant operands must not acquire spurious derivatives.
     pub(in crate::model) fn workspace_with_activity(&self, inputs: &[bool]) -> TensorWorkspace {
         let p = &self.plan;
-        let mut differential = vec![false; p.nodes.len()];
+        let differential = p.facts.activity(inputs);
         let mut regions = Vec::with_capacity(p.nodes.len());
         for (i, node) in p.nodes.iter().enumerate() {
             if !p.active[i] {
@@ -206,9 +379,12 @@ impl BoundProgram {
                     let inputs: Vec<_> = c.args.iter().map(|a| differential[a.node]).collect();
                     let yes = c.yes.workspace_with_activity(&inputs);
                     let no = c.no.workspace_with_activity(&inputs);
-                    differential[i] = yes.differential[c.yes.plan.output.node]
-                        || no.differential[c.no.plan.output.node];
                     Some(RegionWork {
+                        site: Value {
+                            owner: p.owner,
+                            node: i,
+                        },
+                        branch: None,
                         frames: vec![yes, no],
                         args: vec![0.; c.yes.dimension()],
                         seed: vec![0.; node.shape.elements],
@@ -230,8 +406,12 @@ impl BoundProgram {
                         inputs[0] = frame.differential[s.body.plan.output.node];
                         frames.push(frame);
                     }
-                    differential[i] = inputs[0];
                     Some(RegionWork {
+                        site: Value {
+                            owner: p.owner,
+                            node: i,
+                        },
+                        branch: None,
                         frames,
                         args: vec![0.; s.body.dimension()],
                         seed: vec![0.; node.shape.elements],
@@ -239,18 +419,12 @@ impl BoundProgram {
                             Box::new(Checkpoint {
                                 carries: vec![0.; s.steps.div_ceil(interval) * node.shape.elements],
                                 interval,
+                                iterations: vec![usize::MAX; count],
                             })
                         }),
                     })
                 }
-                Op::Input(index) => {
-                    differential[i] = inputs[*index];
-                    None
-                }
-                _ => {
-                    differential[i] = node.inputs().iter().any(|v| differential[v.node]);
-                    None
-                }
+                _ => None,
             };
             regions.push(region);
         }
@@ -281,7 +455,7 @@ impl BoundProgram {
         }
         let mut values = vec![0.; p.slots];
         for (i, node) in p.nodes.iter().enumerate() {
-            if !p.active[i] {
+            if !p.facts.admission(i) {
                 continue;
             }
             match &node.op {
@@ -319,8 +493,9 @@ impl BoundProgram {
                 })
                 .collect()
         });
-        TensorWorkspace {
+        let mut work = TensorWorkspace {
             owner: p.owner,
+            prepared: false,
             values,
             adjoints: vec![0.; adjoint_slots],
             adjoint_plan: planned.then(|| {
@@ -334,6 +509,7 @@ impl BoundProgram {
             differential,
             adjoint_ranges,
             data: self.data.clone(),
+            snapshot: None,
             regions,
             blocks: p.last_native_block().map_or_else(Vec::new, |last| {
                 p.nodes[..=last]
@@ -346,7 +522,29 @@ impl BoundProgram {
                     })
                     .collect()
             }),
+        };
+        self.refresh_fixed(&mut work);
+        work
+    }
+    fn same_snapshot(&self, w: &TensorWorkspace) -> bool {
+        match (&self.snapshot, &w.snapshot) {
+            (None, None) => true,
+            (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+            _ => false,
         }
+    }
+    fn refresh_fixed(&self, w: &mut TensorWorkspace) {
+        if self.same_snapshot(w) {
+            return;
+        }
+        if let Some(snapshot) = &self.snapshot {
+            for (i, fixed) in snapshot.fixed.iter().enumerate() {
+                if let Some(binding::Fixed::Value(values)) = fixed {
+                    w.values[self.plan.nodes[i].range()].copy_from_slice(values);
+                }
+            }
+        }
+        w.snapshot.clone_from(&self.snapshot);
     }
     fn validate(&self, x: &[f64], w: &TensorWorkspace) -> Result<(), E> {
         if x.len() != self.dimension()
@@ -364,11 +562,21 @@ impl BoundProgram {
     /// # Errors
     /// Shape/workspace/domain errors preserve the caller's entire output buffer.
     pub fn evaluate(&self, x: &[f64], out: &mut [f64], w: &mut TensorWorkspace) -> Result<(), E> {
+        self.evaluate_with_preparation(x, out, w, None)
+    }
+    pub(in crate::model) fn evaluate_with_preparation(
+        &self,
+        x: &[f64],
+        out: &mut [f64],
+        w: &mut TensorWorkspace,
+        evaluation_prepared: Option<&(dyn std::any::Any + Send + Sync)>,
+    ) -> Result<(), E> {
+        w.prepared = false;
         if out.len() != self.output_shape().elements {
             return Err(E::Shape);
         }
         self.validate(x, w)?;
-        self.execute_forward(x, w)?;
+        self.execute_forward(x, w, evaluation_prepared)?;
         out.copy_from_slice(&w.values[self.plan.nodes[self.plan.output.node].range()]);
         Ok(())
     }
@@ -384,6 +592,7 @@ impl BoundProgram {
         g: &mut [f64],
         w: &mut TensorWorkspace,
     ) -> Result<(), E> {
+        w.prepared = false;
         if out.len() != self.output_shape().elements
             || seed.len() != out.len()
             || g.len() != self.dimension()
@@ -394,36 +603,74 @@ impl BoundProgram {
         if seed.iter().any(|v| !v.is_finite()) {
             return Err(E::Numerical);
         }
-        self.execute_forward(x, w)?;
+        self.execute_forward(x, w, None)?;
         self.reverse(seed, w)?;
         out.copy_from_slice(&w.values[self.plan.nodes[self.plan.output.node].range()]);
         g.copy_from_slice(&w.gradient);
         Ok(())
     }
-    fn execute_forward(&self, x: &[f64], w: &mut TensorWorkspace) -> Result<(), E> {
+    fn execute_forward(
+        &self,
+        x: &[f64],
+        w: &mut TensorWorkspace,
+        evaluation_prepared: Option<&(dyn std::any::Any + Send + Sync)>,
+    ) -> Result<(), E> {
+        w.prepared = false;
+        self.refresh_fixed(w);
         let Some(schedule) = &self.plan.execution else {
-            return self.forward(x, w);
+            return self.forward(x, w, evaluation_prepared);
         };
         for step in &schedule.0 {
             match step {
-                fusion::Step::Nodes(range) => self.forward_nodes::<false>(x, w, range.clone())?,
+                fusion::Step::Nodes(range) => {
+                    if self.has_fixed() {
+                        self.forward_nodes::<false, true>(
+                            x,
+                            w,
+                            range.clone(),
+                            evaluation_prepared,
+                        )?;
+                    } else {
+                        self.forward_nodes::<false, false>(
+                            x,
+                            w,
+                            range.clone(),
+                            evaluation_prepared,
+                        )?;
+                    }
+                }
                 fusion::Step::Fused(group) => fusion::forward(&self.plan, group, &mut w.values)?,
             }
         }
+        w.prepared = true;
         Ok(())
     }
     // Keep the unscheduled interpreter as one outlined call, as before fusion.
     // In particular, scalar scan bodies must not inline a complete interpreter
     // or re-check the planner on every trip.
-    fn forward(&self, x: &[f64], w: &mut TensorWorkspace) -> Result<(), E> {
-        self.forward_nodes::<true>(x, w, 0..0)
+    fn forward(
+        &self,
+        x: &[f64],
+        w: &mut TensorWorkspace,
+        evaluation_prepared: Option<&(dyn std::any::Any + Send + Sync)>,
+    ) -> Result<(), E> {
+        w.prepared = false;
+        self.refresh_fixed(w);
+        if self.has_fixed() {
+            self.forward_nodes::<true, true>(x, w, 0..0, evaluation_prepared)?;
+        } else {
+            self.forward_nodes::<true, false>(x, w, 0..0, evaluation_prepared)?;
+        }
+        w.prepared = true;
+        Ok(())
     }
     #[inline(always)]
-    fn forward_nodes<const FULL: bool>(
+    fn forward_nodes<const FULL: bool, const FIXED: bool>(
         &self,
         x: &[f64],
         w: &mut TensorWorkspace,
         range: Range<usize>,
+        evaluation_prepared: Option<&(dyn std::any::Any + Send + Sync)>,
     ) -> Result<(), E> {
         let p = &self.plan;
         let nodes = if FULL {
@@ -436,6 +683,12 @@ impl BoundProgram {
             if !p.active[i] {
                 continue;
             }
+            if FIXED && let Some(fixed) = self.fixed(i) {
+                match fixed {
+                    binding::Fixed::Value(_) => continue,
+                    binding::Fixed::Numerical => return Err(E::Numerical),
+                }
+            }
             match &node.op {
                 Op::Registered(op) => match &**op {
                     registration::Operation::Data(_) => continue,
@@ -444,8 +697,8 @@ impl BoundProgram {
                         node,
                         &mut w.values,
                         w.blocks[i].as_mut().expect("registered block workspace"),
-                        #[cfg(test)]
                         self.preparation(i),
+                        evaluation_prepared.filter(|_| i == p.output.node),
                     )?,
                 },
                 Op::Input(input) => {
@@ -466,12 +719,11 @@ impl BoundProgram {
                 Op::Constant(_) | Op::Alias(_) => continue,
                 Op::Unary(op, a) => {
                     let (before, after) = w.values.split_at_mut(node.start);
-                    for (out, &a) in after[..node.shape.elements]
-                        .iter_mut()
-                        .zip(&before[p.nodes[a.node].range()])
-                    {
-                        *out = unary(*op, a);
-                    }
+                    kernels::unary_forward(
+                        *op,
+                        &before[p.nodes[a.node].range()],
+                        &mut after[..node.shape.elements],
+                    );
                 }
                 Op::Binary(b) => {
                     let (before, after) = w.values.split_at_mut(node.start);
@@ -483,19 +735,15 @@ impl BoundProgram {
                     );
                 }
                 Op::Sum(a) => {
-                    let mut sum = CompensatedSum::default();
-                    for &value in &w.values[p.nodes[a.node].range()] {
-                        sum.add(value);
-                    }
-                    w.values[node.start] = sum.total();
+                    w.values[node.start] = kernels::sum_forward(&w.values[p.nodes[a.node].range()]);
                 }
                 Op::Gather(a, indices) => {
                     let (before, after) = w.values.split_at_mut(node.start);
-                    let start = p.nodes[a.node].start;
-                    for (out, &index) in after[..node.shape.elements].iter_mut().zip(indices.iter())
-                    {
-                        *out = before[start + index];
-                    }
+                    kernels::gather_forward(
+                        &before[p.nodes[a.node].range()],
+                        indices,
+                        &mut after[..node.shape.elements],
+                    );
                 }
                 Op::Matmul {
                     a,
@@ -535,7 +783,9 @@ impl BoundProgram {
                         region.args[offset..offset + values.len()].copy_from_slice(values);
                         offset += values.len();
                     }
-                    selected.execute_forward(&region.args, &mut region.frames[choice])?;
+                    region.branch = None;
+                    selected.execute_forward(&region.args, &mut region.frames[choice], None)?;
+                    region.branch = Some(choice);
                     let output = selected.plan.nodes[selected.plan.output.node].range();
                     w.values[node.range()].copy_from_slice(&region.frames[choice].values[output]);
                 }
@@ -551,7 +801,30 @@ impl BoundProgram {
         }
         Ok(())
     }
-    fn reverse(&self, seed: &[f64], w: &mut TensorWorkspace) -> Result<(), E> {
+    fn check_residual(&self, w: &TensorWorkspace, admitted: bool) -> Result<(), E> {
+        let p = &self.plan;
+        if !admitted
+            || w.owner != p.owner
+            || !self.same_snapshot(w)
+            || p.facts
+                .binding_data
+                .iter()
+                .any(|&j| !Arc::ptr_eq(&self.data[j], &w.data[j]))
+        {
+            return Err(E::Shape);
+        }
+        Ok(())
+    }
+
+    fn seed_reverse(&self, seed: &[f64], w: &mut TensorWorkspace) -> Result<(), E> {
+        let admitted = std::mem::replace(&mut w.prepared, false);
+        self.check_residual(w, admitted)?;
+        if seed.len() != self.output_shape().elements {
+            return Err(E::Shape);
+        }
+        if seed.iter().any(|v| !v.is_finite()) {
+            return Err(E::Numerical);
+        }
         let p = &self.plan;
         for range in &w.adjoint_ranges {
             w.adjoints[range.clone()].fill(0.);
@@ -564,6 +837,12 @@ impl BoundProgram {
                 .map_or(p.nodes[p.output.node].start, |a| a.starts[p.output.node]);
             w.adjoints[start..start + seed.len()].copy_from_slice(seed);
         }
+        Ok(())
+    }
+
+    fn reverse(&self, seed: &[f64], w: &mut TensorWorkspace) -> Result<(), E> {
+        self.seed_reverse(seed, w)?;
+        let p = &self.plan;
         if let Some(schedule) = &p.execution {
             for (index, step) in schedule.0.iter().enumerate().rev() {
                 match step {
@@ -579,25 +858,62 @@ impl BoundProgram {
                             &w.adjoint_plan.as_ref().expect("fused layout").starts,
                         );
                     }
-                    fusion::Step::Fused(group) => {
-                        self.reverse_nodes::<false, true>(w, group.maps.start..group.end())?
-                    }
+                    fusion::Step::Fused(group) => self.reverse_nodes::<false, true, false>(
+                        w,
+                        group.maps.start..group.end(),
+                        None,
+                    )?,
                     fusion::Step::Nodes(range) => {
-                        self.reverse_nodes::<false, true>(w, range.clone())?
+                        self.reverse_nodes::<false, true, false>(w, range.clone(), None)?
                     }
                 }
             }
         } else {
             if let Some(layout) = &w.adjoint_plan {
                 if layout.seed.is_some() {
-                    self.reverse_nodes::<true, true>(w, 0..p.nodes.len())?;
+                    self.reverse_nodes::<true, true, false>(w, 0..p.nodes.len(), None)?;
                 } else {
-                    self.reverse_nodes::<false, true>(w, 0..p.nodes.len())?;
+                    self.reverse_nodes::<false, true, false>(w, 0..p.nodes.len(), None)?;
                 }
             } else {
-                self.reverse_nodes::<false, false>(w, 0..p.nodes.len())?;
+                self.reverse_nodes::<false, false, false>(w, 0..p.nodes.len(), None)?;
             }
         }
+        self.check_reverse(w)
+    }
+
+    fn reverse_directional(
+        &self,
+        seed: &[f64],
+        seed_direction: &[f64],
+        work: &mut TensorWorkspace,
+        program: &linear::Program<'_>,
+        frame: &mut Frame,
+    ) -> Result<(), E> {
+        self.seed_reverse(seed, work)?;
+        let p = &self.plan;
+        frame.adjoints.fill(0.);
+        frame.gradient.fill(0.);
+        if work.differential[p.output.node] {
+            frame.adjoints[p.nodes[p.output.node].range()].copy_from_slice(seed_direction);
+        }
+        let pair = ReversePair { program, frame };
+        let range = 0..p.nodes.len();
+        match &work.adjoint_plan {
+            Some(layout) if layout.seed.is_some() => {
+                self.reverse_nodes::<true, true, true>(work, range, Some(pair))?
+            }
+            Some(_) => self.reverse_nodes::<false, true, true>(work, range, Some(pair))?,
+            None => self.reverse_nodes::<false, false, true>(work, range, Some(pair))?,
+        }
+        self.check_reverse(work)?;
+        if alea_math::numeric::first_nonfinite(&frame.adjoints).is_some() {
+            return Err(E::Numerical);
+        }
+        Ok(())
+    }
+
+    fn check_reverse(&self, w: &TensorWorkspace) -> Result<(), E> {
         if alea_math::numeric::first_nonfinite(&w.gradient).is_some()
             || w.adjoint_ranges.iter().any(|range| {
                 alea_math::numeric::first_nonfinite(&w.adjoints[range.clone()]).is_some()
@@ -607,10 +923,11 @@ impl BoundProgram {
         }
         Ok(())
     }
-    fn reverse_nodes<const REUSE: bool, const PLANNED: bool>(
+    fn reverse_nodes<const REUSE: bool, const PLANNED: bool, const CURVATURE: bool>(
         &self,
         w: &mut TensorWorkspace,
         range: Range<usize>,
+        mut pair: Option<ReversePair<'_, '_>>,
     ) -> Result<(), E> {
         let p = &self.plan;
         let (starts, mut seed_buffer): (&[usize], Option<&mut [f64]>) =
@@ -623,186 +940,161 @@ impl BoundProgram {
             if !p.active[i] || !w.differential[i] {
                 continue;
             }
-            if REUSE && matches!(node.op, Op::Binary(_) | Op::Matmul { .. }) {
+            // Transpose the builtin rule at its position in the existing reverse
+            // schedule. Keep the adjoint layout and seed admission independent.
+            use linear::Rule;
+            let rule = Rule::at(node);
+            let copied_seed = if REUSE && matches!(rule, Rule::Binary(_) | Rule::Matrix { .. }) {
                 let start = adjoint_start::<PLANNED>(p, starts, i);
-                seed_buffer.as_deref_mut().expect("reused adjoint seed")[..node.shape.elements]
-                    .copy_from_slice(&w.adjoints[start..start + node.shape.elements]);
-            }
-            match &node.op {
-                Op::Registered(op) => match &**op {
-                    registration::Operation::Data(_) => {}
-                    registration::Operation::Native(call) => {
-                        let base = adjoint_start::<PLANNED>(p, starts, i);
-                        let work = w.blocks[i].as_mut().expect("registered block workspace");
-                        call.reverse(
-                            &p.nodes,
-                            &w.values,
-                            &w.adjoints[base..base + node.shape.elements],
-                            &w.values[node.range()],
-                            work,
-                            #[cfg(test)]
-                            self.preparation(i),
-                        )?;
-                        call.accumulate(work, |input, scores| {
-                            if w.differential[input.node] {
-                                let base = adjoint_start::<PLANNED>(p, starts, input.node);
-                                for (adjoint, &score) in
-                                    w.adjoints[base..base + scores.len()].iter_mut().zip(scores)
-                                {
-                                    *adjoint += score;
-                                }
+                let seed = &mut seed_buffer.as_deref_mut().expect("reused adjoint seed")
+                    [..node.shape.elements];
+                seed.copy_from_slice(&w.adjoints[start..start + node.shape.elements]);
+                Some(&*seed)
+            } else {
+                None
+            };
+            let base = adjoint_start::<PLANNED>(p, starts, i);
+            let curvature = if CURVATURE {
+                pair.as_mut().filter(|_| node.shape.elements != 0)
+            } else {
+                None
+            };
+            match rule {
+                Rule::Native(call) => {
+                    let base = adjoint_start::<PLANNED>(p, starts, i);
+                    let work = w.blocks[i].as_mut().expect("registered block workspace");
+                    call.reverse(
+                        &p.nodes,
+                        &w.values,
+                        &w.adjoints[base..base + node.shape.elements],
+                        &w.values[node.range()],
+                        work,
+                        self.preparation(i),
+                    )?;
+                    call.accumulate(work, |input, scores| {
+                        if w.differential[input.node] {
+                            let base = adjoint_start::<PLANNED>(p, starts, input.node);
+                            for (adjoint, &score) in
+                                w.adjoints[base..base + scores.len()].iter_mut().zip(scores)
+                            {
+                                *adjoint += score;
                             }
-                        });
+                        }
+                    });
+                }
+                Rule::Input(input) => {
+                    let input = &p.inputs[input];
+                    if let Some(pair) = curvature {
+                        pair.frame.gradient[input.start..input.start + input.shape.elements]
+                            .copy_from_slice(&pair.frame.adjoints[node.range()]);
                     }
-                },
-                Op::Input(input) => {
-                    let input = &p.inputs[*input];
                     w.gradient[input.start..input.start + input.shape.elements].copy_from_slice(
                         &w.adjoints[adjoint_start::<PLANNED>(p, starts, i)
                             ..adjoint_start::<PLANNED>(p, starts, i) + node.shape.elements],
                     );
                 }
-                Op::Data(_) | Op::Constant(_) | Op::Alias(_) => {}
-                Op::Unary(op, a) => {
-                    kernels::unary_reverse_range(
-                        *op,
-                        &w.values[p.nodes[a.node].range()],
-                        &w.values[node.range()],
-                        &mut w.adjoints,
-                        (
-                            adjoint_start::<PLANNED>(p, starts, a.node),
-                            adjoint_start::<PLANNED>(p, starts, i),
-                        ),
-                    );
-                }
-                Op::Binary(b) => {
-                    let (adjoints, after): (&mut [f64], &[f64]) = if REUSE {
-                        (
-                            &mut w.adjoints,
-                            &seed_buffer.as_deref().expect("reused adjoint seed")
-                                [..node.shape.elements],
-                        )
-                    } else {
-                        let (before, after) = w
-                            .adjoints
-                            .split_at_mut(adjoint_start::<PLANNED>(p, starts, i));
-                        (before, &after[..node.shape.elements])
-                    };
-                    kernels::reverse(
-                        b,
-                        kernels::Pullback {
-                            a: &w.values[p.nodes[b.a.node].range()],
-                            r: &w.values[p.nodes[b.b.node].range()],
-                            seeds: &after[..node.shape.elements],
-                            adjoints,
-                            starts: (
-                                adjoint_start::<PLANNED>(p, starts, b.a.node),
-                                adjoint_start::<PLANNED>(p, starts, b.b.node),
-                            ),
-                            active: (w.differential[b.a.node], w.differential[b.b.node]),
-                        },
-                    );
-                }
-                Op::Sum(a) => {
-                    let seed = w.adjoints[adjoint_start::<PLANNED>(p, starts, i)];
-                    for j in adjoint_start::<PLANNED>(p, starts, a.node)
-                        ..adjoint_start::<PLANNED>(p, starts, a.node)
-                            + p.nodes[a.node].shape.elements
-                    {
-                        w.adjoints[j] += seed;
-                    }
-                }
-                Op::Gather(a, indices) => {
-                    let start = adjoint_start::<PLANNED>(p, starts, a.node);
-                    for (j, &index) in indices.iter().enumerate() {
-                        w.adjoints[start + index] +=
-                            w.adjoints[adjoint_start::<PLANNED>(p, starts, i) + j];
-                    }
-                }
-                Op::Matmul {
-                    a,
-                    b,
-                    m,
-                    k,
-                    n,
-                    kernel,
-                } => {
-                    if node.shape.elements == 0 {
-                        continue;
-                    }
-                    let (adjoints, seeds): (&mut [f64], &[f64]) = if REUSE {
-                        (
-                            &mut w.adjoints,
-                            &seed_buffer.as_deref().expect("reused adjoint seed")
-                                [..node.shape.elements],
-                        )
-                    } else {
-                        let (before, after) = w
-                            .adjoints
-                            .split_at_mut(adjoint_start::<PLANNED>(p, starts, i));
-                        (before, &after[..node.shape.elements])
-                    };
-                    kernels::matmul_reverse(
-                        (*m, *k, *n),
-                        kernels::Pullback {
-                            a: &w.values[p.nodes[a.node].range()],
-                            r: &w.values[p.nodes[b.node].range()],
-                            seeds: &seeds[..node.shape.elements],
-                            adjoints,
-                            starts: (
-                                adjoint_start::<PLANNED>(p, starts, a.node),
-                                adjoint_start::<PLANNED>(p, starts, b.node),
-                            ),
-                            active: (w.differential[a.node], w.differential[b.node]),
-                        },
-                        *kernel,
-                    );
-                }
-                Op::Cond(c) => {
-                    let choice = if compare(
-                        c.comparison,
-                        w.values[p.nodes[c.lhs.node].start],
-                        w.values[p.nodes[c.rhs.node].start],
-                    ) {
-                        0
-                    } else {
-                        1
-                    };
-                    let selected = if choice == 0 { &c.yes } else { &c.no };
+                Rule::Cond(c) => {
                     let region = w.regions[i].as_mut().expect("condition frame");
+                    let choice = region.branch.ok_or(E::Shape)?;
+                    let selected = if choice == 0 { &c.yes } else { &c.no };
                     region.seed.copy_from_slice(
                         &w.adjoints[adjoint_start::<PLANNED>(p, starts, i)
                             ..adjoint_start::<PLANNED>(p, starts, i) + node.shape.elements],
                     );
-                    selected.reverse(&region.seed, &mut region.frames[choice])?;
+                    let guard = p.facts.guard(
+                        Value {
+                            owner: p.owner,
+                            node: i,
+                        },
+                        FrameInstance::Branch(choice),
+                    )?;
+                    let mut curvature_adjoints = if let Some(pair) = curvature
+                        && let Some(tape) = pair.frame.regions[i].as_mut()
+                    {
+                        let seed = &pair.frame.adjoints[node.range()];
+                        let program = pair.program.control(i).frame_program(choice);
+                        region.residual(guard, choice)?;
+                        selected.reverse_directional(
+                            &region.seed,
+                            seed,
+                            &mut region.frames[choice],
+                            program,
+                            &mut tape.frames[choice],
+                        )?;
+                        Some((&mut pair.frame.adjoints, &tape.frames[choice].gradient))
+                    } else {
+                        region.reverse_residual(guard, choice, selected)?;
+                        None
+                    };
                     let mut offset = 0;
                     for arg in &c.args {
                         for j in 0..p.nodes[arg.node].shape.elements {
                             if w.differential[arg.node] {
                                 w.adjoints[adjoint_start::<PLANNED>(p, starts, arg.node) + j] +=
                                     region.frames[choice].gradient[offset];
+                                if let Some((target, scores)) = &mut curvature_adjoints {
+                                    target[p.nodes[arg.node].start + j] += scores[offset];
+                                }
                             }
                             offset += 1;
                         }
                     }
                 }
-                Op::Scan(s) => {
+                Rule::Scan(s) => {
                     let region = w.regions[i].as_mut().expect("scan frames");
                     region.seed.copy_from_slice(
                         &w.adjoints[adjoint_start::<PLANNED>(p, starts, i)
                             ..adjoint_start::<PLANNED>(p, starts, i) + node.shape.elements],
                     );
-                    scan_reverse(
+                    let scan_pair = curvature.map(|pair| {
+                        let tape = pair.frame.regions[i].as_deref_mut();
+                        let (parent, seed) = pair.frame.adjoints.split_at_mut(node.start);
+                        ScanPair::new(
+                            pair.program,
+                            &pair.frame.tangents,
+                            parent,
+                            &seed[..node.shape.elements],
+                            tape,
+                            i,
+                        )
+                    });
+                    scan_reverse::<CURVATURE>(
                         s,
                         p,
                         &w.values,
                         &mut w.adjoints,
                         region,
                         (starts, &w.differential),
+                        scan_pair,
                     )?;
                 }
+                builtin => {
+                    if let Some(pair) = curvature {
+                        let seeds =
+                            copied_seed.unwrap_or(&w.adjoints[base..base + node.shape.elements]);
+                        builtin.transpose_direction(
+                            i,
+                            pair.reborrow(),
+                            &w.values,
+                            &w.differential,
+                            seeds,
+                        );
+                    }
+                    builtin.transpose::<PLANNED, false>(
+                        i,
+                        linear::Reverse {
+                            plan: p,
+                            primals: &w.values,
+                            adjoints: &mut w.adjoints,
+                            active: &w.differential,
+                            starts,
+                        },
+                        0..node.shape.elements,
+                        copied_seed,
+                    );
+                }
             }
-            if REUSE && !matches!(node.op, Op::Alias(_)) {
+            if REUSE && !matches!(rule, Rule::Alias(_)) {
                 let start = adjoint_start::<PLANNED>(p, starts, i);
                 let seed = &mut w.adjoints[start..start + node.shape.elements];
                 // Admit every historical seed before recycling: clearing a dead
@@ -877,29 +1169,32 @@ fn scan_forward_with<const FUSED: bool>(
 }
 
 #[inline]
-fn scan_reverse(
+fn scan_reverse<const CURVATURE: bool>(
     s: &Scan,
     p: &Plan,
     parent: &[f64],
     adjoints: &mut [f64],
     region: &mut RegionWork,
     layout: (&[usize], &[bool]),
+    pair: Option<ScanPair<'_, '_>>,
 ) -> Result<(), E> {
     if s.body.plan.execution.is_none() {
-        scan_reverse_with::<false>(s, p, parent, adjoints, region, layout)
+        scan_reverse_with::<false, CURVATURE>(s, p, parent, adjoints, region, layout, pair)
     } else {
-        scan_reverse_with::<true>(s, p, parent, adjoints, region, layout)
+        scan_reverse_with::<true, CURVATURE>(s, p, parent, adjoints, region, layout, pair)
     }
 }
 #[inline(never)]
-fn scan_reverse_with<const FUSED: bool>(
+fn scan_reverse_with<const FUSED: bool, const CURVATURE: bool>(
     s: &Scan,
     p: &Plan,
     parent: &[f64],
     adjoints: &mut [f64],
     region: &mut RegionWork,
     layout: (&[usize], &[bool]),
+    pair: Option<ScanPair<'_, '_>>,
 ) -> Result<(), E> {
+    let mut pair = pair;
     if let Some(checkpoint) = region.checkpoint.as_ref() {
         let interval = checkpoint.interval;
         let carry = region.seed.len();
@@ -911,28 +1206,45 @@ fn scan_reverse_with<const FUSED: bool>(
             region.args[..carry].copy_from_slice(
                 &region.checkpoint.as_ref().expect("replay boundary").carries[saved..saved + carry],
             );
+            if CURVATURE && let Some(pair) = &mut pair {
+                pair.restore_boundary(saved);
+            }
             for step in start..end {
                 scan_step::<FUSED>(s, p, parent, region, step)?;
+                if CURVATURE && let Some(pair) = &mut pair {
+                    pair.replay(p, s, region, step, scan_frame(interval, step))?;
+                }
             }
             for step in (start..end).rev() {
-                reverse_scan_step(
+                reverse_scan_step::<CURVATURE>(
                     s,
                     p,
                     adjoints,
                     region,
-                    step,
-                    scan_frame(interval, step),
+                    (step, scan_frame(interval, step)),
                     layout,
+                    pair.as_mut(),
                 )?;
             }
             end = start;
         }
     } else {
         for step in (0..s.steps).rev() {
-            reverse_scan_step(s, p, adjoints, region, step, step, layout)?;
+            reverse_scan_step::<CURVATURE>(
+                s,
+                p,
+                adjoints,
+                region,
+                (step, step),
+                layout,
+                pair.as_mut(),
+            )?;
         }
     }
     if layout.1[s.initial.node] {
+        if CURVATURE && let Some(pair) = &mut pair {
+            pair.accumulate_initial(p, s);
+        }
         let base = layout
             .0
             .get(s.initial.node)
@@ -949,18 +1261,23 @@ fn scan_reverse_with<const FUSED: bool>(
 }
 
 #[inline]
-fn reverse_scan_step(
+fn reverse_scan_step<const CURVATURE: bool>(
     s: &Scan,
     p: &Plan,
     adjoints: &mut [f64],
     region: &mut RegionWork,
-    step: usize,
-    index: usize,
+    (step, index): (usize, usize),
     layout: (&[usize], &[bool]),
+    mut pair: Option<&mut ScanPair<'_, '_>>,
 ) -> Result<(), E> {
     let carry = region.seed.len();
-    let frame = &mut region.frames[index];
-    s.body.reverse(&region.seed, frame)?;
+    let guard = p.facts.guard(region.site, FrameInstance::Iteration(step))?;
+    if CURVATURE && let Some(pair) = &mut pair {
+        pair.reverse(s, region, guard, index)?;
+    } else {
+        region.reverse_residual(guard, index, &s.body)?;
+    }
+    let frame = &region.frames[index];
     region.seed.copy_from_slice(&frame.gradient[..carry]);
     if layout.1[s.xs.node] {
         let start = layout
@@ -969,13 +1286,27 @@ fn reverse_scan_step(
             .copied()
             .unwrap_or(p.nodes[s.xs.node].start)
             + step * s.row;
+        if CURVATURE && let Some(pair) = &mut pair {
+            pair.accumulate(
+                p.nodes[s.xs.node].start + step * s.row,
+                index,
+                carry..carry + s.row,
+            );
+        }
         for j in 0..s.row {
             adjoints[start + j] += frame.gradient[carry + j];
         }
     }
     let mut offset = carry + s.row;
     for arg in &s.captures {
-        for j in 0..p.nodes[arg.node].shape.elements {
+        let len = p.nodes[arg.node].shape.elements;
+        if CURVATURE
+            && layout.1[arg.node]
+            && let Some(pair) = &mut pair
+        {
+            pair.accumulate(p.nodes[arg.node].start, index, offset..offset + len);
+        }
+        for j in 0..len {
             if layout.1[arg.node] {
                 adjoints[layout
                     .0
@@ -1010,7 +1341,13 @@ fn scan_step<const FUSED: bool>(
     scan_arguments(s, p, parent, &mut region.args, step);
     let index = scan_frame(region.checkpoint.as_ref().map_or(0, |c| c.interval), step);
     let frame = &mut region.frames[index];
+    if let Some(c) = &mut region.checkpoint {
+        c.iterations[index] = usize::MAX;
+    }
     scan_body_forward::<FUSED>(&s.body, &region.args, frame)?;
+    if let Some(c) = &mut region.checkpoint {
+        c.iterations[index] = step;
+    }
     region.args[..carry]
         .copy_from_slice(&frame.values[s.body.plan.nodes[s.body.plan.output.node].range()]);
     Ok(())
@@ -1022,9 +1359,9 @@ fn scan_body_forward<const FUSED: bool>(
     frame: &mut TensorWorkspace,
 ) -> Result<(), E> {
     if FUSED {
-        body.execute_forward(args, frame)
+        body.execute_forward(args, frame, None)
     } else {
-        body.forward(args, frame)
+        body.forward(args, frame, None)
     }
 }
 #[inline]
@@ -1077,6 +1414,172 @@ pub(super) fn derivative(op: UnaryOp, x: f64, y: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn residuals_require_complete_same_binding_forward_and_are_consumed_once() {
+        let mut b = RegionBuilder::new();
+        let x = b.input("x", Shape::scalar()).unwrap();
+        let data = b.data("data", Shape::scalar()).unwrap();
+        let log = b.unary(UnaryOp::Log, x).unwrap();
+        let out = b.binary(BinaryOp::Multiply, log, data).unwrap();
+        let definition = b.compile(out).unwrap();
+        let p = definition.bind(&[("data", &[2.])]).unwrap();
+        let rebound = definition.bind(&[("data", &[3.])]).unwrap();
+        let mut w = p.workspace();
+        let mut output = [17.];
+        let mut scores = [19.];
+        assert!(matches!(
+            p.reverse_point(&[1.], &mut scores, &mut w),
+            Err(E::Shape)
+        ));
+        p.evaluate(&[2.], &mut output, &mut w).unwrap();
+        assert!(matches!(
+            rebound.reverse_point(&[1.], &mut scores, &mut w),
+            Err(E::Shape)
+        ));
+        assert_eq!(scores, [19.]);
+        p.evaluate(&[2.], &mut output, &mut w).unwrap();
+        p.reverse_point(&[1.], &mut scores, &mut w).unwrap();
+        assert_eq!(scores, [1.]);
+        assert!(matches!(
+            p.reverse_point(&[1.], &mut scores, &mut w),
+            Err(E::Shape)
+        ));
+        // Domain, shape, nonfinite seed and foreign-workspace failures invalidate
+        // earlier residuals before any result or score may be published.
+        for failure in 0..4 {
+            p.evaluate(&[2.], &mut output, &mut w).unwrap();
+            let failed = match failure {
+                0 => p.evaluate(&[-1.], &mut output, &mut w),
+                1 => p.evaluate(&[2.], &mut [], &mut w),
+                2 => p.value_and_vjp(&[2.], &[f64::NAN], &mut output, &mut scores, &mut w),
+                _ => {
+                    let mut b = RegionBuilder::new();
+                    let x = b.input("x", Shape::scalar()).unwrap();
+                    b.compile(x)
+                        .unwrap()
+                        .bind(&[])
+                        .unwrap()
+                        .evaluate(&[2.], &mut output, &mut w)
+                }
+            };
+            assert!(failed.is_err());
+            assert!(matches!(
+                p.reverse_point(&[1.], &mut scores, &mut w),
+                Err(E::Shape)
+            ));
+            rebound
+                .value_and_vjp(&[2.], &[1.], &mut output, &mut scores, &mut w)
+                .unwrap();
+            assert_eq!(scores, [1.5]);
+        }
+    }
+
+    #[test]
+    fn recorded_branch_residual_rejects_foreign_site_choice_and_kind() {
+        let mut yes = RegionBuilder::new();
+        let x = yes.input("x", Shape::scalar()).unwrap();
+        let log = yes.unary(UnaryOp::Log, x).unwrap();
+        let yes = yes.compile(log).unwrap().bind(&[]).unwrap();
+        let mut no = RegionBuilder::new();
+        let x = no.input("x", Shape::scalar()).unwrap();
+        let neg = no.unary(UnaryOp::Neg, x).unwrap();
+        let no = no.compile(neg).unwrap().bind(&[]).unwrap();
+        let mut b = RegionBuilder::new();
+        let x = b.input("x", Shape::scalar()).unwrap();
+        let zero = b.constant(Shape::scalar(), vec![0.]).unwrap();
+        let out = b.cond(x, zero, Comparison::Greater, &[x], yes, no).unwrap();
+        let p = b.compile(out).unwrap().bind(&[]).unwrap();
+        let mut w = p.workspace();
+        p.evaluate(&[2.], &mut [0.], &mut w).unwrap();
+        let guard = p.plan.facts.guard(out, FrameInstance::Branch(0)).unwrap();
+        let region = w.regions[out.node].as_mut().unwrap();
+        assert!(region.residual(guard, 0).is_ok());
+        assert!(
+            region
+                .residual(
+                    p.plan.facts.guard(out, FrameInstance::Branch(1)).unwrap(),
+                    1
+                )
+                .is_err()
+        );
+        let foreign = ResidualGuard {
+            site: Value {
+                owner: out.owner.wrapping_add(1),
+                node: out.node,
+            },
+            ..guard
+        };
+        assert!(region.residual(foreign, 0).is_err());
+        assert!(
+            p.plan
+                .facts
+                .guard(out, FrameInstance::Iteration(0))
+                .is_err()
+        );
+        // Reverse follows the recorded guard rather than rediscovering it from
+        // unrelated parent primal storage. Child residuals retain the old point.
+        w.values[p.plan.nodes[x.node].start] = -2.;
+        let mut scores = [0.];
+        p.reverse_point(&[1.], &mut scores, &mut w).unwrap();
+        assert_eq!(scores, [0.5]);
+        p.value_and_vjp(&[-2.], &[1.], &mut [0.], &mut scores, &mut w)
+            .unwrap();
+        assert_eq!(scores, [-1.]);
+    }
+
+    #[test]
+    fn checkpoint_slots_reject_residuals_from_a_different_iteration() {
+        let shape = Shape::new(vec![128]).unwrap();
+        let mut body = RegionBuilder::new();
+        let carry = body.input("carry", shape.clone()).unwrap();
+        let row = body.input("row", shape.clone()).unwrap();
+        let out = body.binary(BinaryOp::Add, carry, row).unwrap();
+        let body = body.compile(out).unwrap().bind(&[]).unwrap();
+        let mut b = RegionBuilder::new();
+        let initial = b.input("initial", shape).unwrap();
+        let xs = b
+            .constant(Shape::new(vec![257, 128]).unwrap(), vec![0.; 257 * 128])
+            .unwrap();
+        let out = b.checkpointed_scan(initial, xs, &[], body).unwrap();
+        let p = b.compile(out).unwrap().bind(&[]).unwrap();
+        let mut w = p.workspace();
+        p.evaluate(&[2.; 128], &mut [0.; 128], &mut w).unwrap();
+        let region = w.regions[out.node].as_mut().unwrap();
+        let checkpoint = region
+            .checkpoint
+            .as_ref()
+            .expect("substantial checkpointed tape");
+        let (slot, &step) = checkpoint
+            .iterations
+            .iter()
+            .enumerate()
+            .find(|(_, step)| **step != usize::MAX)
+            .unwrap();
+        let guard = p
+            .plan
+            .facts
+            .guard(out, FrameInstance::Iteration(step))
+            .unwrap();
+        assert!(region.residual(guard, slot).is_ok());
+        let wrong = p
+            .plan
+            .facts
+            .guard(out, FrameInstance::Iteration(if step == 0 { 1 } else { 0 }))
+            .unwrap();
+        assert!(region.residual(wrong, slot).is_err());
+        assert!(
+            p.plan
+                .facts
+                .guard(out, FrameInstance::Iteration(257))
+                .is_err()
+        );
+        // The failed lookup did not poison the valid next evaluation/replay.
+        let mut scores = [0.; 128];
+        p.value_and_vjp(&[2.; 128], &[1.; 128], &mut [0.; 128], &mut scores, &mut w)
+            .unwrap();
+        assert_eq!(scores, [1.; 128]);
+    }
 
     #[test]
     fn scalar_regions_decline_layouts_larger_than_the_storage_they_save() {

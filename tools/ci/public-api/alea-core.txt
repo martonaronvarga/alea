@@ -145,6 +145,8 @@ pub trait alea_core::capability::PotentialHessianDerivative: alea_core::capabili
 pub fn alea_core::capability::PotentialHessianDerivative::potential_hessian_and_derivatives(&self, position: &[f64], hessian: &mut [f64], derivatives: &mut [f64]) -> core::result::Result<(), Self::Error>
 pub trait alea_core::capability::PotentialHessianVector: alea_core::target::LogDensityGradient
 pub fn alea_core::capability::PotentialHessianVector::potential_hvp(&self, position: &[f64], vector: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>
+impl alea_core::capability::PotentialHessianVector for alea_core::model::tensor::TensorPotential<'_>
+pub fn alea_core::model::tensor::TensorPotential<'_>::potential_hvp(&self, position: &[f64], vector: &[f64], output: &mut [f64]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
 pub trait alea_core::capability::SplitLogDensityGradient: alea_core::target::LogDensityGradient
 pub fn alea_core::capability::SplitLogDensityGradient::cheap_score(&self, position: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>
 pub fn alea_core::capability::SplitLogDensityGradient::expensive_score(&self, position: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>
@@ -704,6 +706,7 @@ pub fn alea_core::model::assembly::ModelBuilder::call_region(&mut self, inputs: 
 pub fn alea_core::model::assembly::ModelBuilder::constant_block(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<f64>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::matmul(&mut self, left: alea_core::model::assembly::Value, right: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static
+pub fn alea_core::model::assembly::ModelBuilder::register_block_with_preparation<D, W, P, F>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>, argument: usize, prepare: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static, P: core::marker::Copy + core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(f64) -> P + core::marker::Copy + core::marker::Send + core::marker::Sync + 'static
 pub fn alea_core::model::assembly::ModelBuilder::reshape(&mut self, value: alea_core::model::assembly::Value, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::sum_value(&mut self, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::value_shape(&self, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::tensor::Shape, alea_core::model::assembly::AssemblyError>
@@ -1111,19 +1114,34 @@ impl core::fmt::Debug for alea_core::model::tensor::UnaryOp
 pub fn alea_core::model::tensor::UnaryOp::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_core::model::tensor::UnaryOp
 impl core::marker::StructuralPartialEq for alea_core::model::tensor::UnaryOp
+pub struct alea_core::model::tensor::BindingInputs<'a>
+impl alea_core::model::tensor::BindingInputs<'_>
+pub fn alea_core::model::tensor::BindingInputs<'_>::booleans(&self, i: usize) -> core::result::Result<&[bool], alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::tensor::BindingInputs<'_>::counts(&self, i: usize) -> core::result::Result<&[u64], alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::tensor::BindingInputs<'_>::indices(&self, i: usize) -> core::result::Result<&[usize], alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::tensor::BindingInputs<'_>::real(&self, i: usize) -> core::result::Result<&[f64], alea_core::model::assembly::AssemblyError>
 pub struct alea_core::model::tensor::BlockInputs<'a>
 impl alea_core::model::tensor::BlockInputs<'_>
 pub fn alea_core::model::tensor::BlockInputs<'_>::booleans(&self, i: usize) -> core::result::Result<&[bool], alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::BlockInputs<'_>::counts(&self, i: usize) -> core::result::Result<&[u64], alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::tensor::BlockInputs<'_>::evaluation_prepared<P: core::any::Any>(&self) -> core::result::Result<&P, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::BlockInputs<'_>::indices(&self, i: usize) -> core::result::Result<&[usize], alea_core::model::assembly::AssemblyError>
+pub fn alea_core::model::tensor::BlockInputs<'_>::prepared<P: core::any::Any + core::marker::Send + core::marker::Sync>(&self) -> core::result::Result<&P, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::BlockInputs<'_>::real(&self, i: usize) -> core::result::Result<&[f64], alea_core::model::assembly::AssemblyError>
+pub struct alea_core::model::tensor::BlockPreparation<D>
+impl<D: 'static> alea_core::model::tensor::BlockPreparation<D>
+pub fn alea_core::model::tensor::BlockPreparation<D>::new<P: core::any::Any + core::marker::Send + core::marker::Sync>(arguments: alloc::vec::Vec<usize>, prepare: fn(&D, alea_core::model::tensor::BindingInputs<'_>) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> Self
 pub struct alea_core::model::tensor::BlockRules<D, W>
 pub alea_core::model::tensor::BlockRules::forward: fn(&D, alea_core::model::tensor::BlockInputs<'_>, &mut [f64], &mut W) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
 pub alea_core::model::tensor::BlockRules::heap_bytes: usize
 pub alea_core::model::tensor::BlockRules::inputs: alloc::vec::Vec<alea_core::model::tensor::BlockType>
 pub alea_core::model::tensor::BlockRules::output: alea_core::model::tensor::Shape
+pub alea_core::model::tensor::BlockRules::preparation: core::option::Option<alea_core::model::tensor::BlockPreparation<D>>
 pub alea_core::model::tensor::BlockRules::vjp: core::option::Option<alea_core::model::tensor::BlockVjp<D, W>>
 pub alea_core::model::tensor::BlockRules::workspace: fn(&D) -> W
+pub struct alea_core::model::tensor::BlockTangents<'a>
+impl alea_core::model::tensor::BlockTangents<'_>
+pub fn alea_core::model::tensor::BlockTangents<'_>::real(&self, i: usize) -> core::result::Result<core::option::Option<&[f64]>, alea_core::model::assembly::AssemblyError>
 pub struct alea_core::model::tensor::BlockType
 pub alea_core::model::tensor::BlockType::dtype: alea_core::model::tensor::ElementType
 pub alea_core::model::tensor::BlockType::shape: alea_core::model::tensor::Shape
@@ -1148,6 +1166,10 @@ pub fn alea_core::model::tensor::BoundProgram::value_and_vjp(&self, x: &[f64], s
 pub fn alea_core::model::tensor::BoundProgram::workspace(&self) -> alea_core::model::tensor::TensorWorkspace
 pub fn alea_core::model::tensor::BoundProgram::workspace_bytes(&self) -> usize
 pub fn alea_core::model::tensor::BoundProgram::workspace_with_limit(&self, limit: usize) -> core::result::Result<alea_core::model::tensor::TensorWorkspace, alea_core::model::tensor::WorkspaceBudgetError>
+impl alea_core::model::tensor::BoundProgram
+pub fn alea_core::model::tensor::BoundProgram::jvp(&self, directions: &[bool]) -> core::result::Result<alea_core::model::tensor::TensorJvp<'_>, alea_core::model::assembly::AssemblyError>
+impl alea_core::model::tensor::BoundProgram
+pub fn alea_core::model::tensor::BoundProgram::potential_hvp_target(&self) -> core::result::Result<alea_core::model::tensor::TensorPotential<'_>, alea_core::model::assembly::AssemblyError>
 impl alea_core::model::tensor::BoundProgram
 pub fn alea_core::model::tensor::BoundProgram::rust_function(&self) -> core::result::Result<alloc::string::String, alea_core::model::assembly::AssemblyError>
 impl core::clone::Clone for alea_core::model::tensor::BoundProgram
@@ -1175,6 +1197,7 @@ pub fn alea_core::model::tensor::RegionBuilder::boolean_data(&mut self, shape: a
 pub fn alea_core::model::tensor::RegionBuilder::count_data(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<u64>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::RegionBuilder::indices(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<usize>, bound: usize) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::tensor::RegionBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static
+pub fn alea_core::model::tensor::RegionBuilder::register_block_with_jvp<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>, jvp: alea_core::model::tensor::BlockJvp<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static
 pub struct alea_core::model::tensor::Shape
 impl alea_core::model::tensor::Shape
 pub fn alea_core::model::tensor::Shape::axes(&self) -> &[usize]
@@ -1189,12 +1212,24 @@ pub fn alea_core::model::tensor::Shape::eq(&self, other: &alea_core::model::tens
 impl core::fmt::Debug for alea_core::model::tensor::Shape
 pub fn alea_core::model::tensor::Shape::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::StructuralPartialEq for alea_core::model::tensor::Shape
+pub struct alea_core::model::tensor::TensorJvp<'a>
+impl alea_core::model::tensor::TensorJvp<'_>
+pub fn alea_core::model::tensor::TensorJvp<'_>::value_and_jvp(&mut self, x: &[f64], directions: &[core::option::Option<&[f64]>], out: &mut [f64], tangent: &mut [f64]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
 pub struct alea_core::model::tensor::TensorNode<'a>
 pub alea_core::model::tensor::TensorNode::active: bool
 pub alea_core::model::tensor::TensorNode::inputs: alloc::vec::Vec<alea_core::model::assembly::Value>
 pub alea_core::model::tensor::TensorNode::operation: alea_core::model::tensor::TensorOperation
 pub alea_core::model::tensor::TensorNode::shape: &'a alea_core::model::tensor::Shape
 pub alea_core::model::tensor::TensorNode::value: alea_core::model::assembly::Value
+pub struct alea_core::model::tensor::TensorPotential<'a>
+impl alea_core::capability::PotentialHessianVector for alea_core::model::tensor::TensorPotential<'_>
+pub fn alea_core::model::tensor::TensorPotential<'_>::potential_hvp(&self, position: &[f64], vector: &[f64], output: &mut [f64]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
+impl alea_core::target::LogDensityGradient for alea_core::model::tensor::TensorPotential<'_>
+pub fn alea_core::model::tensor::TensorPotential<'_>::is_numerical_error(&self, error: &alea_core::model::assembly::AssemblyError) -> bool
+pub fn alea_core::model::tensor::TensorPotential<'_>::logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
+impl alea_core::target::TargetSpace for alea_core::model::tensor::TensorPotential<'_>
+pub type alea_core::model::tensor::TensorPotential<'_>::Error = alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::tensor::TensorPotential<'_>::dimension(&self) -> usize
 pub struct alea_core::model::tensor::TensorProgram
 impl alea_core::model::tensor::TensorProgram
 pub fn alea_core::model::tensor::TensorProgram::bind(&self, bindings: &[(&str, &[f64])]) -> core::result::Result<alea_core::model::tensor::BoundProgram, alea_core::model::assembly::AssemblyError>
@@ -1219,6 +1254,7 @@ impl core::fmt::Display for alea_core::model::tensor::WorkspaceBudgetError
 pub fn alea_core::model::tensor::WorkspaceBudgetError::fmt(&self, __formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 impl core::marker::Copy for alea_core::model::tensor::WorkspaceBudgetError
 impl core::marker::StructuralPartialEq for alea_core::model::tensor::WorkspaceBudgetError
+pub type alea_core::model::tensor::BlockJvp<D, W> = fn(&D, alea_core::model::tensor::BlockInputs<'_>, alea_core::model::tensor::BlockTangents<'_>, &[f64], &mut [f64], &W) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
 pub type alea_core::model::tensor::BlockVjp<D, W> = fn(&D, alea_core::model::tensor::BlockInputs<'_>, &[f64], &[f64], &mut [f64], &mut W) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>
 pub enum alea_core::model::ModelError<E: core::error::Error + 'static>
 pub alea_core::model::ModelError::Dimension
@@ -1482,6 +1518,7 @@ pub fn alea_core::model::assembly::ModelBuilder::call_region(&mut self, inputs: 
 pub fn alea_core::model::assembly::ModelBuilder::constant_block(&mut self, shape: alea_core::model::tensor::Shape, values: alloc::vec::Vec<f64>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::matmul(&mut self, left: alea_core::model::assembly::Value, right: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::register_block<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static
+pub fn alea_core::model::assembly::ModelBuilder::register_block_with_preparation<D, W, P, F>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>, argument: usize, prepare: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static, P: core::marker::Copy + core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(f64) -> P + core::marker::Copy + core::marker::Send + core::marker::Sync + 'static
 pub fn alea_core::model::assembly::ModelBuilder::reshape(&mut self, value: alea_core::model::assembly::Value, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::sum_value(&mut self, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>
 pub fn alea_core::model::assembly::ModelBuilder::value_shape(&self, value: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::tensor::Shape, alea_core::model::assembly::AssemblyError>
@@ -1636,6 +1673,9 @@ pub fn alea_core::prelude::LogDensity::logp(&self, position: &[f64]) -> core::re
 pub trait alea_core::prelude::LogDensityGradient: alea_core::target::TargetSpace
 pub fn alea_core::prelude::LogDensityGradient::is_numerical_error(&self, _error: &Self::Error) -> bool
 pub fn alea_core::prelude::LogDensityGradient::logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::target::LogDensityGradient for alea_core::model::tensor::TensorPotential<'_>
+pub fn alea_core::model::tensor::TensorPotential<'_>::is_numerical_error(&self, error: &alea_core::model::assembly::AssemblyError) -> bool
+pub fn alea_core::model::tensor::TensorPotential<'_>::logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
 impl<M: alea_core::model::ConstrainedModel> alea_core::target::LogDensityGradient for alea_core::model::ComposedObjective<M>
 pub fn alea_core::model::ComposedObjective<M>::is_numerical_error(&self, error: &Self::Error) -> bool
 pub fn alea_core::model::ComposedObjective<M>::logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
@@ -1648,6 +1688,9 @@ pub fn alea_core::transport::FrozenTransportTarget<'_, T>::logp_grad(&self, posi
 pub trait alea_core::prelude::TargetSpace
 pub type alea_core::prelude::TargetSpace::Error: core::error::Error + 'static
 pub fn alea_core::prelude::TargetSpace::dimension(&self) -> usize
+impl alea_core::target::TargetSpace for alea_core::model::tensor::TensorPotential<'_>
+pub type alea_core::model::tensor::TensorPotential<'_>::Error = alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::tensor::TensorPotential<'_>::dimension(&self) -> usize
 impl<M: alea_core::model::ConstrainedModel> alea_core::target::TargetSpace for alea_core::model::ComposedObjective<M>
 pub type alea_core::model::ComposedObjective<M>::Error = alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>
 pub fn alea_core::model::ComposedObjective<M>::dimension(&self) -> usize
@@ -1738,6 +1781,9 @@ pub fn alea_core::target::PointState<'_, T>::clone_from(&mut self, source: &Self
 pub trait alea_core::target::LogDensityGradient: alea_core::target::TargetSpace
 pub fn alea_core::target::LogDensityGradient::is_numerical_error(&self, _error: &Self::Error) -> bool
 pub fn alea_core::target::LogDensityGradient::logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
+impl alea_core::target::LogDensityGradient for alea_core::model::tensor::TensorPotential<'_>
+pub fn alea_core::model::tensor::TensorPotential<'_>::is_numerical_error(&self, error: &alea_core::model::assembly::AssemblyError) -> bool
+pub fn alea_core::model::tensor::TensorPotential<'_>::logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>
 impl<M: alea_core::model::ConstrainedModel> alea_core::target::LogDensityGradient for alea_core::model::ComposedObjective<M>
 pub fn alea_core::model::ComposedObjective<M>::is_numerical_error(&self, error: &Self::Error) -> bool
 pub fn alea_core::model::ComposedObjective<M>::logp_grad(&self, q: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, Self::Error>
@@ -1750,6 +1796,9 @@ pub fn alea_core::transport::FrozenTransportTarget<'_, T>::logp_grad(&self, posi
 pub trait alea_core::target::TargetSpace
 pub type alea_core::target::TargetSpace::Error: core::error::Error + 'static
 pub fn alea_core::target::TargetSpace::dimension(&self) -> usize
+impl alea_core::target::TargetSpace for alea_core::model::tensor::TensorPotential<'_>
+pub type alea_core::model::tensor::TensorPotential<'_>::Error = alea_core::model::assembly::AssemblyError
+pub fn alea_core::model::tensor::TensorPotential<'_>::dimension(&self) -> usize
 impl<M: alea_core::model::ConstrainedModel> alea_core::target::TargetSpace for alea_core::model::ComposedObjective<M>
 pub type alea_core::model::ComposedObjective<M>::Error = alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>
 pub fn alea_core::model::ComposedObjective<M>::dimension(&self) -> usize

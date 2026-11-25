@@ -128,6 +128,8 @@ generated!(
     selected_likelihood,
     selected_posterior,
     tensor_matrix,
+    tensor_fixed,
+    tensor_fixed_rebound,
     tensor_broadcast,
     tensor_checkpoint_broadcast,
     tensor_broadcast_tail,

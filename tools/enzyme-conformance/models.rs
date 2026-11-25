@@ -423,6 +423,32 @@ pub fn native_batch_rows(family: usize, rows: usize) -> Result<NativeModel, Asse
     b.likelihood("data", term)?;
     b.compile()
 }
+pub fn tensor_fixed_data(rebound: bool) -> Result<NativeModel, AssemblyError> {
+    use alea::model::tensor::*;
+    let mut t = ModelBuilder::new().region();
+    let q = t.input("q", Shape::new(vec![2, 1])?)?;
+    let data = t.data("data", Shape::new(vec![2, 2])?)?;
+    let neg = t.unary(UnaryOp::Neg, data)?;
+    let transposed = t.gather(neg, Shape::new(vec![2, 2])?, vec![0, 2, 1, 3])?;
+    let matrix = t.matmul(transposed, data)?;
+    let y = t.matmul(matrix, q)?;
+    let square = t.binary(BinaryOp::Multiply, y, y)?;
+    let sum = t.sum(square)?;
+    let scale = t.constant(Shape::scalar(), vec![-0.5])?;
+    let out = t.binary(BinaryOp::Multiply, sum, scale)?;
+    let original = t.compile(out)?.bind(&[("data", &[1., 2., 3., 4.])])?;
+    let binding = if rebound {
+        original.rebind("data", &[2., 0., 1., 3.])?
+    } else {
+        original
+    };
+    let mut b = ModelBuilder::new();
+    let q = [b.real("a")?.expr(), b.real("b")?.expr()];
+    let term = b.apply_region(&q, binding)?;
+    b.potential("objective", term)?;
+    b.compile()
+}
+
 pub fn tensor_matrix() -> Result<NativeModel, AssemblyError> {
     tensor_matrix_policy(false)
 }
@@ -1080,6 +1106,8 @@ pub fn all() -> Result<Vec<(&'static str, NativeModel)>, AssemblyError> {
             )?,
         ),
         ("tensor_matrix", tensor_matrix()?),
+        ("tensor_fixed", tensor_fixed_data(false)?),
+        ("tensor_fixed_rebound", tensor_fixed_data(true)?),
         #[cfg(feature = "faer")]
         (
             "provider_faer_rect",

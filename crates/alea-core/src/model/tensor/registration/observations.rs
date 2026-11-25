@@ -47,7 +47,6 @@ where
     };
     builder.register(signature, parameters, move || {
         Ok(Kernel {
-            binding: None,
             forward: Box::new(move |inputs, out, scratch| {
                 let (scores, point) = scratch.split_at_mut(scores);
                 for (i, event) in events.iter().enumerate() {
@@ -142,7 +141,6 @@ mod tests {
                 &[eta],
                 || {
                     Ok(Kernel {
-                        binding: None,
                         forward: Box::new(|inputs, out, _| {
                             for (out, &x) in out.iter_mut().zip(inputs.real(0)?) {
                                 *out = x + 0.1 * x * x;

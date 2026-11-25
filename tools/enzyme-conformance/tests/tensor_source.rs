@@ -10,6 +10,12 @@ mod control {
 mod empty {
     include!(concat!(env!("OUT_DIR"), "/tensor_empty_primal.rs"));
 }
+mod fixed {
+    include!(concat!(env!("OUT_DIR"), "/tensor_fixed_primal.rs"));
+}
+mod rebound {
+    include!(concat!(env!("OUT_DIR"), "/tensor_fixed_rebound_primal.rs"));
+}
 use alea::target::LogDensityGradient;
 
 #[test]
@@ -17,6 +23,8 @@ fn compiled_tensor_regions_match_native_in_both_branches_and_after_loop_executio
     for (name, source) in [
         ("tensor_matrix", matrix::log_density as fn(&[f64; 2]) -> f64),
         ("tensor_control", control::log_density),
+        ("tensor_fixed", fixed::log_density),
+        ("tensor_fixed_rebound", rebound::log_density),
     ] {
         let target = models::all()
             .unwrap()

@@ -2481,6 +2481,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl alea_core::capability::PotentialHessianVector for alea_core::model::tensor::TensorPotential<'_>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl alea_core::distribution::ReferenceMeasure",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -2624,9 +2630,21 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl alea_core::model::tensor::BindingInputs<'_>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl alea_core::model::tensor::BlockInputs<'_>",
       "profile": "research_component",
       "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl alea_core::model::tensor::BlockTangents<'_>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native directional and reverse rule composition across broader models and backends."
     },
     {
       "crate": "alea-core",
@@ -2648,6 +2666,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl alea_core::model::tensor::TensorJvp<'_>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native directional and reverse rule composition across broader models and backends."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl alea_core::model::tensor::TensorProgram",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
@@ -2656,6 +2680,18 @@
       "crate": "alea-core",
       "item": "impl alea_core::target::EvaluationWorkspace",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl alea_core::target::LogDensityGradient for alea_core::model::tensor::TensorPotential<'_>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl alea_core::target::TargetSpace for alea_core::model::tensor::TensorPotential<'_>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
     },
     {
       "crate": "alea-core",
@@ -4599,6 +4635,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl<D: 'static> alea_core::model::tensor::BlockPreparation<D>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl<D: alea_core::model::assembly::OperationDescriptor> alea_core::model::assembly::NativeRules<D>",
       "profile": "research_component",
       "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
@@ -6267,6 +6309,12 @@
     {
       "crate": "alea-core",
       "item": "pub alea_core::model::tensor::BlockRules::output: alea_core::model::tensor::Shape",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::tensor::BlockRules::preparation: core::option::Option<alea_core::model::tensor::BlockPreparation<D>>",
       "profile": "research_component",
       "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
@@ -8557,6 +8605,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::ModelBuilder::register_block_with_preparation<D, W, P, F>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>, argument: usize, prepare: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static, P: core::marker::Copy + core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(f64) -> P + core::marker::Copy + core::marker::Send + core::marker::Sync + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify per-evaluation preparation and block composition across broader models and backends."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::ModelBuilder::reshape(&mut self, value: alea_core::model::assembly::Value, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
@@ -9406,6 +9460,30 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BindingInputs<'_>::booleans(&self, i: usize) -> core::result::Result<&[bool], alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BindingInputs<'_>::counts(&self, i: usize) -> core::result::Result<&[u64], alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BindingInputs<'_>::indices(&self, i: usize) -> core::result::Result<&[usize], alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BindingInputs<'_>::real(&self, i: usize) -> core::result::Result<&[f64], alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::BlockInputs<'_>::booleans(&self, i: usize) -> core::result::Result<&[bool], alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
@@ -9418,7 +9496,19 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BlockInputs<'_>::evaluation_prepared<P: core::any::Any>(&self) -> core::result::Result<&P, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify per-evaluation preparation and block composition across broader models and backends."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::BlockInputs<'_>::indices(&self, i: usize) -> core::result::Result<&[usize], alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BlockInputs<'_>::prepared<P: core::any::Any + core::marker::Send + core::marker::Sync>(&self) -> core::result::Result<&P, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
@@ -9427,6 +9517,18 @@
       "item": "pub fn alea_core::model::tensor::BlockInputs<'_>::real(&self, i: usize) -> core::result::Result<&[f64], alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BlockPreparation<D>::new<P: core::any::Any + core::marker::Send + core::marker::Sync>(arguments: alloc::vec::Vec<usize>, prepare: fn(&D, alea_core::model::tensor::BindingInputs<'_>) -> core::result::Result<P, alea_core::model::assembly::AssemblyError>) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BlockTangents<'_>::real(&self, i: usize) -> core::result::Result<core::option::Option<&[f64]>, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native directional and reverse rule composition across broader models and backends."
     },
     {
       "crate": "alea-core",
@@ -9472,6 +9574,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BoundProgram::jvp(&self, directions: &[bool]) -> core::result::Result<alea_core::model::tensor::TensorJvp<'_>, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native directional and reverse rule composition across broader models and backends."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::BoundProgram::matrix_policies(&self) -> alloc::vec::Vec<alea_math::gemm::ResolvedMatrix>",
       "profile": "research_component",
       "promotion_gate": "Broaden independent matrix numerical/provider/platform qualification; external scratch and host BLAS threading remain outside compensated/default guarantees. No curvature or performance promotion."
@@ -9481,6 +9589,12 @@
       "item": "pub fn alea_core::model::tensor::BoundProgram::output_shape(&self) -> &alea_core::model::tensor::Shape",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::BoundProgram::potential_hvp_target(&self) -> core::result::Result<alea_core::model::tensor::TensorPotential<'_>, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
     },
     {
       "crate": "alea-core",
@@ -9640,6 +9754,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::register_block_with_jvp<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>, jvp: alea_core::model::tensor::BlockJvp<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native directional and reverse rule composition across broader models and backends."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::RegionBuilder::reshape(&mut self, value: alea_core::model::assembly::Value, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
@@ -9718,6 +9838,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::TensorJvp<'_>::value_and_jvp(&mut self, x: &[f64], directions: &[core::option::Option<&[f64]>], out: &mut [f64], tangent: &mut [f64]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native directional and reverse rule composition across broader models and backends."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::TensorOperation::clone(&self) -> alea_core::model::tensor::TensorOperation",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
@@ -9733,6 +9859,30 @@
       "item": "pub fn alea_core::model::tensor::TensorOperation::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::TensorPotential<'_>::dimension(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::TensorPotential<'_>::is_numerical_error(&self, error: &alea_core::model::assembly::AssemblyError) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::TensorPotential<'_>::logp_grad(&self, position: &[f64], gradient: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::TensorPotential<'_>::potential_hvp(&self, position: &[f64], vector: &[f64], output: &mut [f64]) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
     },
     {
       "crate": "alea-core",
@@ -10650,7 +10800,19 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub struct alea_core::model::tensor::BindingInputs<'a>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub struct alea_core::model::tensor::BlockInputs<'a>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::tensor::BlockPreparation<D>",
       "profile": "research_component",
       "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
     },
@@ -10659,6 +10821,12 @@
       "item": "pub struct alea_core::model::tensor::BlockRules<D, W>",
       "profile": "research_component",
       "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::tensor::BlockTangents<'a>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native directional and reverse rule composition across broader models and backends."
     },
     {
       "crate": "alea-core",
@@ -10686,9 +10854,21 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub struct alea_core::model::tensor::TensorJvp<'a>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native directional and reverse rule composition across broader models and backends."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub struct alea_core::model::tensor::TensorNode<'a>",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub struct alea_core::model::tensor::TensorPotential<'a>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
     },
     {
       "crate": "alea-core",
@@ -11041,9 +11221,21 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub type alea_core::model::tensor::BlockJvp<D, W> = fn(&D, alea_core::model::tensor::BlockInputs<'_>, alea_core::model::tensor::BlockTangents<'_>, &[f64], &mut [f64], &W) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native directional and reverse rule composition across broader models and backends."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub type alea_core::model::tensor::BlockVjp<D, W> = fn(&D, alea_core::model::tensor::BlockInputs<'_>, &[f64], &[f64], &mut [f64], &mut W) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub type alea_core::model::tensor::TensorPotential<'_>::Error = alea_core::model::assembly::AssemblyError",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
     },
     {
       "crate": "alea-core",
@@ -17638,6 +17830,12 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::bernoulli_logit_region_observations<O>(region: &mut alea_core::model::tensor::RegionBuilder, events: alloc::vec::Vec<O>, logits: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where O: core::borrow::Borrow<bool> + core::marker::Send + core::marker::Sync + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native directional and reverse rule composition across broader models and backends."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::continuous<D, F>(builder: &mut alea_core::model::assembly::ModelBuilder, event: alea_core::model::assembly::Value, parameters: &[alea_core::model::assembly::Value], construct: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: alea_core::distribution::ScalarEventScore + alea_core::distribution::ParameterScore + 'static, F: core::ops::function::Fn(&[f64]) -> core::result::Result<D, <D as alea_core::distribution::Distribution>::Error> + core::marker::Send + core::marker::Sync + 'static",
       "profile": "research_component",
       "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
@@ -17667,6 +17865,18 @@
     },
     {
       "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::normal_observation_block<O>(builder: &mut alea_core::model::assembly::ModelBuilder, events: alloc::vec::Vec<O>, location: alea_core::model::assembly::Value, scale: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where O: core::borrow::Borrow<f64> + core::marker::Send + core::marker::Sync + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify per-evaluation preparation and block composition across broader models and backends."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::normal_region_observations<O>(region: &mut alea_core::model::tensor::RegionBuilder, events: alloc::vec::Vec<O>, location: alea_core::model::assembly::Value, scale: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where O: core::borrow::Borrow<f64> + core::marker::Send + core::marker::Sync + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native directional and reverse rule composition across broader models and backends."
+    },
+    {
+      "crate": "alea-distributions",
       "item": "pub fn alea_distributions::modeling::observation<D, F, O>(builder: &mut alea_core::model::assembly::ModelBuilder, event: O, parameters: &[alea_core::model::assembly::Value], construct: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: alea_core::distribution::ParameterScore + 'static, O: core::borrow::Borrow<<D as alea_core::distribution::Distribution>::Event> + core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64]) -> core::result::Result<D, <D as alea_core::distribution::Distribution>::Error> + core::marker::Send + core::marker::Sync + 'static",
       "profile": "research_component",
       "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
@@ -17676,6 +17886,12 @@
       "item": "pub fn alea_distributions::modeling::observations<D, F, O>(builder: &mut alea_core::model::assembly::ModelBuilder, events: alloc::vec::Vec<O>, parameters: &[alea_core::model::assembly::Value], construct: F) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: alea_core::distribution::ParameterScore + 'static, O: core::borrow::Borrow<<D as alea_core::distribution::Distribution>::Event> + core::marker::Send + core::marker::Sync + 'static, F: core::ops::function::Fn(&[f64]) -> core::result::Result<D, <D as alea_core::distribution::Distribution>::Error> + core::marker::Send + core::marker::Sync + 'static",
       "profile": "research_component",
       "promotion_gate": "Qualify additional observed laws, binding/reporting and source capabilities independently; native block composition is not general derivative or performance qualification."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::poisson_log_region_observations<O>(region: &mut alea_core::model::tensor::RegionBuilder, events: alloc::vec::Vec<O>, log_rates: alea_core::model::assembly::Value) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where O: core::borrow::Borrow<u64> + core::marker::Send + core::marker::Sync + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native directional and reverse rule composition across broader models and backends."
     },
     {
       "crate": "alea-distributions",
@@ -18018,6 +18234,12 @@
       "item": "pub fn alea_distributions::modeling::regression::RegressionData<Y>::linear_map(self, coefficients: &[alea_core::model::assembly::Value]) -> core::result::Result<alea_distributions::modeling::regression::LinearPredictor<Y>, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-distributions",
+      "item": "pub fn alea_distributions::modeling::regression::RegressionData<Y>::linear_map_with_intercept(self, coefficients: &[alea_core::model::assembly::Value], intercept: alea_core::model::assembly::Value) -> core::result::Result<alea_distributions::modeling::regression::LinearPredictor<Y>, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify explicit affine and compound law lowering across broader models and backends."
     },
     {
       "crate": "alea-distributions",

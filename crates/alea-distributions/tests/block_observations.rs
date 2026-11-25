@@ -70,6 +70,7 @@ fn build(n: usize, family: u8) -> (NativeModel, Arc<AtomicUsize>, Arc<AtomicUsiz
             &[eta],
             Arc::clone(&maps),
             BlockRules {
+                preparation: None,
                 inputs: vec![BlockType {
                     dtype: ElementType::Real,
                     shape: shape(&[n]),
@@ -367,10 +368,8 @@ fn block_likelihoods_preserve_selection_joint_reporting_and_one_positive_chart()
     let sigma = b.positive("sigma").unwrap();
     let prior = modeling::normal(&mut b, mu, 0., 2.).unwrap();
     b.prior("prior", prior).unwrap();
-    let normal = observations::<Normal, _, _>(&mut b, vec![0.2, -0.3], &[mu, sigma.expr()], |p| {
-        Normal::new(p[0], p[1])
-    })
-    .unwrap();
+    let normal =
+        modeling::normal_observation_block(&mut b, vec![0.2, -0.3], mu, sigma.expr()).unwrap();
     let normal = b.sum_value(normal).unwrap();
     b.likelihood("normal", normal).unwrap();
     let logit = observations::<BernoulliLogit, _, _>(&mut b, vec![true, false], &[mu], |p| {
@@ -768,10 +767,8 @@ fn repeated_group_predictors_refresh_after_parameter_changes_and_immutable_data_
             .unwrap();
         let events: Vec<_> = (0..n).map(|i| i as f64 / 4. - 0.5).collect();
         let rows =
-            observations::<Normal, _, _>(&mut b, events.clone(), &[predictor, sigma.expr()], |p| {
-                Normal::new(p[0], p[1])
-            })
-            .unwrap();
+            modeling::normal_observation_block(&mut b, events.clone(), predictor, sigma.expr())
+                .unwrap();
         let joint = b.sum_value(rows).unwrap();
         b.likelihood("conditional data", joint).unwrap();
         let original = b.compile().unwrap().binding().clone();
@@ -888,5 +885,182 @@ fn repeated_group_predictors_refresh_after_parameter_changes_and_immutable_data_
                 }
             }
         }
+    }
+}
+
+#[test]
+fn prepared_normal_blocks_match_generic_scores_and_admission() {
+    use alea_core::model::ConstrainedModel;
+    use alea_distributions::modeling::normal_observation_block;
+
+    fn model(prepared: bool, vector: bool, events: [Vec<f64>; 2]) -> NativeModel {
+        let mut builder = ModelBuilder::new();
+        let location = builder.real("location").unwrap().expr();
+        let scale = builder.real("scale").unwrap().expr();
+        let scale = if vector {
+            builder
+                .constant_block(Shape::new(vec![3]).unwrap(), vec![0.5, 1., 2.])
+                .unwrap()
+        } else {
+            scale
+        };
+        for events in events {
+            let rows = if prepared {
+                normal_observation_block(&mut builder, events, location, scale)
+            } else {
+                observations::<Normal, _, _>(&mut builder, events, &[location, scale], |p| {
+                    Normal::new(p[0], p[1])
+                })
+            }
+            .unwrap();
+            let sum = builder.sum_value(rows).unwrap();
+            builder.factor(sum).unwrap();
+        }
+        builder.compile().unwrap()
+    }
+
+    for (vector, events) in [
+        (false, [vec![0.5, -1., 2.], vec![-0.75, 0., 1.5]]),
+        (false, [vec![], vec![0.5, -1., 2.]]),
+        (true, [vec![0.5, -1., 2.], vec![-0.75, 0., 1.5]]),
+    ] {
+        let generic = model(false, vector, events.clone());
+        let prepared = model(true, vector, events);
+        let mut expected = [0.; 2];
+        let mut actual = [0.; 2];
+        for q in [[0.1, 0.9], [-0.25, 2.1], [-0., 0.75]] {
+            let a = generic.logp_grad(&q, &mut expected).unwrap();
+            let b = prepared.logp_grad(&q, &mut actual).unwrap();
+            assert_eq!(a.to_bits(), b.to_bits());
+            assert_eq!(expected.map(f64::to_bits), actual.map(f64::to_bits));
+        }
+        if !vector {
+            actual = [19.; 2];
+            let a = generic.logp_grad(&[0., -1.], &mut expected).unwrap_err();
+            let b = prepared.logp_grad(&[0., -1.], &mut actual).unwrap_err();
+            assert_eq!(a.to_string(), b.to_string());
+            assert_eq!(actual, [19.; 2]);
+            assert!(prepared.logp_grad(&[0.1, 0.9], &mut actual).is_ok());
+        }
+    }
+}
+
+#[test]
+fn tensor_laws_share_a_nonlinear_predictor_and_match_independent_derivatives() {
+    use alea_core::model::tensor::{BinaryOp, UnaryOp};
+    use modeling::{
+        bernoulli_logit_region_observations, normal_region_observations,
+        poisson_log_region_observations,
+    };
+
+    let mut region = ModelBuilder::new().region();
+    let x = region.input("x", shape(&[3])).unwrap();
+    let rho = region.input("rho", Shape::scalar()).unwrap();
+    let eta = region.binary(BinaryOp::Multiply, x, x).unwrap();
+    let scale = region.unary(UnaryOp::Exp, rho).unwrap();
+    let (events, labels, counts) = ([0.5, -0.6, 0.125], [true, false, true], [0_u64, 1, 3]);
+    let normal = normal_region_observations(&mut region, events.to_vec(), eta, scale).unwrap();
+    let logit = bernoulli_logit_region_observations(&mut region, labels.to_vec(), eta).unwrap();
+    let poisson = poisson_log_region_observations(&mut region, counts.to_vec(), eta).unwrap();
+    let joint = region.binary(BinaryOp::Add, normal, logit).unwrap();
+    let joint = region.binary(BinaryOp::Add, joint, poisson).unwrap();
+    let output = region.sum(joint).unwrap();
+    let bound = region.compile(output).unwrap().bind(&[]).unwrap();
+    assert!(matches!(
+        bound.rust_function(),
+        Err(E::MissingPrimal { .. })
+    ));
+    let mut directional = bound.jvp(&[true, true]).unwrap();
+    let mut reverse = bound.workspace();
+    let (mut value, mut tangent, mut gradient) = ([0.], [0.], [0.; 4]);
+    for q in [[-0.5_f64, 0.2, 0.7, 0.25], [0.5, -0.1, 0.1, -0.35]] {
+        let v = [0.7, -0.5, 0.1, -0.2];
+        let scale = q[3].exp();
+        let (mut expected, mut score) = (0., [0.; 4]);
+        for i in 0..3 {
+            let eta = q[i] * q[i];
+            let rate = eta.exp();
+            let z = (events[i] - eta) / scale;
+            let count = counts[i] as f64;
+            let log_factorial: f64 = (1..=counts[i]).map(|k| (k as f64).ln()).sum();
+            expected += -0.5 * z * z - q[3] - 0.5 * std::f64::consts::TAU.ln()
+                + f64::from(labels[i]) * eta
+                - rate.ln_1p()
+                + count * eta
+                - rate
+                - log_factorial;
+            score[i] =
+                2. * q[i] * (z / scale + f64::from(labels[i]) - rate / (1. + rate) + count - rate);
+            score[3] += z * z - 1.;
+        }
+        directional
+            .value_and_jvp(
+                &q,
+                &[Some(&v[..3]), Some(&v[3..])],
+                &mut value,
+                &mut tangent,
+            )
+            .unwrap();
+        close(value[0], expected);
+        close(tangent[0], score.iter().zip(v).map(|(g, v)| g * v).sum());
+        bound
+            .value_and_vjp(&q, &[1.], &mut value, &mut gradient, &mut reverse)
+            .unwrap();
+        close(value[0], expected);
+        for (actual, expected) in gradient.into_iter().zip(score) {
+            close(actual, expected);
+        }
+    }
+}
+
+#[test]
+fn registered_normal_jvp_preserves_duplicate_arguments_and_zero_direction_admission() {
+    use modeling::normal_region_observations;
+
+    let mut region = ModelBuilder::new().region();
+    let x = region.input("x", Shape::scalar()).unwrap();
+    let y = normal_region_observations(&mut region, vec![1.], x, x).unwrap();
+    let bound = region.compile(y).unwrap().bind(&[]).unwrap();
+    let (mut out, mut jvp, mut gradient) = ([17.], [19.], [23.]);
+    let mut evaluator = bound.jvp(&[true]).unwrap();
+    evaluator
+        .value_and_jvp(&[2.], &[Some(&[0.4])], &mut out, &mut jvp)
+        .unwrap();
+    close(jvp[0], -0.25);
+    bound
+        .value_and_vjp(
+            &[2.],
+            &[1.],
+            &mut out,
+            &mut gradient,
+            &mut bound.workspace(),
+        )
+        .unwrap();
+    close(gradient[0], -0.625);
+
+    let mut region = ModelBuilder::new().region();
+    let zero = region.constant(Shape::scalar(), vec![0.]).unwrap();
+    let scale = region.input("scale", Shape::scalar()).unwrap();
+    let y = normal_region_observations(&mut region, vec![0.], zero, scale).unwrap();
+    let bound = region.compile(y).unwrap().bind(&[]).unwrap();
+    for active in [false, true] {
+        let mut evaluator = bound.jvp(&[active]).unwrap();
+        let (mut out, mut jvp) = ([17.], [19.]);
+        let direction = [0.];
+        let inputs = [active.then_some(direction.as_slice())];
+        // The density at the mean is finite, but the local scale score overflows.
+        assert!(matches!(
+            evaluator.value_and_jvp(&[f64::from_bits(1)], &inputs, &mut out, &mut jvp),
+            Err(E::Factor(error)) if matches!(
+                error.downcast_ref::<alea_core::distribution::DistributionError>(),
+                Some(alea_core::distribution::DistributionError::Numerical),
+            )
+        ));
+        assert_eq!((out, jvp), ([17.], [19.]));
+        evaluator
+            .value_and_jvp(&[1.], &inputs, &mut out, &mut jvp)
+            .unwrap();
+        close(out[0], -0.5 * std::f64::consts::TAU.ln());
+        assert_eq!(jvp, [0.]);
     }
 }

@@ -405,3 +405,65 @@ fn provider_first_order_preserves_ordinary_factor_compiler_route_and_admission()
         check(alea_enzyme_conformance::provider_blas_mixed::composition::objective());
     }
 }
+
+#[test]
+fn frozen_prepared_design_and_rebinding_match_independent_scores_and_curvature() {
+    fn check(target: impl PotentialHessianDerivative<Error = AutodiffError>, b: [f64; 4]) {
+        for q in [[0.5, -1.], [0., 0.], [-0.3, 0.7]] {
+            let mut g = [41.; 2];
+            let [a, cross, _, d] = b;
+            close(
+                target.logp_grad(&q, &mut g).unwrap(),
+                -0.5 * (a * q[0] * q[0] + 2. * cross * q[0] * q[1] + d * q[1] * q[1]),
+            );
+            close(g[0], -a * q[0] - cross * q[1]);
+            close(g[1], -cross * q[0] - d * q[1]);
+            let (mut h, mut third) = ([41.; 4], [41.; 8]);
+            target
+                .potential_hessian_and_derivatives(&q, &mut h, &mut third)
+                .unwrap();
+            for (got, expected) in h.into_iter().zip(b) {
+                close(got, expected);
+            }
+            for got in third {
+                close(got, 0.);
+            }
+            let v = [0.2, -0.3];
+            target.potential_hvp(&q, &v, &mut g).unwrap();
+            close(g[0], a * v[0] + cross * v[1]);
+            close(g[1], cross * v[0] + d * v[1]);
+        }
+        let mut g = [19., 23.];
+        assert!(target.logp_grad(&[f64::MAX; 2], &mut g).is_err());
+        // Raw LogDensityGradient leaves failure scratch unspecified. The
+        // transactional guarantee is provided by PointState, not that buffer.
+        target.logp_grad(&[0.5, -1.], &mut g).unwrap();
+        let mut point = alea::target::PointState::new(
+            &target,
+            alea::math::buffer::OwnedBuffer::from_fn(2, |i| [0.5, -1.][i]),
+        )
+        .unwrap();
+        let before = (
+            point.position().to_vec(),
+            point.gradient().to_vec(),
+            point.log_density(),
+        );
+        let mut work = alea::target::EvaluationWorkspace::new(2);
+        assert!(point.try_update(&[f64::MAX; 2], &mut work).is_err());
+        assert_eq!(
+            (point.position(), point.gradient(), point.log_density()),
+            (&before.0[..], &before.1[..], before.2)
+        );
+        point.try_update(&[-0.3, 0.7], &mut work).unwrap();
+    }
+    // The independent matrices are A^T A for the two fixed designs; the
+    // preparation/emitter code is not used to obtain these reference answers.
+    check(
+        alea_enzyme_conformance::tensor_fixed::target(),
+        [296., 420., 420., 596.],
+    );
+    check(
+        alea_enzyme_conformance::tensor_fixed_rebound::target(),
+        [34., 42., 42., 90.],
+    );
+}

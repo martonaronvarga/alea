@@ -201,11 +201,7 @@ pub fn normal_regression(
     sigma: &Parameter<Positive>,
     data: RegressionData<f64>,
 ) -> Result<Value, E> {
-    check_columns(&data, beta)?;
-    builder.primitive(
-        &[beta, &[sigma.expr()]].concat(),
-        NormalRegression::new(data)?,
-    )
+    data.linear_map(beta)?.normal(sigma)?.sum_log_prob(builder)
 }
 /// Immutable native normal-regression description. Retains row-major data and
 /// offsets. Eligible tall designs use square-root sufficient statistics; other
@@ -450,8 +446,9 @@ pub fn bernoulli_logit_regression(
     beta: &[Value],
     data: RegressionData<bool>,
 ) -> Result<Value, E> {
-    check_columns(&data, beta)?;
-    builder.primitive(beta, BernoulliLogitRegression::new(data)?)
+    data.linear_map(beta)?
+        .bernoulli_logit()?
+        .sum_log_prob(builder)
 }
 /// Poisson observations with a log-rate link. Offsets are log exposures when used.
 /// Evaluates `y*eta-exp(eta)-ln(y!)` directly, retaining finite log probabilities
@@ -464,8 +461,7 @@ pub fn poisson_log_regression(
     beta: &[Value],
     data: RegressionData<u64>,
 ) -> Result<Value, E> {
-    check_columns(&data, beta)?;
-    builder.primitive(beta, PoissonLogRegression::new(data)?)
+    data.linear_map(beta)?.poisson_log()?.sum_log_prob(builder)
 }
 
 // Separate arrays let coefficient-score SIMD preserve each coordinate's row

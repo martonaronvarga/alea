@@ -9,6 +9,60 @@ This is research infrastructure, not a claim of theoretical novelty, optimal
 tensor kernels, or speed parity with Stan/JAX. Those claims require independent
 measurements and broader qualification than a richer representation supplies.
 
+## Shared compile-time facts
+
+Compilation records immutable dependency and effect facts beside each region
+plan. Native workspace activity and source pullback activity use the same formal
+input transfer. Conditional predicates affect value dependence, while derivatives
+follow branch operands; scan captures and first-versus-steady carry activity keep
+their existing semantics. Bound data and embedded constants, including typed
+Boolean/count leaves, remain independent of numerical inputs. Facts compose
+through child summaries without allocating a dense value-by-input matrix.
+
+Source eligibility, accelerated-matrix source requirements and replay barriers
+are cached by the same compilation pass. Native callbacks remain opaque even
+when they supply a VJP; typed leaves retain their current source limitation.
+Zero-trip bodies do not create execution barriers, while the existing conservative
+checkpoint source policy still applies. Purity is separate from checked forward
+admission: these facts do not authorize skipping validation, hoisting operations,
+or evaluating both branches. Immutable analysis storage is separate from execution
+workspaces; the plan header size and workspace byte contract are unchanged.
+
+Demand records distinguish complete selected-forward admission, the tensor result,
+structural tangent/cotangent activity, and explicit reverse primal reads. The
+current first-order planners use the same conservative structural activity mask
+for both derivative roles; numerical zero seeds never narrow admission. This
+representation adds no JVP or reporting API. Source residual layout uses compiled
+read requirements with the original reader/value IDs, retaining alias provenance.
+Model reporting continues to use the assembly's existing output selection.
+
+Control guards identify the original call, child plan and selected branch or scan
+iteration. Native reverse follows the branch recorded by forward; checkpoint slots
+must match the replayed iteration. Source child functions validate the same call
+provenance, with lexical branch/loop scopes supplying dynamic identity. Native
+residual references borrow their exclusive context and require a complete forward
+for the same binding. Failed evaluations and consumed reverse passes invalidate
+that preparation. No residual token escapes to callers, and no mutable-AST version
+registry is introduced. Workspace byte estimates include guard state and checkpoint
+iteration tags; this is not a measured storage or performance improvement.
+
+Compilation also builds a private checked lowering contract for the existing
+calls. Each call retains its original SSA identity, typed read regions and maps,
+write mode/range, ordered argument accumulation, numerical/provider request and
+required source residuals. Opaque native rules retain an explicit unknown-residual
+boundary, rather than a guessed empty read set. The verifier rejects mismatched
+types, out-of-range or overlapping writes, invalid alias/gather/broadcast mappings,
+child signature mismatches and unavailable or changed matrix requests before an
+immutable executable is published.
+
+Native and source fusion planning use the checked read maps; source workspace
+planning uses checked writes, and source capability summaries come from checked
+policies. This adds no new scheduling choice, kernel, provider qualification or
+public compiler API. Existing arithmetic bodies and graph/operand accumulation
+order remain authoritative. Lowering metadata stays in the cold compile facts,
+shared across bindings and execution contexts; no performance or memory win is
+implied by its existence.
+
 ## Target-owned workspace admission
 
 `TensorProgram::workspace_bytes()` and `BoundProgram::workspace_bytes()` expose
@@ -124,6 +178,105 @@ its typed workspace. Region callbacks can read real, Boolean, count and index
 arguments in their original types. VJPs write one contribution per real input
 element in declared argument order, including repeated inputs. Native-only
 callbacks cannot be checkpoint-replayed or exported as Rust source.
+
+Binding preparation is independently optional: existing rule literals specify
+`preparation: None`. To opt in, supply `BlockPreparation::new(arguments, prepare)`;
+argument positions select direct immutable data/constants or typed leaves from
+the call. The callback receives only those leaves through `BindingInputs` and
+returns an owned `P: Any + Send + Sync`. Forward/VJP callbacks borrow that payload
+with `inputs.prepared::<P>()?`; an absent payload or wrong Rust type is a shape
+error. Recipes must validate their own payload invariants and numerical state.
+Derived expressions and parameter values are rejected as recipe dependencies;
+this is not partial evaluation of arbitrary subgraphs.
+
+The error boundary is explicit and eager: `TensorProgram::bind` and
+`BoundProgram::rebind` run recipes for active calls before publishing a snapshot.
+Model convenience registration binds immediately, so descriptor-only recipes may
+fail during construction. Typed errors propagate; panics unwind. A failed later
+recipe discards earlier candidate payloads and leaves the old binding, prepared
+point and contexts intact. External callback side effects are not rolled back.
+Parent binding does not recursively execute or reprepare already-bound child
+regions. Ordinary forward callbacks retain their lazy branch/iteration admission;
+preparation adds no purity, replay, source, JVP or curvature permission.
+
+Cloned bindings and independent contexts share immutable prepared payloads.
+Scratch and parameter-dependent residuals stay in private workspaces. A workspace
+can refresh for a new same-plan binding, but reverse rejects residuals admitted
+with another prepared payload, even if both bindings have identical constant data.
+Bindings without recipes allocate no recipe table. Immutable prepared payload
+storage is outside the per-execution workspace budget; native metadata accounting
+includes the workspace's retained payload reference. No storage or speed claim
+follows from this interface.
+
+L1.2 also prepares the available fixed-data closure of deterministic builtins:
+unary/binary transforms, sums, gathers (including transpose maps), and reference
+matrix multiplication. Constants and data are immutable leaves; aliases share
+storage. Formal inputs, arbitrary callbacks, RNG, control-flow results and explicit
+accelerated matrix providers remain dynamic. Their dependents are not hoisted.
+Preparation retains at most 8 MiB of derived floating-point payload per snapshot;
+operations exceeding that cap use ordinary execution. This cap excludes input
+storage and metadata. Binding never allocates a parameter-sized execution arena.
+
+A failed builtin is recorded and reported only at its original executed node;
+unselected branches and zero-trip loops retain their admission behavior. Workspaces
+copy successful prepared values once when their snapshot changes, then skip those
+operations. Parameter-dependent computation and residuals remain per evaluation.
+Reverse requires the snapshot that admitted the forward state.
+
+Frozen source emits successful prepared results as explicitly typed scalar stores,
+preserving the existing scratch/residual layout. Failed preparation retains the
+original checked source operation. Rebinding produces a new frozen source without
+changing earlier captures. Large prepared arrays can increase generated source
+size; workspace storage is not compacted. No speed or storage improvement has been
+measured for this increment.
+
+The private directional program reuses the checked tensor plan for unary and
+broadcast binary operations, reshape, gather, compensated sum, and matrix
+products. Reshapes share tangent slots. Broadcast and gather use the original
+index maps, including repeated reads. Symbolic zeros need no tangent storage,
+and zero directions and empty outputs still run primal admission. Invalid
+primal or directional results leave both caller buffers intact.
+
+Matrix directions use the primal's resolved policy. The compensated path
+accumulates both terms of the product rule in the same accumulator, in
+contraction and operand order. Explicit Standard requests use the resolved
+provider to replace the output with the first term and add the second when both
+are active. A provider refusal propagates as a shape error for that directional
+call. The native reverse schedule now applies the transpose of the same typed
+builtin rules. Flat and fused tile execution use the existing VJP kernels and
+adjoint arenas. They retain seed copies and checks for recycled adjoints and
+the original order for alias and repeated-index accumulation. Trusted callback
+VJPs and recorded control-flow frames keep their existing boundaries.
+
+A bound tensor region can create a reusable native directional evaluator with
+`BoundProgram::jvp`. Its mask selects the formal inputs with supplied directions.
+The evaluator admits the canonical forward pass before publishing the value and
+direction together. `RegionBuilder::register_block_with_jvp` accepts an explicit
+typed callback that borrows admitted forward state. The JVP and VJP are
+independent rules. Fixed discrete arguments have no direction. A directional
+request requires a JVP for reachable calls, including calls in either branch
+of a conditional. Evaluation follows the recorded branch and admits only that
+branch. A fixed-trip scan carries the tangent forward through each admitted
+iteration, using the corresponding row and capture directions. With zero
+trips, the direction is the initial carry direction. Retained scans read their
+versioned forward frames. Checkpointed scans replay from the saved initial
+carry and consume each frame before reuse. Both share the native reverse
+executor’s frame guards. This is a native first-order route.
+
+A scalar builtin region can also create a `TensorPotential` with
+`BoundProgram::potential_hvp_target`. Its potential is the negative of the
+region result in flattened input coordinates. Use the existing
+`evaluate_hvp` function for checked calls. The ordinary native value and
+gradient must pass admission before curvature is evaluated. The curvature
+sweep differentiates each transpose contribution through both its coefficient
+and its incoming seed. Branch predicates select a path without contributing
+derivatives. A checkpointed scan saves the tangent of each carry boundary and
+restores it with the matching primal before reversing that segment.
+
+The target owns separate curvature scratch outside the first-order workspace
+estimate. Reachable custom calls require a second rule and currently reject
+target construction. Model composition, chart transformations and higher
+derivative orders have separate capability contracts.
 
 Whole-value model calls currently execute natively. Existing scalar-result
 source models use `ModelBuilder::apply_region`. The production

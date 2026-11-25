@@ -9,9 +9,12 @@ use super::assembly::{
 };
 use crate::model::assembly::{NativeRules, OperationDescriptor, SourceBody, SourceRule};
 use std::{ops::Range, sync::Arc};
+mod analysis;
+mod binding;
 mod execute;
 mod fusion;
 mod kernels;
+mod lowering;
 mod pullback;
 mod registration;
 mod source;
@@ -19,8 +22,11 @@ pub use alea_math::gemm::{
     MatrixArithmetic, MatrixCpu, MatrixPolicyError, MatrixProvider, MatrixRequest, MatrixThreads,
     ResolvedMatrix,
 };
-pub use execute::TensorWorkspace;
-pub use registration::{BlockInputs, BlockRules, BlockType, BlockVjp, ElementType};
+pub use execute::{TensorJvp, TensorPotential, TensorWorkspace};
+pub use registration::{
+    BindingInputs, BlockInputs, BlockJvp, BlockPreparation, BlockRules, BlockTangents, BlockType,
+    BlockVjp, ElementType,
+};
 
 /// Validated dense row-major tensor shape. An empty axis list is a scalar;
 /// zero-length axes are allowed. Shapes are fixed throughout one compiled plan.
@@ -124,7 +130,7 @@ pub struct TensorNode<'a> {
     /// Reachable from the compiled result, including dependencies of either branch.
     pub active: bool,
 }
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 enum Map {
     Empty,
     Identity,
@@ -133,7 +139,7 @@ enum Map {
 }
 // Read maps may repeat indices. They are NOT independent write maps: the VJP
 // must still accumulate repeated destinations in the original element order.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 struct BroadcastAxis {
     extent: usize,
     output_stride: usize,
@@ -300,17 +306,17 @@ struct Plan {
     dimension: usize,
     slots: usize,
     output: Value,
-    active: Vec<bool>,
+    // Box the fixed reachability slice: its former capacity word pays for the
+    // pointer to cold compile facts, keeping the hot plan header the same size.
+    active: Box<[bool]>,
+    facts: Box<analysis::CompileFacts>,
     workspace_bytes: usize,
     source_slots: usize,
     execution: Option<Box<fusion::Schedule>>,
 }
 impl Plan {
     fn last_native_block(&self) -> Option<usize> {
-        self.nodes
-            .iter()
-            .zip(&self.active)
-            .rposition(|(node, &active)| active && node.native_block().is_some())
+        self.facts.last_native_block
     }
 }
 /// Construction of shape-checked, deterministic tensor/control-flow regions.
@@ -680,6 +686,12 @@ impl RegionBuilder {
                 }
             }
         }
+        let facts = Box::new(analysis::CompileFacts::compile(
+            &self.nodes,
+            &active,
+            output,
+            self.slots,
+        )?);
         let mut plan = Plan {
             owner: self.owner,
             nodes: self.nodes,
@@ -688,7 +700,8 @@ impl RegionBuilder {
             dimension: self.dimension,
             slots: self.slots,
             output,
-            active,
+            active: active.into_boxed_slice(),
+            facts,
             workspace_bytes: 0,
             source_slots: 0,
             execution: None,
@@ -714,8 +727,7 @@ pub struct TensorProgram {
 pub struct BoundProgram {
     plan: Arc<Plan>,
     data: Vec<Arc<[f64]>>,
-    #[cfg(test)]
-    snapshot: Arc<registration::BindingState>,
+    snapshot: Option<Arc<registration::BindingState>>,
 }
 /// Target-owned tensor scratch exceeds the caller's explicit per-execution budget.
 /// Counts include native value/adjoint buffers and retained control-flow frames,
@@ -738,6 +750,8 @@ impl TensorProgram {
     /// immutable storage. Different bindings reuse the same compiled plan.
     /// # Errors
     /// Rejects missing/duplicate/unknown names, wrong lengths or nonfinite data.
+    /// Explicit block preparation recipes then run eagerly; their typed errors
+    /// propagate and their panics unwind without publishing a candidate snapshot.
     pub fn bind(&self, bindings: &[(&str, &[f64])]) -> Result<BoundProgram, E> {
         if bindings.len() != self.plan.data.len() {
             return Err(E::Shape);
@@ -760,13 +774,7 @@ impl TensorProgram {
             }
             data.push(Arc::from(values));
         }
-        #[cfg(test)]
-        return registration::bind_snapshot(Arc::clone(&self.plan), data);
-        #[cfg(not(test))]
-        Ok(BoundProgram {
-            plan: Arc::clone(&self.plan),
-            data,
-        })
+        registration::bind_snapshot(Arc::clone(&self.plan), data)
     }
     /// Number of block SSA nodes, independent of tensor element/trip counts.
     pub fn node_count(&self) -> usize {
@@ -855,6 +863,8 @@ impl BoundProgram {
     /// rebinding should affect a branch or loop body.
     /// # Errors
     /// Rejects unknown names, shape changes or nonfinite replacement values.
+    /// Opted-in preparation runs again transactionally; recipe errors or unwinds
+    /// leave this binding and its existing execution contexts untouched.
     pub fn rebind(&self, name: &str, values: &[f64]) -> Result<Self, E> {
         let index = self
             .plan
@@ -870,13 +880,7 @@ impl BoundProgram {
         }
         let mut data = self.data.clone();
         data[index] = Arc::from(values);
-        #[cfg(test)]
-        return registration::bind_snapshot(Arc::clone(&self.plan), data);
-        #[cfg(not(test))]
-        Ok(Self {
-            plan: Arc::clone(&self.plan),
-            data,
-        })
+        registration::bind_snapshot(Arc::clone(&self.plan), data)
     }
 }
 /// Scalar-result tensor region lowered as one native model primitive. Arbitrary

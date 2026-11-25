@@ -20,30 +20,12 @@ impl Group {
     }
 }
 
-fn identity(map: &Map) -> bool {
-    match map {
-        Map::Identity => true,
-        Map::Empty | Map::Scalar => false,
-        // Equal-element broadcast shapes (including leading unit axes) are
-        // canonicalized to Identity at construction. Every other nonempty
-        // broadcast repeats destinations and cannot use independent VJP tiles.
-        Map::Broadcast(_) => false,
-    }
-}
 fn pointwise(p: &Plan, i: usize, first: usize, elements: usize) -> bool {
-    let node = &p.nodes[i];
-    if !p.active[i] || node.shape.elements != elements {
-        return false;
-    }
-    match &node.op {
-        Op::Unary(_, _) => true,
-        Op::Binary(b) => {
-            // An in-group value must be read at the same element. An external
-            // operand can use ANY static broadcast map, including repeats.
-            (b.a.node < first || identity(&b.left)) && (b.b.node < first || identity(&b.right))
-        }
-        _ => false,
-    }
+    !p.facts.binding_fixed(i)
+        && p.facts
+            .lowered
+            .call(i)
+            .is_some_and(|call| call.pointwise(first, elements))
 }
 
 pub(super) fn schedule(p: &Plan, native: bool) -> Vec<Step> {
@@ -59,12 +41,12 @@ pub(super) fn schedule(p: &Plan, native: bool) -> Vec<Step> {
         while i < p.nodes.len() && pointwise(p, i, first, elements) {
             i += 1;
         }
-        let reduction = (i < p.nodes.len() && p.active[i])
-            .then(|| match p.nodes[i].op {
-                Op::Sum(a) if (first..i).contains(&a.node) => Some(i),
-                _ => None,
-            })
-            .flatten();
+        let reduction = p
+            .facts
+            .lowered
+            .call(i)
+            .is_some_and(|call| call.reduction_of(first..i))
+            .then_some(i);
         if i - first < 2 && reduction.is_none() {
             continue;
         }
@@ -168,13 +150,17 @@ fn binary(b: &Binary, a: &[f64], r: &[f64], out: &mut [f64], start: usize) {
 // across elements. Inactive scalar/broadcast operands may still supply primals.
 // Never tile shared scalar or gather reductions: their addition order matters.
 pub(super) fn reverse_compatible(p: &Plan, group: &Group, active: &[bool]) -> bool {
-    group.maps.clone().all(|i| match &p.nodes[i].op {
-        Op::Unary(_, _) => true,
-        Op::Binary(b) => {
-            (!active[b.a.node] || identity(&b.left)) && (!active[b.b.node] || identity(&b.right))
-        }
-        _ => false,
-    })
+    group
+        .maps
+        .clone()
+        .all(|i| match execute::linear::Rule::at(&p.nodes[i]) {
+            execute::linear::Rule::Unary(_, _) => true,
+            execute::linear::Rule::Binary(b) => {
+                (!active[b.a.node] || matches!(b.left, Map::Identity))
+                    && (!active[b.b.node] || matches!(b.right, Map::Identity))
+            }
+            _ => false,
+        })
 }
 
 pub(super) fn reverse(
@@ -186,48 +172,23 @@ pub(super) fn reverse(
     starts: &[usize],
 ) {
     const TILE: usize = 256;
+    use execute::linear::{Reverse, Rule};
     for start in (0..group.elements).step_by(TILE) {
         let end = (start + TILE).min(group.elements);
-        if let Some(i) = group.reduction.filter(|&i| active[i]) {
-            let Op::Sum(a) = p.nodes[i].op else {
-                unreachable!("compiled reduction")
-            };
-            let seed = adjoints[starts[i]];
-            for g in &mut adjoints[starts[a.node] + start..starts[a.node] + end] {
-                *g += seed;
-            }
-        }
-        for i in group.maps.clone().rev() {
-            if !active[i] {
-                continue;
-            }
-            let node = &p.nodes[i];
-            match &node.op {
-                Op::Unary(op, a) => {
-                    kernels::unary_reverse_range(
-                        *op,
-                        &values[p.nodes[a.node].start + start..p.nodes[a.node].start + end],
-                        &values[node.start + start..node.start + end],
+        for i in (group.maps.start..group.end()).rev() {
+            if active[i] {
+                Rule::at(&p.nodes[i]).transpose::<true, true>(
+                    i,
+                    Reverse {
+                        plan: p,
+                        primals: values,
                         adjoints,
-                        (starts[a.node] + start, starts[i] + start),
-                    );
-                }
-                Op::Binary(b) => {
-                    let (before, after) = adjoints.split_at_mut(starts[i]);
-                    kernels::reverse_range(
-                        b,
-                        kernels::Pullback {
-                            a: &values[p.nodes[b.a.node].range()],
-                            r: &values[p.nodes[b.b.node].range()],
-                            seeds: &after[start..end],
-                            adjoints: before,
-                            starts: (starts[b.a.node], starts[b.b.node]),
-                            active: (active[b.a.node], active[b.b.node]),
-                        },
-                        start,
-                    );
-                }
-                _ => unreachable!("compiled pointwise group"),
+                        active,
+                        starts,
+                    },
+                    start..end,
+                    None,
+                );
             }
         }
     }

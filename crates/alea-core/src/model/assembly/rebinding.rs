@@ -7,6 +7,8 @@ impl DataBinding {
     /// compiled executables and their contexts remain bound to the old snapshot.
     /// # Errors
     /// Rejects a foreign handle, missing data slot, invalid shape or native data.
+    /// Explicit block preparation errors propagate before replacement; an unwind
+    /// also leaves the old binding and its compiled contexts intact.
     pub fn rebind_region(
         &self,
         value: Value,

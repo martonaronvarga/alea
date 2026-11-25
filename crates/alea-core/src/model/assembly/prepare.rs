@@ -1,11 +1,14 @@
-//! Shared pure scalar preparation; never reorder factor admission or reverse edges.
+//! Shared pure preparation for scalar factors and typed native block calls.
 use super::{Op, PrimitiveMetadata};
-use std::{any::TypeId, collections::HashMap};
+use std::{
+    any::{Any, TypeId},
+    collections::HashMap,
+};
 
 #[derive(Clone, Copy)]
 pub(super) struct Rule {
-    pub argument: usize,
-    pub prepare: fn(f64) -> f64,
+    pub(super) argument: usize,
+    pub(super) prepare: fn(f64) -> f64,
 }
 struct Entry {
     prepare: fn(f64) -> f64,
@@ -17,12 +20,14 @@ struct Entry {
 pub(super) struct Plan {
     callbacks: Box<[(usize, usize)]>,
     entries: Vec<Entry>,
+    pub(super) blocks: BlockEntries,
 }
 impl Plan {
     pub(super) fn new(
         nodes: &[Op],
         primitives: &[(usize, PrimitiveMetadata)],
         callbacks: usize,
+        active: Option<&[bool]>,
     ) -> Option<Box<Self>> {
         #[derive(Hash, PartialEq, Eq)]
         enum Input {
@@ -57,10 +62,12 @@ impl Plan {
                 .or_default()
                 .push((*callback, rule, matches!(nodes[source], Op::Constant(_))));
         }
-        if !groups.values().any(|group| group.len() > 1) {
+        let blocks = BlockEntries::new(nodes, active);
+        let shared_scalar = groups.values().any(|group| group.len() > 1);
+        if !shared_scalar && blocks.slots.is_empty() {
             return None;
         }
-        let mut mapping = vec![(usize::MAX, 0); callbacks];
+        let mut mapping = vec![(usize::MAX, 0); if shared_scalar { callbacks } else { 0 }];
         let mut entries = Vec::new();
         // Group iteration order has no effect on evaluation/reduction order.
         for group in groups.values().filter(|group| group.len() > 1) {
@@ -78,10 +85,12 @@ impl Plan {
         }
         Some(Box::new(Self {
             callbacks: mapping.into_boxed_slice(),
+            blocks,
             entries,
         }))
     }
     pub(super) fn begin_evaluation(&mut self) {
+        self.blocks.begin_evaluation();
         for entry in &mut self.entries {
             if !entry.constant {
                 entry.pending = true;
@@ -89,7 +98,7 @@ impl Plan {
         }
     }
     pub(super) fn value(&mut self, callback: usize, inputs: &[f64]) -> Option<f64> {
-        let (index, argument) = self.callbacks[callback];
+        let &(index, argument) = self.callbacks.get(callback)?;
         if index == usize::MAX {
             return None;
         }
@@ -103,5 +112,89 @@ impl Plan {
             entry.pending = false;
         }
         Some(entry.value)
+    }
+}
+
+// The recipe sees only its declared scalar, never the descriptor or workspace.
+pub(super) struct BlockRule {
+    pub(super) argument: usize,
+    identity: (TypeId, TypeId),
+    slot: Box<dyn Fn() -> Box<dyn BlockSlot> + Send + Sync>,
+}
+impl BlockRule {
+    pub(super) fn new<P, F>(argument: usize, prepare: F) -> Self
+    where
+        P: Copy + Send + Sync + 'static,
+        F: Fn(f64) -> P + Copy + Send + Sync + 'static,
+    {
+        debug_assert_eq!(size_of::<F>(), 0);
+        Self {
+            argument,
+            identity: (TypeId::of::<P>(), TypeId::of::<F>()),
+            slot: Box::new(move || {
+                Box::new(TypedSlot {
+                    prepare,
+                    value: None,
+                })
+            }),
+        }
+    }
+}
+trait BlockSlot: Send {
+    fn clear(&mut self);
+    fn value(&mut self, input: f64) -> &(dyn Any + Send + Sync);
+}
+struct TypedSlot<P, F> {
+    prepare: F,
+    value: Option<P>,
+}
+impl<P, F> BlockSlot for TypedSlot<P, F>
+where
+    P: Copy + Send + Sync + 'static,
+    F: Fn(f64) -> P + Send,
+{
+    fn clear(&mut self) {
+        self.value = None;
+    }
+    fn value(&mut self, input: f64) -> &(dyn Any + Send + Sync) {
+        self.value.get_or_insert_with(|| (self.prepare)(input))
+    }
+}
+#[derive(Default)]
+pub(super) struct BlockEntries {
+    mapping: Vec<usize>,
+    slots: Vec<Box<dyn BlockSlot>>,
+}
+impl BlockEntries {
+    fn new(nodes: &[Op], active: Option<&[bool]>) -> Self {
+        let mut entries = Self::default();
+        let mut groups = HashMap::new();
+        for (i, node) in nodes.iter().enumerate() {
+            if active.is_some_and(|active| !active[i]) {
+                continue;
+            }
+            let Op::Region(call) = node else { continue };
+            let Some(rule) = &call.preparation else {
+                continue;
+            };
+            let key = (call.inputs[rule.argument], rule.identity);
+            let index = *groups.entry(key).or_insert_with(|| {
+                let index = entries.slots.len();
+                entries.slots.push((rule.slot)());
+                index
+            });
+            entries.mapping.resize(call.slot + 1, usize::MAX);
+            entries.mapping[call.slot] = index;
+        }
+        entries
+    }
+    fn begin_evaluation(&mut self) {
+        for slot in &mut self.slots {
+            slot.clear();
+        }
+    }
+    pub(super) fn value(&mut self, call: usize, input: f64) -> Option<&(dyn Any + Send + Sync)> {
+        let index = *self.mapping.get(call)?;
+        Some(self.slots.get_mut(index)?.value(input))
     }
 }

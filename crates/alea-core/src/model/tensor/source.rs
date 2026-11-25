@@ -1,11 +1,12 @@
 //! Loop-preserving scalar Rust lowering for actual ahead-of-time compiler AD.
+use super::analysis::{FrameInstance, ResidualGuard};
 use super::*;
 use std::fmt::Write;
 
 pub(super) fn workspace_elements(p: &Plan) -> Result<usize, E> {
     let mut slots = p.nodes[p.output.node].shape.elements;
     for (i, node) in p.nodes.iter().enumerate() {
-        if !p.active[i] {
+        if !p.facts.admission(i) {
             continue;
         }
         let extra = match &node.op {
@@ -17,14 +18,12 @@ pub(super) fn workspace_elements(p: &Plan) -> Result<usize, E> {
             _ => Some(0),
         }
         .ok_or(E::Shape)?;
-        let own = if matches!(
-            &node.op,
-            Op::Input(_) | Op::Data(_) | Op::Constant(_) | Op::Alias(_)
-        ) {
-            0
-        } else {
-            node.shape.elements
-        };
+        let own = p
+            .facts
+            .lowered
+            .call(i)
+            .expect("checked active call")
+            .source_storage();
         slots = slots
             .checked_add(own)
             .and_then(|n| n.checked_add(extra))
@@ -61,6 +60,17 @@ impl BoundProgram {
             "{}\nlet mut valid=true; let (out, work)=scratch.split_at_mut(1); tensor_region_work(x, out, work, &mut valid); if valid {{ out[0] }} else {{ f64::NAN }}",
             self.function_source("tensor_region_work")
         )
+    }
+    fn guarded_function_source(&self, name: &str, guard: ResidualGuard) -> String {
+        // Generated child functions are lexical residual scopes. Their binding
+        // must be the child selected by the original canonical call, just as in
+        // native frames. Iteration zero denotes the static body scope here;
+        // emitted step loops supply the dynamic iteration inside that scope.
+        assert_eq!(
+            guard.child, self.plan.owner,
+            "compiled child residual scope"
+        );
+        self.function_source(name)
     }
     pub(super) fn function_source(&self, name: &str) -> String {
         let p = &self.plan;
@@ -112,6 +122,16 @@ impl BoundProgram {
                 continue;
             }
             writeln!(source, "let (n{i}, rest)=rest.split_at_mut({len});").unwrap();
+            if let Some(binding::Fixed::Value(values)) = self.fixed(i) {
+                // Keep the existing scratch/residual layout: a prepared read
+                // replaces arithmetic, not its identity or publication boundary.
+                // Scalar FP stores retain type information for the pinned AD
+                // compiler; an anonymous constant memcpy is not type-qualified.
+                for (j, value) in values.iter().enumerate() {
+                    writeln!(source, "n{i}[{j}] = {value:?}_f64;").unwrap();
+                }
+                continue;
+            }
             // Empty pure blocks do no element work. Control-flow regions still
             // execute: an empty result cannot erase a selected domain failure.
             if len == 0 && !matches!(&node.op, Op::Cond(_) | Op::Scan(_)) {
@@ -164,8 +184,26 @@ impl BoundProgram {
                     writeln!(source,"for row in 0..{m} {{for column in 0..{n} {{ let mut sum=::alea::math::numeric::CompensatedSum::default(); for j in 0..{k} {{sum.add_product(n{}[{row_k}+j],n{}[{j_n}+column]);}} n{i}[{row_n}+column]=sum.total(); }} }}",a.node,b.node).unwrap();
                 }
                 Op::Cond(c) => {
-                    source.push_str(&c.yes.function_source(&format!("yes{i}")));
-                    source.push_str(&c.no.function_source(&format!("no{i}")));
+                    let site = Value {
+                        owner: p.owner,
+                        node: i,
+                    };
+                    let yes = p
+                        .facts
+                        .guard(site, FrameInstance::Branch(0))
+                        .expect("compiled yes scope");
+                    let no = p
+                        .facts
+                        .guard(site, FrameInstance::Branch(1))
+                        .expect("compiled no scope");
+                    source.push_str(
+                        &c.yes
+                            .guarded_function_source(&format!("yes{}", yes.site.node), yes),
+                    );
+                    source.push_str(
+                        &c.no
+                            .guarded_function_source(&format!("no{}", no.site.node), no),
+                    );
                     writeln!(
                         source,
                         "let (args{i}, rest)=rest.split_at_mut({}); let (work{i}, rest)=rest.split_at_mut({});",
@@ -191,7 +229,18 @@ impl BoundProgram {
                         );
                         continue;
                     }
-                    source.push_str(&s.body.function_source(&format!("body{i}")));
+                    let site = Value {
+                        owner: p.owner,
+                        node: i,
+                    };
+                    let guard = p
+                        .facts
+                        .guard(site, FrameInstance::Iteration(0))
+                        .expect("compiled scan scope");
+                    source.push_str(
+                        &s.body
+                            .guarded_function_source(&format!("body{}", guard.site.node), guard),
+                    );
                     let carry = node.shape.elements;
                     let row = s.row;
                     let initial = s.initial.node;

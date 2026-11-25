@@ -405,3 +405,224 @@ fn conjugate_normal_sbc_and_predictive_check() {
     println!("normal SBC bins={bins:?} chi={chi}");
     assert!(chi < 16.3);
 }
+
+// Protocol and limitations: docs/native-model-performance.md, I4.6.
+// Deliberately kept in this existing correctness fixture, outside production.
+mod gaussian_sbc {
+    use super::*;
+    use alea::sampling::{NutsOptions, adapt::NutsWarmup, nuts::NutsTermination};
+
+    const DATASETS: usize = 512;
+    const DRAWS: usize = 31;
+    const QUANTITIES: [&str; 6] = [
+        "intercept",
+        "slope",
+        "joint_log_posterior",
+        "joint_log_likelihood",
+        "first_log_likelihood",
+        "remaining_log_likelihood",
+    ];
+    const METHODS: [&str; 4] = ["native", "exact", "ignore_data", "wrong_scale"];
+
+    fn rng(stream: u64, dataset: usize, draw: usize) -> SmallRng {
+        SmallRng::seed_from_u64(
+            0x14600000 + stream * 1_000_000 + dataset as u64 * 1000 + draw as u64,
+        )
+    }
+
+    fn generate(rng: &mut SmallRng) -> ([f64; 2], [(f64, f64); 3]) {
+        let prior = Normal::new(0.0, 1.0).unwrap();
+        let truth = [prior.sample(rng).unwrap(), prior.sample(rng).unwrap()];
+        let data = [-1.0, 0.0, 1.0].map(|x| {
+            (
+                x,
+                Normal::new(truth[0] + truth[1] * x, 0.7)
+                    .unwrap()
+                    .sample(rng)
+                    .unwrap(),
+            )
+        });
+        (truth, data)
+    }
+
+    fn rank_bin(truth: f64, draws: &[f64], rng: &mut SmallRng) -> usize {
+        assert!(truth.is_finite() && draws.iter().all(|x| x.is_finite()));
+        let below = draws.iter().filter(|&&x| x < truth).count();
+        let ties = draws.iter().filter(|&&x| x == truth).count();
+        let rank = below + rng.random_range(0..=ties);
+        rank / 8
+    }
+
+    #[test]
+    fn generator_and_randomized_ties() {
+        // Prior-predictive E[y]=0, Cov(y_i,y_j)=1+x_i*x_j+.49*I(i=j).
+        // This check does not use the fitted target or the posterior oracle.
+        let mut rng = SmallRng::seed_from_u64(0x146fffff);
+        let mut sums = [0.0; 5];
+        let mut products = [[0.0; 5]; 5];
+        for _ in 0..16384 {
+            let (q, y) = generate(&mut rng);
+            let row = [q[0], q[1], y[0].1, y[1].1, y[2].1];
+            for i in 0..5 {
+                sums[i] += row[i];
+                for j in 0..5 {
+                    products[i][j] += row[i] * row[j];
+                }
+            }
+        }
+        let loadings = [[1.0, 0.0], [0.0, 1.0], [1.0, -1.0], [1.0, 0.0], [1.0, 1.0]];
+        for i in 0..5 {
+            assert!((sums[i] / 16384.0).abs() < 0.06);
+            for j in 0..5 {
+                let expected = loadings[i][0] * loadings[j][0]
+                    + loadings[i][1] * loadings[j][1]
+                    + if i == j && i >= 2 { 0.49 } else { 0.0 };
+                assert!((products[i][j] / 16384.0 - expected).abs() < 0.12);
+            }
+        }
+        let mut bins = [0; 4];
+        for _ in 0..4096 {
+            bins[rank_bin(1.0, &[1.0; DRAWS], &mut rng)] += 1;
+        }
+        assert!(bins.iter().all(|&n| (n as f64 - 1024.0).abs() < 110.0));
+        assert_eq!(rank_bin(-1.0, &[0.0; DRAWS], &mut rng), 0);
+        assert_eq!(rank_bin(1.0, &[0.0; DRAWS], &mut rng), 3);
+    }
+
+    #[test]
+    fn independent_conjugate_posterior_kernel() {
+        let data = [(-1.0, 1.2), (0.0, -0.4), (1.0, 0.8)];
+        let target = modeling::regression(&data).into_target().unwrap();
+        let mean = [1.6 / 3.49, -0.4 / 2.49];
+        let variance = [0.49 / 3.49, 0.49 / 2.49];
+        let mut gradient = [0.0; 2];
+        let peak = target.logp_grad(&mean, &mut gradient).unwrap();
+        assert!(gradient.iter().all(|g| g.abs() < 1e-12));
+        for q in [[0.0, 0.0], [1.7, -0.9], [-2.0, 3.0]] {
+            let value = target.logp_grad(&q, &mut gradient).unwrap();
+            let expected = -0.5
+                * (0..2)
+                    .map(|i| (q[i] - mean[i]).powi(2) / variance[i])
+                    .sum::<f64>();
+            assert!((value - peak - expected).abs() < 1e-12);
+            for i in 0..2 {
+                assert!((gradient[i] + (q[i] - mean[i]) / variance[i]).abs() < 1e-12);
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "explicit scientific pilot: 512 datasets, 15872 independently warmed NUTS chains"]
+    fn bounded_regression_pilot() {
+        let mut bins = [[[0usize; 4]; 6]; 4];
+        let mut divergences = [0usize; 2];
+        let mut depth_hits = [0usize; 2];
+        for dataset in 0..DATASETS {
+            let (truth, data) = generate(&mut rng(0, dataset, 0));
+            let target = modeling::regression(&data).into_target().unwrap();
+            let prior = modeling::regression(&[]).into_target().unwrap();
+            let first = modeling::regression(&data[..1]).into_target().unwrap();
+            let remaining = modeling::regression(&data[1..]).into_target().unwrap();
+            let quantities = |q: &[f64]| {
+                let mut g = [0.0; 2];
+                let p = prior.logp_grad(q, &mut g).unwrap();
+                let joint = target.logp_grad(q, &mut g).unwrap();
+                [
+                    q[0],
+                    q[1],
+                    joint,
+                    joint - p,
+                    first.logp_grad(q, &mut g).unwrap() - p,
+                    remaining.logp_grad(q, &mut g).unwrap() - p,
+                ]
+            };
+            let truth_values = quantities(&truth);
+            let means = [
+                data.iter().map(|(_, y)| y).sum::<f64>() / 3.49,
+                data.iter().map(|(x, y)| x * y).sum::<f64>() / 2.49,
+            ];
+            let scales = [(0.49_f64 / 3.49).sqrt(), (0.49_f64 / 2.49).sqrt()];
+            let mut values: [Vec<[f64; 6]>; 4] = std::array::from_fn(|_| Vec::with_capacity(DRAWS));
+            for draw in 0..DRAWS {
+                let mut random = rng(1, dataset, draw);
+                let (mut chain, _) = NutsWarmup::new(
+                    &target,
+                    OwnedBuffer::new(2),
+                    NutsOptions::new(0.2, 7).unwrap(),
+                    WarmupOptions::new(256),
+                )
+                .unwrap()
+                .run_observed(&mut random, |o| {
+                    divergences[0] += usize::from(matches!(
+                        o.transition.termination,
+                        NutsTermination::Divergence(_)
+                    ));
+                    depth_hits[0] += usize::from(o.transition.tree_depth == 7);
+                })
+                .unwrap();
+                for _ in 0..32 {
+                    let info = chain.step(&mut random).unwrap();
+                    divergences[1] +=
+                        usize::from(matches!(info.termination, NutsTermination::Divergence(_)));
+                    depth_hits[1] += usize::from(info.tree_depth == 7);
+                }
+                for (method, method_values) in values.iter_mut().enumerate() {
+                    let q = if method == 0 {
+                        chain.point().position().to_vec()
+                    } else {
+                        let mut random = rng(method as u64 + 1, dataset, draw);
+                        (0..2)
+                            .map(|i| {
+                                let (mean, scale) = match method {
+                                    1 => (means[i], scales[i]),
+                                    2 => (0.0, 1.0),
+                                    3 => (means[i], 2.0 * scales[i]),
+                                    _ => unreachable!(),
+                                };
+                                Normal::new(mean, scale)
+                                    .unwrap()
+                                    .sample(&mut random)
+                                    .unwrap()
+                            })
+                            .collect()
+                    };
+                    method_values.push(quantities(&q));
+                }
+            }
+            for method in 0..4 {
+                let mut random = rng(10 + method as u64, dataset, 0);
+                for (quantity, &truth) in truth_values.iter().enumerate() {
+                    let draws: Vec<_> = values[method].iter().map(|v| v[quantity]).collect();
+                    bins[method][quantity][rank_bin(truth, &draws, &mut random)] += 1;
+                }
+            }
+        }
+        let band = (DATASETS as f64 / 2.0 * (192.0_f64 / 0.01).ln()).sqrt();
+        let rejected: [[bool; 6]; 4] = bins.map(|method| {
+            method.map(|counts| {
+                counts
+                    .iter()
+                    .any(|&n| (n as f64 - DATASETS as f64 / 4.0).abs() > band)
+            })
+        });
+        println!(
+            "{}",
+            serde_json::json!({"schema":"alea.sbc.gaussian-pilot.v1",
+            "datasets":DATASETS,"draws_per_dataset":DRAWS,"methods":METHODS,
+            "quantities":QUANTITIES,"bins":bins,"rejected":rejected,"family_alpha":0.01,
+            "simultaneous_count_half_width":band,"divergences_warmup_frozen":divergences,
+            "depth_hits_warmup_frozen":depth_hits,"failed_or_dropped_datasets":0,
+            "scope":"bounded conjugate regression; not broad calibration or performance evidence"})
+        );
+        assert!(!rejected[0].iter().any(|&x| x), "native rank rejection");
+        assert!(!rejected[1].iter().any(|&x| x), "exact control rejection");
+        assert!(
+            rejected[2][3..].iter().any(|&x| x),
+            "ignore-data control missed"
+        );
+        assert!(
+            rejected[3][..2].iter().any(|&x| x),
+            "wrong-scale control missed"
+        );
+    }
+}
