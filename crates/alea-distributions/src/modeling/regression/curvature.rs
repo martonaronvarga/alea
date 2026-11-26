@@ -1,5 +1,6 @@
 //! Explicit fixed-design link likelihood curvature, not a generic graph Hessian.
 use super::*;
+use crate::scalar::{BernoulliLogit, PoissonLog};
 use alea_core::{
     capability::PotentialHessianVector,
     target::{LogDensityGradient, TargetSpace},
@@ -131,10 +132,7 @@ impl PotentialHessianVector for GlmLikelihood {
                 x,
                 vector,
                 scores,
-                weight: |eta: f64| {
-                    let e = (-eta.abs()).exp();
-                    (e / (1. + e)) / (1. + e)
-                },
+                weight: BernoulliLogit::curvature_weight,
             }),
             Family::Poisson(p) => p.execution_plan().dispatch(Curvature {
                 data: p.data(),
@@ -142,7 +140,7 @@ impl PotentialHessianVector for GlmLikelihood {
                 x,
                 vector,
                 scores,
-                weight: f64::exp,
+                weight: PoissonLog::curvature_weight,
             }),
         }?;
         scores.finish(CompensatedSum::default(), product)?;

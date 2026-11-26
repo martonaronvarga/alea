@@ -1611,7 +1611,7 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
                 assert_eq!(capabilities.unqualified_curvature.is_empty(), !provider);
                 assert!(model.rust_primal().is_ok());
                 use alea_core::model::assembly::{
-                    CurvatureRoute, DerivativeOrder, SourceMode, SourceRequest,
+                    CurvatureRoute, DerivativeOrder, DerivativeSource, SourceMode, SourceRequest,
                 };
                 for mode in [SourceMode::Density, SourceMode::Objective] {
                     for order in [
@@ -1644,8 +1644,8 @@ fn matrix_source_capability_preserves_the_requested_provider_recursively() {
                 }
                 if provider {
                     assert!(matches!(
-                        model.source_first_order(SourceMode::Density),
-                        Ok(Some(_))
+                        model.source_derivatives(SourceRequest::first(SourceMode::Density)),
+                        Ok(DerivativeSource::Composed(_))
                     ));
                 }
                 assert_eq!(

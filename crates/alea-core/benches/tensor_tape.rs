@@ -3,7 +3,7 @@
 use alea_core::model::{
     ConstrainedModel,
     assembly::{ModelBuilder, NativeModel},
-    tensor::{BinaryOp as B, BoundProgram, MatrixRequest, Shape},
+    tensor::{BinaryOp as B, BoundProgram, MatrixRequest, Shape, UnaryOp},
 };
 use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use std::time::Duration;
@@ -176,6 +176,110 @@ fn benchmark(c: &mut Criterion) {
                 black_box(out);
             })
         });
+        group.finish();
+    }
+}
+
+fn joint_tiles(c: &mut Criterion) {
+    let mut group = c.benchmark_group("tensor_joint_tiles");
+    #[cfg(alea_l42_joint)]
+    let mut cases = Vec::new();
+    for n in [4097, 65_536, 262_144] {
+        let mut builder = ModelBuilder::new().region();
+        let shape = Shape::new(vec![n]).unwrap();
+        let x = builder.input("x", shape.clone()).unwrap();
+        let data = builder.data("data", shape).unwrap();
+        let sum = builder.binary(B::Add, x, data).unwrap();
+        let square = builder.binary(B::Multiply, sum, sum).unwrap();
+        let half = builder.constant(Shape::scalar(), vec![0.5]).unwrap();
+        let scaled = builder.binary(B::Multiply, half, square).unwrap();
+        let negated = builder.unary(UnaryOp::Neg, scaled).unwrap();
+        let result = builder.sum(negated).unwrap();
+        let bound = builder
+            .compile(result)
+            .unwrap()
+            .bind(&[("data", &vec![0.25; n])])
+            .unwrap();
+        let q: Vec<_> = (0..n).map(|i| (i % 13) as f64 / 16.).collect();
+        let (mut out, mut scores) = ([0.], vec![0.; n]);
+        let mut work = bound.workspace();
+        group.throughput(Throughput::Elements(n as u64));
+        group.bench_function(n.to_string(), |b| {
+            b.iter(|| {
+                bound
+                    .value_and_vjp(black_box(&q), &[1.], &mut out, &mut scores, &mut work)
+                    .unwrap();
+                black_box((&out, &scores));
+            });
+        });
+        #[cfg(alea_l42_joint)]
+        cases.push((n.to_string(), bound, q));
+    }
+    group.finish();
+
+    #[cfg(alea_l42_joint)]
+    {
+        let n = 100_000;
+        let mut builder = ModelBuilder::new().region();
+        let shape = Shape::new(vec![n]).unwrap();
+        let mut value = builder.input("x", shape.clone()).unwrap();
+        for _ in 0..32 {
+            value = builder.unary(UnaryOp::Tanh, value).unwrap();
+            value = builder.reshape(value, shape.clone()).unwrap();
+        }
+        let output = builder.sum(value).unwrap();
+        let bound = builder.compile(output).unwrap().bind(&[]).unwrap();
+        cases.push(("wide_reshape".into(), bound, vec![0.25; n]));
+        let mut group = c.benchmark_group("tensor_plan_comparison");
+        for (case, bound, q) in cases {
+            let (mut output, mut scores) = ([0.], vec![0.; q.len()]);
+            let (mut expected, mut gradient) = ([0.], vec![0.; q.len()]);
+            bound
+                .value_and_vjp(
+                    &q,
+                    &[1.],
+                    &mut expected,
+                    &mut gradient,
+                    &mut bound.workspace(),
+                )
+                .unwrap();
+            group.throughput(Throughput::Elements(q.len() as u64));
+            for (name, mut work) in bound.qualification_workspaces() {
+                bound
+                    .value_and_vjp(&q, &[1.], &mut output, &mut scores, &mut work)
+                    .unwrap();
+                assert_eq!(output.map(f64::to_bits), expected.map(f64::to_bits));
+                assert!(
+                    scores
+                        .iter()
+                        .zip(&gradient)
+                        .all(|(got, want)| got.to_bits() == want.to_bits())
+                );
+                let cost = bound.qualification_work(&work).unwrap();
+                eprintln!(
+                    "ALEA_TENSOR_PLAN_STORAGE_V1\t{case}\t{name}\t{}\t{}\t{}\t{}\t{}",
+                    work.qualification_arena_bytes(),
+                    cost.initialized_bytes,
+                    cost.copied_bytes,
+                    cost.map_passes,
+                    cost.replay_advances,
+                );
+                group.bench_function(format!("{case}/{name}"), |b| {
+                    b.iter(|| {
+                        bound
+                            .value_and_vjp(
+                                black_box(&q),
+                                &[1.],
+                                &mut output,
+                                &mut scores,
+                                &mut work,
+                            )
+                            .unwrap();
+                        black_box((&output, &scores));
+                    });
+                });
+            }
+        }
         group.finish();
     }
 }
@@ -354,7 +458,7 @@ fn broadcast_maps(c: &mut Criterion) {
         }
     }
 }
-criterion_group! {name=benches; config=benchmark_support::criterion().sample_size(30).warm_up_time(Duration::from_millis(500)).measurement_time(Duration::from_secs(2)); targets=benchmark,matrix_kernels,broadcast_maps}
+criterion_group! {name=benches; config=benchmark_support::criterion().sample_size(30).warm_up_time(Duration::from_millis(500)).measurement_time(Duration::from_secs(2)); targets=benchmark,matrix_kernels,broadcast_maps,joint_tiles}
 #[path = "../../benches/support.rs"]
 mod benchmark_support;
 criterion_main!(benches);

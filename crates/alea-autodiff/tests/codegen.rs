@@ -1,4 +1,5 @@
 use alea_autodiff::codegen::enzyme_source;
+use alea_core::model::assembly::{DerivativeSource, SourceRequest};
 use alea_core::{
     model::assembly::{AssemblyError, ModelBuilder},
     transform::Transform,
@@ -43,13 +44,15 @@ fn native_first_order_rules_do_not_claim_checkpointing_or_replace_higher_ad() {
     .unwrap();
     b.factor(batch).unwrap();
     let model = b.compile().unwrap();
-    assert!(
-        !model
-            .source_first_order(alea_core::model::assembly::SourceMode::Density)
-            .unwrap()
-            .unwrap()
-            .checkpointed
-    );
+    let DerivativeSource::Composed(first) = model
+        .source_derivatives(SourceRequest::first(
+            alea_core::model::assembly::SourceMode::Density,
+        ))
+        .unwrap()
+    else {
+        panic!("expected composed source")
+    };
+    assert!(!first.checkpointed);
     let source = enzyme_source(&model).unwrap();
     assert!(source.contains("SOURCE_EXPLICIT_FIRST_ORDER: bool = true"));
     assert!(source.contains("SOURCE_CHECKPOINTED: bool = false"));
@@ -106,16 +109,16 @@ fn compiler_tensor_scores_have_separate_checked_admission_without_changing_value
         .unwrap();
     b.factor(term).unwrap();
     let model = b.compile().unwrap();
-    assert!(
-        model
-            .source_first_order(alea_core::model::assembly::SourceMode::Density)
-            .unwrap()
-            .is_none()
-    );
-    let admission = model
-        .source_score_admission(alea_core::model::assembly::SourceMode::Density)
+    let DerivativeSource::Compiler {
+        admission: Some(admission),
+    } = model
+        .source_derivatives(SourceRequest::first(
+            alea_core::model::assembly::SourceMode::Density,
+        ))
         .unwrap()
-        .unwrap();
+    else {
+        panic!("expected compiler reverse with tensor admission")
+    };
     let slots = admission.workspace.elements;
     let guard = admission.source;
     assert!(slots > 0);
@@ -136,12 +139,14 @@ fn compiler_tensor_scores_have_separate_checked_admission_without_changing_value
     let x = plain.real("x").unwrap().expr();
     plain.factor(x).unwrap();
     let plain = plain.compile().unwrap();
-    assert!(
+    assert!(matches!(
         plain
-            .source_score_admission(alea_core::model::assembly::SourceMode::Density)
-            .unwrap()
-            .is_none()
-    );
+            .source_derivatives(SourceRequest::first(
+                alea_core::model::assembly::SourceMode::Density
+            ))
+            .unwrap(),
+        DerivativeSource::Compiler { admission: None }
+    ));
     assert!(
         enzyme_source(&plain)
             .unwrap()

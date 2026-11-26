@@ -25,8 +25,7 @@ pub(in crate::model::tensor) enum Rule<'a> {
     Matrix {
         a: Value,
         b: Value,
-        dimensions: (usize, usize, usize),
-        kernel: ResolvedMatrix,
+        calls: &'a lowering::MatrixCalls,
     },
     // These are orchestration boundaries, not inferred linear rules.
     Native(&'a registration::Call),
@@ -36,8 +35,8 @@ pub(in crate::model::tensor) enum Rule<'a> {
 
 impl<'a> Rule<'a> {
     #[inline]
-    pub(in crate::model::tensor) fn at(node: &'a Node) -> Self {
-        match &node.op {
+    pub(in crate::model::tensor) fn at(plan: &'a Plan, node: usize) -> Self {
+        match &plan.nodes[node].op {
             Op::Input(i) => Self::Input(*i),
             Op::Data(_) | Op::Constant(_) => Self::Fixed,
             Op::Alias(v) => Self::Alias(*v),
@@ -45,18 +44,10 @@ impl<'a> Rule<'a> {
             Op::Binary(b) => Self::Binary(b),
             Op::Gather(v, indices) => Self::Gather(*v, indices),
             Op::Sum(v) => Self::Sum(*v),
-            Op::Matmul {
-                a,
-                b,
-                m,
-                k,
-                n,
-                kernel,
-            } => Self::Matrix {
+            Op::Matmul { a, b, .. } => Self::Matrix {
                 a: *a,
                 b: *b,
-                dimensions: (*m, *k, *n),
-                kernel: *kernel,
+                calls: plan.facts.lowered.matrix(node),
             },
             Op::Registered(op) => match &**op {
                 registration::Operation::Data(_) => Self::Fixed,
@@ -103,6 +94,13 @@ impl<'a> Reverse<'a> {
             active,
             starts,
         } = self;
+        let reads = plan
+            .facts
+            .lowered
+            .call(node)
+            .expect("checked transpose")
+            .native_primals(primals)
+            .inputs;
         let base = |i| adjoint_start::<PLANNED>(plan, starts, i);
         let (adjoints, seeds): (&mut [f64], &[f64]) = if let Some(seed) = copied_seed {
             (adjoints, &seed[range])
@@ -111,8 +109,8 @@ impl<'a> Reverse<'a> {
             (before, &after[range])
         };
         kernels::Pullback {
-            a: &primals[plan.nodes[a.node].range()],
-            r: &primals[plan.nodes[b.node].range()],
+            a: reads.get(0).expect("checked left residual"),
+            r: reads.get(1).expect("checked right residual"),
             seeds,
             adjoints,
             starts: (base(a.node), base(b.node)),
@@ -131,20 +129,28 @@ impl Rule<'_> {
         work: Reverse<'_>,
         range: Range<usize>,
         copied_seed: Option<&[f64]>,
+        write: lowering::AdjointWrite,
     ) {
         let plan = work.plan;
         let base = |i| adjoint_start::<PLANNED>(plan, work.starts, i);
         match self {
             Rule::Fixed | Rule::Alias(_) => {}
             Rule::Unary(kind, a) => {
-                let input = plan.nodes[a.node].start;
-                let output = plan.nodes[node].start;
+                let residuals = plan
+                    .facts
+                    .lowered
+                    .call(node)
+                    .expect("checked unary transpose")
+                    .native_primals(work.primals);
+                let input = residuals.inputs.get(0).expect("checked unary input");
+                let output = residuals.output.expect("checked unary output");
                 kernels::unary_reverse_range(
                     kind,
-                    &work.primals[input + range.start..input + range.end],
-                    &work.primals[output + range.start..output + range.end],
+                    &input[range.clone()],
+                    &output[range.clone()],
                     work.adjoints,
                     (base(a.node) + range.start, base(node) + range.start),
+                    write,
                 );
             }
             Rule::Binary(b) => {
@@ -164,8 +170,14 @@ impl Rule<'_> {
                     0..plan.nodes[a.node].shape.elements
                 };
                 let start = base(a.node);
-                for g in &mut work.adjoints[start + range.start..start + range.end] {
-                    *g += seed;
+                let output = &mut work.adjoints[start + range.start..start + range.end];
+                match write {
+                    lowering::AdjointWrite::Replace => output.fill(0. + seed),
+                    lowering::AdjointWrite::Add => {
+                        for g in output {
+                            *g += seed;
+                        }
+                    }
                 }
             }
             Rule::Gather(a, indices) => {
@@ -175,17 +187,11 @@ impl Rule<'_> {
                     work.adjoints[start + index] += work.adjoints[seed + j];
                 }
             }
-            Rule::Matrix {
-                a,
-                b,
-                dimensions,
-                kernel,
-            } => {
+            Rule::Matrix { a, b, calls } => {
                 if !range.is_empty() {
                     kernels::matmul_reverse(
-                        dimensions,
                         work.pullback::<PLANNED>(node, a, b, range, copied_seed),
-                        kernel,
+                        calls,
                     );
                 }
             }
@@ -259,9 +265,12 @@ impl<'a> Program<'a> {
             if !demand.admission(i) {
                 continue;
             }
-            let rule = Rule::at(node);
+            let rule = Rule::at(plan, i);
+            if matches!(rule, Rule::Scan(s) if s.bounded_replay) {
+                return Err(E::ScanReplayUnavailable);
+            }
             let supported = match rule {
-                Rule::Native(_) if curvature => {
+                Rule::Native(call) if curvature && !call.supports_curvature() => {
                     return Err(E::Factor(Box::new(curvature::MissingSecondRule {
                         node: i,
                     })));
@@ -326,7 +335,7 @@ impl<'a> Program<'a> {
                 }
                 steps.push(Step {
                     node: i,
-                    primal: node.range(),
+                    primal: node.primal_range(),
                     tangent: slot,
                     inputs: ranges,
                     rule,
@@ -371,7 +380,7 @@ impl<'a> Program<'a> {
     ) -> Result<(), E> {
         let (out, jvp) = outputs;
         work.prepared = false;
-        let result = self.plan.nodes[self.plan.output.node].range();
+        let result = self.plan.nodes[self.plan.output.node].primal_range();
         if !std::ptr::eq(self.plan, binding.plan.as_ref())
             || out.len() != result.len()
             || jvp.len() != result.len()
@@ -462,7 +471,7 @@ impl Step<'_> {
                 .as_ref()
                 .map(|r| &inputs[r.clone()])
         };
-        let primal = |v: Value| &primals[plan.nodes[v.node].range()];
+        let primal = |v: Value| &primals[plan.nodes[v.node].primal_range()];
         match self.rule {
             Rule::Unary(kind, input) => {
                 let x = primal(input);
@@ -498,18 +507,12 @@ impl Step<'_> {
                 kernels::gather_forward(tangent(0).expect("active gather"), indices, output);
             }
             Rule::Sum(_) => output[0] = kernels::sum_forward(tangent(0).expect("active sum")),
-            Rule::Matrix {
-                a,
-                b,
-                dimensions,
-                kernel,
-            } => {
+            Rule::Matrix { a, b, calls } => {
                 kernels::matmul_jvp(
                     (primal(a), primal(b)),
                     (tangent(0), tangent(1)),
                     output,
-                    dimensions,
-                    kernel,
+                    calls,
                 )?;
             }
             Rule::Native(call) => {
@@ -917,7 +920,7 @@ mod tests {
                 let program = Program::compile(&p.plan, &mask).unwrap();
                 if let Some(step) = program.steps.first() {
                     assert!(
-                        matches!(&step.rule, Rule::Matrix { kernel, .. } if kernel.requested() == request)
+                        matches!(&step.rule, Rule::Matrix { calls, .. } if calls.kernel.requested() == request)
                     );
                 }
                 let (mut out, mut jvp) = ([17.; 4], [19.; 4]);

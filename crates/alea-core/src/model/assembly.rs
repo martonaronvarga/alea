@@ -16,6 +16,7 @@ use std::{
 
 mod batch;
 mod blocks;
+mod curvature;
 mod factors;
 mod inputs;
 mod pointwise;
@@ -26,6 +27,7 @@ mod reverse;
 mod scope;
 mod source;
 pub use batch::{BatchLikelihood, BatchUnit};
+pub use curvature::NativeCurvature;
 pub use factors::{FactorMetadata, FactorRole};
 pub use inputs::ScalarInput;
 pub use pointwise::{PointwiseError, PointwiseLikelihood, PredictiveUnit};
@@ -38,8 +40,8 @@ pub use primitives::{
 
 pub use scope::ModelScope;
 pub use source::{
-    CurvatureRoute, DerivativeOrder, FirstOrderSource, FloatWorkspace, SourceMode, SourceProgram,
-    SourceRequest,
+    CurvatureRoute, DerivativeOrder, DerivativeSource, FirstOrderSource, FloatWorkspace,
+    SourceMode, SourceProgram, SourceRequest,
 };
 
 static NEXT_VALUE_OWNER: AtomicU64 = AtomicU64::new(1);
@@ -211,6 +213,27 @@ pub enum AssemblyError {
     /// The requested derivative order has no explicitly selected source route.
     #[error("source derivative order {order:?} requires a qualified curvature route")]
     UnqualifiedDerivative { order: DerivativeOrder },
+    /// An active model expression cannot supply native curvature.
+    #[error("model node {node} has no qualified native HVP route")]
+    MissingNativeHvp {
+        node: usize,
+        #[source]
+        source: Option<Box<AssemblyError>>,
+    },
+    /// A coordinate block lacks a native differentiated pullback.
+    #[error("parameter block {block} has no qualified native HVP chart")]
+    NativeHvpChart { block: usize },
+    /// No admitted native scan schedule fits both supplied limits.
+    #[error(
+        "no native scan schedule fits {max_bytes} live bytes and {max_replay_steps} replay steps"
+    )]
+    ScanReplayBudget {
+        max_bytes: usize,
+        max_replay_steps: usize,
+    },
+    /// The explicit replay budget covers pure first-order scans.
+    #[error("bounded scan replay is unavailable for this body or derivative request")]
+    ScanReplayUnavailable,
     /// A likelihood root has no explicitly supplied pointwise rule.
     #[error("model node {node} has no batch pointwise lowering")]
     MissingPointwise { node: usize },
@@ -868,6 +891,10 @@ impl Executable {
     }
     /// Allocates one independent context and fresh operation/reporting workspaces.
     pub fn context(&self) -> EvaluationContext {
+        self.context_with_region_views(true)
+    }
+
+    fn context_with_region_views(&self, inline_views: bool) -> EvaluationContext {
         let mut blocks = Vec::new();
         for (index, node) in self.nodes.iter().enumerate() {
             if let Op::Region(call) = node {
@@ -875,7 +902,15 @@ impl Executable {
                     self.active_nodes
                         .as_ref()
                         .is_none_or(|a| a[index])
-                        .then(|| call.workspace(&self.dynamic, &self.binding.regions[call.slot])),
+                        .then(|| {
+                            call.workspace(
+                                &self.nodes,
+                                &self.dynamic,
+                                &self.binding.regions[call.slot],
+                                &blocks,
+                                inline_views,
+                            )
+                        }),
                 );
             }
         }
@@ -1131,14 +1166,7 @@ impl NativeModel {
 impl ConstrainedModel for NativeModel {
     type Error = AssemblyError;
     fn is_numerical_error(&self, error: &Self::Error) -> bool {
-        match error {
-            AssemblyError::Numerical => true,
-            AssemblyError::Factor(source) => matches!(
-                source.downcast_ref::<crate::distribution::DistributionError>(),
-                Some(crate::distribution::DistributionError::Numerical)
-            ),
-            _ => false,
-        }
+        Self::numerical(error)
     }
     fn dimension(&self) -> usize {
         self.layout.constrained_dimension()
@@ -1149,6 +1177,18 @@ impl ConstrainedModel for NativeModel {
             .try_borrow_mut()
             .map_err(|_| AssemblyError::WorkspaceBusy)?;
         self.executable.evaluate(&mut context, q, g)
+    }
+}
+impl NativeModel {
+    fn numerical(error: &AssemblyError) -> bool {
+        match error {
+            AssemblyError::Numerical => true,
+            AssemblyError::Factor(source) => matches!(
+                source.downcast_ref::<crate::distribution::DistributionError>(),
+                Some(crate::distribution::DistributionError::Numerical)
+            ),
+            _ => false,
+        }
     }
 }
 impl Executable {
@@ -1189,7 +1229,7 @@ impl Executable {
                 let Op::Region(call) = &self.nodes[node] else {
                     unreachable!()
                 };
-                call.reverse(&self.nodes, adjoints, blocks, node)
+                call.reverse(adjoints, blocks, node)
             },
         )?;
         let total = total.total();
@@ -1224,8 +1264,7 @@ impl Executable {
             }
             values[i] = match op {
                 Op::Region(call) => {
-                    let Some(value) =
-                        call.forward(&self.nodes, values, blocks, preparation.as_deref_mut())?
+                    let Some(value) = call.forward(values, blocks, preparation.as_deref_mut())?
                     else {
                         continue;
                     };

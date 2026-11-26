@@ -18,14 +18,16 @@ mod lowering;
 mod pullback;
 mod registration;
 mod source;
+mod storage;
 pub use alea_math::gemm::{
     MatrixArithmetic, MatrixCpu, MatrixPolicyError, MatrixProvider, MatrixRequest, MatrixThreads,
     ResolvedMatrix,
 };
+pub(super) use execute::RegionCurvature;
 pub use execute::{TensorJvp, TensorPotential, TensorWorkspace};
 pub use registration::{
     BindingInputs, BlockInputs, BlockJvp, BlockPreparation, BlockRules, BlockTangents, BlockType,
-    BlockVjp, ElementType,
+    BlockVjp, BlockVjpJvp, ElementType,
 };
 
 /// Validated dense row-major tensor shape. An empty axis list is a scalar;
@@ -226,6 +228,17 @@ struct Scan {
     steps: usize,
     row: usize,
     checkpointed: bool,
+    replay: Option<execute::SegmentPlan>,
+    bounded_replay: bool,
+}
+
+enum ScanPolicy {
+    Retain,
+    Automatic,
+    Budget {
+        max_bytes: usize,
+        max_replay_steps: usize,
+    },
 }
 enum Op {
     Registered(Box<registration::Operation>),
@@ -250,10 +263,21 @@ enum Op {
 }
 struct Node {
     shape: Shape,
+    // Dense range for adjoints and directional scratch.
     start: usize,
+    primal_start: usize,
     op: Op,
 }
 impl Node {
+    fn primal_range(&self) -> Range<usize> {
+        self.primal_start
+            ..self.primal_start
+                + if self.discrete() {
+                    0
+                } else {
+                    self.shape.elements
+                }
+    }
     fn range(&self) -> Range<usize> {
         if self.discrete() {
             return self.start..self.start;
@@ -305,14 +329,17 @@ struct Plan {
     data: Vec<Input>,
     dimension: usize,
     slots: usize,
+    primal_slots: usize,
     output: Value,
     // Box the fixed reachability slice: its former capacity word pays for the
     // pointer to cold compile facts, keeping the hot plan header the same size.
     active: Box<[bool]>,
     facts: Box<analysis::CompileFacts>,
     workspace_bytes: usize,
+    checkpoint_bytes: usize,
     source_slots: usize,
     execution: Option<Box<fusion::Schedule>>,
+    adjoint_writes: Option<Box<lowering::AdjointWrites>>,
 }
 impl Plan {
     fn last_native_block(&self) -> Option<usize> {
@@ -387,7 +414,12 @@ impl RegionBuilder {
             owner: self.owner,
             node: self.nodes.len(),
         };
-        self.nodes.push(Node { shape, start, op });
+        self.nodes.push(Node {
+            shape,
+            start,
+            primal_start: start,
+            op,
+        });
         self.slots = slots;
         Ok(result)
     }
@@ -487,6 +519,7 @@ impl RegionBuilder {
         self.nodes.push(Node {
             shape,
             start,
+            primal_start: start,
             op: Op::Alias(value),
         });
         Ok(result)
@@ -604,7 +637,7 @@ impl RegionBuilder {
         captures: &[Value],
         body: BoundProgram,
     ) -> Result<Value, E> {
-        self.scan_with_storage(initial, xs, captures, body, false)
+        self.scan_with_storage(initial, xs, captures, body, ScanPolicy::Retain)
     }
     /// Fixed-trip scan with segmented native reverse-mode checkpointing.
     ///
@@ -624,15 +657,50 @@ impl RegionBuilder {
         captures: &[Value],
         body: BoundProgram,
     ) -> Result<Value, E> {
-        self.scan_with_storage(initial, xs, captures, body, true)
+        self.scan_with_storage(initial, xs, captures, body, ScanPolicy::Automatic)
     }
+
+    /// Fixed-trip scan with an explicit native first-order memory and replay budget.
+    ///
+    /// The local budget includes child frames, initialized scan scratch, carries,
+    /// the resident operand occurrences and the new result. The replay limit
+    /// counts additional body executions in one VJP. Retained frames are preferred
+    /// when they fit. Otherwise the planner searches bounded uniform segment sizes.
+    /// Use the compiled program's workspace limit for the entire execution context.
+    ///
+    /// # Errors
+    /// Rejects invalid shapes, executed bodies with opaque calls or nested scans,
+    /// and budgets without a supported schedule. A budgeted replay schedule is
+    /// unavailable to native JVP/HVP requests. Generated-source execution has its
+    /// own workspace and replay policy.
+    pub fn scan_with_replay_budget(
+        &mut self,
+        initial: Value,
+        xs: Value,
+        captures: &[Value],
+        body: BoundProgram,
+        max_bytes: usize,
+        max_replay_steps: usize,
+    ) -> Result<Value, E> {
+        self.scan_with_storage(
+            initial,
+            xs,
+            captures,
+            body,
+            ScanPolicy::Budget {
+                max_bytes,
+                max_replay_steps,
+            },
+        )
+    }
+
     fn scan_with_storage(
         &mut self,
         initial: Value,
         xs: Value,
         captures: &[Value],
         body: BoundProgram,
-        checkpointed: bool,
+        policy: ScanPolicy,
     ) -> Result<Value, E> {
         let shape = self.real_node(initial)?.shape.clone();
         let data = self.real_node(xs)?.shape.clone();
@@ -650,14 +718,52 @@ impl RegionBuilder {
             }
         }
         let steps = data.axes[0];
+        let checkpointed = !matches!(policy, ScanPolicy::Retain);
+        let bounded = matches!(policy, ScanPolicy::Budget { .. });
+        if bounded && steps != 0 && !body.plan.facts.supports_bounded_replay() {
+            return Err(E::ScanReplayUnavailable);
+        }
         if checkpointed && steps != 0 && registration::blocks_replay(&body.plan) {
             return Err(E::Shape);
         }
         let row = body.plan.inputs[1].shape.elements;
-        steps
-            .checked_mul(body.plan.workspace_bytes)
-            .filter(|&n| n <= isize::MAX as usize)
-            .ok_or(E::Shape)?;
+        if !bounded {
+            steps
+                .checked_mul(body.plan.workspace_bytes)
+                .filter(|&n| n <= isize::MAX as usize)
+                .ok_or(E::Shape)?;
+        }
+        let replay = match policy {
+            ScanPolicy::Retain => None,
+            ScanPolicy::Automatic => {
+                execute::automatic_replay(steps, shape.elements, body.plan.checkpoint_bytes)
+            }
+            ScanPolicy::Budget {
+                max_bytes,
+                max_replay_steps,
+            } => {
+                let resident = captures.iter().try_fold(
+                    shape
+                        .elements
+                        .checked_mul(2)
+                        .and_then(|v| v.checked_add(data.elements))
+                        .ok_or(E::Shape)?,
+                    |count, &arg| {
+                        count
+                            .checked_add(self.nodes[arg.node].shape.elements)
+                            .ok_or(E::Shape)
+                    },
+                )?;
+                execute::bounded_replay(
+                    &body.plan,
+                    steps,
+                    shape.elements,
+                    resident,
+                    max_bytes,
+                    max_replay_steps,
+                )?
+            }
+        };
         self.push(
             shape,
             Op::Scan(Box::new(Scan {
@@ -668,6 +774,8 @@ impl RegionBuilder {
                 steps,
                 row,
                 checkpointed,
+                replay,
+                bounded_replay: bounded && replay.is_some(),
             })),
         )
     }
@@ -675,7 +783,7 @@ impl RegionBuilder {
     /// retain structured conditionals/loops; tensor elements are not scalar nodes.
     /// # Errors
     /// Rejects a foreign output value or overflowing nested workspace storage.
-    pub fn compile(self, output: Value) -> Result<TensorProgram, E> {
+    pub fn compile(mut self, output: Value) -> Result<TensorProgram, E> {
         self.real_node(output)?;
         let mut active = vec![false; self.nodes.len()];
         active[output.node] = true;
@@ -686,11 +794,12 @@ impl RegionBuilder {
                 }
             }
         }
+        let slots = storage::pack_primals(&mut self.nodes, &active)?;
         let facts = Box::new(analysis::CompileFacts::compile(
             &self.nodes,
             &active,
             output,
-            self.slots,
+            slots,
         )?);
         let mut plan = Plan {
             owner: self.owner,
@@ -698,20 +807,26 @@ impl RegionBuilder {
             inputs: self.inputs,
             data: self.data,
             dimension: self.dimension,
-            slots: self.slots,
+            slots,
+            primal_slots: slots,
             output,
             active: active.into_boxed_slice(),
             facts,
             workspace_bytes: 0,
+            checkpoint_bytes: 0,
             source_slots: 0,
             execution: None,
+            adjoint_writes: None,
         };
         let schedule = fusion::schedule(&plan, true);
         if !schedule.is_empty() {
-            plan.execution = Some(Box::new(fusion::Schedule(schedule)));
+            plan.execution = Some(Box::new(fusion::Schedule::new(&plan, schedule)));
+        } else {
+            storage::reuse_primals(&mut plan)?;
+            plan.adjoint_writes = lowering::AdjointWrites::compile(&plan);
         }
-        plan.workspace_bytes = execute::workspace_bytes(&plan)?;
-        plan.source_slots = source::workspace_elements(&plan)?;
+        (plan.workspace_bytes, plan.checkpoint_bytes) = execute::workspace_bytes(&plan)?;
+        plan.source_slots = storage::source_forward_layout(&plan, |_, _| {})?;
         Ok(TensorProgram {
             plan: Arc::new(plan),
         })

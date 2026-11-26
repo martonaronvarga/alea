@@ -155,5 +155,6 @@ generated!(
 
 #[cfg(feature = "faer")]
 generated!(first: provider_faer_rect,provider_faer_alias,provider_faer_empty,provider_faer_zero,provider_faer_inverse,provider_faer_mixed,provider_faer_inactive,provider_faer_gemm,provider_faer_branch,provider_faer_scan,provider_faer_checkpoint,provider_faer_empty_inner,provider_faer_empty_columns);
+generated!(first: tensor_registered_observations);
 #[cfg(feature = "openblas")]
 generated!(first: provider_blas_rect,provider_blas_alias,provider_blas_empty,provider_blas_zero,provider_blas_inverse,provider_blas_mixed,provider_blas_inactive,provider_blas_gemm,provider_blas_branch,provider_blas_scan,provider_blas_checkpoint,provider_blas_empty_inner,provider_blas_empty_columns);

@@ -177,6 +177,7 @@ impl core::fmt::Debug for alea_runtime::ensemble::RunReport
 pub fn alea_runtime::ensemble::RunReport::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn alea_runtime::ensemble::chain_rng(seed: [u8; 32], id: alea_runtime::output::ChainId) -> chacha20::rng::ChaCha12Rng
 pub fn alea_runtime::ensemble::run<C, S>(chains: &mut [alea_runtime::ensemble::Chain<C, S>], options: &alea_runtime::ensemble::RunOptions, execution: alea_runtime::ensemble::Execution<'_>, cancel: &tokio_util::sync::cancellation_token::CancellationToken, publisher: core::option::Option<&alea_runtime::monitor::Publisher>) -> core::result::Result<alea_runtime::ensemble::RunReport, alea_runtime::ensemble::RunError<<C as alea_mcmc::MarkovChain>::Error>> where C: alea_mcmc::MarkovChain + core::marker::Send, <C as alea_mcmc::MarkovChain>::Error: core::marker::Send, <C as alea_mcmc::MarkovChain>::Transition: alea_runtime::output::DiagnosticTransition, S: for<'a> core::ops::function::FnMut(alea_runtime::output::Draw<'a, <C as alea_mcmc::MarkovChain>::Transition>) -> core::ops::control_flow::ControlFlow<()> + core::marker::Send
+pub fn alea_runtime::ensemble::run_with_progress<C, S>(chains: &mut [alea_runtime::ensemble::Chain<C, S>], options: &alea_runtime::ensemble::RunOptions, execution: alea_runtime::ensemble::Execution<'_>, cancel: &tokio_util::sync::cancellation_token::CancellationToken, publisher: core::option::Option<&alea_runtime::monitor::Publisher>) -> core::result::Result<alea_runtime::ensemble::RunReport, alea_runtime::ensemble::RunError<<C as alea_mcmc::MarkovChain>::Error>> where C: alea_mcmc::MarkovChain + core::marker::Send, <C as alea_mcmc::MarkovChain>::Error: core::marker::Send, <C as alea_mcmc::MarkovChain>::Transition: alea_runtime::output::DiagnosticTransition, S: for<'a> core::ops::function::FnMut(alea_runtime::output::Draw<'a, <C as alea_mcmc::MarkovChain>::Transition>) -> core::ops::control_flow::ControlFlow<()> + core::marker::Send
 pub mod alea_runtime::monitor
 pub enum alea_runtime::monitor::MonitorError
 pub alea_runtime::monitor::MonitorError::Policy
@@ -382,6 +383,7 @@ pub fn alea_runtime::optimize::LbfgsOptions::scales(&self) -> core::option::Opti
 pub fn alea_runtime::optimize::LbfgsOptions::score_tolerance(&self) -> f64
 pub fn alea_runtime::optimize::LbfgsOptions::with_history(self, history: usize) -> core::result::Result<Self, alea_runtime::optimize::InvalidOptimization>
 pub fn alea_runtime::optimize::LbfgsOptions::with_line_search(self, trials: usize) -> core::result::Result<Self, alea_runtime::optimize::InvalidOptimization>
+pub fn alea_runtime::optimize::LbfgsOptions::with_progress(self, enabled: bool) -> Self
 pub fn alea_runtime::optimize::LbfgsOptions::with_scales(self, scales: alloc::vec::Vec<f64>) -> core::result::Result<Self, alea_runtime::optimize::InvalidOptimization>
 pub fn alea_runtime::optimize::LbfgsOptions::with_score_tolerance(self, tolerance: f64) -> core::result::Result<Self, alea_runtime::optimize::InvalidOptimization>
 impl core::clone::Clone for alea_runtime::optimize::LbfgsOptions
@@ -537,6 +539,7 @@ impl alea_runtime::output::DiagnosticTransition for alea_mcmc::walnuts::WalnutsT
 pub fn alea_mcmc::walnuts::WalnutsTransition::diagnostic_stats(&self) -> alea_runtime::output::TransitionStats
 impl alea_runtime::output::DiagnosticTransition for alea_runtime::output::TransitionStats
 pub fn alea_runtime::output::TransitionStats::diagnostic_stats(&self) -> alea_runtime::output::TransitionStats
+pub fn alea_runtime::output::run_chain_with_progress<C, R>(chain: &mut C, steps: usize, rng: &mut R, observe: impl core::ops::function::FnMut(&[f64], &<C as alea_mcmc::MarkovChain>::Transition) -> core::ops::control_flow::ControlFlow<()>) -> core::result::Result<usize, <C as alea_mcmc::MarkovChain>::Error> where C: alea_mcmc::MarkovChain, R: rand_core::Rng + ?core::marker::Sized
 pub mod alea_runtime::prelude
 #[non_exhaustive] pub enum alea_runtime::prelude::DiagnosticError
 pub alea_runtime::prelude::DiagnosticError::InvalidDraws
@@ -688,6 +691,7 @@ pub fn alea_runtime::session::SessionBuilder::sampler(self, kernel: alea_runtime
 pub fn alea_runtime::session::SessionBuilder::seed(self, seed: [u8; 32]) -> Self
 pub fn alea_runtime::session::SessionBuilder::wall_time(self, duration: core::time::Duration) -> Self
 pub fn alea_runtime::session::SessionBuilder::warmup(self, warmup: alea_runtime::session::Warmup) -> Self
+pub fn alea_runtime::session::SessionBuilder::with_progress(self, enabled: bool) -> Self
 pub fn alea_runtime::prelude::acceptance_rate(accepted: usize, total: usize) -> f64
 pub fn alea_runtime::prelude::autocorrelation_ess(values: &[f64]) -> core::result::Result<f64, alea_runtime::diagnostics::DiagnosticError>
 pub fn alea_runtime::prelude::classical_split_rhat(chains: &[&[f64]]) -> core::result::Result<f64, alea_runtime::diagnostics::DiagnosticError>
@@ -1036,4 +1040,5 @@ pub fn alea_runtime::session::SessionBuilder::sampler(self, kernel: alea_runtime
 pub fn alea_runtime::session::SessionBuilder::seed(self, seed: [u8; 32]) -> Self
 pub fn alea_runtime::session::SessionBuilder::wall_time(self, duration: core::time::Duration) -> Self
 pub fn alea_runtime::session::SessionBuilder::warmup(self, warmup: alea_runtime::session::Warmup) -> Self
+pub fn alea_runtime::session::SessionBuilder::with_progress(self, enabled: bool) -> Self
 pub fn alea_runtime::run_chain<C, R>(chain: &mut C, steps: usize, rng: &mut R, observe: impl core::ops::function::FnMut(&[f64], &<C as alea_mcmc::MarkovChain>::Transition) -> core::ops::control_flow::ControlFlow<()>) -> core::result::Result<usize, <C as alea_mcmc::MarkovChain>::Error> where C: alea_mcmc::MarkovChain, R: rand_core::Rng + ?core::marker::Sized

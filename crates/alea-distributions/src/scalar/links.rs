@@ -13,6 +13,11 @@ pub struct BernoulliLogit {
     logit: f64,
 }
 impl BernoulliLogit {
+    pub(crate) fn curvature_weight(logit: f64) -> f64 {
+        let e = (-logit.abs()).exp();
+        (e / (1. + e)) / (1. + e)
+    }
+
     /// # Errors
     /// Requires finite log odds.
     pub fn new(logit: f64) -> Result<Self, E> {
@@ -141,6 +146,10 @@ pub struct PoissonLog {
     log_rate: f64,
 }
 impl PoissonLog {
+    pub(crate) fn curvature_weight(log_rate: f64) -> f64 {
+        log_rate.exp()
+    }
+
     /// # Errors
     /// Requires finite log rate; sampling additionally requires a representable rate.
     pub fn new(log_rate: f64) -> Result<Self, E> {

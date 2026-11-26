@@ -169,6 +169,12 @@
       "promotion_gate": "Broaden independent numerical and downstream validation of whole-value modeling and block rules."
     },
     {
+      "path": "crates/alea-core/src/model/assembly/curvature.rs",
+      "profile": "research_component",
+      "summary": "Explicit native potential HVP resolution for selected models and elementwise charts.",
+      "promotion_gate": "Retain explicit native rule and chart qualification and broaden independent numerical validation."
+    },
+    {
       "path": "crates/alea-core/src/model/assembly/factors.rs",
       "profile": "research_component",
       "summary": "Explicit mathematical contract or representation with scoped regression coverage.",
@@ -2481,6 +2487,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl alea_core::capability::PotentialHessianVector for alea_core::model::ComposedObjective<alea_core::model::assembly::NativeCurvature<'_>>",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl alea_core::capability::PotentialHessianVector for alea_core::model::TransformedTarget<alea_core::model::assembly::NativeCurvature<'_>>",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl alea_core::capability::PotentialHessianVector for alea_core::model::tensor::TensorPotential<'_>",
       "profile": "research_component",
       "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
@@ -2490,6 +2508,12 @@
       "item": "impl alea_core::distribution::ReferenceMeasure",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl alea_core::model::ConstrainedModel for alea_core::model::assembly::NativeCurvature<'_>",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
     },
     {
       "crate": "alea-core",
@@ -2555,6 +2579,12 @@
       "item": "impl alea_core::model::assembly::SourceCapabilities",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl alea_core::model::assembly::SourceRequest",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
     },
     {
       "crate": "alea-core",
@@ -2805,6 +2835,12 @@
       "item": "impl core::clone::Clone for alea_core::model::assembly::DerivativeOrder",
       "profile": "research_component",
       "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::clone::Clone for alea_core::model::assembly::DerivativeSource",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
     },
     {
       "crate": "alea-core",
@@ -3143,6 +3179,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "impl core::cmp::Eq for alea_core::model::assembly::DerivativeSource",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
+    },
+    {
+      "crate": "alea-core",
       "item": "impl core::cmp::Eq for alea_core::model::assembly::FactorMetadata",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -3379,6 +3421,12 @@
       "item": "impl core::cmp::PartialEq for alea_core::model::assembly::DerivativeOrder",
       "profile": "research_component",
       "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::cmp::PartialEq for alea_core::model::assembly::DerivativeSource",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
     },
     {
       "crate": "alea-core",
@@ -3764,6 +3812,12 @@
       "item": "impl core::fmt::Debug for alea_core::model::assembly::DerivativeOrder",
       "profile": "research_component",
       "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::fmt::Debug for alea_core::model::assembly::DerivativeSource",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
     },
     {
       "crate": "alea-core",
@@ -4366,6 +4420,12 @@
       "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::DerivativeOrder",
       "profile": "research_component",
       "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "impl core::marker::StructuralPartialEq for alea_core::model::assembly::DerivativeSource",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
     },
     {
       "crate": "alea-core",
@@ -5582,6 +5642,24 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::MissingNativeHvp",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::MissingNativeHvp::node: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::MissingNativeHvp::source: core::option::Option<alloc::boxed::Box<alea_core::model::assembly::AssemblyError>>",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub alea_core::model::assembly::AssemblyError::MissingPointwise",
       "profile": "research_component",
       "promotion_gate": "Qualify fixed-shape tensor/control-flow, rebinding and explicit lowering independently; source availability is not a backend AD or performance guarantee."
@@ -5609,6 +5687,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::NativeHvpChart",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::NativeHvpChart::block: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub alea_core::model::assembly::AssemblyError::Numerical",
       "profile": "validated_component_opt_in"
     },
@@ -5623,6 +5713,30 @@
       "item": "pub alea_core::model::assembly::AssemblyError::PosteriorPotential::index: usize",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::ScanReplayBudget",
+      "profile": "research_component",
+      "promotion_gate": "Retain native first-order replay qualification, explicit byte/work bounds and checked effects."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::ScanReplayBudget::max_bytes: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain native first-order replay qualification, explicit byte/work bounds and checked effects."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::ScanReplayBudget::max_replay_steps: usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain native first-order replay qualification, explicit byte/work bounds and checked effects."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::AssemblyError::ScanReplayUnavailable",
+      "profile": "research_component",
+      "promotion_gate": "Retain native first-order replay qualification, explicit byte/work bounds and checked effects."
     },
     {
       "crate": "alea-core",
@@ -5748,6 +5862,30 @@
       "item": "pub alea_core::model::assembly::DerivativeOrder::Value",
       "profile": "research_component",
       "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::DerivativeSource::Compiler",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::DerivativeSource::Compiler::admission: core::option::Option<alea_core::model::assembly::SourceProgram>",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::DerivativeSource::Composed(alea_core::model::assembly::FirstOrderSource)",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub alea_core::model::assembly::DerivativeSource::Value",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
     },
     {
       "crate": "alea-core",
@@ -7074,6 +7212,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub enum alea_core::model::assembly::DerivativeSource",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub enum alea_core::model::assembly::DynamicDomain",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -7762,6 +7906,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::ComposedObjective<alea_core::model::assembly::NativeCurvature<'_>>::potential_hvp(&self, q: &[f64], v: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::ConstrainedModel::dimension(&self) -> usize",
       "profile": "validated_component_reference"
     },
@@ -7900,6 +8050,12 @@
       "crate": "alea-core",
       "item": "pub fn alea_core::model::TransformedTarget<M>::new(model: M, layout: alea_core::transform::ParameterLayout) -> core::result::Result<Self, alea_core::model::ModelError<<M as alea_core::model::ConstrainedModel>::Error>>",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::TransformedTarget<alea_core::model::assembly::NativeCurvature<'_>>::potential_hvp(&self, q: &[f64], v: &[f64], output: &mut [f64]) -> core::result::Result<(), Self::Error>",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
     },
     {
       "crate": "alea-core",
@@ -8136,6 +8292,24 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DerivativeSource::clone(&self) -> alea_core::model::assembly::DerivativeSource",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DerivativeSource::eq(&self, other: &alea_core::model::assembly::DerivativeSource) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::DerivativeSource::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::DynamicDomain::accepts(_: alea_core::transform::Transform) -> bool",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
@@ -8238,6 +8412,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::Executable::objective_with_hvp(&self) -> core::result::Result<alea_core::model::ComposedObjective<alea_core::model::assembly::NativeCurvature<'_>>, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::Executable::prepare(&self, context: &mut alea_core::model::assembly::EvaluationContext, q: &[f64]) -> core::result::Result<alea_core::model::assembly::PreparedEvaluation, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
@@ -8310,9 +8490,9 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Executable::source_first_order(&self, mode: alea_core::model::assembly::SourceMode) -> core::result::Result<core::option::Option<alea_core::model::assembly::FirstOrderSource>, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::Executable::source_derivatives(&self, request: alea_core::model::assembly::SourceRequest) -> core::result::Result<alea_core::model::assembly::DerivativeSource, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
     },
     {
       "crate": "alea-core",
@@ -8322,15 +8502,15 @@
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Executable::source_score_admission(&self, mode: alea_core::model::assembly::SourceMode) -> core::result::Result<core::option::Option<alea_core::model::assembly::SourceProgram>, alea_core::model::assembly::AssemblyError>",
+      "item": "pub fn alea_core::model::assembly::Executable::target(self: &alloc::sync::Arc<Self>) -> core::result::Result<alea_core::model::TransformedTarget<alea_core::model::assembly::NativeModel>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>",
       "profile": "research_component",
       "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
     },
     {
       "crate": "alea-core",
-      "item": "pub fn alea_core::model::assembly::Executable::target(self: &alloc::sync::Arc<Self>) -> core::result::Result<alea_core::model::TransformedTarget<alea_core::model::assembly::NativeModel>, alea_core::model::ModelError<alea_core::model::assembly::AssemblyError>>",
+      "item": "pub fn alea_core::model::assembly::Executable::target_with_hvp(&self) -> core::result::Result<alea_core::model::TransformedTarget<alea_core::model::assembly::NativeCurvature<'_>>, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
-      "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
     },
     {
       "crate": "alea-core",
@@ -8697,6 +8877,24 @@
       "item": "pub fn alea_core::model::assembly::ModelScope<'_>::drop(&mut self)",
       "profile": "research_component",
       "promotion_gate": "Broaden independent semantic-model and backend-capability conformance; retain explicit measure, shape, numerical and ownership contracts."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeCurvature<'_>::dimension(&self) -> usize",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeCurvature<'_>::is_numerical_error(&self, error: &alea_core::model::assembly::AssemblyError) -> bool",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::NativeCurvature<'_>::logp_grad(&self, q: &[f64], g: &mut [f64]) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
     },
     {
       "crate": "alea-core",
@@ -9251,6 +9449,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::assembly::SourceRequest::first(mode: alea_core::model::assembly::SourceMode) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain factor-local score admission, pinned mixed derivative conformance, and unsupported-order rejection."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::assembly::SourceRequest::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result",
       "profile": "research_component",
       "promotion_gate": "Qualify requested derivative orders, factor-local source eligibility and numerical admission across additional models and actual pinned toolchains; emission eligibility is not derivative qualification."
@@ -9760,6 +9964,18 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::register_block_with_source<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>, jvp: alea_core::model::tensor::BlockJvp<D, W>, vjp_jvp: alea_core::model::tensor::BlockVjpJvp<D, W>, source: fn(&D) -> alloc::string::String) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Retain pinned value and first-order observation block execution, ordered score admission, and explicit higher-order rejection."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::register_block_with_vjp_jvp<D, W>(&mut self, inputs: &[alea_core::model::assembly::Value], descriptor: D, rules: alea_core::model::tensor::BlockRules<D, W>, jvp: alea_core::model::tensor::BlockJvp<D, W>, vjp_jvp: alea_core::model::tensor::BlockVjpJvp<D, W>) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError> where D: core::marker::Send + core::marker::Sync + 'static, W: core::marker::Send + 'static",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub fn alea_core::model::tensor::RegionBuilder::reshape(&mut self, value: alea_core::model::assembly::Value, shape: alea_core::model::tensor::Shape) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
@@ -9769,6 +9985,12 @@
       "item": "pub fn alea_core::model::tensor::RegionBuilder::scan(&mut self, initial: alea_core::model::assembly::Value, xs: alea_core::model::assembly::Value, captures: &[alea_core::model::assembly::Value], body: alea_core::model::tensor::BoundProgram) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify scope and shape checking, registration and source/reporting composition across broader models/toolchains. Whole-edge block authoring remains under development."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub fn alea_core::model::tensor::RegionBuilder::scan_with_replay_budget(&mut self, initial: alea_core::model::assembly::Value, xs: alea_core::model::assembly::Value, captures: &[alea_core::model::assembly::Value], body: alea_core::model::tensor::BoundProgram, max_bytes: usize, max_replay_steps: usize) -> core::result::Result<alea_core::model::assembly::Value, alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Retain native first-order replay qualification, explicit byte/work bounds and checked effects."
     },
     {
       "crate": "alea-core",
@@ -10677,6 +10899,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub struct alea_core::model::assembly::NativeCurvature<'a>",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub struct alea_core::model::assembly::NativeModel",
       "profile": "research_component",
       "promotion_gate": "Qualify immutable binding and executable ownership, independent contexts and per-target generated state across broader native/source consumers and actual toolchains; no higher-order, runtime-source-data or performance guarantee."
@@ -11191,6 +11419,12 @@
     },
     {
       "crate": "alea-core",
+      "item": "pub type alea_core::model::assembly::NativeCurvature<'_>::Error = alea_core::model::assembly::AssemblyError",
+      "profile": "research_component",
+      "promotion_gate": "Retain explicit native rule and chart qualification and independent numerical checks."
+    },
+    {
+      "crate": "alea-core",
       "item": "pub type alea_core::model::assembly::NativeEvaluator<D> = fn(&D, &[f64], &mut [f64], &mut <D as alea_core::model::assembly::OperationDescriptor>::Workspace) -> core::result::Result<f64, alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify graph-independent typed rule registration, numerical/admission and source/reporting composition across broader models/toolchains; no replay, higher-derivative, canonical-authoring, performance or maturity promotion."
@@ -11230,6 +11464,12 @@
       "item": "pub type alea_core::model::tensor::BlockVjp<D, W> = fn(&D, alea_core::model::tensor::BlockInputs<'_>, &[f64], &[f64], &mut [f64], &mut W) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
       "profile": "research_component",
       "promotion_gate": "Qualify typed block authoring, numerical admission and source/reporting composition across broader models and toolchains."
+    },
+    {
+      "crate": "alea-core",
+      "item": "pub type alea_core::model::tensor::BlockVjpJvp<D, W> = fn(&D, alea_core::model::tensor::BlockInputs<'_>, alea_core::model::tensor::BlockTangents<'_>, &[f64], [&[f64]; 2], &mut [f64], &W) -> core::result::Result<(), alea_core::model::assembly::AssemblyError>",
+      "profile": "research_component",
+      "promotion_gate": "Qualify native potential curvature through registered laws and composed model targets."
     },
     {
       "crate": "alea-core",
@@ -50746,6 +50986,12 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::ensemble::run_with_progress<C, S>(chains: &mut [alea_runtime::ensemble::Chain<C, S>], options: &alea_runtime::ensemble::RunOptions, execution: alea_runtime::ensemble::Execution<'_>, cancel: &tokio_util::sync::cancellation_token::CancellationToken, publisher: core::option::Option<&alea_runtime::monitor::Publisher>) -> core::result::Result<alea_runtime::ensemble::RunReport, alea_runtime::ensemble::RunError<<C as alea_mcmc::MarkovChain>::Error>> where C: alea_mcmc::MarkovChain + core::marker::Send, <C as alea_mcmc::MarkovChain>::Error: core::marker::Send, <C as alea_mcmc::MarkovChain>::Transition: alea_runtime::output::DiagnosticTransition, S: for<'a> core::ops::function::FnMut(alea_runtime::output::Draw<'a, <C as alea_mcmc::MarkovChain>::Transition>) -> core::ops::control_flow::ControlFlow<()> + core::marker::Send",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "pub fn alea_runtime::monitor::ChainSummary::clone(&self) -> alea_runtime::monitor::ChainSummary",
       "profile": "validated_component_reference"
     },
@@ -50964,6 +51210,12 @@
     {
       "crate": "alea-runtime",
       "item": "pub fn alea_runtime::optimize::LbfgsOptions::with_line_search(self, trials: usize) -> core::result::Result<Self, alea_runtime::optimize::InvalidOptimization>",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::optimize::LbfgsOptions::with_progress(self, enabled: bool) -> Self",
       "profile": "research_component",
       "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
@@ -51373,6 +51625,12 @@
     },
     {
       "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::output::run_chain_with_progress<C, R>(chain: &mut C, steps: usize, rng: &mut R, observe: impl core::ops::function::FnMut(&[f64], &<C as alea_mcmc::MarkovChain>::Transition) -> core::ops::control_flow::ControlFlow<()>) -> core::result::Result<usize, <C as alea_mcmc::MarkovChain>::Error> where C: alea_mcmc::MarkovChain, R: rand_core::Rng + ?core::marker::Sized",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
+    },
+    {
+      "crate": "alea-runtime",
       "item": "pub fn alea_runtime::prelude::acceptance_rate(accepted: usize, total: usize) -> f64",
       "profile": "validated_component_reference"
     },
@@ -51775,6 +52033,12 @@
       "crate": "alea-runtime",
       "item": "pub fn alea_runtime::session::SessionBuilder::warmup(self, warmup: alea_runtime::session::Warmup) -> Self",
       "profile": "validated_component_reference"
+    },
+    {
+      "crate": "alea-runtime",
+      "item": "pub fn alea_runtime::session::SessionBuilder::with_progress(self, enabled: bool) -> Self",
+      "profile": "research_component",
+      "promotion_gate": "Retain documented measure, coordinate, numerical and exactness limits; broaden independent validation before promotion."
     },
     {
       "crate": "alea-runtime",

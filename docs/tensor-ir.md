@@ -150,6 +150,16 @@ call. Matrix products, reshapes and scalar reductions are available directly
 on the model builder. A vector chart can supply a whole value through
 `ModelBuilder::vector_value`.
 
+At native execution, each model call binds its formal operands to scalar
+slots or earlier tensor results in the same evaluation context. Tensor
+kernels load these views directly into their planned input slots. Consumers
+borrow the callee result and the ordered parent pullback reads its completed
+scores in place. A single-input region containing only an identity or
+reshape can borrow the producer's storage without a tensor workspace.
+Distinct cotangent destinations preserve repeated-use accumulation order.
+Opaque and control-flow calls keep their checked region frames. Curvature
+uses those frames for all calls.
+
 ```rust
 use alea::model::{
     ConstrainedModel,
@@ -263,7 +273,7 @@ versioned forward frames. Checkpointed scans replay from the saved initial
 carry and consume each frame before reuse. Both share the native reverse
 executor’s frame guards. This is a native first-order route.
 
-A scalar builtin region can also create a `TensorPotential` with
+A scalar region with qualified curvature rules can create a `TensorPotential` with
 `BoundProgram::potential_hvp_target`. Its potential is the negative of the
 region result in flattened input coordinates. Use the existing
 `evaluate_hvp` function for checked calls. The ordinary native value and
@@ -274,16 +284,73 @@ derivatives. A checkpointed scan saves the tangent of each carry boundary and
 restores it with the matching primal before reversing that segment.
 
 The target owns separate curvature scratch outside the first-order workspace
-estimate. Reachable custom calls require a second rule and currently reject
-target construction. Model composition, chart transformations and higher
-derivative orders have separate capability contracts.
+estimate. `RegionBuilder::register_block_with_vjp_jvp` supplies an explicit
+directional derivative of the VJP alongside the first-order rules. Its callback
+reads the admitted forward residual before the local mutable VJP and publishes
+complete directional contributions in argument order. Reachable calls that
+lack this rule reject curvature target construction. Model composition, chart
+transformations and higher derivative orders have separate capability contracts.
 
 Whole-value model calls currently execute natively. Existing scalar-result
 source models use `ModelBuilder::apply_region`. The production
 `distributions::modeling::observations` adapter connects whole tensor predictors
-to native Normal, Bernoulli-logit and Poisson-log laws. This parameter-score map
-does not replace `NormalBatch` preparation, event-score or reporting contracts,
-and has no source, higher-order or checkpoint-replay route.
+to native Normal, Bernoulli-logit and Poisson-log laws. These adapters provide
+local score derivatives for `TensorPotential`, including scalar broadcasts
+and repeated parameter occurrences. `NormalBatch` retains its preparation,
+event-score and reporting contracts. The adapters remain ineligible for source
+lowering and checkpoint replay.
+
+### Connected likelihood compilation
+
+The compiler's connected-likelihood control builds a matrix-vector predictor,
+applies the row law and reduces the log probabilities in one canonical tensor
+graph. The current executor evaluates the matrix, law and sum through their
+existing boundaries. The Poisson regression integration compares this route's
+value and VJP with the specialized regression and an independent calculation.
+The target lowering is a joint numerical region or explicit cuts justified by
+provider calls, score admission, retained row outputs or storage costs.
+
+Native compilation packs storage only for reachable primal values. Reshapes
+keep the producer's range. Reverse layout and source residual selection share
+the same alias-owner analysis. Fused native map loops carry a half-open domain,
+an ordered tile split, and a list of reachable operations. Forward and tiled
+reverse use the same domain, including partial tiles. A reachable incompatible
+operation still divides the schedule. Source emission retains its original
+grouping policy.
+
+Source compilation uses one checked placement traversal to size the forward
+arena and locate residual copies for the explicit VJP. The traversal accounts
+for child frames and distinguishes an empty materialized value from a borrowed
+value. Primal and explicit pullback renderers use the verified call origins,
+operands, maps and matrix descriptors. Fused source still follows the source
+schedule. Branch and scan scratch use the same extents in sizing and emission.
+The residual layout forwards existing inputs and outputs and saves one
+copy per required computed owner. Native reverse borrows checked ranges from
+its reachable primal arena. Operand occurrences remain ordered, and aliases
+borrow the same producer range. Retained branches and scans use their guarded
+child frames. Checkpoint replay borrows parent rows and captures and restores
+the saved carry. Registered callbacks keep their declared inputs, output and
+private workspace. The arena still includes forward scratch, which has a
+separate lifetime from these reverse reads.
+
+Shape specialization, batching, transposition, and physical loop scheduling
+derive their artifacts from the canonical graph. The first planned symbolic
+dimension is the observation axis, resolved at data binding before allocation.
+This follows the distinction between a shape-polymorphic definition and its
+concrete execution in [JAX shape polymorphism](https://docs.jax.dev/en/latest/export/shape_poly.html).
+
+### Source for registered observation regions
+
+The Normal, Bernoulli-logit and Poisson-log region adapters provide value and
+explicit first-order Rust source through the scalar-result model adapter.
+Source freezes real events bit for bit, keeps Boolean labels as `bool` and
+retains counts as `u64`. The emitted rule calls the production law constructor
+and score entry point. It admits all local scores before the primal publishes
+and applies row contributions in order, including compensated sums for scalar
+broadcasts. The explicit pullback recomputes local scores from checked retained
+operands. Compiler HVP and third-order requests reject for these regions.
+Generic closures and binding-prepared registered callbacks remain
+source-ineligible. Whole-value model source export is a separate task.
 
 ### Bounded operation inventory for the integration models
 
@@ -635,6 +702,16 @@ checked GEMM adapter for the forward product and both accumulating transposed
 operand pullbacks. Aliases and zero seeds retain the ordered scalar pullback,
 matching native admission and accumulation behavior. Every selected provider
 output is finite-checked before a later expression can mask overflow.
+
+The checked matrix lowering records the forward overwrite and the two
+ordered accumulating contractions in one call descriptor. Native primal,
+directional and transpose execution and explicit source emission consume
+those dimensions, transpose views and destination modes. Operand and seed
+residency still follows the checked primal and derivative layouts. The
+native path borrows the transposed view of a dense row-major operand. The
+source path keeps its explicit seed copy where the pullback needs exclusive
+destination slices. These cuts expose the work a future scheduler must charge
+for. Provider-owned packing and setup still count in total-cost qualification.
 
 Provider factors require explicit first-order composition. This selection is
 factor-local: an ordinary companion tensor keeps compiler reverse plus checked
@@ -1851,17 +1928,15 @@ producer's adjoints. If no fused/reused plan is needed and the saved storage doe
 not exceed the layout metadata, it retains the original dense adjoints and a
 separately specialized dense reverse path. In particular, tiny scalar scan bodies
 do not allocate an address plan merely to save one or two doubles. Optional
-metadata stays outside hot retained-frame headers. Dense primal storage and
-complete forward admission remain; workspace byte budgets conservatively cover
-either selected representation.
+metadata stays outside hot retained-frame headers. Workspace byte budgets
+conservatively cover either selected adjoint representation.
 For unfused regions with at least 1 MiB of active adjoints, the planner computes
 inclusive backward live intervals over alias classes and uses a best-fit arena.
 An output seed and its input destinations must coexist during its VJP. Reused
 storage is cleared only after admitting the retiring seed; binary and matrix
 pullbacks use a preallocated seed buffer when needed. The candidate is declined
 unless arena plus seed scratch is smaller than compact non-reused storage.
-This is bounded adjoint reuse, not global primal-buffer reuse or an optimal
-allocation algorithm. Planning uses ordered free blocks and a lifetime heap,
+Planning uses ordered free blocks and a lifetime heap,
 with O((V+E) log V) scheduling; fragmentation can decline reuse.
 
 Existing dependency-safe pointwise groups can also run tiled reverse operations.
@@ -1869,8 +1944,154 @@ Only active identity-indexed edges qualify; active broadcast/gather reductions
 retain the original reverse traversal. Eligibility is cached with workspace
 activity, not rediscovered per element. Reverse-node and operand order within
 each coordinate, zero-seed skipping, all intermediate finite checks and staged
-caller outputs remain. All primal arrays are still materialized. No floating
-reassociation or callback interpretation is introduced by this pass.
+caller outputs remain. Fused groups still materialize primals in their existing
+ordered layout.
+
+### Native grouping by producer dependencies
+
+Native pointwise groups follow checked producer edges, including edges through
+reshape aliases. A group can cross live reshapes and finite input, data, or
+constant declarations. Input and data loads in its span run before the tiles,
+and tiled reverse publishes those inputs' completed adjoints after the group.
+An unrelated checked computation, a gather, a guarded or opaque operation, or an
+incompatible map ends the group. A terminal sum joins only when it is the last
+live forward reader of the producer's alias class.
+
+Groups retain the current native size thresholds and full primal
+materialization. An active many-to-one read selects the ordinary ordered
+reverse path. Source grouping continues to use its existing rules.
+
+### Joint tiles under qualification
+
+A native candidate uses a single terminal pointwise group followed by an
+ordered scalar sum. For each tile it reads immutable inputs and bindings
+directly, admits the maps in their existing order, updates the compensated sum,
+and applies the existing transpose kernels while the residuals are still
+available. Each tile keeps only its local map values and independent adjoints.
+The flattened gradient is staged until the sum and all scores pass admission.
+Reshapes share their producer's tile coordinates.
+
+Materialized plans and joint tiles use the same adjoint placement and
+initialization code. The interval allocator checks tile slots before their
+offsets become operands of the joint step. The tile's scalar result has an
+explicit persistent slot. The native executor allocates one workspace and
+dispatches joint tiles through its existing step list.
+
+Full tiles reuse the checked first-write plan. They initialize additive
+adjoint slots and let the sum seed and whole unary pullbacks replace their
+destination slots. The final partial tile initializes padding before the
+whole-arena finite check.
+
+Active scalar and broadcast adjoints use the ordinary ordered reduction.
+General broadcast read maps, additional checked regions, split primal/reverse
+calls and higher derivatives use the materialized route. The candidate is
+available in builds with `RUSTFLAGS="--cfg alea_l42_joint"` for direct native
+evaluation and `value_and_vjp` calls. For the qualified terminal group the
+workspace compares the principal arena span of 256-wide joint tiles with ordered
+reverse placement and the current tiled reverse placement. It selects the
+joint step only when that span is strictly smaller than both. Value-only calls
+reuse the tile arena and skip the reverse sweep. The workspace budget remains
+a conservative bound for materialized execution.
+
+The existing `tensor_tape` benchmark compares ordered execution, tiled forward
+with ordered reverse, the materialized reference, and joint tiles of widths
+128, 256, 512 and 1,024 in the same binary. A checked terminal group refers to
+logical alias owners. Each width derives an ordered loop and resolves offsets
+through its own checked placement. The comparisons use identical bound graphs
+and check result and gradient bits before timing. Receipts report the principal
+arena allocation and estimates of explicit initialization, copies, pointwise
+passes and replay. These figures describe the enumerated plans and exclude metadata,
+implicit kernel memory traffic and hardware cache behavior.
+
+On ELTE, seven order-balanced comparisons of all seven plans in one executable
+gave the 256-wide joint step 1.16×, 1.42× and 1.77× the materialized throughput
+for 4,097, 65,536 and 262,144 elements. The 1,024-wide step was close at
+65,536. For the 100,000-element reshape chain, ordered reuse was 1.14× and
+the joint widths were 1.10–1.12×. Principal scratch on that chain was
+53.6 MB for materialized execution, 29.6 MB with ordered reuse, and
+0.87–1.33 MB with joint tiles. These comparisons cover steady value and
+VJP within one binary.
+
+The matched stock build cleared the 5% limit for the measured controls.
+In the matched opt-in build, SIMD Radon and small compensated GEMM took
+7.2% and 6.5% longer. Native Radon and the compiled Enzyme control remained
+inconclusive at the limit after confirmation. Native defaults continue to
+use materialized execution. The ELTE runs requested Performance. The job
+records list an unknown governor, and the guest exposed neither the host
+governor nor live frequency.
+
+L4.2 completes the opt-in implementation. L4.6 owns conditional default
+admission under the [tiered policy](native-model-performance.md#performance-admission-for-composed-models).
+The failed opt-in release comparison retains its original disposition.
+
+### Checked adjoint destinations
+
+The unfused native transpose visits contributions in reverse graph and
+operand order. Its destination plan follows reshape aliases to their
+adjoint owner. A first whole-slice contribution from a unary pullback or
+the transpose of a sum can replace that owner. All later contributions add.
+Replacement writes every slot and preserves the arithmetic of the original
+addition to positive zero. Broadcast reductions, repeated gathers, callbacks,
+provider kernels and tiled steps retain their existing accumulation.
+
+In a disjoint adjoint layout, replacement destinations skip the bulk clear
+and still undergo finite-score admission. Recycled adjoint layouts use the
+same write modes with their inclusive overlap check and existing retirement
+clears. Primal views and incoming seeds remain read-only throughout each
+write. The source and higher-order directional adjoint layouts retain their
+existing initialization.
+
+### Budgeted native scan replay
+
+`scan_with_replay_budget(initial, rows, captures, body, max_bytes,
+max_replay_steps)` sets limits for one native first-order scan invocation.
+The controller prefers retaining frames when they fit. Otherwise it selects
+a supported uniform segment width and saves a carry at each boundary. Reverse
+restores each boundary, advances through its segment, and consumes the
+versioned frames in reverse order. These actions are generated from one
+width, so the controller stores no per-trip action list.
+
+The local byte limit covers the scan's initialized workspace, child frames,
+boundary carries, iteration tags, resident operand occurrences, and fresh
+output. Aliased operand occurrences are charged conservatively. The enclosing
+graph has a separate workspace budget. The replay limit counts additional
+body advances during a VJP, at most one per trip for this controller.
+The explicit selector searches all uniform widths through 64 trips and a
+bounded set for longer chains. A budget error can mean that none of the
+searched schedules fits. The existing automatic checkpoint method retains
+its previous selection policy.
+
+The bounded route admits pure bodies with no reachable positive-trip nested scan. Native
+JVP and HVP requests reject a budgeted replay layout. The generated-source
+route retains its own workspace policy.
+
+In the 32-trip scalar fixture, the local budget was 3,192 bytes. The measured
+peak heap during whole-program workspace construction and one VJP fell from
+36,742 to 3,530 bytes. The budgeted run performed 32 additional body advances,
+and the retained run performed zero. The enclosing allocation includes
+storage outside the local scan budget. The measurement excludes RSS,
+allocator bookkeeping, and already bound data.
+
+### Native primal slot reuse
+
+Unfused regions assign real primal storage by inclusive lifetimes over reshape
+alias classes. The existing best-fit allocator reuses a range only after its
+last reader finishes. The producing call's inputs and new output coexist.
+Cached data and binding-prepared values, the result, and all checked reverse,
+directional and replay reads retain their ranges through the forward pass.
+Each child execution frame holds its own arena. Checkpoint interval selection
+continues to use the pre-reuse budget, so a smaller arena alone does not change
+when a scan replays.
+
+The deterministic 256-element gather fixture keeps an early reshape live
+through a later reduction. Its primal vector capacity falls from 2,307 to 768
+`f64` elements. The workspace budget falls from 41,026 to 28,714 bytes. Live
+heap allocation including one caller input and a newly allocated scalar
+result falls from 42,693 to 30,381 bytes. Evaluating with those buffers adds
+zero heap allocations in both layouts, and the values and VJPs agree bit for
+bit. These byte counts include workspace heap payloads,
+exclude allocator bookkeeping, shared executable and binding storage, and do
+not measure RSS or execution time.
 
 The explicit first-order source pullback separately selects its saved residuals
 from the values its VJP rules actually read. Inputs and immutable bindings remain

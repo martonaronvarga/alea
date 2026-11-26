@@ -1,3 +1,4 @@
+use alea::model::assembly::{DerivativeSource, SourceRequest};
 #[path = "../models.rs"]
 mod models;
 use alea::{
@@ -12,6 +13,181 @@ fn close(actual: f64, expected: f64, tolerance: f64) {
         (actual - expected).abs() <= tolerance * (1.0 + expected.abs()),
         "{actual} != {expected}"
     );
+}
+
+#[test]
+fn mixed_trusted_and_replayed_factors_match_independent_first_and_hvp_answers() {
+    use generated::tensor_checkpoint_mixed as fixture;
+
+    fn check(
+        first: impl LogDensityGradient<Error = alea::autodiff::autodiff::AutodiffError>,
+        higher: impl PotentialHessianVector<Error = alea::autodiff::autodiff::AutodiffError>,
+        density: bool,
+    ) {
+        for q in [[0.3_f64, 0.4_f64], [0., -1.]] {
+            let [u, gain] = q;
+            let initial = u.exp();
+            let carry = initial * gain.powi(3) - 0.1 * gain.powi(2) + 0.25 * gain + 0.5;
+            let log = carry.abs().ln();
+            let expected = log * log - 0.5 * (initial * initial + (2. * std::f64::consts::PI).ln())
+                + if density { u } else { 0. };
+            let dc = [
+                initial * gain.powi(3),
+                3. * initial * gain * gain - 0.2 * gain + 0.25,
+            ];
+            let d2_01 = 3. * initial * gain * gain;
+            let d2_11 = 6. * initial * gain - 0.2;
+            let d = 2. * log / carry;
+            let d2 = 2. * (1. - log) / (carry * carry);
+            let mut out = [19.; 2];
+            close(first.logp_grad(&q, &mut out).unwrap(), expected, 1e-12);
+            close(
+                out[0],
+                d * dc[0] - initial * initial + f64::from(density),
+                1e-12,
+            );
+            close(out[1], d * dc[1], 1e-12);
+
+            for v in [[0.7, -0.3], [0., 0.]] {
+                let direction = dc[0] * v[0] + dc[1] * v[1];
+                higher.potential_hvp(&q, &v, &mut out).unwrap();
+                close(
+                    out[0],
+                    -d2 * dc[0] * direction - d * (dc[0] * v[0] + d2_01 * v[1])
+                        + 2. * initial * initial * v[0],
+                    1e-12,
+                );
+                close(
+                    out[1],
+                    -d2 * dc[1] * direction - d * (d2_01 * v[0] + d2_11 * v[1]),
+                    1e-12,
+                );
+            }
+        }
+    }
+
+    check(fixture::first::target(), fixture::hvp::target(), true);
+    check(
+        fixture::first::composition::objective(),
+        fixture::hvp::composition::objective(),
+        false,
+    );
+}
+
+#[test]
+fn opaque_scan_body_rejects_replay_and_source_before_rendering() {
+    use alea::model::{
+        assembly::{AssemblyError, ModelBuilder, SourceMode},
+        tensor::{BlockRules, BlockType, ElementType, Shape},
+    };
+    let mut model = ModelBuilder::new();
+    let mut body = model.region();
+    let carry = body.input("carry", Shape::scalar()).unwrap();
+    let _row = body.input("row", Shape::scalar()).unwrap();
+    let out = body
+        .register_block(
+            &[carry],
+            (),
+            BlockRules {
+                inputs: vec![BlockType {
+                    dtype: ElementType::Real,
+                    shape: Shape::scalar(),
+                }],
+                output: Shape::scalar(),
+                workspace: |_| (),
+                heap_bytes: 0,
+                forward: |_, inputs, out, _| {
+                    out.copy_from_slice(inputs.real(0)?);
+                    Ok(())
+                },
+                vjp: Some(|_, _, _, seed, out, _| {
+                    out.copy_from_slice(seed);
+                    Ok(())
+                }),
+                preparation: None,
+            },
+        )
+        .unwrap();
+    let body = body.compile(out).unwrap().bind(&[]).unwrap();
+    let mut region = model.region();
+    let initial = region.input("initial", Shape::scalar()).unwrap();
+    let rows = region
+        .constant(Shape::new(vec![1]).unwrap(), vec![0.])
+        .unwrap();
+    assert!(matches!(
+        region.scan_with_replay_budget(initial, rows, &[], body.clone(), usize::MAX, 1),
+        Err(AssemblyError::ScanReplayUnavailable)
+    ));
+    let out = region.scan(initial, rows, &[], body).unwrap();
+    let x = model.real("x").unwrap().expr();
+    let term = model
+        .apply_region(&[x], region.compile(out).unwrap().bind(&[]).unwrap())
+        .unwrap();
+    model.factor(term).unwrap();
+    let model = model.compile().unwrap();
+    assert!(matches!(
+        alea::autodiff::codegen::source(&model, SourceRequest::first(SourceMode::Density)),
+        Err(AssemblyError::MissingPrimal { .. })
+    ));
+}
+
+#[test]
+fn registered_observation_sources_match_independent_values_and_scores() {
+    use generated::tensor_registered_observations as fixture;
+
+    let density = fixture::target();
+    let objective = fixture::composition::objective();
+    let mut g = [19.; 4];
+    for q in [[-0.5_f64, 0.2, 0.7, 0.25], [0.5, -0.1, 0.1, -0.35]] {
+        let sd = q[3].exp();
+        let mut expected = 0.;
+        let mut score = [0.; 4];
+        for (i, (y, observed, k)) in [(0.5, 1., 0_u64), (-0.6, 0., 1), (0.125, 1., 3)]
+            .into_iter()
+            .enumerate()
+        {
+            let eta = q[i] * q[i];
+            let rate = eta.exp();
+            let z = (y - eta) / sd;
+            let log_factorial = (1..=k).map(|j| (j as f64).ln()).sum::<f64>();
+            expected += -0.5 * (2. * std::f64::consts::PI).ln() - q[3] - 0.5 * z * z
+                + observed * eta
+                - rate.ln_1p()
+                + k as f64 * eta
+                - rate
+                - log_factorial;
+            score[i] = 2. * q[i] * (z / sd + observed - rate / (1. + rate) + k as f64 - rate);
+            score[3] += z * z - 1.;
+        }
+        close(fixture::value::log_density(&q), expected, 1e-12);
+        close(density.logp_grad(&q, &mut g).unwrap(), expected, 1e-12);
+        for (actual, expected) in g.into_iter().zip(score) {
+            close(actual, expected, 1e-12);
+        }
+        close(objective.logp_grad(&q, &mut g).unwrap(), expected, 1e-12);
+        for (actual, expected) in g.into_iter().zip(score) {
+            close(actual, expected, 1e-12);
+        }
+    }
+
+    for q in [[30., 0.2, 0.7, 0.25], [0., 0., 0., -1000.]] {
+        assert!(!fixture::value::log_density(&q).is_finite());
+        g.fill(19.);
+        assert!(density.logp_grad(&q, &mut g).is_err());
+        assert!(g.iter().all(|v| v.is_nan()));
+        g.fill(19.);
+        assert!(objective.logp_grad(&q, &mut g).is_err());
+        assert!(g.iter().all(|v| v.is_nan()));
+    }
+    let invalid = [f64::NAN, 0., 0., 0.];
+    assert!(!fixture::value::log_density(&invalid).is_finite());
+    g.fill(19.);
+    assert!(density.logp_grad(&invalid, &mut g).is_err());
+    assert_eq!(g, [19.; 4]);
+    assert!(objective.logp_grad(&invalid, &mut g).is_err());
+    assert_eq!(g, [19.; 4]);
+    assert!(density.logp_grad(&[0.; 4], &mut g).is_ok());
+    assert!(g.iter().all(|v| v.is_finite()));
 }
 
 fn record_nonfinite<T: std::fmt::Debug>(
@@ -53,10 +229,12 @@ fn unrelated_trusted_or_checkpoint_factor_preserves_compiler_reverse() {
         assert_eq!(a.inputs.len(), 2);
         assert_eq!(a.inputs[0], a.inputs[1]);
         let plan = model
-            .source_first_order(alea::model::assembly::SourceMode::Density)
+            .source_derivatives(SourceRequest::first(
+                alea::model::assembly::SourceMode::Density,
+            ))
             .unwrap();
-        assert_eq!(plan.is_some(), explicit);
-        if let Some(first) = plan {
+        assert_eq!(matches!(plan, DerivativeSource::Composed(_)), explicit);
+        if let DerivativeSource::Composed(first) = plan {
             let source = first.program.source;
             let actual_checkpoint = first.checkpointed;
             assert_eq!(actual_checkpoint, checkpoint);
@@ -95,7 +273,9 @@ fn unrelated_trusted_or_checkpoint_factor_preserves_compiler_reverse() {
         Err(alea::model::assembly::AssemblyError::MissingPrimal { .. })
     ));
     assert!(matches!(
-        missing.source_score_admission(alea::model::assembly::SourceMode::Density),
+        missing.source_derivatives(SourceRequest::first(
+            alea::model::assembly::SourceMode::Density
+        )),
         Err(alea::model::assembly::AssemblyError::MissingPrimal { .. })
     ));
 }

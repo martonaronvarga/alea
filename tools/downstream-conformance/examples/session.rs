@@ -11,7 +11,7 @@ use alea::{
 use alea::{
     model::{
         ModelError,
-        assembly::{AssemblyError, NativeModel, ModelBuilder},
+        assembly::{AssemblyError, ModelBuilder, NativeModel},
     },
     target::LogDensityGradient,
 };
@@ -44,13 +44,19 @@ fn spec() -> SessionBuilder {
 }
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // A caller-selected empty directory keeps every durable path create-new.
-    let output = std::env::args()
-        .nth(1)
-        .ok_or("usage: session NEW_OUTPUT_DIRECTORY")?;
+    let mut args = std::env::args_os().skip(1);
+    let usage = "usage: session NEW_OUTPUT_DIRECTORY [--progress]";
+    let output = args.next().ok_or(usage)?;
+    let progress = match args.next() {
+        None => false,
+        Some(flag) if flag == "--progress" && args.next().is_none() => true,
+        Some(_) => return Err(usage.into()),
+    };
     std::fs::create_dir(&output)?;
     let output = Path::new(&output);
     let cancel = CancellationToken::new();
     let session = spec()
+        .with_progress(progress)
         .warmup(Warmup::Covariance {
             iterations: 100,
             metric: MetricKind::Diagonal,
@@ -76,7 +82,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ok_or("no frozen checkpoint")?
         .write_new(output.join("chain-0.checkpoint"), 65_536)?;
     let cp = Checkpoint::read(output.join("chain-0.checkpoint"), 65_536)?;
-    let resumed = spec().restart(vec![cp]).collect(false).build()?;
+    let resumed = spec()
+        .with_progress(progress)
+        .restart(vec![cp])
+        .collect(false)
+        .build()?;
     let sink = DurableSink::create_new(output.join("draws.alea"), resumed.provenance(), 1_000_000)?;
     let result = resumed.run(factory, Execution::Sequential, &sink)?;
     let mut reader = DrawReader::new(File::open(output.join("draws.alea"))?, 65_536)?;

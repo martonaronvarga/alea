@@ -47,6 +47,18 @@ pool alive until the run finishes. Alea does not install or resize a global pool
 Logical chain IDs come from the input order. A parallel run may interleave output
 differently, while the per-chain random streams remain tied to those IDs.
 
+## Show sampling progress
+
+Add `.with_progress(true)` before `.build()` to show warmup and retained-draw
+budget bars on stderr for NUTS, HMC, or RWMH. Totals cover all chains. A resumed
+session starts its draw count at the completed checkpoint indices. Redirected
+stderr receives plain start and stop messages. A terminal redraws in place
+and respects `NO_COLOR`. The existing sink receives the same draw records.
+
+For lower-level runs, use `alea::ensemble::run_with_progress` or
+`alea::output::run_chain_with_progress`. The session example also accepts
+`--progress` after its new output-directory argument.
+
 ## Choose where draws go
 
 By default a session collects draws in each chain result. It also passes retained

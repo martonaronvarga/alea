@@ -61,7 +61,14 @@ impl Frame {
 
 impl<'a> Program<'a> {
     pub(in crate::model::tensor::execute) fn compile_curvature(plan: &'a Plan) -> Result<Self, E> {
-        Self::compile_mode(plan, &vec![true; plan.inputs.len()], true)
+        Self::compile_curvature_with_activity(plan, &vec![true; plan.inputs.len()])
+    }
+
+    pub(in crate::model::tensor::execute) fn compile_curvature_with_activity(
+        plan: &'a Plan,
+        activity: &[bool],
+    ) -> Result<Self, E> {
+        Self::compile_mode(plan, activity, true)
     }
 
     pub(in crate::model::tensor::execute) fn direction<'d>(
@@ -81,7 +88,7 @@ impl<'a> Program<'a> {
         self.steps[i].control.as_deref().expect("compiled control")
     }
 
-    pub(super) fn directional_frame(
+    pub(in crate::model::tensor::execute) fn directional_frame(
         &self,
         binding: &BoundProgram,
         work: &mut TensorWorkspace,
@@ -111,6 +118,14 @@ impl<'a> Program<'a> {
                 &mut frame.tangents,
             );
         }
+    }
+
+    pub(in crate::model::tensor::execute) fn copy_curvature_result(
+        &self,
+        output: &mut [f64],
+        frame: &Frame,
+    ) {
+        self.copy_result(output, &frame.tangents);
     }
 
     pub(in crate::model::tensor::execute) fn seeded_directional_vjp(
@@ -160,7 +175,7 @@ impl Rule<'_> {
         let Frame {
             tangents, adjoints, ..
         } = pair.frame;
-        let read = |v: Value| &values[p.nodes[v.node].range()];
+        let read = |v: Value| &values[p.nodes[v.node].primal_range()];
         let direction = |v: Value| pair.program.direction(v, tangents);
         let start = p.nodes[node].start;
         let (before, after) = adjoints.split_at_mut(start);
@@ -168,7 +183,7 @@ impl Rule<'_> {
         match self {
             Rule::Unary(kind, a) => {
                 let x = read(a);
-                let y = &values[p.nodes[node].range()];
+                let y = &values[p.nodes[node].primal_range()];
                 let dx = direction(a);
                 let dy = direction(Value {
                     owner: p.owner,
@@ -223,17 +238,11 @@ impl Rule<'_> {
                     }
                 });
             }
-            Rule::Matrix {
-                a,
-                b,
-                dimensions,
-                kernel,
-            } => {
+            Rule::Matrix { a, b, calls } => {
                 let (av, bv) = (read(a), read(b));
                 let starts = (p.nodes[a.node].start, p.nodes[b.node].start);
                 let apply = |a: &[f64], r: &[f64], seeds: &[f64], adjoints: &mut [f64], active| {
                     kernels::matmul_reverse(
-                        dimensions,
                         kernels::Pullback {
                             a,
                             r,
@@ -242,7 +251,7 @@ impl Rule<'_> {
                             starts,
                             active,
                         },
-                        kernel,
+                        calls,
                     )
                 };
                 let (left, right) = (active[a.node], active[b.node]);
@@ -266,6 +275,7 @@ impl Rule<'_> {
                 },
                 0..seed.len(),
                 None,
+                lowering::AdjointWrite::Add,
             ),
             Rule::Native(_) | Rule::Cond(_) | Rule::Scan(_) => {
                 unreachable!("second-order builtin rule")
@@ -293,6 +303,39 @@ fn slope_direction(kind: UnaryOp, x: f64, y: f64, dx: f64, dy: f64) -> f64 {
 }
 
 impl<'a, 'p> ReversePair<'a, 'p> {
+    pub(in crate::model::tensor::execute) fn native(
+        &mut self,
+        i: usize,
+        call: &registration::Call,
+        (values, active): (&[f64], &[bool]),
+        seed: &[f64],
+        work: &mut registration::Work,
+    ) -> Result<(), E> {
+        let Ok(step) = self
+            .program
+            .steps
+            .binary_search_by_key(&i, |step| step.node)
+        else {
+            return Ok(());
+        };
+        let step = &self.program.steps[step];
+        let p = self.program.plan;
+        let (adjoints, current) = self.frame.adjoints.split_at_mut(p.nodes[step.node].start);
+        call.reverse_direction(
+            (&p.nodes, values),
+            (step.inputs.as_slice(), &self.frame.tangents),
+            &values[step.primal.clone()],
+            [seed, &current[..seed.len()]],
+            work,
+        )?;
+        call.accumulate(work, |input, scores| {
+            if active[input.node] {
+                add_at(adjoints, p.nodes[input.node].start, scores);
+            }
+        });
+        Ok(())
+    }
+
     pub(in crate::model::tensor::execute) fn reborrow(&mut self) -> ReversePair<'_, 'p> {
         ReversePair {
             program: self.program,
@@ -441,5 +484,62 @@ mod tests {
             .unwrap();
             assert_eq!(frame.gradient, [derivative]);
         }
+    }
+
+    #[test]
+    fn registered_curvature_reads_forward_state_and_admits_complete_contributions() {
+        use crate::capability::PotentialHessianVector;
+
+        let mut b = RegionBuilder::new();
+        let x = b.input("x", Shape::scalar()).unwrap();
+        let square = b
+            .register_block_with_vjp_jvp(
+                &[x],
+                (),
+                BlockRules {
+                    inputs: vec![BlockType {
+                        dtype: ElementType::Real,
+                        shape: Shape::scalar(),
+                    }],
+                    output: Shape::scalar(),
+                    workspace: |_| 0.,
+                    heap_bytes: 0,
+                    forward: |_, inputs, out, saved| {
+                        *saved = inputs.real(0)?[0];
+                        out[0] = *saved * *saved;
+                        Ok(())
+                    },
+                    preparation: None,
+                    vjp: Some(|_, _, _, seed, score, saved| {
+                        score[0] = 2. * *saved * seed[0];
+                        // The ordinary VJP may mutate private scratch.
+                        *saved = f64::NAN;
+                        Ok(())
+                    }),
+                },
+                |_, _, tangent, _, out, saved| {
+                    out[0] = 2. * *saved * tangent.real(0)?.unwrap()[0];
+                    Ok(())
+                },
+                |_, inputs, tangent, _, [seed, seed_direction], out, saved| {
+                    assert_eq!(*saved, inputs.real(0)?[0]);
+                    if *saved != 1. {
+                        out[0] = 2.
+                            * (*saved * seed_direction[0] + seed[0] * tangent.real(0)?.unwrap()[0]);
+                    }
+                    Ok(())
+                },
+            )
+            .unwrap();
+        let p = b.compile(square).unwrap().bind(&[]).unwrap();
+        let target = p.potential_hvp_target().unwrap();
+        let mut hvp = [19.];
+        assert!(matches!(
+            target.potential_hvp(&[1.], &[3.], &mut hvp),
+            Err(E::Numerical)
+        ));
+        assert_eq!(hvp, [19.]);
+        target.potential_hvp(&[2.], &[3.], &mut hvp).unwrap();
+        assert_eq!(hvp, [-6.]);
     }
 }

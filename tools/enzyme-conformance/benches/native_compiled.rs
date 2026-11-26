@@ -3,6 +3,7 @@
 #[allow(dead_code)]
 #[path = "../models.rs"]
 mod models;
+use alea::model::assembly::{DerivativeSource, SourceRequest};
 use alea::{
     capability::{PotentialHessianDerivative, PotentialHessianVector},
     model::assembly::NativeModel,
@@ -70,14 +71,21 @@ impl Route {
                     .is_some_and(|p| p.signature().name == "tensor_region")
         });
         let compiler = if tensor { "L" } else { "C" };
-        let explicit = model
-            .source_first_order(alea::model::assembly::SourceMode::Density)
+        let route = model
+            .source_derivatives(SourceRequest::first(
+                alea::model::assembly::SourceMode::Density,
+            ))
             .expect("baseline source planning");
         Self {
-            first: if explicit.is_some() { "H" } else { compiler },
+            first: if matches!(route, DerivativeSource::Composed(_)) {
+                "H"
+            } else {
+                compiler
+            },
             compiler,
-            tensor_validation: HAS_TENSOR_VALIDATION && tensor && explicit.is_none(),
-            checkpointed: explicit.is_some_and(|first| first.checkpointed),
+            tensor_validation: HAS_TENSOR_VALIDATION
+                && matches!(route, DerivativeSource::Compiler { admission: Some(_) }),
+            checkpointed: matches!(route, DerivativeSource::Composed(first) if first.checkpointed),
         }
     }
     fn emit(self, fixture: &str, requested: &str, order: &str, status: &str, reason: &str) {

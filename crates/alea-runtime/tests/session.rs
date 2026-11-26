@@ -152,6 +152,7 @@ fn serial_rayon_and_streamed_collected_outputs_match_for_all_reference_kernels()
         });
         let streamed = builder(kernel, 4, 256)
             .warmup(warmup)
+            .with_progress(true)
             .collect(false)
             .build()
             .unwrap();

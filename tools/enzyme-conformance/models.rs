@@ -452,6 +452,38 @@ pub fn tensor_fixed_data(rebound: bool) -> Result<NativeModel, AssemblyError> {
 pub fn tensor_matrix() -> Result<NativeModel, AssemblyError> {
     tensor_matrix_policy(false)
 }
+
+pub fn tensor_registered_observations() -> Result<NativeModel, AssemblyError> {
+    use alea::distributions::modeling::{
+        bernoulli_logit_region_observations, normal_region_observations,
+        poisson_log_region_observations,
+    };
+    use alea::model::tensor::{BinaryOp, Shape, UnaryOp};
+
+    let mut model = ModelBuilder::new();
+    let inputs = [
+        model.real("a")?.expr(),
+        model.real("b")?.expr(),
+        model.real("c")?.expr(),
+        model.real("rho")?.expr(),
+    ];
+    let mut region = model.region();
+    let x = region.input("x", Shape::new(vec![3])?)?;
+    let rho = region.input("rho", Shape::scalar())?;
+    let eta = region.binary(BinaryOp::Multiply, x, x)?;
+    let scale = region.unary(UnaryOp::Exp, rho)?;
+    let normal = normal_region_observations(&mut region, vec![0.5, -0.6, 0.125], eta, scale)?;
+    let logit = bernoulli_logit_region_observations(&mut region, vec![true, false, true], eta)?;
+    let poisson = poisson_log_region_observations(&mut region, vec![0_u64, 1, 3], eta)?;
+    let joint = region.binary(BinaryOp::Add, normal, logit)?;
+    let joint = region.binary(BinaryOp::Add, joint, poisson)?;
+    let output = region.sum(joint)?;
+    let binding = region.compile(output)?.bind(&[])?;
+    let term = model.apply_region(&inputs, binding)?;
+    model.factor(term)?;
+    model.compile()
+}
+
 pub fn tensor_broadcast() -> Result<NativeModel, AssemblyError> {
     tensor_broadcast_policy(false, 2)
 }
@@ -1189,6 +1221,10 @@ pub fn all() -> Result<Vec<(&'static str, NativeModel)>, AssemblyError> {
             )?,
         ),
         ("tensor_broadcast", tensor_broadcast()?),
+        (
+            "tensor_registered_observations",
+            tensor_registered_observations()?,
+        ),
         (
             "tensor_checkpoint_broadcast",
             tensor_checkpoint_broadcast()?,

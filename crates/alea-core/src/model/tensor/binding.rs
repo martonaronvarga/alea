@@ -56,16 +56,14 @@ fn materialize_with_limit(plan: &Plan, data: &[Arc<[f64]>], limit: usize) -> Vec
             Op::Binary(b) => kernels::forward(b, value(b.a), value(b.b), &mut out),
             Op::Sum(v) => out[0] = kernels::sum_forward(value(*v)),
             Op::Gather(v, indices) => kernels::gather_forward(value(*v), indices, &mut out),
-            Op::Matmul {
-                a,
-                b,
-                m,
-                k,
-                n,
-                kernel,
-            } => {
+            Op::Matmul { a, b, .. } => {
                 if !out.is_empty() {
-                    kernels::matmul_forward(value(*a), value(*b), &mut out, (*m, *k, *n), *kernel);
+                    kernels::matmul_forward(
+                        value(*a),
+                        value(*b),
+                        &mut out,
+                        plan.facts.lowered.matrix(i),
+                    );
                 }
             }
             _ => unreachable!("checked binding builtin"),

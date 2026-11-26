@@ -1,37 +1,8 @@
 //! Loop-preserving scalar Rust lowering for actual ahead-of-time compiler AD.
 use super::analysis::{FrameInstance, ResidualGuard};
 use super::*;
+use lowering::Operation;
 use std::fmt::Write;
-
-pub(super) fn workspace_elements(p: &Plan) -> Result<usize, E> {
-    let mut slots = p.nodes[p.output.node].shape.elements;
-    for (i, node) in p.nodes.iter().enumerate() {
-        if !p.facts.admission(i) {
-            continue;
-        }
-        let extra = match &node.op {
-            Op::Cond(c) => c
-                .yes
-                .dimension()
-                .checked_add(c.yes.plan.source_slots.max(c.no.plan.source_slots)),
-            Op::Scan(s) if s.steps != 0 => s.body.dimension().checked_add(s.body.plan.source_slots),
-            _ => Some(0),
-        }
-        .ok_or(E::Shape)?;
-        let own = p
-            .facts
-            .lowered
-            .call(i)
-            .expect("checked active call")
-            .source_storage();
-        slots = slots
-            .checked_add(own)
-            .and_then(|n| n.checked_add(extra))
-            .filter(|n| *n <= isize::MAX as usize / size_of::<f64>())
-            .ok_or(E::Shape)?;
-    }
-    Ok(slots)
-}
 
 impl BoundProgram {
     /// Emits `tensor_region(x: &[f64; D], valid: &mut bool) -> [f64; N]`.
@@ -91,30 +62,32 @@ impl BoundProgram {
             .iter()
             .filter_map(|step| match step {
                 fusion::Step::Fused(group) => Some(group),
-                fusion::Step::Nodes(_) => None,
+                _ => None,
             })
             .peekable();
         let mut fused_until = 0;
-        for (i, node) in p.nodes.iter().enumerate() {
-            if !p.active[i] || i < fused_until {
+        for call in p.facts.lowered.calls() {
+            let i = call.origin().node;
+            if i < fused_until {
                 continue;
             }
-            if groups.peek().is_some_and(|group| group.maps.start == i) {
+            if groups.peek().is_some_and(|group| group.start() == i) {
                 let group = groups.next().expect("peeked fusion group");
                 fused_source(&mut source, p, group, failure);
                 fused_until = group.end();
                 continue;
             }
-            let len = node.shape.elements;
-            let borrowed = match &node.op {
-                Op::Input(index) => {
-                    let start = p.inputs[*index].start;
+            let len = call.elements();
+            let operation = call.operation(&p.nodes);
+            let borrowed = match operation {
+                Operation::Input(index) => {
+                    let start = p.inputs[index].start;
                     let end = start + len;
                     Some(format!("&x[{start}..{end}]"))
                 }
-                Op::Data(index) => Some(format!("&{:?}", self.data[*index])),
-                Op::Constant(values) => Some(format!("&{values:?}")),
-                Op::Alias(a) => Some(format!("n{}", a.node)),
+                Operation::Data(index) => Some(format!("&{:?}", self.data[index])),
+                Operation::Constant(values) => Some(format!("&{values:?}")),
+                Operation::Alias(a) => Some(format!("n{}", a.node)),
                 _ => None,
             };
             if let Some(value) = borrowed {
@@ -134,39 +107,55 @@ impl BoundProgram {
             }
             // Empty pure blocks do no element work. Control-flow regions still
             // execute: an empty result cannot erase a selected domain failure.
-            if len == 0 && !matches!(&node.op, Op::Cond(_) | Op::Scan(_)) {
+            if len == 0
+                && !matches!(
+                    operation,
+                    Operation::Cond(..) | Operation::Scan(..) | Operation::Registered(..)
+                )
+            {
                 writeln!(source, "let _ = &n{i};").unwrap();
                 continue;
             }
-            match &node.op {
-                Op::Registered(_) => unreachable!("native-only operation rejected before emission"),
-                Op::Input(_) | Op::Data(_) | Op::Constant(_) | Op::Alias(_) => {
+            match operation {
+                Operation::Registered(block, reads) => {
+                    let name = format!("registered{i}");
+                    source.push_str(&block.source_definition(&name));
+                    let args = reads
+                        .iter()
+                        .map(|read| format!("n{},", read.value.node))
+                        .collect::<String>();
+                    writeln!(source,"n{i}.fill(f64::NAN); if !{name}(&[{args}],n{i},None,&mut[]) {{ {failure} }}").unwrap();
+                }
+                Operation::NativeOnly => {
+                    unreachable!("native-only operation rejected before emission")
+                }
+                Operation::Input(_)
+                | Operation::Data(_)
+                | Operation::Constant(_)
+                | Operation::Alias(_) => {
                     unreachable!("borrowed nodes emitted above")
                 }
-                Op::Unary(..) | Op::Binary(_) => {
-                    let value = element_source(node);
+                Operation::Unary(..) | Operation::Binary(..) => {
+                    let value = element_source(operation);
                     if len == 1 {
                         writeln!(source, "{{ let j=0_usize; n{i}[j] = {value}; }}").unwrap();
                     } else {
                         writeln!(source, "for j in 0..{len} {{ n{i}[j] = {value}; }}").unwrap();
                     }
                 }
-                Op::Sum(a) => {
-                    writeln!(source,"{{ let mut sum=::alea::math::numeric::CompensatedSum::default(); for &v in n{}.iter() {{ sum.add(v); }} n{i}[0]=sum.total(); }}",a.node).unwrap();
+                Operation::Sum(a) => {
+                    writeln!(source,"{{ let mut sum=::alea::math::numeric::CompensatedSum::default(); for &v in n{}.iter() {{ sum.add(v); }} n{i}[0]=sum.total(); }}",a.value.node).unwrap();
                 }
-                Op::Gather(a, indices) => {
+                Operation::Gather(a, indices) => {
                     writeln!(source,"{{ let indices: [usize; {len}] = {indices:?}; for j in 0..{len} {{n{i}[j]=n{}[indices[j]];}} }}",a.node).unwrap();
                 }
-                Op::Matmul {
-                    a,
-                    b,
-                    m,
-                    k,
-                    n,
-                    kernel,
-                } => {
+                Operation::Matrix(a, b, calls) => {
+                    let kernel = calls.kernel;
+                    let (m, k, n) = calls.primal.dimensions;
                     if kernel.is_accelerated() {
-                        writeln!(source, "if !::alea::math::gemm::try_gemm(::alea::math::gemm::ResolvedMatrix::{},n{},n{},n{i},({m},{k},{n}),(false,false),false) {{{failure}}}", kernel.source_name(),a.node,b.node).unwrap();
+                        let (ta, tb) = calls.primal.transpose;
+                        let add = calls.primal.add;
+                        writeln!(source, "if !::alea::math::gemm::try_gemm(::alea::math::gemm::ResolvedMatrix::{},n{},n{},n{i},({m},{k},{n}),({ta},{tb}),{add}) {{{failure}}}", kernel.source_name(),a.node,b.node).unwrap();
                         writeln!(
                             source,
                             "if n{i}.iter().any(|v|!v.is_finite()) {{{failure}}}"
@@ -174,20 +163,17 @@ impl BoundProgram {
                         .unwrap();
                         continue;
                     }
-                    if *k == 0 {
+                    if k == 0 {
                         writeln!(source, "n{i}.fill(0.0);").unwrap();
                         continue;
                     }
-                    let row_k = scaled("row", *k);
-                    let j_n = scaled("j", *n);
-                    let row_n = scaled("row", *n);
+                    let row_k = scaled("row", k);
+                    let j_n = scaled("j", n);
+                    let row_n = scaled("row", n);
                     writeln!(source,"for row in 0..{m} {{for column in 0..{n} {{ let mut sum=::alea::math::numeric::CompensatedSum::default(); for j in 0..{k} {{sum.add_product(n{}[{row_k}+j],n{}[{j_n}+column]);}} n{i}[{row_n}+column]=sum.total(); }} }}",a.node,b.node).unwrap();
                 }
-                Op::Cond(c) => {
-                    let site = Value {
-                        owner: p.owner,
-                        node: i,
-                    };
+                Operation::Cond(c, [lhs, rhs], args) => {
+                    let site = call.origin();
                     let yes = p
                         .facts
                         .guard(site, FrameInstance::Branch(0))
@@ -204,35 +190,32 @@ impl BoundProgram {
                         &c.no
                             .guarded_function_source(&format!("no{}", no.site.node), no),
                     );
+                    let (arguments, child) = operation.child_scratch();
                     writeln!(
                         source,
-                        "let (args{i}, rest)=rest.split_at_mut({}); let (work{i}, rest)=rest.split_at_mut({});",
-                        c.yes.dimension(), c.yes.plan.source_slots.max(c.no.plan.source_slots)
+                        "let (args{i}, rest)=rest.split_at_mut({arguments}); let (work{i}, rest)=rest.split_at_mut({child});",
                     )
                     .unwrap();
-                    pack(&mut source, &format!("args{i}"), 0, &c.args, p);
+                    pack(&mut source, &format!("args{i}"), 0, args);
                     let comparison = match c.comparison {
                         Comparison::Less => "<",
                         Comparison::LessEqual => "<=",
                         Comparison::Greater => ">",
                         Comparison::GreaterEqual => ">=",
                     };
-                    writeln!(source,"if n{}[0] {comparison} n{}[0] {{yes{i}(args{i}, n{i}, work{i}, valid)}} else {{no{i}(args{i}, n{i}, work{i}, valid)}}; if !*valid {{ {failure} }}",c.lhs.node,c.rhs.node).unwrap();
+                    writeln!(source,"if n{}[0] {comparison} n{}[0] {{yes{i}(args{i}, n{i}, work{i}, valid)}} else {{no{i}(args{i}, n{i}, work{i}, valid)}}; if !*valid {{ {failure} }}",lhs.node,rhs.node).unwrap();
                 }
-                Op::Scan(s) => {
+                Operation::Scan(s, [initial, xs], captures) => {
                     if s.steps == 0 {
                         copy(
                             &mut source,
                             &format!("n{i}"),
-                            &format!("n{}", s.initial.node),
+                            &format!("n{}", initial.node),
                             len,
                         );
                         continue;
                     }
-                    let site = Value {
-                        owner: p.owner,
-                        node: i,
-                    };
+                    let site = call.origin();
                     let guard = p
                         .facts
                         .guard(site, FrameInstance::Iteration(0))
@@ -241,25 +224,19 @@ impl BoundProgram {
                         &s.body
                             .guarded_function_source(&format!("body{}", guard.site.node), guard),
                     );
-                    let carry = node.shape.elements;
+                    let carry = len;
                     let row = s.row;
-                    let initial = s.initial.node;
-                    let xs = s.xs.node;
+                    let initial = initial.node;
+                    let xs = xs.node;
                     let steps = s.steps;
+                    let (arguments, child) = operation.child_scratch();
                     writeln!(
                         source,
-                        "let (args{i}, rest)=rest.split_at_mut({}); let (work{i}, rest)=rest.split_at_mut({});",
-                        s.body.dimension(), s.body.plan.source_slots
+                        "let (args{i}, rest)=rest.split_at_mut({arguments}); let (work{i}, rest)=rest.split_at_mut({child});",
                     )
                     .unwrap();
                     copy(&mut source, &format!("n{i}"), &format!("n{initial}"), carry);
-                    pack(
-                        &mut source,
-                        &format!("args{i}"),
-                        carry + row,
-                        &s.captures,
-                        p,
-                    );
+                    pack(&mut source, &format!("args{i}"), carry + row, captures);
                     let start = scaled("step", row);
                     let end = scaled("(step+1)", row);
                     writeln!(source, "for step in 0..{steps} {{ let _ = step;").unwrap();
@@ -299,9 +276,9 @@ impl BoundProgram {
         source
     }
 }
-fn element_source(node: &Node) -> String {
-    match &node.op {
-        Op::Unary(op, a) => {
+fn element_source(operation: Operation<'_>) -> String {
+    match operation {
+        Operation::Unary(op, a) => {
             let a = format!("n{}[j]", a.node);
             match op {
                 UnaryOp::Neg => format!("-{a}"),
@@ -315,8 +292,8 @@ fn element_source(node: &Node) -> String {
                 UnaryOp::Sqrt => format!("{a}.sqrt()"),
             }
         }
-        Op::Binary(b) => {
-            let op = match b.kind {
+        Operation::Binary(kind, (a, left), (b, right)) => {
+            let op = match kind {
                 BinaryOp::Add => "+",
                 BinaryOp::Subtract => "-",
                 BinaryOp::Multiply => "*",
@@ -324,43 +301,59 @@ fn element_source(node: &Node) -> String {
             };
             format!(
                 "n{}[{}] {op} n{}[{}]",
-                b.a.node,
-                b.left.index_source(),
-                b.b.node,
-                b.right.index_source()
+                a.node,
+                left.index_source(),
+                b.node,
+                right.index_source()
             )
         }
         _ => unreachable!("pointwise expression"),
     }
 }
 fn fused_source(source: &mut String, p: &Plan, group: &fusion::Group, failure: &str) {
-    for i in group.maps.clone().chain(group.reduction) {
+    for i in group.maps().chain(group.reduction) {
         writeln!(
             source,
             "let (n{i}, rest)=rest.split_at_mut({});",
-            p.nodes[i].shape.elements
+            p.facts
+                .lowered
+                .call(i)
+                .expect("checked fused call")
+                .elements()
         )
         .unwrap();
     }
-    let elements = group.elements;
+    let elements = group.domain.end;
     source.push_str("{\n");
     if group.reduction.is_some() {
         source.push_str("let mut total=::alea::math::numeric::CompensatedSum::default();\n");
     }
     writeln!(source, "for j in 0..{elements} {{").unwrap();
-    for i in group.maps.clone() {
+    for i in group.maps() {
         writeln!(
             source,
             "n{i}[j]={}; if !n{i}[j].is_finite() {{ {failure} }}",
-            element_source(&p.nodes[i])
+            element_source(
+                p.facts
+                    .lowered
+                    .call(i)
+                    .expect("checked fused call")
+                    .operation(&p.nodes)
+            )
         )
         .unwrap();
     }
     if let Some(i) = group.reduction {
-        let Op::Sum(a) = p.nodes[i].op else {
+        let Operation::Sum(a) = p
+            .facts
+            .lowered
+            .call(i)
+            .expect("checked fused reduction")
+            .operation(&p.nodes)
+        else {
             unreachable!("compiled reduction")
         };
-        writeln!(source, "total.add(n{}[j]);", a.node).unwrap();
+        writeln!(source, "total.add(n{}[j]);", a.value.node).unwrap();
     }
     source.push_str("}\n");
     if let Some(i) = group.reduction {
@@ -379,13 +372,13 @@ fn scaled(index: &str, stride: usize) -> String {
         _ => format!("{index}*{stride}"),
     }
 }
-fn pack(source: &mut String, name: &str, mut start: usize, args: &[Value], p: &Plan) {
+fn pack(source: &mut String, name: &str, mut start: usize, args: &[lowering::Read]) {
     for arg in args {
-        let end = start + p.nodes[arg.node].shape.elements;
+        let end = start + arg.elements();
         copy(
             source,
             &format!("{name}[{start}..{end}]"),
-            &format!("n{}", arg.node),
+            &format!("n{}", arg.value.node),
             end - start,
         );
         start = end;

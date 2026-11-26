@@ -131,6 +131,55 @@ impl Plan {
         }
         Ok(())
     }
+
+    pub(super) fn directional(
+        &self,
+        (values, primal_adjoints): (&[f64], &[f64]),
+        tangents: &[f64],
+        adjoints: &mut [f64],
+        gradient: &mut [f64],
+        active: Option<&[bool]>,
+        mut region: impl FnMut(usize, &mut [f64]) -> Result<(), AssemblyError>,
+    ) -> Result<(), AssemblyError> {
+        for edge in &self.0 {
+            let (Edge::Parameter(node, _)
+            | Edge::Add(node, _)
+            | Edge::Multiply(node, _, _)
+            | Edge::Log(node, _)
+            | Edge::Region(node)
+            | Edge::Local(node, _)) = edge;
+            if active.is_some_and(|active| !active[*node]) {
+                continue;
+            }
+            let a = primal_adjoints[*node];
+            let da = adjoints[*node];
+            match edge {
+                Edge::Region(node) => region(*node, adjoints)?,
+                Edge::Parameter(_, slot) => gradient[*slot] += da,
+                Edge::Add(_, out) => adjoints[*out] += da,
+                Edge::Multiply(_, out, other) => {
+                    adjoints[*out] += da * values[*other] + a * tangents[*other];
+                }
+                Edge::Log(_, out) => {
+                    let x = values[*out];
+                    let dx = tangents[*out];
+                    let coefficient = if a == 0. || dx == 0. {
+                        0.
+                    } else {
+                        (a / x) * (dx / x)
+                    };
+                    adjoints[*out] += da / x - coefficient;
+                }
+                Edge::Local(node, _) => {
+                    return Err(AssemblyError::MissingNativeHvp {
+                        node: *node,
+                        source: None,
+                    });
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

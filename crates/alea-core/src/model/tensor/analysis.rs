@@ -25,11 +25,13 @@ struct Effects {
     checked: bool,
     // Unknown effects: neither referential purity nor replay may be inferred.
     opaque: bool,
+    scan: bool,
 }
 impl Effects {
     fn include(&mut self, other: Self) {
         self.checked |= other.checked;
         self.opaque |= other.opaque;
+        self.scan |= other.scan;
     }
 }
 
@@ -135,6 +137,13 @@ pub(super) fn backward_reads(node: &Node, reader: Value, reads: &mut Vec<Backwar
             read(s.xs, None);
             for &v in &s.captures {
                 read(v, None);
+            }
+        }
+        Op::Registered(_) => {
+            if let Some(call) = node.native_block().filter(|call| call.has_source()) {
+                for &input in call.arguments() {
+                    read(input, None);
+                }
             }
         }
         // Opaque callbacks are source-ineligible, not assigned fake read sets.
@@ -274,6 +283,7 @@ impl CompileFacts {
                             value_edges[i].push(s.initial.node);
                             derivative_edges[i].push(s.initial.node);
                         } else {
+                            local_effects.scan = true;
                             let args: Vec<_> = [s.initial, s.xs]
                                 .into_iter()
                                 .chain(s.captures.iter().copied())
@@ -427,6 +437,10 @@ impl CompileFacts {
 
     pub(super) fn blocks_replay(&self) -> bool {
         self.effects.opaque
+    }
+
+    pub(super) fn supports_bounded_replay(&self) -> bool {
+        !self.effects.opaque && !self.effects.scan
     }
 }
 

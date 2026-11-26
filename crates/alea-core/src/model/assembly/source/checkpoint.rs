@@ -7,74 +7,89 @@ fn extent(a: usize, b: usize) -> Result<usize, AssemblyError> {
         .ok_or(AssemblyError::Shape)
 }
 
+enum FactorRoute<'a> {
+    Compiler,
+    Tensor {
+        program: &'a crate::model::tensor::BoundProgram,
+        explicit: bool,
+    },
+    Trusted(&'a super::super::SourceGradientCallback),
+}
+
 impl Executable {
-    /// Emits a first-order composition of trusted primitive score rules and
-    /// tensor replay. The named receipt reports actual tensor checkpointing, not
-    /// merely the presence of an analytic primitive. Higher AD uses the primal.
+    /// Resolves and emits the derivative portion of a source request.
+    ///
+    /// Trusted primitive scores and explicit tensor pullbacks are selected
+    /// per retained factor. Compiler tensor factors still admit checked
+    /// local scores. A higher-order request requires the separately
+    /// qualified compiler-primal route.
     /// # Errors
-    /// Preserves missing-primal and checked workspace overflow errors.
-    pub fn source_first_order(
+    /// Rejects missing primals, unsupported orders, a zero-dimensional
+    /// derivative target, and overflowing generated workspace.
+    pub fn source_derivatives(
         &self,
-        mode: SourceMode,
-    ) -> Result<Option<FirstOrderSource>, AssemblyError> {
-        self.rust_composed_gradient(mode == SourceMode::Density, false)
+        request: SourceRequest,
+    ) -> Result<DerivativeSource, AssemblyError> {
+        let request = self.source_capabilities().resolve(request)?;
+        if request.order == DerivativeOrder::Value {
+            return Ok(DerivativeSource::Value);
+        }
+        if self.layout.unconstrained_dimension() == 0 {
+            return Err(AssemblyError::Empty);
+        }
+
+        let mut composed = false;
+        let mut has_tensor = false;
+        let mut checkpointed = false;
+        let mut routes = Vec::new();
+        for (i, op) in self.source_nodes() {
+            if !matches!(op, Op::Factor { .. }) {
+                continue;
+            }
+            let primitive = self.source_primitive(i);
+            let route = if let Some(rule) = primitive.and_then(|p| p.source_gradient.as_deref()) {
+                composed = true;
+                FactorRoute::Trusted(rule)
+            } else if let Some(program) = primitive.and_then(|p| p.region_binding()) {
+                has_tensor = true;
+                let replays = program.has_source_checkpoints();
+                let explicit = replays || program.requires_explicit_source();
+                checkpointed |= replays;
+                composed |= explicit;
+                FactorRoute::Tensor { program, explicit }
+            } else {
+                FactorRoute::Compiler
+            };
+            routes.push(route);
+        }
+
+        let density = request.mode == SourceMode::Density;
+        if composed {
+            return Ok(DerivativeSource::Composed(self.rust_composed_gradient(
+                density,
+                false,
+                checkpointed,
+                &routes,
+            )?));
+        }
+        let admission = if has_tensor {
+            Some(
+                self.rust_composed_gradient(density, true, false, &routes)?
+                    .program,
+            )
+        } else {
+            None
+        };
+        Ok(DerivativeSource::Compiler { admission })
     }
 
-    /// Emits checked tensor score validation for a compiler-derived gradient.
-    ///
-    /// Compiler derivative conventions can hide a singular local tensor score
-    /// (for example, the pinned sqrt rule supplies zero at zero). This reuses
-    /// the existing explicit tensor pullback and scalar composition for admission
-    /// only. Its returned score must not replace the requested compiler gradient.
-    /// Source-only opaque leaves still require their compiler derivative; this
-    /// does not validate arbitrary handwritten callbacks against their source.
-    /// Returns `None` without an active tensor. Call outside differentiation and
-    /// separately from value-only evaluation. Skip it when the actual first-order
-    /// route already performs explicit tensor pullbacks.
-    /// # Errors
-    /// Preserves missing-primal and checked workspace overflow errors.
-    pub fn source_score_admission(
-        &self,
-        mode: SourceMode,
-    ) -> Result<Option<SourceProgram>, AssemblyError> {
-        Ok(self
-            .rust_composed_gradient(mode == SourceMode::Density, true)?
-            .map(|first| first.program))
-    }
     fn rust_composed_gradient(
         &self,
         density: bool,
         tensor_validation: bool,
-    ) -> Result<Option<FirstOrderSource>, AssemblyError> {
-        let tensor = |i| {
-            self.primitives
-                .binary_search_by_key(&i, |(node, _)| *node)
-                .ok()
-                .and_then(|j| self.primitives[j].1.region_binding())
-        };
-        let retained = |i: usize| self.active_nodes.as_ref().is_none_or(|a| a[i]);
-        let checkpointed = (0..self.nodes.len())
-            .any(|i| retained(i) && tensor(i).is_some_and(|t| t.has_source_checkpoints()));
-        let native = |i| {
-            self.primitives
-                .binary_search_by_key(&i, |(node, _)| *node)
-                .ok()
-                .and_then(|j| self.primitives[j].1.source_gradient.as_ref())
-        };
-        if tensor_validation && !(0..self.nodes.len()).any(|i| retained(i) && tensor(i).is_some()) {
-            return Ok(None);
-        }
-        // Enable composition globally, but select explicit versus compiler
-        // tensor reverse per factor below; ordinary companions keep their route.
-        let provider = (0..self.nodes.len())
-            .any(|i| retained(i) && tensor(i).is_some_and(|t| t.requires_explicit_source()));
-        if !tensor_validation
-            && !checkpointed
-            && !provider
-            && !(0..self.nodes.len()).any(|i| retained(i) && native(i).is_some())
-        {
-            return Ok(None);
-        }
+        checkpointed: bool,
+        routes: &[FactorRoute<'_>],
+    ) -> Result<FirstOrderSource, AssemblyError> {
         let c = self.layout.constrained_dimension();
         let mut source = String::new();
         let mut chart = String::from("#[allow(unused_mut)] let mut jacobian=0.0_f64;\n");
@@ -100,10 +115,8 @@ impl Executable {
         let mut reverse = String::new();
         let mut temporary = 0;
         let mut local_count = 0;
-        for (i, op) in self.nodes.iter().enumerate() {
-            if !retained(i) {
-                continue;
-            }
+        let mut routes = routes.iter();
+        for (i, op) in self.source_nodes() {
             let expression = match op {
                 Op::Parameter(j) => format!("x[{j}]"),
                 Op::Constant(v) => format!("{v:?}_f64"),
@@ -116,13 +129,11 @@ impl Executable {
                     let primal = self
                         .primal_source(i)
                         .ok_or(AssemblyError::MissingPrimal { node: i })?;
-                    let size = self
-                        .primitives
-                        .binary_search_by_key(&i, |(j, _)| *j)
-                        .ok()
-                        .map_or(0, |j| self.primitives[j].1.source_workspace);
+                    let primitive = self.source_primitive(i);
+                    let size = primitive.map_or(0, |p| p.source_workspace);
                     let d = inputs.len();
-                    if let Some(rule) = native(i) {
+                    let route = routes.next().expect("retained factor route");
+                    if let FactorRoute::Trusted(rule) = route {
                         let first = local_count;
                         local_count = extent(local_count, d)?;
                         temporary = temporary.max(extent(d, size)?);
@@ -152,15 +163,18 @@ impl Executable {
                         reverse.insert_str(0, &r);
                         continue;
                     }
-                    let explicit = tensor(i).is_some_and(|t| {
-                        tensor_validation
-                            || t.has_source_checkpoints()
-                            || t.requires_explicit_source()
-                    });
-                    let pullback = tensor(i)
-                        .map(|t| t.pullback_source(&format!("__tensor{i}")))
-                        .transpose()
-                        .map_err(|_| AssemblyError::Shape)?;
+                    let (pullback, explicit) = match route {
+                        FactorRoute::Tensor { program, explicit } => (
+                            Some(
+                                program
+                                    .pullback_source(&format!("__tensor{i}"))
+                                    .map_err(|_| AssemblyError::Shape)?,
+                            ),
+                            tensor_validation || *explicit,
+                        ),
+                        FactorRoute::Compiler => (None, false),
+                        FactorRoute::Trusted(_) => unreachable!("trusted route emitted above"),
+                    };
                     let work = pullback.as_ref().map_or(size, |v| v.workspace.max(size));
                     temporary = temporary.max(extent(extent(d, d)?, extent(work, 1)?)?);
                     if let Some(pullback) = &pullback {
@@ -250,7 +264,7 @@ impl Executable {
             writeln!(source,"if {}.{method}(&q[{}..{}],&gc[{}..{}],&mut g[{}..{}],temporary).is_err() {{g.fill(f64::NAN);return f64::NAN;}}",b.transform().rust_constructor(),qr.start,qr.end,cr.start,cr.end,qr.start,qr.end).unwrap();
         }
         source.push_str("let _=&locals;for v in &mut *g {*v*=seed;}if g.iter().any(|v|!v.is_finite()) {g.fill(f64::NAN);return f64::NAN;}total}\n");
-        Ok(Some(FirstOrderSource {
+        Ok(FirstOrderSource {
             program: SourceProgram {
                 source,
                 workspace: FloatWorkspace {
@@ -259,6 +273,6 @@ impl Executable {
             },
             checkpointed,
             stateful,
-        }))
+        })
     }
 }

@@ -15,6 +15,7 @@ use std::error::Error;
 use thiserror::Error;
 #[cfg(feature = "faer")]
 pub mod information;
+mod progress;
 
 /// Caller-declared statistical interpretation; not verified by the optimizer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,6 +55,7 @@ pub struct LbfgsOptions {
     backtracks: usize,
     score_tolerance: f64,
     scales: Option<Vec<f64>>,
+    progress: bool,
 }
 impl LbfgsOptions {
     /// Maximum accepted steps.
@@ -96,8 +98,18 @@ impl LbfgsOptions {
             backtracks: 40,
             score_tolerance: 1e-8,
             scales: None,
+            progress: false,
         })
     }
+    /// Enables a best-effort fitting display on stderr. The default is quiet.
+    /// Terminals show live budget bars. Redirected output receives plain start
+    /// and stop messages. Display failures do not affect the fit.
+    #[must_use]
+    pub fn with_progress(mut self, enabled: bool) -> Self {
+        self.progress = enabled;
+        self
+    }
+
     /// Sets the maximum number of retained positive-curvature secant pairs.
     /// # Errors
     /// Rejects zero history.
@@ -250,7 +262,15 @@ pub fn maximize_with_cancel<T: LogDensityGradient + ?Sized>(
     let _span = tracing::info_span!(target: "alea::optimization", "maximize", input_dimension = initial.len()).entered();
     #[cfg(feature = "tracing")]
     tracing::info!(target: "alea::optimization", schema_version = 1_u64, event = "started", iteration_limit = options.iterations, evaluation_limit = options.evaluations);
-    let outcome = maximize_with_cancel_inner(target, initial, objective, options, cancelled);
+    let mut progress = options.progress.then(progress::FitProgress::stderr);
+    let outcome = maximize_with_cancel_inner(target, initial, objective, options, cancelled, |r| {
+        if let Some(display) = &mut progress {
+            display.update(r);
+        }
+    });
+    if let Some(display) = &mut progress {
+        display.finish(&outcome);
+    }
     #[cfg(feature = "tracing")]
     match &outcome {
         Ok(result) => {
@@ -271,6 +291,7 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
     objective: ObjectiveDescription,
     options: LbfgsOptions,
     mut cancelled: impl FnMut() -> bool,
+    mut observe: impl FnMut(&OptimizationResult),
 ) -> Result<OptimizationResult, MaximizeError<T::Error>> {
     let n = target.dimension();
     if n != initial.len()
@@ -307,6 +328,7 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
         domain_trials: 0,
         skipped_updates: 0,
     };
+    observe(&result);
     if cancelled() {
         return Ok(result);
     }
@@ -321,6 +343,7 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
         value,
         gradient,
     });
+    observe(&result);
     let mut s_history = Vec::new();
     let mut y_history = Vec::new();
     let mut alphas = Vec::new();
@@ -430,6 +453,7 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
             } else {
                 result.domain_trials += 1;
             }
+            observe(&result);
             step *= 0.5;
         }
         let Some(value) = accepted else {
@@ -473,6 +497,7 @@ fn maximize_with_cancel_inner<T: LogDensityGradient + ?Sized>(
         std::mem::swap(&mut current.gradient, &mut trial_gradient);
         current.value = value;
         result.iterations += 1;
+        observe(&result);
         #[cfg(feature = "tracing")]
         tracing::debug!(target: "alea::optimization", schema_version = 1_u64, event = "iteration_completed", iterations = result.iterations, evaluations = result.evaluations, domain_trials = result.domain_trials, skipped_updates = result.skipped_updates);
     }

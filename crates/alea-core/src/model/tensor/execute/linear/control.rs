@@ -103,20 +103,30 @@ impl<'a> Control<'a> {
         (output, scratch): (&mut [f64], &mut [f64]),
         mut curvature: Option<&mut curvature::Region>,
     ) -> Result<(), E> {
-        let interval = region.checkpoint.as_ref().map_or(0, |c| c.interval);
-        if let Some(checkpoint) = &region.checkpoint {
+        let interval = region.checkpoint.as_ref().map_or(0, |c| c.plan.width());
+        let replay = if let Some(checkpoint) = &region.checkpoint {
             let carry = output.len();
             // Full forward admission already saved the initial boundary. Run
             // the existing checkpoint replay in forward order, consuming each
             // version before another iteration can overwrite its frame.
             region.args[..carry].copy_from_slice(&checkpoint.carries[..carry]);
-        }
+            Some(
+                plan.facts
+                    .lowered
+                    .call(region.site.node)
+                    .expect("checked replay")
+                    .native_primals(parent)
+                    .inputs,
+            )
+        } else {
+            None
+        };
         for step in 0..s.steps {
-            if interval != 0 {
+            if let Some(inputs) = replay {
                 if s.body.plan.execution.is_some() {
-                    scan_step::<true>(s, plan, parent, region, step)?;
+                    scan_step::<true>(s, inputs, region, step)?;
                 } else {
-                    scan_step::<false>(s, plan, parent, region, step)?;
+                    scan_step::<false>(s, inputs, region, step)?;
                 }
             }
             if let Some(tape) = &mut curvature
@@ -149,7 +159,7 @@ impl<'a> Control<'a> {
         (carry, scratch): (&mut [f64], &mut [f64]),
         mut curvature: Option<&mut curvature::Frame>,
     ) -> Result<(), E> {
-        let interval = region.checkpoint.as_ref().map_or(0, |c| c.interval);
+        let interval = region.checkpoint.as_ref().map_or(0, |c| c.plan.width());
         let index = scan_frame(interval, step);
         let guard = plan
             .facts

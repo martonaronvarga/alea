@@ -1,5 +1,5 @@
 use alea_mcmc::MarkovChain;
-use alea_runtime::run_chain;
+use alea_runtime::{output::run_chain_with_progress, run_chain};
 use rand::{SeedableRng, rngs::SmallRng};
 use std::ops::ControlFlow;
 
@@ -17,7 +17,7 @@ fn nuts_streams_typed_transitions_through_the_existing_chain_boundary() {
     )
     .unwrap();
     let mut seen = 0;
-    let count = run_chain(
+    let count = run_chain_with_progress(
         &mut chain,
         20,
         &mut SmallRng::seed_from_u64(7),
@@ -72,7 +72,7 @@ fn zero_steps_cancellation_and_error_observer_order() {
     );
     let mut observed = 0;
     assert_eq!(
-        run_chain(&mut chain, 10, &mut rng, |q, &step| {
+        run_chain_with_progress(&mut chain, 10, &mut rng, |q, &step| {
             observed += 1;
             assert_eq!(q, &[step as f64]);
             ControlFlow::Break(())
@@ -81,7 +81,7 @@ fn zero_steps_cancellation_and_error_observer_order() {
         1
     );
     assert!(
-        run_chain(&mut chain, 10, &mut rng, |_, _| {
+        run_chain_with_progress(&mut chain, 10, &mut rng, |_, _| {
             observed += 1;
             ControlFlow::Continue(())
         })
@@ -100,7 +100,7 @@ fn observer_panic_leaves_the_completed_transition_intact() {
     };
     let mut rng = SmallRng::seed_from_u64(0);
     assert!(
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run_chain(
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run_chain_with_progress(
             &mut chain,
             10,
             &mut rng,

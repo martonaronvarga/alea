@@ -223,7 +223,9 @@ criterion_main!(benches);
 mod composition_models;
 
 fn compositions(c: &mut Criterion) {
-    use alea::model::assembly::{CurvatureRoute, DerivativeOrder, SourceMode, SourceRequest};
+    use alea::model::assembly::{
+        CurvatureRoute, DerivativeOrder, DerivativeSource, SourceMode, SourceRequest,
+    };
     use benchmark_support::fixed_work::{self, Fixture};
     for name in ["covariance", "schools", "schools_nc", "radon"] {
         let (n, k, x, y, county) = match name {
@@ -321,11 +323,12 @@ fn compositions(c: &mut Criterion) {
             };
             let source = model.rust_primal().is_ok();
             let first = if source {
-                if model
-                    .source_first_order(SourceMode::Density)
-                    .unwrap()
-                    .is_some()
-                {
+                if matches!(
+                    model
+                        .source_derivatives(SourceRequest::first(SourceMode::Density))
+                        .unwrap(),
+                    DerivativeSource::Composed(_)
+                ) {
                     "H"
                 } else {
                     "C"

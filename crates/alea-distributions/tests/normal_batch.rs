@@ -1,3 +1,4 @@
+use alea_core::model::assembly::{DerivativeSource, SourceRequest};
 use alea_core::{
     distribution::{Distribution, ParameterScore, ScalarEventScore},
     model::{
@@ -158,15 +159,15 @@ fn fixed_data_rows_rebinding_source_and_one_scale_jacobian_use_existing_interfac
     b.likelihood("data", f).unwrap();
     let model = b.compile().unwrap();
     assert_eq!(model.expression_count(), 3);
-    assert!(
-        model
-            .source_first_order(alea_core::model::assembly::SourceMode::Density)
-            .unwrap()
-            .unwrap()
-            .program
-            .source
-            .contains("NormalBatch")
-    );
+    let DerivativeSource::Composed(first) = model
+        .source_derivatives(SourceRequest::first(
+            alea_core::model::assembly::SourceMode::Density,
+        ))
+        .unwrap()
+    else {
+        panic!("expected composed source")
+    };
+    assert!(first.program.source.contains("NormalBatch"));
     let batch = model.batch_likelihood().unwrap();
     let q = [0.2, 0.3];
     let mut rows = [0.; 5];

@@ -438,6 +438,21 @@ continuous!(
     "Normalized Normal; parameter score order: location, positive scale."
 );
 impl Normal {
+    // Differentiate the admitted z/scale and (z² - 1)/scale scores.
+    pub(crate) fn parameter_score_direction(
+        event: f64,
+        [location, scale]: [f64; 2],
+        scores: &[f64],
+        [d_location, d_scale]: [f64; 2],
+        parameter: usize,
+    ) -> f64 {
+        let z = (event - location) / scale;
+        let relative_scale = d_scale / scale;
+        let dz = -d_location / scale - z * relative_scale;
+        let numerator_direction = if parameter == 0 { dz } else { 2. * (z * dz) };
+        numerator_direction / scale - scores[parameter] * relative_scale
+    }
+
     /// Native assembly needs all three scores, not two independent evaluations
     /// of the same score kernel. Keep the existing law and its error ordering.
     pub(crate) fn log_prob_event_parameter_scores(&self, x: f64) -> Result<(f64, [f64; 3]), E> {

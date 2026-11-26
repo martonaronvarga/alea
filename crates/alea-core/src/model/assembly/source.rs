@@ -38,6 +38,17 @@ pub struct SourceRequest {
     pub curvature: CurvatureRoute,
 }
 
+impl SourceRequest {
+    /// Requests value and first-order source in the specified coordinates.
+    pub fn first(mode: SourceMode) -> Self {
+        Self {
+            mode,
+            order: DerivativeOrder::First,
+            curvature: CurvatureRoute::Unavailable,
+        }
+    }
+}
+
 /// Fixed, explicitly typed mutable f64 source scratch. This excludes compiler tapes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FloatWorkspace {
@@ -58,6 +69,21 @@ pub struct FirstOrderSource {
     pub checkpointed: bool,
     /// Whether generated native helpers require per-target typed state.
     pub stateful: bool,
+}
+
+/// Resolved derivative emission for a source request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DerivativeSource {
+    /// The request only evaluates the primal.
+    Value,
+    /// Use compiler reverse, with optional checked tensor-score admission.
+    Compiler {
+        /// Validation runs outside compiler AD and never supplies its scores.
+        admission: Option<SourceProgram>,
+    },
+    /// Compose the selected factor-local rules for first order.
+    /// Qualified curvature still uses the compiler-owned primal route.
+    Composed(FirstOrderSource),
 }
 
 impl super::SourceCapabilities {
@@ -83,6 +109,20 @@ impl super::SourceCapabilities {
 }
 
 impl Executable {
+    fn source_nodes(&self) -> impl Iterator<Item = (usize, &Op)> {
+        self.nodes
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| self.active_nodes.as_ref().is_none_or(|active| active[*i]))
+    }
+
+    fn source_primitive(&self, node: usize) -> Option<&super::PrimitiveMetadata> {
+        self.primitives
+            .binary_search_by_key(&node, |(i, _)| *i)
+            .ok()
+            .map(|i| &self.primitives[i].1)
+    }
+
     pub(super) fn has_primal(&self, node: usize) -> bool {
         self.generated_primals
             .binary_search_by_key(&node, |(i, _)| *i)
@@ -162,10 +202,7 @@ impl Executable {
                 density,
             ));
         }
-        for (i, op) in self.nodes.iter().enumerate() {
-            if self.active_nodes.as_ref().is_some_and(|active| !active[i]) {
-                continue;
-            }
+        for (i, op) in self.source_nodes() {
             let expression = match op {
                 Op::Parameter(slot) => format!("x{slot}"),
                 Op::Constant(value) => format!("{value:?}_f64"),
@@ -178,11 +215,7 @@ impl Executable {
                     let primal = self
                         .primal_source(i)
                         .ok_or(AssemblyError::MissingPrimal { node: i })?;
-                    let size = self
-                        .primitives
-                        .binary_search_by_key(&i, |(node, _)| *node)
-                        .ok()
-                        .map_or(0, |j| self.primitives[j].1.source_workspace);
+                    let size = self.source_primitive(i).map_or(0, |p| p.source_workspace);
                     let start = workspace;
                     let arguments = inputs.len();
                     let size = size.checked_add(arguments).ok_or(AssemblyError::Shape)?;

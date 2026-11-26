@@ -8,7 +8,7 @@ use alea::{
         scalar::Poisson,
     },
     model::{
-        assembly::{NativeModel, ModelBuilder},
+        assembly::{ModelBuilder, NativeModel},
         prediction::NamedOutput,
     },
     optimize::{
@@ -17,9 +17,13 @@ use alea::{
 };
 use std::time::Instant;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<_> = std::env::args().collect();
+    let mut args: Vec<_> = std::env::args().collect();
+    let progress = args.last().is_some_and(|arg| arg == "--progress");
+    if progress {
+        args.pop();
+    }
     if args.len() != 5 && args.len() != 6 {
-        return Err("usage: regression_fit gaussian|logistic|poisson ordinary|scaled|ill_conditioned|rank_deficient|offset|boundary|quasi|perfect|tracing|historical rows batch|scalar [raw|standardized]".into());
+        return Err("usage: regression_fit gaussian|logistic|poisson ordinary|scaled|ill_conditioned|rank_deficient|offset|boundary|quasi|perfect|tracing|historical rows batch|scalar [raw|standardized] [--progress]".into());
     }
     let (family, scenario, mode) = (args[1].as_str(), args[2].as_str(), args[4].as_str());
     let n: usize = args[3].parse()?;
@@ -126,7 +130,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let names = NamedOutput::new(model.coordinates(), model.layout().clone(), ())?;
     let objective = model.select_likelihood()?.into_objective()?;
     let construction_seconds = construction_start.elapsed().as_secs_f64();
-    let mut options = LbfgsOptions::new(500, 5000)?;
+    let mut options = LbfgsOptions::new(500, 5000)?.with_progress(progress);
     if scenario == "historical" {
         options = options.with_score_tolerance(n as f64 * 1e-7)?;
     }

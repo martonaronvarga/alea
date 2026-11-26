@@ -40,28 +40,228 @@ struct Region {
     range: Range<usize>,
 }
 #[derive(Clone)]
-struct Read {
-    value: Value,
+pub(super) struct Read {
+    pub(super) value: Value,
     region: Region,
     access: Access,
     contribution: Contribution,
+}
+impl Read {
+    pub(super) fn elements(&self) -> usize {
+        self.region.ty.shape.elements
+    }
+
+    fn broadcast(&self) -> &Map {
+        let Access::Broadcast(map) = &self.access else {
+            unreachable!("checked broadcast")
+        };
+        map
+    }
+}
+
+// Borrow the semantic payload for rendering and take edges, access maps and
+// matrix calls from verified lowering. No additional owned operation list.
+#[derive(Clone, Copy)]
+pub(super) enum Operation<'a> {
+    Input(usize),
+    Data(usize),
+    Constant(&'a [f64]),
+    Alias(Value),
+    Unary(UnaryOp, Value),
+    Binary(BinaryOp, (Value, &'a Map), (Value, &'a Map)),
+    Sum(&'a Read),
+    Gather(Value, &'a [usize]),
+    Matrix(Value, Value, &'a MatrixCalls),
+    Cond(&'a Cond, [Value; 2], &'a [Read]),
+    Scan(&'a Scan, [Value; 2], &'a [Read]),
+    Registered(&'a registration::Call, &'a [Read]),
+    NativeOnly,
+}
+
+impl Operation<'_> {
+    pub(super) fn child_scratch(self) -> (usize, usize) {
+        match self {
+            Self::Cond(c, ..) => (
+                c.yes.dimension(),
+                c.yes.plan.source_slots.max(c.no.plan.source_slots),
+            ),
+            Self::Scan(s, ..) if s.steps != 0 => (s.body.dimension(), s.body.plan.source_slots),
+            _ => (0, 0),
+        }
+    }
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Residuals {
     Explicit(Range<usize>),
     Opaque,
 }
+// This is the executor's slice access contract, not a sparsity claim about
+// mathematical derivatives. In particular the existing unary and binary
+// kernels receive entire operand views.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NativeResiduals {
+    None,
+    Inputs,
+    Unary,
+    ScanReplay,
+    Callback,
+}
+
+fn native_residuals(node: &Node) -> NativeResiduals {
+    match &node.op {
+        Op::Unary(..) => NativeResiduals::Unary,
+        Op::Binary(_) => NativeResiduals::Inputs,
+        Op::Matmul { .. } if node.shape.elements != 0 => NativeResiduals::Inputs,
+        Op::Scan(scan) if scan.replay.is_some() => NativeResiduals::ScanReplay,
+        _ if node.native_block().is_some() => NativeResiduals::Callback,
+        _ => NativeResiduals::None,
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct PrimalView<'a> {
+    before: &'a [f64],
+    after: &'a [f64],
+    resume: usize,
+}
+impl<'a> PrimalView<'a> {
+    #[inline]
+    pub(super) fn whole(values: &'a [f64]) -> Self {
+        Self {
+            before: values,
+            after: &[],
+            resume: values.len(),
+        }
+    }
+    #[inline]
+    pub(super) fn split(values: &'a mut [f64], range: Range<usize>) -> (Self, &'a mut [f64]) {
+        let (before, tail) = values.split_at_mut(range.start);
+        let (output, after) = tail.split_at_mut(range.len());
+        (
+            Self {
+                before,
+                after,
+                resume: range.end,
+            },
+            output,
+        )
+    }
+    #[inline]
+    pub(super) fn get(self, range: Range<usize>) -> Option<&'a [f64]> {
+        if range.is_empty() {
+            Some(&[])
+        } else if range.end <= self.before.len() {
+            self.before.get(range)
+        } else {
+            self.after
+                .get(range.start.checked_sub(self.resume)?..range.end - self.resume)
+        }
+    }
+    #[inline]
+    pub(super) fn read(self, range: Range<usize>) -> &'a [f64] {
+        self.get(range).expect("checked disjoint primal range")
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct PrimalInputs<'a> {
+    reads: &'a [Read],
+    values: PrimalView<'a>,
+}
+impl<'a> PrimalInputs<'a> {
+    #[inline]
+    pub(super) fn get(self, index: usize) -> Option<&'a [f64]> {
+        self.values.get(self.reads.get(index)?.region.range.clone())
+    }
+}
+
+pub(super) struct NativePrimals<'a> {
+    pub(super) inputs: PrimalInputs<'a>,
+    pub(super) output: Option<&'a [f64]>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct SourcePolicy {
     pub(super) supported: bool,
     pub(super) explicit: bool,
 }
 
+/// Logical product dimensions over dense row-major storage. A transpose changes
+/// the view for the provider, without packing or copying an operand in Alea.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct MatrixCall {
+    pub(super) dimensions: (usize, usize, usize),
+    pub(super) transpose: (bool, bool),
+    pub(super) add: bool,
+}
+
+impl MatrixCall {
+    #[inline]
+    pub(super) fn run(
+        self,
+        kernel: ResolvedMatrix,
+        left: &[f64],
+        right: &[f64],
+        out: &mut [f64],
+    ) -> bool {
+        alea_math::gemm::try_gemm(
+            kernel,
+            left,
+            right,
+            out,
+            self.dimensions,
+            self.transpose,
+            self.add,
+        )
+    }
+}
+
+/// Lower a typed product and its two derivative contractions. The cotangent
+/// enters on the left of the first contraction and the right of the second.
+/// Slice placement and active destinations are supplied by the executor.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct MatrixCalls {
+    request: MatrixRequest,
+    pub(super) kernel: ResolvedMatrix,
+    pub(super) primal: MatrixCall,
+    pub(super) left_adjoint: MatrixCall,
+    pub(super) right_adjoint: MatrixCall,
+}
+
+impl MatrixCalls {
+    fn new((m, k, n): (usize, usize, usize), kernel: ResolvedMatrix) -> Self {
+        Self {
+            request: kernel.requested(),
+            kernel,
+            primal: MatrixCall {
+                dimensions: (m, k, n),
+                transpose: (false, false),
+                add: false,
+            },
+            left_adjoint: MatrixCall {
+                dimensions: (m, n, k),
+                transpose: (false, true),
+                add: true,
+            },
+            right_adjoint: MatrixCall {
+                dimensions: (k, m, n),
+                transpose: (true, false),
+                add: true,
+            },
+        }
+    }
+}
+
 // Keep source admission and provider requirements in one routine. Child plans
 // already carry checked summaries; zero-trip bodies remain unexecuted.
 pub(super) fn source_policy(node: &Node) -> SourcePolicy {
     let (supported, explicit) = match &node.op {
-        Op::Registered(_) => (false, false),
+        Op::Registered(_) => {
+            let supported = node
+                .native_block()
+                .is_some_and(registration::Call::has_source);
+            (supported, supported)
+        }
         Op::Matmul { kernel, .. } => {
             #[allow(unused_mut)]
             let mut supported = true;
@@ -98,22 +298,127 @@ pub(super) struct Call {
     reads: Box<[Read]>,
     destination: Region,
     write: Write,
-    // None retains existing builtin arithmetic, including compensated sums.
-    // A matrix request
-    // retains arithmetic/CPU/thread preferences as well as the resolved provider.
-    matrix: Option<MatrixRequest>,
+    matrix: Option<Box<MatrixCalls>>,
     source: SourcePolicy,
     residuals: Residuals,
+    native_residuals: NativeResiduals,
 }
 impl Call {
-    pub(super) fn source_storage(&self) -> usize {
-        // Retain the old conservative source extent for source-ineligible typed
-        // literals too; this never supplies a lowering for their storage type.
-        if self.write == Write::Overwrite || self.destination.ty.dtype != ElementType::Real {
-            self.destination.ty.shape.elements
-        } else {
-            0
+    pub(super) fn origin(&self) -> Value {
+        self.origin
+    }
+
+    pub(super) fn elements(&self) -> usize {
+        self.destination.ty.shape.elements
+    }
+
+    pub(super) fn alias(&self) -> Option<Value> {
+        match self.write {
+            Write::Alias(value) => Some(value),
+            _ => None,
         }
+    }
+
+    pub(super) fn operation<'a>(&'a self, nodes: &'a [Node]) -> Operation<'a> {
+        match &nodes[self.origin.node].op {
+            Op::Input(i) => Operation::Input(*i),
+            Op::Data(i) => Operation::Data(*i),
+            Op::Constant(data) => Operation::Constant(data),
+            Op::Registered(_) => match nodes[self.origin.node].native_block() {
+                Some(call) if call.has_source() => Operation::Registered(call, &self.reads),
+                _ => Operation::NativeOnly,
+            },
+            Op::Alias(_) => Operation::Alias(self.alias().expect("checked alias")),
+            Op::Unary(op, _) => Operation::Unary(*op, self.reads[0].value),
+            Op::Binary(b) => {
+                let [left, right] = &*self.reads else {
+                    unreachable!("checked binary arity")
+                };
+                Operation::Binary(
+                    b.kind,
+                    (left.value, left.broadcast()),
+                    (right.value, right.broadcast()),
+                )
+            }
+            Op::Sum(_) => Operation::Sum(&self.reads[0]),
+            Op::Gather(..) => {
+                let read = &self.reads[0];
+                let Access::Gather(indices) = &read.access else {
+                    unreachable!("checked gather")
+                };
+                Operation::Gather(read.value, indices)
+            }
+            Op::Matmul { .. } => Operation::Matrix(
+                self.reads[0].value,
+                self.reads[1].value,
+                self.matrix().expect("checked matrix calls"),
+            ),
+            Op::Cond(cond) => Operation::Cond(
+                cond,
+                [self.reads[0].value, self.reads[1].value],
+                &self.reads[2..],
+            ),
+            Op::Scan(scan) => Operation::Scan(
+                scan,
+                [self.reads[0].value, self.reads[1].value],
+                &self.reads[2..],
+            ),
+        }
+    }
+
+    pub(super) fn matrix(&self) -> Option<&MatrixCalls> {
+        self.matrix.as_deref()
+    }
+    fn retained_inputs(&self) -> &[Read] {
+        match self.native_residuals {
+            NativeResiduals::None => &[],
+            NativeResiduals::ScanReplay => &self.reads[1..],
+            _ => &self.reads,
+        }
+    }
+
+    fn retains_output(&self) -> bool {
+        matches!(
+            self.native_residuals,
+            NativeResiduals::Unary | NativeResiduals::Callback
+        )
+    }
+
+    pub(super) fn retained_primals(&self) -> impl Iterator<Item = Value> {
+        self.retained_inputs()
+            .iter()
+            .map(|read| read.value)
+            .chain(self.retains_output().then_some(self.origin))
+    }
+
+    #[inline]
+    pub(super) fn native_primals<'a>(&'a self, values: &'a [f64]) -> NativePrimals<'a> {
+        let output = self
+            .retains_output()
+            .then(|| &values[self.destination.range.clone()]);
+        NativePrimals {
+            inputs: PrimalInputs {
+                reads: self.retained_inputs(),
+                values: PrimalView::whole(values),
+            },
+            output,
+        }
+    }
+
+    #[inline]
+    pub(super) fn scan_inputs<'a>(&'a self, values: PrimalView<'a>) -> PrimalInputs<'a> {
+        debug_assert_eq!(self.kind, Kind::Control);
+        PrimalInputs {
+            reads: &self.reads[1..],
+            values,
+        }
+    }
+
+    pub(super) fn source_storage(&self) -> Option<usize> {
+        // Source-ineligible typed literals keep their conservative extent in
+        // the budget. An empty materialized result still has a placement.
+        (self.write == Write::Overwrite || self.destination.ty.dtype != ElementType::Real)
+            .then_some(self.destination.ty.shape.elements)
     }
     // Only deterministic builtins with the existing ordered/reference policy.
     // Provider calls and opaque/control operations retain their original scope.
@@ -133,20 +438,113 @@ impl Call {
             Kind::Native | Kind::Control => false,
         }
     }
-    pub(super) fn pointwise(&self, first: usize, elements: usize) -> bool {
-        if self.destination.ty.shape.elements != elements {
-            return false;
+    pub(super) fn operands(&self) -> impl Iterator<Item = usize> + '_ {
+        self.reads.iter().map(|read| read.value.node)
+    }
+
+    // None denotes an incompatible map. Some(true) identifies an actual
+    // producer edge into the candidate group.
+    pub(super) fn pointwise(
+        &self,
+        elements: usize,
+        internal: impl Fn(usize) -> bool,
+    ) -> Option<bool> {
+        if self.destination.ty.shape.elements != elements
+            || !matches!(self.kind, Kind::Unary | Kind::Binary)
+        {
+            return None;
         }
-        match self.kind {
-            Kind::Unary => true,
-            Kind::Binary => self.reads.iter().all(|r| {
-                r.value.node < first || matches!(r.access, Access::Broadcast(Map::Identity))
-            }),
-            _ => false,
+        let mut connected = false;
+        for read in &self.reads {
+            if internal(read.value.node) {
+                if !matches!(
+                    read.access,
+                    Access::Whole | Access::Broadcast(Map::Identity)
+                ) {
+                    return None;
+                }
+                connected = true;
+            }
+        }
+        Some(connected)
+    }
+
+    pub(super) fn reduction_of(&self, accepts: impl FnOnce(usize) -> bool) -> bool {
+        self.kind == Kind::Sum && accepts(self.reads[0].value.node)
+    }
+
+    pub(super) fn independent_adjoint_lanes(&self, active: &[bool]) -> bool {
+        self.reads.iter().all(|read| {
+            !active[read.value.node]
+                || matches!(
+                    read.access,
+                    Access::Whole | Access::Broadcast(Map::Identity)
+                )
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum AdjointWrite {
+    Add,
+    Replace,
+}
+
+pub(super) struct AdjointWrites {
+    // Writer and destination indices refer to original nodes. A destination
+    // is always the owner of the complete adjoint alias class.
+    first_writer: Box<[(usize, usize)]>,
+    replacement: Box<[Option<usize>]>,
+}
+
+impl AdjointWrites {
+    pub(super) fn compile(p: &Plan) -> Option<Box<Self>> {
+        let owners = super::storage::alias_owners(p);
+        let mut seen = vec![false; p.nodes.len()];
+        seen[owners[p.output.node]] = true; // Seed publication is the first write.
+        let mut first_writer = Vec::new();
+        let mut replacement = vec![None; p.nodes.len()];
+        for (i, call) in p.facts.lowered.calls.iter().enumerate().rev() {
+            let Some(call) = call else { continue };
+            for read in &call.reads {
+                if read.contribution != Contribution::OrderedAdd {
+                    continue;
+                }
+                let target = owners[read.value.node];
+                if !std::mem::replace(&mut seen[target], true)
+                    && call.reads.len() == 1
+                    && matches!(call.kind, Kind::Unary | Kind::Sum)
+                    && read.access == Access::Whole
+                    && target != owners[i]
+                    && !p.nodes[target].range().is_empty()
+                    && !matches!(p.nodes[target].op, Op::Data(_) | Op::Constant(_))
+                {
+                    first_writer.push((target, i));
+                    replacement[i] = Some(target);
+                }
+            }
+        }
+        first_writer.sort_unstable();
+        (!first_writer.is_empty()).then(|| {
+            Box::new(Self {
+                first_writer: first_writer.into_boxed_slice(),
+                replacement: replacement.into_boxed_slice(),
+            })
+        })
+    }
+
+    pub(super) fn mode(&self, node: usize, active: &[bool]) -> AdjointWrite {
+        if self.replacement[node].is_some_and(|target| active[target]) {
+            AdjointWrite::Replace
+        } else {
+            AdjointWrite::Add
         }
     }
-    pub(super) fn reduction_of(&self, maps: Range<usize>) -> bool {
-        self.kind == Kind::Sum && maps.contains(&self.reads[0].value.node)
+
+    pub(super) fn replaced<'a>(&'a self, active: &'a [bool]) -> impl Iterator<Item = usize> + 'a {
+        self.first_writer
+            .iter()
+            .filter_map(|&(target, writer)| (active[target] && active[writer]).then_some(target))
     }
 }
 
@@ -170,12 +568,16 @@ fn kind(node: &Node) -> Kind {
         Op::Cond(_) | Op::Scan(_) => Kind::Control,
     }
 }
-fn region(node: &Node, slots: usize) -> Result<Region, E> {
+fn region(node: &Node, slots: usize, compact: bool) -> Result<Region, E> {
     if Shape::new(node.shape.axes.to_vec())? != node.shape {
         return Err(E::Shape);
     }
-    let end = node
-        .start
+    let start = if compact {
+        node.primal_start
+    } else {
+        node.start
+    };
+    let end = start
         .checked_add(if node.discrete() {
             0
         } else {
@@ -187,7 +589,7 @@ fn region(node: &Node, slots: usize) -> Result<Region, E> {
     }
     Ok(Region {
         ty: BlockType::of(node),
-        range: node.start..end,
+        range: start..end,
     })
 }
 fn contribution(node: &Node, index: usize, input: &Node) -> Contribution {
@@ -224,6 +626,16 @@ fn arguments(binding: &BoundProgram, shapes: &[&Shape]) -> bool {
     shapes.len() == inputs.len() && shapes.iter().zip(inputs).all(|(a, b)| *a == b)
 }
 impl Contract {
+    // Called after the physical overlap sweep has checked every alias class.
+    pub(super) fn place_primals(&mut self, nodes: &[Node]) {
+        for call in self.calls.iter_mut().flatten() {
+            call.destination.range = nodes[call.origin.node].primal_range();
+            for read in &mut call.reads {
+                read.region.range = nodes[read.value.node].primal_range();
+            }
+        }
+    }
+
     pub(super) fn compile(
         nodes: &[Node],
         active: &[bool],
@@ -246,13 +658,13 @@ impl Contract {
             while cursor < reads.len() && reads[cursor].reader == origin {
                 cursor += 1;
             }
-            let opaque = matches!(&node.op, Op::Registered(op) if matches!(&**op, registration::Operation::Native(_)));
+            let opaque = node.native_block().is_some_and(|call| !call.has_source());
             let mut inputs = Vec::new();
             for (index, value) in node.inputs().into_iter().enumerate() {
                 let input = nodes.get(value.node).ok_or(E::Shape)?;
                 inputs.push(Read {
                     value,
-                    region: region(input, slots)?,
+                    region: region(input, slots, false)?,
                     access: access(node, index),
                     contribution: contribution(node, index, input),
                 });
@@ -261,13 +673,16 @@ impl Contract {
                 origin,
                 kind: kind(node),
                 reads: inputs.into_boxed_slice(),
-                destination: region(node, slots)?,
+                destination: region(node, slots, false)?,
                 write: write(node),
                 matrix: match node.op {
-                    Op::Matmul { kernel, .. } => Some(kernel.requested()),
+                    Op::Matmul {
+                        m, k, n, kernel, ..
+                    } => Some(Box::new(MatrixCalls::new((m, k, n), kernel))),
                     _ => None,
                 },
                 source: source_policy(node),
+                native_residuals: native_residuals(node),
                 residuals: if opaque {
                     Residuals::Opaque
                 } else {
@@ -279,11 +694,19 @@ impl Contract {
             calls: calls.into_boxed_slice(),
             reads: reads.into_boxed_slice(),
         };
-        contract.verify(nodes, active, output, slots)?;
+        contract.verify(nodes, active, output, slots, false)?;
         Ok(contract)
     }
     pub(super) fn call(&self, node: usize) -> Option<&Call> {
         self.calls.get(node).and_then(Option::as_ref)
+    }
+    pub(super) fn calls(&self) -> impl DoubleEndedIterator<Item = &Call> {
+        self.calls.iter().flatten()
+    }
+    pub(super) fn matrix(&self, node: usize) -> &MatrixCalls {
+        self.call(node)
+            .and_then(Call::matrix)
+            .expect("checked matrix calls")
     }
     pub(super) fn backward_reads(&self) -> &[BackwardRead] {
         &self.reads
@@ -304,6 +727,7 @@ impl Contract {
         active: &[bool],
         output: Value,
         slots: usize,
+        compact: bool,
     ) -> Result<(), E> {
         if self.calls.len() != nodes.len()
             || active.len() != nodes.len()
@@ -327,9 +751,10 @@ impl Contract {
                         node: i,
                     })
                 || call.kind != kind(node)
-                || call.destination != region(node, slots)?
+                || call.destination != region(node, slots, compact)?
                 || call.write != write(node)
                 || call.source != source_policy(node)
+                || call.native_residuals != native_residuals(node)
             {
                 return Err(E::Shape);
             }
@@ -342,7 +767,7 @@ impl Contract {
                     || value.node >= i
                     || !active[value.node]
                     || read.value != value
-                    || read.region != region(&nodes[value.node], slots)?
+                    || read.region != region(&nodes[value.node], slots, compact)?
                     || read.access != access(node, index)
                     || read.contribution != contribution(node, index, &nodes[value.node])
                 {
@@ -369,7 +794,7 @@ impl Contract {
             }
             match &node.op {
                 Op::Alias(v)
-                    if call.destination.range != region(&nodes[v.node], slots)?.range
+                    if call.destination.range != region(&nodes[v.node], slots, compact)?.range
                         || node.shape.elements != nodes[v.node].shape.elements =>
                 {
                     return Err(E::Shape);
@@ -423,7 +848,7 @@ impl Contract {
                 }
                 _ => {}
             }
-            match (&node.op, call.matrix) {
+            match (&node.op, call.matrix()) {
                 (
                     Op::Matmul {
                         a,
@@ -433,10 +858,11 @@ impl Contract {
                         n,
                         kernel,
                     },
-                    Some(request),
+                    Some(matrix),
                 ) => {
-                    let resolved = request.resolve()?;
+                    let resolved = matrix.request.resolve()?;
                     if resolved != *kernel
+                        || *matrix != MatrixCalls::new((*m, *k, *n), resolved)
                         || nodes[a.node].shape.axes.as_ref() != [*m, *k]
                         || nodes[b.node].shape.axes.as_ref() != [*k, *n]
                         || node.shape.axes.as_ref() != [*m, *n]
@@ -451,7 +877,9 @@ impl Contract {
             super::analysis::backward_reads(node, call.origin, &mut expected);
             match &call.residuals {
                 Residuals::Opaque if call.kind == Kind::Native && expected.is_empty() => {}
-                Residuals::Explicit(range) if call.kind != Kind::Native => {
+                Residuals::Explicit(range)
+                    if call.kind != Kind::Native || call.source.supported =>
+                {
                     if range.start != residual_cursor
                         || self.reads.get(range.clone()) != Some(expected.as_slice())
                     {
@@ -461,7 +889,11 @@ impl Contract {
                 }
                 _ => return Err(E::Shape),
             }
-            if !matches!(call.write, Write::Alias(_)) && !call.destination.range.is_empty() {
+            // Compact placement has a separate inclusive overlap sweep in storage.
+            if !compact
+                && !matches!(call.write, Write::Alias(_))
+                && !call.destination.range.is_empty()
+            {
                 allocations.push(call.destination.range.clone());
             }
         }
@@ -497,7 +929,13 @@ mod tests {
         }
     }
     fn check(c: &Contract, p: &Plan) -> Result<(), E> {
-        c.verify(&p.nodes, &p.active, p.output, p.slots)
+        c.verify(
+            &p.nodes,
+            &p.active,
+            p.output,
+            p.primal_slots,
+            p.primal_slots != p.slots,
+        )
     }
     #[test]
     fn checked_calls_preserve_shared_alias_gather_and_matrix_answers() {
@@ -522,7 +960,7 @@ mod tests {
             .flatten()
             .find(|c| c.kind == Kind::Alias)
             .unwrap();
-        assert_eq!(alias.source_storage(), 0);
+        assert_eq!(alias.source_storage(), None);
         let binary = contract
             .calls
             .iter()
@@ -563,6 +1001,7 @@ mod tests {
             |c| c.reads[1].contribution = Contribution::None,
             |c| c.residuals = Residuals::Explicit(0..0),
             |c| c.residuals = Residuals::Opaque,
+            |c| c.native_residuals = NativeResiduals::None,
             |c| c.source.supported = false,
         ];
         for corrupt in corruptions {
@@ -576,6 +1015,75 @@ mod tests {
         let mut candidate = draft(&p.plan);
         candidate.calls[index] = None;
         assert!(matches!(check(&candidate, &p.plan), Err(E::Shape)));
+    }
+
+    #[test]
+    fn native_reverse_borrows_aliases_and_reserves_parent_reads_only_for_scan_replay() {
+        let mut body = RegionBuilder::new();
+        let shape = Shape::new(vec![64]).unwrap();
+        let carry = body.input("carry", shape.clone()).unwrap();
+        let row = body.input("row", shape.clone()).unwrap();
+        let capture = body.input("capture", shape.clone()).unwrap();
+        let added = body.binary(BinaryOp::Add, carry, row).unwrap();
+        let next = body.binary(BinaryOp::Add, added, capture).unwrap();
+        let body = body.compile(next).unwrap().bind(&[]).unwrap();
+
+        for (steps, requested_checkpoint) in [(0, true), (3, true), (1025, false), (1025, true)] {
+            let mut b = RegionBuilder::new();
+            let x = b.input("x", shape.clone()).unwrap();
+            let alias = b.reshape(x, shape.clone()).unwrap();
+            let square = b.binary(BinaryOp::Multiply, x, alias).unwrap();
+            let initial = b.unary(UnaryOp::Tanh, square).unwrap();
+            let rows = b
+                .input("rows", Shape::new(vec![steps, 64]).unwrap())
+                .unwrap();
+            let captures = [x];
+            let scan = if requested_checkpoint {
+                b.checkpointed_scan(initial, rows, &captures, body.clone())
+                    .unwrap()
+            } else {
+                b.scan(initial, rows, &captures, body.clone()).unwrap()
+            };
+            let reduced = b.sum(scan).unwrap();
+            let p = b.compile(reduced).unwrap();
+            let plan = &p.plan;
+            let values: Vec<_> = (0..plan.slots).map(|i| i as f64).collect();
+            let primals = |v: Value| {
+                plan.facts
+                    .lowered
+                    .call(v.node)
+                    .unwrap()
+                    .native_primals(&values)
+            };
+            let pair = primals(square);
+            let left = pair.inputs.get(0).unwrap();
+            let right = pair.inputs.get(1).unwrap();
+            assert!(std::ptr::eq(left, right));
+            assert!(pair.output.is_none());
+            let unary = primals(initial);
+            assert_eq!(
+                unary.inputs.get(0),
+                Some(&values[plan.nodes[square.node].range()])
+            );
+            assert_eq!(
+                unary.output,
+                Some(&values[plan.nodes[initial.node].range()])
+            );
+            assert!(primals(reduced).inputs.get(0).is_none());
+
+            let scan = primals(scan);
+            assert!(scan.output.is_none());
+            if requested_checkpoint && steps == 1025 {
+                assert_eq!(
+                    scan.inputs.get(0),
+                    Some(&values[plan.nodes[rows.node].range()])
+                );
+                assert!(std::ptr::eq(scan.inputs.get(1).unwrap(), left));
+                assert!(scan.inputs.get(2).is_none());
+            } else {
+                assert!(scan.inputs.get(0).is_none());
+            }
+        }
     }
     #[test]
     fn verifier_rejects_invalid_physical_aliases_indices_and_canonical_maps() {
@@ -659,20 +1167,40 @@ mod tests {
             .position(|c| c.as_ref().is_some_and(|c| c.kind == Kind::Matrix))
             .unwrap();
         let mut candidate = draft(&p.plan);
-        candidate.calls[index].as_mut().unwrap().matrix =
-            Some(MatrixRequest::standard(MatrixProvider::Reference));
+        candidate.calls[index]
+            .as_mut()
+            .unwrap()
+            .matrix
+            .as_mut()
+            .unwrap()
+            .request = MatrixRequest::standard(MatrixProvider::Reference);
         assert!(matches!(
             check(&candidate, &p.plan),
             Err(E::MatrixPolicy(_))
         ));
+        let mut candidate = draft(&p.plan);
+        candidate.calls[index]
+            .as_mut()
+            .unwrap()
+            .matrix
+            .as_mut()
+            .unwrap()
+            .right_adjoint
+            .add = false;
+        assert!(matches!(check(&candidate, &p.plan), Err(E::Shape)));
         let mut candidate = draft(&p.plan);
         candidate.calls[index].as_mut().unwrap().matrix = None;
         assert!(matches!(check(&candidate, &p.plan), Err(E::Shape)));
         #[cfg(not(feature = "faer"))]
         {
             let mut candidate = draft(&p.plan);
-            candidate.calls[index].as_mut().unwrap().matrix =
-                Some(MatrixRequest::standard(MatrixProvider::Faer));
+            candidate.calls[index]
+                .as_mut()
+                .unwrap()
+                .matrix
+                .as_mut()
+                .unwrap()
+                .request = MatrixRequest::standard(MatrixProvider::Faer);
             assert!(matches!(
                 check(&candidate, &p.plan),
                 Err(E::MatrixPolicy(_))

@@ -2,6 +2,7 @@ use alea_core::model::assembly::{
     ArgumentShape, AssemblyError as E, BatchRule, ModelBuilder, PrimitiveArgument,
     PrimitiveSignature, ScalarPreparation,
 };
+use alea_core::model::assembly::{DerivativeSource, SourceRequest};
 use alea_core::model::assembly::{NativeRules, OperationDescriptor, SourceBody, SourceRule};
 use std::sync::{
     Arc,
@@ -136,15 +137,15 @@ fn shared_preparation_refreshes_after_input_changes_selection_and_rebinding() {
         assert_eq!(g, [2.]);
     }
     assert_eq!(PREPARATIONS.load(Ordering::Relaxed), 3);
-    assert!(
-        model
-            .source_first_order(alea_core::model::assembly::SourceMode::Density)
-            .unwrap()
-            .unwrap()
-            .program
-            .source
-            .contains("g[0]=1.;x[0]+0.0_f64")
-    );
+    let DerivativeSource::Composed(first) = model
+        .source_derivatives(SourceRequest::first(
+            alea_core::model::assembly::SourceMode::Density,
+        ))
+        .unwrap()
+    else {
+        panic!("expected composed source")
+    };
+    assert!(first.program.source.contains("g[0]=1.;x[0]+0.0_f64"));
     let model = model
         .binding()
         .rebind::<Prepared>(a, |_| Ok(Prepared { bias: 2. }))
@@ -155,12 +156,15 @@ fn shared_preparation_refreshes_after_input_changes_selection_and_rebinding() {
     let mut g = [17.];
     assert_eq!(model.logp_grad(&[1.], &mut g).unwrap(), 5.);
     assert_eq!(PREPARATIONS.load(Ordering::Relaxed), 4);
-    let source = model
-        .source_first_order(alea_core::model::assembly::SourceMode::Density)
+    let DerivativeSource::Composed(first) = model
+        .source_derivatives(SourceRequest::first(
+            alea_core::model::assembly::SourceMode::Density,
+        ))
         .unwrap()
-        .unwrap()
-        .program
-        .source;
+    else {
+        panic!("expected composed source")
+    };
+    let source = first.program.source;
     assert!(source.contains("g[0]=1.;x[0]+2.0_f64"));
     assert!(!source.contains("g[0]=1.;x[0]+0.0_f64"));
     let selected = model.select_likelihood().unwrap();

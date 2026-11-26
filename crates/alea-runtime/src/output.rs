@@ -1,4 +1,5 @@
 //! Versioned, borrowed streaming records; no serialization or storage is imposed.
+pub(crate) mod progress;
 use alea_mcmc::{
     HmcTransition, NutsTransition, RwmhTransition,
     approximate::ApproximateMclmcTransition,
@@ -195,4 +196,43 @@ pub struct Draw<'a, T> {
     pub transition: &'a T,
     /// Standardized monitoring metadata.
     pub stats: TransitionStats,
+}
+
+/// Advances a bound chain with an opt-in stderr progress display.
+/// The observer receives the same retained points and typed transitions as
+/// [`crate::run_chain`], and can stop the run early.
+/// # Errors
+/// Propagates the original chain error.
+/// # Panics
+/// Propagates observer or sampler panics after clearing the live display.
+pub fn run_chain_with_progress<C, R>(
+    chain: &mut C,
+    steps: usize,
+    rng: &mut R,
+    mut observe: impl FnMut(&[f64], &C::Transition) -> std::ops::ControlFlow<()>,
+) -> Result<usize, C::Error>
+where
+    C: alea_mcmc::MarkovChain,
+    R: rand::Rng + ?Sized,
+{
+    let mut display =
+        progress::SamplingProgress::start("Bound chain", 0, steps, std::iter::once(0));
+    let mut completed = 0;
+    let mut stopped = false;
+    let outcome = crate::run_chain(chain, steps, rng, |position, transition| {
+        completed += 1;
+        if let Some(live) = display.live() {
+            live.update(0, 0, completed);
+        }
+        let decision = observe(position, transition);
+        stopped = decision.is_break();
+        decision
+    });
+    let status = match &outcome {
+        Err(_) => "Sampling failed",
+        Ok(_) if stopped => "Sampling stopped by observer",
+        Ok(_) => "Sampling completed",
+    };
+    display.finish(status, (0, completed as u128));
+    outcome
 }

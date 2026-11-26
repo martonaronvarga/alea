@@ -11,7 +11,10 @@ pub use state::{Checkpoint, CheckpointError, FrozenGeometry, Provenance};
 use crate::{
     ensemble::{Execution, chain_rng},
     monitor::{Report, Snapshot, Window},
-    output::{ChainId, DiagnosticTransition, Phase, TransitionStats},
+    output::{
+        ChainId, DiagnosticTransition, Phase, TransitionStats,
+        progress::{LiveSampling, SamplingProgress, counters},
+    },
 };
 use alea_core::{
     density::LogDensity,
@@ -420,6 +423,7 @@ pub struct SessionBuilder {
     diagnostics: Diagnostics,
     resources: Resources,
     collect: bool,
+    progress: bool,
     cancel: CancellationToken,
     wall_time: Option<Duration>,
     numerical_limit: usize,
@@ -441,6 +445,7 @@ impl SessionBuilder {
             diagnostics: Diagnostics::default(),
             resources: Resources::default(),
             collect: true,
+            progress: false,
             cancel: CancellationToken::new(),
             wall_time: None,
             numerical_limit: 100,
@@ -485,6 +490,13 @@ impl SessionBuilder {
     /// Store all new draws in the outcome, or stream with bounded sampler memory.
     pub fn collect(mut self, collect: bool) -> Self {
         self.collect = collect;
+        self
+    }
+    /// Enables best-effort sampling progress on stderr. The default is quiet.
+    /// Live bars show warmup and retained draws across all chains. Redirected
+    /// output receives plain start and stop messages.
+    pub fn with_progress(mut self, enabled: bool) -> Self {
+        self.progress = enabled;
         self
     }
     /// Poll a caller-owned cancellation token at safe numerical boundaries.
@@ -804,6 +816,7 @@ impl Session {
                         )?
                         .run_controlled(&mut rng, |completed| {
                             out.warmup_completed = completed;
+                            control.update_progress(out);
                             !control.stopped()
                         })?;
                         let Some((chain, report)) = result else {
@@ -827,6 +840,7 @@ impl Session {
                         }
                         let result = warmup.run_controlled(&mut rng, |completed| {
                             out.warmup_completed = completed;
+                            control.update_progress(out);
                             !control.stopped()
                         })?;
                         let Some((chain, report)) = result else {
@@ -842,6 +856,7 @@ impl Session {
             };
             #[cfg(feature = "tracing")]
             tracing::debug!(target: "alea::session", schema_version = 1_u64, event = "sampling_started", warmup_completed = out.warmup_completed);
+            control.update_progress(out);
             self.sample(chain, &mut rng, out, window, control, sink)
         })
     }
@@ -914,6 +929,7 @@ impl Session {
                     }
                     let transition = chain.step(&mut rng)?;
                     out.warmup_completed += 1;
+                    control.update_progress(out);
                     chain.set_proposal_scale(
                         adapter
                             .update(transition.acceptance_probability)
@@ -989,13 +1005,28 @@ impl Session {
         {
             return Err(ConfigurationError);
         }
+        let deadline = self
+            .spec
+            .wall_time
+            .map(|d| Instant::now().checked_add(d).ok_or(ConfigurationError))
+            .transpose()?;
+        let mut display = self.spec.progress.then(|| {
+            SamplingProgress::start(
+                match self.spec.kernel {
+                    SamplerConfig::Nuts(_) => "NUTS",
+                    SamplerConfig::Hmc(_) => "HMC",
+                    SamplerConfig::Rwmh(_) => "RWMH",
+                },
+                self.spec.warmup.iterations(),
+                self.spec.draws,
+                (0..self.spec.initial.len())
+                    .map(|i| self.spec.restart.get(i).map_or(0, |cp| cp.completed)),
+            )
+        });
         let control = Control {
             cancel: &self.spec.cancel,
-            deadline: self
-                .spec
-                .wall_time
-                .map(|d| Instant::now().checked_add(d).ok_or(ConfigurationError))
-                .transpose()?,
+            deadline,
+            progress: display.as_ref().and_then(SamplingProgress::live),
         };
         let coordinates: Vec<_> = self.spec.observables.iter().map(|o| o.coordinate).collect();
         let start_failure = match catch_unwind(AssertUnwindSafe(|| sink.start(&self.provenance))) {
@@ -1119,6 +1150,19 @@ impl Session {
         } else {
             Status::Success
         };
+        if let Some(display) = &mut display {
+            let label = match status {
+                Status::Success => "Sampling completed",
+                Status::DiagnosticWarning => "Sampling completed with diagnostic warnings",
+                Status::Cancelled => "Sampling cancelled",
+                Status::NumericalExhaustion => "Sampling stopped at numerical limit",
+                Status::BackendFailure => "Sampling failed",
+            };
+            display.finish(
+                label,
+                counters(chains.iter().map(|c| (c.warmup_completed, c.completed))),
+            );
+        }
         Ok(RunOutcome {
             status,
             provenance: self.provenance.clone(),
@@ -1173,6 +1217,7 @@ impl Session {
                     numerical_rejection,
                 };
                 out.completed += 1;
+                control.update_progress(out);
                 out.numerical_rejections += usize::from(numerical_rejection);
                 window.push(&draw.position, &coordinates, stats);
                 if self.spec.collect {
@@ -1208,8 +1253,15 @@ impl Session {
 struct Control<'a> {
     cancel: &'a CancellationToken,
     deadline: Option<Instant>,
+    progress: Option<&'a LiveSampling>,
 }
 impl Control<'_> {
+    fn update_progress<E: Error + 'static>(&self, out: &ChainOutcome<E>) {
+        if let Some(progress) = self.progress {
+            progress.update(out.chain.0 as usize, out.warmup_completed, out.completed);
+        }
+    }
+
     fn stopped(&self) -> bool {
         self.cancel.is_cancelled() || self.deadline.is_some_and(|t| Instant::now() >= t)
     }

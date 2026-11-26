@@ -264,6 +264,92 @@ impl<M: ConstrainedModel> LogDensityGradient for ComposedObjective<M> {
     }
 }
 
+struct HvpWorkspace {
+    admitted_gradient: Vec<f64>,
+    direction: Vec<f64>,
+    score_direction: Vec<f64>,
+}
+
+impl HvpWorkspace {
+    fn new(dimension: usize) -> Self {
+        Self {
+            admitted_gradient: vec![0.; dimension],
+            direction: vec![0.; dimension],
+            score_direction: vec![0.; dimension],
+        }
+    }
+}
+
+impl TransformedTarget<assembly::NativeCurvature<'_>> {
+    fn chart_hvp<const DENSITY: bool>(
+        &self,
+        q: &[f64],
+        v: &[f64],
+        output: &mut [f64],
+    ) -> Result<(), ModelError<assembly::AssemblyError>> {
+        if v.len() != self.dimension() || output.len() != self.dimension() {
+            return Err(ModelError::Dimension);
+        }
+        // The public chart adapters may be rebuilt around an extracted model.
+        assembly::NativeCurvature::check_charts(&self.layout)
+            .map_err(|e| ModelError::Evaluation(EvaluationError::Model(e)))?;
+        let mut work = self
+            .model
+            .chart
+            .try_borrow_mut()
+            .map_err(|_| ModelError::WorkspaceBusy)?;
+        let HvpWorkspace {
+            admitted_gradient,
+            direction,
+            score_direction,
+        } = &mut *work;
+        self.evaluate_mapped::<DENSITY>(q, admitted_gradient)?;
+        crate::transform::finite(v)?;
+        for block in self.layout.blocks() {
+            for i in block.unconstrained_range() {
+                let (first, _, _) = block.transform().elementwise_curvature(q[i]);
+                direction[i] = first * v[i];
+            }
+        }
+        crate::transform::output_finite(direction)?;
+        self.model
+            .differentiate_score(direction, score_direction)
+            .map_err(|e| ModelError::Evaluation(EvaluationError::Model(e)))?;
+        let admitted = self
+            .workspace
+            .try_borrow()
+            .map_err(|_| ModelError::WorkspaceBusy)?;
+        for block in self.layout.blocks() {
+            for i in block.unconstrained_range() {
+                let (first, second, jacobian_second) =
+                    block.transform().elementwise_curvature(q[i]);
+                let chart = (second * v[i]) * admitted.constrained_gradient[i];
+                let jacobian = if DENSITY { jacobian_second * v[i] } else { 0. };
+                admitted_gradient[i] = -(first * score_direction[i] + chart + jacobian);
+            }
+        }
+        crate::transform::output_finite(admitted_gradient)?;
+        output.copy_from_slice(admitted_gradient);
+        Ok(())
+    }
+}
+
+impl crate::capability::PotentialHessianVector
+    for TransformedTarget<assembly::NativeCurvature<'_>>
+{
+    fn potential_hvp(&self, q: &[f64], v: &[f64], output: &mut [f64]) -> Result<(), Self::Error> {
+        self.chart_hvp::<true>(q, v, output)
+    }
+}
+
+impl crate::capability::PotentialHessianVector
+    for ComposedObjective<assembly::NativeCurvature<'_>>
+{
+    fn potential_hvp(&self, q: &[f64], v: &[f64], output: &mut [f64]) -> Result<(), Self::Error> {
+        self.coordinates.chart_hvp::<false>(q, v, output)
+    }
+}
+
 /// Sum two same-coordinate models, e.g. an Enzyme prior and an opaque likelihood.
 /// Scratch belongs to this chain; no allocations or dynamic dispatch per call.
 pub struct SumModel<A, B> {

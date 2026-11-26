@@ -1,5 +1,6 @@
 //! Production shared block composition; independent formulas here are test oracles.
 use alea_core::{
+    capability::{PotentialHessianVector, evaluate_hvp},
     model::{
         assembly::{AssemblyError as E, ModelBuilder, NativeModel},
         tensor::{BlockRules, BlockType, ElementType, Shape},
@@ -662,6 +663,7 @@ fn poisson_tails_zero_seed_overflow_staging_and_recovery_match_the_native_law() 
 
 #[test]
 fn poisson_block_offsets_agree_with_existing_regression_and_independent_small_counts() {
+    use alea_core::model::tensor::BinaryOp;
     use alea_distributions::modeling::regression::{RegressionData, poisson_log_regression};
     for n in [1, 5, 17, 129] {
         let (design, _, _) = data(n);
@@ -690,6 +692,18 @@ fn poisson_block_offsets_agree_with_existing_regression_and_independent_small_co
         let term = poisson_log_regression(&mut b, &beta, data).unwrap();
         b.likelihood("poisson", term).unwrap();
         let native = b.compile().unwrap().into_target().unwrap();
+        let mut region = ModelBuilder::new().region();
+        let beta = region.input("beta", shape(&[2, 1])).unwrap();
+        let x = region.constant(shape(&[n, 2]), design.clone()).unwrap();
+        let eta = region.matmul(x, beta).unwrap();
+        let eta = region.reshape(eta, shape(&[n])).unwrap();
+        let offset = region.constant(shape(&[n]), offsets.clone()).unwrap();
+        let eta = region.binary(BinaryOp::Add, eta, offset).unwrap();
+        let rows =
+            modeling::poisson_log_region_observations(&mut region, counts.clone(), eta).unwrap();
+        let sum = region.sum(rows).unwrap();
+        let tensor = region.compile(sum).unwrap().bind(&[]).unwrap();
+        let mut tensor_work = tensor.workspace();
         for q in [[0.3, -0.7], [-1.2, 0.5], [1., 1.]] {
             let mut expected = 0.;
             let mut grad = [0.; 2];
@@ -703,11 +717,17 @@ fn poisson_block_offsets_agree_with_existing_regression_and_independent_small_co
             }
             let mut bg = [99.; 2];
             let mut ng = [99.; 2];
+            let (mut tv, mut tg) = ([99.], [99.; 2]);
             close(block.logp_grad(&q, &mut bg).unwrap(), expected);
             close(native.logp_grad(&q, &mut ng).unwrap(), expected);
+            tensor
+                .value_and_vjp(&q, &[1.], &mut tv, &mut tg, &mut tensor_work)
+                .unwrap();
+            close(tv[0], expected);
             for j in 0..2 {
                 close(bg[j], grad[j]);
                 close(ng[j], grad[j]);
+                close(tg[j], grad[j]);
             }
         }
     }
@@ -966,17 +986,16 @@ fn tensor_laws_share_a_nonlinear_predictor_and_match_independent_derivatives() {
     let joint = region.binary(BinaryOp::Add, joint, poisson).unwrap();
     let output = region.sum(joint).unwrap();
     let bound = region.compile(output).unwrap().bind(&[]).unwrap();
-    assert!(matches!(
-        bound.rust_function(),
-        Err(E::MissingPrimal { .. })
-    ));
+    let source = bound.rust_function().unwrap();
+    assert!(source.contains("3_u64") && source.contains("true,false,true,"));
     let mut directional = bound.jvp(&[true, true]).unwrap();
+    let curvature = bound.potential_hvp_target().unwrap();
     let mut reverse = bound.workspace();
     let (mut value, mut tangent, mut gradient) = ([0.], [0.], [0.; 4]);
     for q in [[-0.5_f64, 0.2, 0.7, 0.25], [0.5, -0.1, 0.1, -0.35]] {
         let v = [0.7, -0.5, 0.1, -0.2];
         let scale = q[3].exp();
-        let (mut expected, mut score) = (0., [0.; 4]);
+        let (mut expected, mut score, mut hessian) = (0., [0.; 4], [[0.; 4]; 4]);
         for i in 0..3 {
             let eta = q[i] * q[i];
             let rate = eta.exp();
@@ -989,9 +1008,14 @@ fn tensor_laws_share_a_nonlinear_predictor_and_match_independent_derivatives() {
                 + count * eta
                 - rate
                 - log_factorial;
-            score[i] =
-                2. * q[i] * (z / scale + f64::from(labels[i]) - rate / (1. + rate) + count - rate);
+            let eta_score = z / scale + f64::from(labels[i]) - rate / (1. + rate) + count - rate;
+            score[i] = 2. * q[i] * eta_score;
             score[3] += z * z - 1.;
+            let eta_hessian = -1. / scale.powi(2) - rate / (1. + rate).powi(2) - rate;
+            hessian[i][i] = 2. * eta_score + 4. * q[i].powi(2) * eta_hessian;
+            hessian[i][3] = -4. * q[i] * z / scale;
+            hessian[3][i] = hessian[i][3];
+            hessian[3][3] -= 2. * z * z;
         }
         directional
             .value_and_jvp(
@@ -1010,7 +1034,158 @@ fn tensor_laws_share_a_nonlinear_predictor_and_match_independent_derivatives() {
         for (actual, expected) in gradient.into_iter().zip(score) {
             close(actual, expected);
         }
+        let (mut product, mut plus, mut minus) = ([0.; 4], [0.; 4], [0.; 4]);
+        evaluate_hvp(&curvature, &q, &v, &mut product).unwrap();
+        let h = 1e-5;
+        curvature
+            .logp_grad(
+                &std::array::from_fn::<_, 4, _>(|i| q[i] + h * v[i]),
+                &mut plus,
+            )
+            .unwrap();
+        curvature
+            .logp_grad(
+                &std::array::from_fn::<_, 4, _>(|i| q[i] - h * v[i]),
+                &mut minus,
+            )
+            .unwrap();
+        for (i, row) in hessian.iter().enumerate() {
+            close(
+                product[i],
+                -row.iter().zip(v).map(|(h, v)| h * v).sum::<f64>(),
+            );
+            let fd = (minus[i] - plus[i]) / (2. * h);
+            assert!((product[i] - fd).abs() < 3e-9 * (1. + fd.abs()));
+        }
     }
+}
+
+#[test]
+fn registered_curvature_preserves_tail_weights_and_seed_directions() {
+    use alea_core::model::tensor::BinaryOp;
+    use modeling::{bernoulli_logit_region_observations, poisson_log_region_observations};
+
+    let mut region = ModelBuilder::new().region();
+    let x = region.input("x", Shape::scalar()).unwrap();
+    let row = bernoulli_logit_region_observations(&mut region, vec![true, false], x).unwrap();
+    let out = region.sum(row).unwrap();
+    let bound = region.compile(out).unwrap().bind(&[]).unwrap();
+    let curvature = bound.potential_hvp_target().unwrap();
+    let mut product = [19.];
+    for q in [-40_f64, 40.] {
+        curvature.potential_hvp(&[q], &[1.5], &mut product).unwrap();
+        close(product[0] / (-40_f64).exp(), 3.);
+    }
+
+    let mut region = ModelBuilder::new().region();
+    let x = region.input("x", Shape::scalar()).unwrap();
+    let row = poisson_log_region_observations(&mut region, vec![0], x).unwrap();
+    let out = region.sum(row).unwrap();
+    let bound = region.compile(out).unwrap().bind(&[]).unwrap();
+    let curvature = bound.potential_hvp_target().unwrap();
+    for q in [-700_f64, 700.] {
+        curvature
+            .potential_hvp(&[q], &[0.25], &mut product)
+            .unwrap();
+        close(product[0] / q.exp(), 0.25);
+    }
+    curvature
+        .potential_hvp(&[-1000.], &[1.], &mut product)
+        .unwrap();
+    assert_eq!(product, [0.]);
+    assert!(
+        curvature
+            .potential_hvp(&[710.], &[0.], &mut product)
+            .is_err()
+    );
+    assert_eq!(product, [0.]);
+    curvature.potential_hvp(&[0.], &[1.], &mut product).unwrap();
+    assert_eq!(product, [1.]);
+
+    let mut region = ModelBuilder::new().region();
+    let x = region.input("x", Shape::scalar()).unwrap();
+    let row = bernoulli_logit_region_observations(&mut region, vec![true], x).unwrap();
+    let out = region.sum(row).unwrap();
+    let offset = region
+        .constant(Shape::scalar(), vec![std::f64::consts::LN_2])
+        .unwrap();
+    let centered = region.binary(BinaryOp::Add, out, offset).unwrap();
+    let squared = region
+        .binary(BinaryOp::Multiply, centered, centered)
+        .unwrap();
+    let bound = region.compile(squared).unwrap().bind(&[]).unwrap();
+    let curvature = bound.potential_hvp_target().unwrap();
+    // The seed into the registered call is zero, but its direction is two.
+    assert_eq!(curvature.logp_grad(&[0.], &mut product).unwrap(), 0.);
+    curvature.potential_hvp(&[0.], &[2.], &mut product).unwrap();
+    assert_eq!(product, [-1.]);
+}
+
+#[test]
+fn normal_curvature_skips_inactive_and_zero_seed_terms_after_first_order_admission() {
+    use alea_core::model::tensor::BinaryOp;
+    use modeling::normal_region_observations;
+
+    let tiny = 1e-160;
+    let mut region = ModelBuilder::new().region();
+    let x = region.input("location", Shape::scalar()).unwrap();
+    let scale = region.constant(Shape::scalar(), vec![tiny]).unwrap();
+    let row = normal_region_observations(&mut region, vec![tiny], x, scale).unwrap();
+    let out = region.sum(row).unwrap();
+    let bound = region.compile(out).unwrap().bind(&[]).unwrap();
+    let curvature = bound.potential_hvp_target().unwrap();
+    let mut product = [19.];
+    // The mixed output for the fixed scale would overflow, while the
+    // location output and all first-order scores are representable.
+    curvature
+        .potential_hvp(&[0.], &[1e-12], &mut product)
+        .unwrap();
+    close(product[0] / 1e308, 1.);
+
+    let normal_sum = |zero_seed| {
+        let mut region = ModelBuilder::new().region();
+        let x = region.input("location", Shape::scalar()).unwrap();
+        let scale = region.input("scale", Shape::scalar()).unwrap();
+        let row = normal_region_observations(&mut region, vec![0.], x, scale).unwrap();
+        let sum = region.sum(row).unwrap();
+        let out = if zero_seed {
+            let zero = region.constant(Shape::scalar(), vec![0.]).unwrap();
+            region.binary(BinaryOp::Multiply, sum, zero).unwrap()
+        } else {
+            sum
+        };
+        region.compile(out).unwrap().bind(&[]).unwrap()
+    };
+    let live = normal_sum(false);
+    let curvature = live.potential_hvp_target().unwrap();
+    let mut product = [19.; 2];
+    assert!(curvature.logp_grad(&[0., tiny], &mut product).is_ok());
+    let admitted = product;
+    assert!(matches!(
+        curvature.potential_hvp(&[0., tiny], &[1., 0.], &mut product),
+        Err(E::Numerical)
+    ));
+    assert_eq!(product, admitted);
+    curvature
+        .potential_hvp(&[0., 2.], &[1., 0.], &mut product)
+        .unwrap();
+    assert_eq!(product, [0.25, 0.]);
+
+    let bound = normal_sum(true);
+    let curvature = bound.potential_hvp_target().unwrap();
+    curvature
+        .potential_hvp(&[0., tiny], &[1., 0.], &mut product)
+        .unwrap();
+    assert_eq!(product, [0., 0.]);
+    // First-order local scale score fails even with zero seeds and directions.
+    assert!(matches!(
+        curvature.potential_hvp(&[0., f64::from_bits(1)], &[0., 0.], &mut product),
+        Err(E::Factor(error)) if matches!(
+            error.downcast_ref::<alea_core::distribution::DistributionError>(),
+            Some(alea_core::distribution::DistributionError::Numerical),
+        )
+    ));
+    assert_eq!(product, [0., 0.]);
 }
 
 #[test]
@@ -1037,6 +1212,17 @@ fn registered_normal_jvp_preserves_duplicate_arguments_and_zero_direction_admiss
         )
         .unwrap();
     close(gradient[0], -0.625);
+
+    let mut region = ModelBuilder::new().region();
+    let x = region.input("x", Shape::scalar()).unwrap();
+    let y = normal_region_observations(&mut region, vec![1.], x, x).unwrap();
+    let out = region.sum(y).unwrap();
+    let bound = region.compile(out).unwrap().bind(&[]).unwrap();
+    let curvature = bound.potential_hvp_target().unwrap();
+    let mut hvp = [19.];
+    curvature.potential_hvp(&[2.], &[0.4], &mut hvp).unwrap();
+    // With y=1 and location=scale=x, logp = -0.5*(1/x-1)^2 - ln(x) + c.
+    close(hvp[0], -0.125);
 
     let mut region = ModelBuilder::new().region();
     let zero = region.constant(Shape::scalar(), vec![0.]).unwrap();

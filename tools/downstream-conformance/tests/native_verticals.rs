@@ -3,7 +3,7 @@ use alea::{
     analysis::{AnalysisSpec, AnalysisWriter, ChainStatus, Provenance},
     distributions::modeling::{normal, regression::*},
     math::buffer::OwnedBuffer,
-    model::assembly::{NativeModel, ModelBuilder, PointwiseLikelihood, PredictiveUnit},
+    model::assembly::{ModelBuilder, NativeModel, PointwiseLikelihood, PredictiveUnit},
     output::{ChainId, DiagnosticTransition, Draw, Phase, SCHEMA_VERSION},
     sampling::{
         HmcOptions, Nuts,
@@ -242,4 +242,74 @@ fn native_glm_fit_replays_exactly_into_information_and_exports_explicit_covarian
                 .contains("observed_likelihood_information")
         );
     }
+}
+
+#[cfg(feature = "faer")]
+#[test]
+fn qualified_assembled_normal_objective_reaches_observed_information() {
+    use alea::{
+        distributions::modeling::normal_region_observations,
+        math::information::InformationOptions,
+        model::{prediction::NamedOutput, tensor::Shape},
+        optimize::{
+            LbfgsOptions, NamedFit, ObjectiveDescription, ObjectiveKind,
+            information::{ObservedInformationError, observed_information},
+            maximize,
+        },
+    };
+    let mut b = ModelBuilder::new();
+    let beta = b.real("beta").unwrap().expr();
+    let sigma = b.positive("sigma").unwrap().expr();
+    let eta = b.multiply(beta, beta).unwrap();
+    let mut r = b.region();
+    let location = r.input("location", Shape::scalar()).unwrap();
+    let scale = r.input("scale", Shape::scalar()).unwrap();
+    let rows = normal_region_observations(&mut r, vec![1., 2., 3.], location, scale).unwrap();
+    let sum = r.sum(rows).unwrap();
+    let root = b
+        .call_region(&[eta, sigma], r.compile(sum).unwrap().bind(&[]).unwrap())
+        .unwrap();
+    b.likelihood("samples", root).unwrap();
+
+    let model = b.compile().unwrap().select_likelihood().unwrap();
+    let objective = model.objective_with_hvp().unwrap();
+    let result = maximize(
+        &objective,
+        &[1.3, -0.3],
+        ObjectiveDescription {
+            kind: ObjectiveKind::Likelihood,
+            measure: "Lebesgue in beta and sigma".into(),
+            model: "nonlinear Normal".into(),
+            data: "1,2,3".into(),
+            source: "native_verticals.rs".into(),
+        },
+        LbfgsOptions::new(100, 1000)
+            .unwrap()
+            .with_score_tolerance(1e-6)
+            .unwrap(),
+    )
+    .unwrap();
+    let metadata = NamedOutput::new(model.coordinates(), model.layout().clone(), ()).unwrap();
+    let fit = NamedFit::new(metadata, result).unwrap();
+    let options = InformationOptions {
+        relative_eigenvalue_cutoff: 1e-12,
+        relative_symmetry_tolerance: 64. * f64::EPSILON,
+    };
+    let report = observed_information(&objective, &fit, options).unwrap();
+    assert!((fit.estimate("beta").unwrap() - 2_f64.sqrt()).abs() < 1e-7);
+    assert!((fit.estimate("sigma").unwrap() - (2_f64 / 3.).sqrt()).abs() < 1e-7);
+    for (actual, expected) in
+        report
+            .constrained_covariance()
+            .values
+            .iter()
+            .zip([1. / 36., 0., 0., 1. / 9.])
+    {
+        assert!((actual - expected).abs() < 1e-7);
+    }
+    let density = model.target_with_hvp().unwrap();
+    assert!(matches!(
+        observed_information(&density, &fit, options),
+        Err(ObservedInformationError::ObjectiveMismatch)
+    ));
 }

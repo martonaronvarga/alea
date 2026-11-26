@@ -140,11 +140,13 @@ The existing Normal kernel still validates each row and its local scores.
 
 Within a tensor region, `normal_region_observations`,
 `bernoulli_logit_region_observations` and `poisson_log_region_observations`
-supply both native first derivative rules. `BoundProgram::jvp` selects which
-formal inputs receive directions. The directional callbacks read the admitted
-row scores from the same forward workspace used by the VJP. The generic
-whole-model observation constructor and `NormalBatch` keep their existing
-contracts.
+supply native JVP, VJP and directional score derivatives. `BoundProgram::jvp`
+selects which formal inputs receive directions. After reducing the tensor
+region to a scalar log density, `BoundProgram::potential_hvp_target` exposes
+its potential curvature in the region's flattened input coordinates. The
+curvature rule reads the admitted row scores from the same forward workspace
+used by the VJP. The generic whole-model observation constructor and
+`NormalBatch` keep their existing contracts.
 
 ```rust
 use alea::{model::{assembly::ModelBuilder, tensor::Shape},
@@ -198,10 +200,10 @@ the huge-count boundary checks establish admission, not log-gamma accuracy.
 
 These maps request parameter scores, not event scores. They do not replace
 `NormalBatch`'s stronger event-score admission, conditional-row reporting,
-preparation, rebinding, or qualified source specialization. Their whole-value
-native rules have no source/JVP/curvature capability; source requests reject
-explicitly. Joint reporting units remain explicit through `PointwiseLikelihood`;
-no marginal or automatic row-reporting claim follows from a vector output.
+preparation, rebinding, or qualified source specialization. The generic
+whole-model constructor offers native first-order reverse differentiation.
+Joint reporting units are explicit through `PointwiseLikelihood`. A vector
+output alone does not determine marginal or row-reporting semantics.
 
 For regression, named vector declarations are convenient:
 
@@ -686,6 +688,12 @@ identify the prior's parameter measure in the description. Objective description
 are caller declarations; they do not inspect or verify the model's factors.
 Record actual source and data digests when saving research results.
 
+For interactive fitting, add `.with_progress(true)` to `LbfgsOptions`. The
+display uses stderr and shows how much of the step and evaluation budgets the
+fit has used, the best objective, and the stopping reason. Redirected stderr
+gets plain start and stop messages. The `regression_fit` example accepts
+`--progress` as its last argument, leaving its JSON on stdout.
+
 Results retain the final objective value, free-coordinate gradient, complete
 numerical policy, iterations and evaluation counts. `with_scales` declares
 coordinate scales: with `z_i = q_i / scale_i`, the stopping condition is
@@ -891,10 +899,19 @@ It needs only Python's standard library and does not create an ArviZ posterior.
 With `faer`, `optimize::information::observed_information` computes numerical
 observed-likelihood covariance for a `NamedFit` meeting its declared score
 tolerance. Supply the same **no-Jacobian likelihood objective** through the
-optional `PotentialHessianVector` capability. Ordinary compiled graph targets do
-not automatically provide HVPs: an analytic provider or generated Enzyme
-**objective** is required. There is no implicit finite-difference fallback, and
-the L-BFGS history is not used as an uncertainty estimate.
+optional `PotentialHessianVector` capability. For a native assembled model, keep
+the result of `model.select_likelihood()?` and call `objective_with_hvp()` on that
+selection. The adapter borrows the selected executable. It supports identity,
+elementwise exponential and interval charts, and tensor calls with explicit native
+curvature rules, including the registered Normal, Bernoulli-logit and
+Poisson-log laws. Resolution reports unsupported active rules or chart blocks.
+Analytic providers and explicitly generated Enzyme objectives also implement
+this contract. The L-BFGS history is independent of the information calculation.
+
+For sampling with native HVPs, use `target_with_hvp()` on the desired
+statistical selection. Its value, score and potential curvature include
+the declared chart Jacobians. Both adapters differentiate the nonlinear
+chart as well as the constrained model.
 
 ```rust
 use alea::{

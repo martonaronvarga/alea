@@ -1,5 +1,8 @@
 # Sampling and warmup
 
+For opt-in terminal progress during NUTS and other session runs, use
+[`SessionBuilder::with_progress(true)`](sessions.md#show-sampling-progress).
+
 A Monte Carlo chain produces a sequence of parameter values whose long-run
 distribution is the target posterior. Nearby draws are usually correlated. Run
 multiple chains, inspect diagnostics, and estimate the uncertainty of the summary

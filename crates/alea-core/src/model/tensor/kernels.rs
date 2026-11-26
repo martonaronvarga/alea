@@ -1,7 +1,7 @@
 //! Block dispatch and contiguous pullbacks. The default preserves scalar order
 //! and repeated-operand writes; explicit accelerated policies allow reassociation.
-use super::{Binary, BinaryOp, E, Map, ResolvedMatrix, UnaryOp, execute};
-use alea_math::gemm::try_gemm;
+use super::lowering::MatrixCalls;
+use super::{Binary, BinaryOp, E, Map, UnaryOp, execute};
 use alea_math::numeric::CompensatedSum;
 
 #[inline]
@@ -28,16 +28,11 @@ pub(super) fn gather_forward(input: &[f64], indices: &[usize], out: &mut [f64]) 
 // Keep matrix-sized loop bodies out of the shared pointwise/control interpreter.
 // These calls amortize over a block, not one call per matrix element.
 #[inline(never)]
-pub(super) fn matmul_forward(
-    a: &[f64],
-    b: &[f64],
-    out: &mut [f64],
-    (m, k, n): (usize, usize, usize),
-    kernel: ResolvedMatrix,
-) {
-    if try_gemm(kernel, a, b, out, (m, k, n), (false, false), false) {
+pub(super) fn matmul_forward(a: &[f64], b: &[f64], out: &mut [f64], calls: &MatrixCalls) {
+    if calls.primal.run(calls.kernel, a, b, out) {
         return;
     }
+    let (m, k, n) = calls.primal.dimensions;
     if n == 1 && k != 0 {
         for (left, out) in a.chunks_exact(k).zip(out) {
             let mut sum = CompensatedSum::default();
@@ -74,20 +69,21 @@ pub(super) fn matmul_jvp(
     (a, b): (&[f64], &[f64]),
     (da, db): (Option<&[f64]>, Option<&[f64]>),
     out: &mut [f64],
-    dimensions: (usize, usize, usize),
-    kernel: ResolvedMatrix,
+    calls: &MatrixCalls,
 ) -> Result<(), E> {
     if out.is_empty() {
         return Ok(());
     }
-    if kernel.is_accelerated() {
+    if calls.kernel.is_accelerated() {
+        let mut product = calls.primal;
         if let Some(da) = da
-            && !try_gemm(kernel, da, b, out, dimensions, (false, false), false)
+            && !product.run(calls.kernel, da, b, out)
         {
             return Err(E::Shape);
         }
+        product.add = da.is_some();
         if let Some(db) = db
-            && !try_gemm(kernel, a, db, out, dimensions, (false, false), da.is_some())
+            && !product.run(calls.kernel, a, db, out)
         {
             return Err(E::Shape);
         }
@@ -100,74 +96,46 @@ pub(super) fn matmul_jvp(
         (Some(da), Some(db)) => {
             // Retain compensation until both terms of the product rule
             // have been accumulated, in contraction and operand order.
-            compensated_matmul(dimensions, out, |sum, left, right| {
+            compensated_matmul(calls.primal.dimensions, out, |sum, left, right| {
                 sum.add_product(da[left], b[right]);
                 sum.add_product(a[left], db[right]);
             });
         }
-        (Some(da), None) => matmul_forward(da, b, out, dimensions, kernel),
-        (None, Some(db)) => matmul_forward(a, db, out, dimensions, kernel),
+        (Some(da), None) => matmul_forward(da, b, out, calls),
+        (None, Some(db)) => matmul_forward(a, db, out, calls),
         (None, None) => out.fill(0.),
     }
     Ok(())
 }
 
 #[inline(never)]
-pub(super) fn matmul_reverse(
-    (m, k, n): (usize, usize, usize),
-    work: Pullback<'_>,
-    kernel: ResolvedMatrix,
-) {
+pub(super) fn matmul_reverse(work: Pullback<'_>, calls: &MatrixCalls) {
     let Pullback {
         a,
         r,
         seeds,
         adjoints,
         starts: (lhs, rhs),
-        active: (da, dr),
+        active: (mut da, mut dr),
     } = work;
-    // Preserve skipped derivatives and original interleaving for aliased inputs.
-    // Each GEMM writes only its active destination, including existing adjoints.
-    if kernel.is_accelerated() && (!da || !dr || lhs != rhs) && seeds.iter().all(|s| *s != 0.) {
-        let left_done = !da
-            || try_gemm(
-                kernel,
-                seeds,
-                r,
-                &mut adjoints[lhs..lhs + a.len()],
-                (m, n, k),
-                (false, true),
-                true,
-            );
-        let right_done = !dr
-            || try_gemm(
-                kernel,
-                a,
-                seeds,
-                &mut adjoints[rhs..rhs + r.len()],
-                (k, m, n),
-                (true, false),
-                true,
-            );
-        // Unsupported backend dimensions decline before writes. Do not repeat a
-        // destination that was already accumulated by a successful GEMM.
-        if left_done && right_done {
+    // Skip zero seeds and retain interleaved additions for shared destinations.
+    if calls.kernel.is_accelerated() && (!da || !dr || lhs != rhs) && seeds.iter().all(|s| *s != 0.)
+    {
+        // A provider can decline the dimensions before writing. Only fall
+        // back for destinations it has not already accumulated.
+        da = da
+            && !calls
+                .left_adjoint
+                .run(calls.kernel, seeds, r, &mut adjoints[lhs..lhs + a.len()]);
+        dr = dr
+            && !calls
+                .right_adjoint
+                .run(calls.kernel, a, seeds, &mut adjoints[rhs..rhs + r.len()]);
+        if !da && !dr {
             return;
         }
-        matmul_reverse(
-            (m, k, n),
-            Pullback {
-                a,
-                r,
-                seeds,
-                adjoints,
-                starts: (lhs, rhs),
-                active: (da && !left_done, dr && !right_done),
-            },
-            ResolvedMatrix::COMPENSATED,
-        );
-        return;
     }
+    let (m, k, n) = calls.primal.dimensions;
     if n == 1 && k != 0 && (!da || !dr || lhs != rhs) {
         for (row, (left, &seed)) in a.chunks_exact(k).zip(seeds).enumerate() {
             if seed == 0. {
@@ -296,8 +264,25 @@ pub(super) struct Pullback<'a> {
 // Admission/seed skipping and derivative arithmetic remain shared with the
 // scalar executor; slice extents are checked once rather than per coordinate.
 pub(super) fn unary_reverse(op: UnaryOp, x: &[f64], y: &[f64], seeds: &[f64], scores: &mut [f64]) {
+    unary_reverse_to::<false>(op, x, y, seeds, scores);
+}
+
+fn unary_reverse_to<const REPLACE: bool>(
+    op: UnaryOp,
+    x: &[f64],
+    y: &[f64],
+    seeds: &[f64],
+    scores: &mut [f64],
+) {
     for (((g, &seed), &x), &y) in scores.iter_mut().zip(seeds).zip(x).zip(y) {
-        if seed != 0. {
+        if REPLACE {
+            // The old first write was an addition to positive zero.
+            *g = if seed == 0. {
+                0.
+            } else {
+                0. + seed * execute::derivative(op, x, y)
+            };
+        } else if seed != 0. {
             *g += seed * execute::derivative(op, x, y);
         }
     }
@@ -309,6 +294,7 @@ pub(super) fn unary_reverse_range(
     y: &[f64],
     adjoints: &mut [f64],
     starts: (usize, usize),
+    mode: super::lowering::AdjointWrite,
 ) {
     let (input, output) = starts;
     let n = x.len();
@@ -319,7 +305,10 @@ pub(super) fn unary_reverse_range(
         let (before, after) = adjoints.split_at_mut(input);
         (&before[output..output + n], &mut after[..n])
     };
-    unary_reverse(op, x, y, seeds, scores);
+    match mode {
+        super::lowering::AdjointWrite::Add => unary_reverse(op, x, y, seeds, scores),
+        super::lowering::AdjointWrite::Replace => unary_reverse_to::<true>(op, x, y, seeds, scores),
+    }
 }
 
 #[inline(always)]

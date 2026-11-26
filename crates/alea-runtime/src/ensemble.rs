@@ -1,7 +1,10 @@
 //! Deterministic independent streams and bounded, chunked multi-chain execution.
 use crate::{
     monitor::{Publisher, Snapshot, Window},
-    output::{ChainId, DiagnosticTransition, Draw, Phase, SCHEMA_VERSION},
+    output::{
+        ChainId, DiagnosticTransition, Draw, Phase, SCHEMA_VERSION,
+        progress::{SamplingProgress, counters},
+    },
 };
 use alea_mcmc::MarkovChain;
 use chacha20::ChaCha12Rng;
@@ -135,12 +138,51 @@ where
     C::Transition: DiagnosticTransition,
     S: for<'a> FnMut(Draw<'a, C::Transition>) -> ControlFlow<()> + Send,
 {
+    run_reporting(chains, options, execution, cancel, publisher, false)
+}
+
+/// Runs an ensemble with an opt-in stderr display for warmup and retained draws.
+/// The display preserves per-chain sinks, monitor snapshots and result ordering.
+/// # Errors
+/// Same setup and sampler errors as [`run`].
+/// # Panics
+/// Propagates sampler or sink panics after clearing the live display.
+pub fn run_with_progress<C, S>(
+    chains: &mut [Chain<C, S>],
+    options: &RunOptions,
+    execution: Execution<'_>,
+    cancel: &CancellationToken,
+    publisher: Option<&Publisher>,
+) -> Result<RunReport, RunError<C::Error>>
+where
+    C: MarkovChain + Send,
+    C::Error: Send,
+    C::Transition: DiagnosticTransition,
+    S: for<'a> FnMut(Draw<'a, C::Transition>) -> ControlFlow<()> + Send,
+{
+    run_reporting(chains, options, execution, cancel, publisher, true)
+}
+
+fn run_reporting<C, S>(
+    chains: &mut [Chain<C, S>],
+    options: &RunOptions,
+    execution: Execution<'_>,
+    cancel: &CancellationToken,
+    publisher: Option<&Publisher>,
+    show_progress: bool,
+) -> Result<RunReport, RunError<C::Error>>
+where
+    C: MarkovChain + Send,
+    C::Error: Send,
+    C::Transition: DiagnosticTransition,
+    S: for<'a> FnMut(Draw<'a, C::Transition>) -> ControlFlow<()> + Send,
+{
     #[cfg(feature = "tracing")]
     let _span =
         tracing::info_span!(target: "alea::ensemble", "ensemble", chains = chains.len()).entered();
     #[cfg(feature = "tracing")]
     tracing::info!(target: "alea::ensemble", schema_version = 1_u64, event = "started", requested = options.draws, warmup = options.warmup);
-    let outcome = run_inner(chains, options, execution, cancel, publisher);
+    let outcome = run_inner(chains, options, execution, cancel, publisher, show_progress);
     #[cfg(feature = "tracing")]
     match &outcome {
         Ok(report) => {
@@ -158,6 +200,7 @@ fn run_inner<C, S>(
     execution: Execution<'_>,
     cancel: &CancellationToken,
     publisher: Option<&Publisher>,
+    show_progress: bool,
 ) -> Result<RunReport, RunError<C::Error>>
 where
     C: MarkovChain + Send,
@@ -195,6 +238,14 @@ where
     {
         return Err(RunError::Configuration);
     }
+    let mut display = show_progress.then(|| {
+        SamplingProgress::start(
+            "Ensemble",
+            options.warmup,
+            options.draws,
+            chains.iter().map(|_| 0),
+        )
+    });
     let mut windows: Vec<_> = chains
         .iter()
         .map(|c| Window::new(c.id, options.window.get(), options.coordinates.len()))
@@ -294,6 +345,11 @@ where
                         .collect()
                 }),
             };
+            if let Some(live) = display.as_ref().and_then(SamplingProgress::live) {
+                for (index, chain) in progress.iter().enumerate() {
+                    live.update(index, chain.warmup, chain.draws);
+                }
+            }
             if let Some(p) = publisher {
                 p.publish(Snapshot::new(
                     &windows,
@@ -312,6 +368,12 @@ where
                                 Snapshot::new(&windows, &progress, &options.coordinates, true);
                             snapshot.failed = true;
                             p.publish(snapshot);
+                        }
+                        if let Some(display) = &mut display {
+                            display.finish(
+                                "Sampling failed",
+                                counters(progress.iter().map(|c| (c.warmup, c.draws))),
+                            );
                         }
                         return Err(error);
                     }
@@ -338,6 +400,17 @@ where
             &options.coordinates,
             true,
         ));
+    }
+    if let Some(display) = &mut display {
+        let label = match reason {
+            Termination::Completed => "Sampling completed",
+            Termination::Cancelled => "Sampling cancelled",
+            Termination::Observer => "Sampling stopped by observer",
+        };
+        display.finish(
+            label,
+            counters(progress.iter().map(|c| (c.warmup, c.draws))),
+        );
     }
     Ok(RunReport {
         termination: reason,

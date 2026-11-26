@@ -468,7 +468,7 @@ pub struct GraphNode<'a> {
 pub struct SourceCapabilities {
     /// Active callback nodes missing a trusted Rust primal, in graph order.
     pub missing_primals: Vec<Value>,
-    /// Active matrix-provider factors without a qualified compiler curvature route.
+    /// Active factors whose explicit source rules have no qualified compiler curvature route.
     pub unqualified_curvature: Vec<Value>,
 }
 impl SourceCapabilities {

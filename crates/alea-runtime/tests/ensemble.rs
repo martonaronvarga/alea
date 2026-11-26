@@ -195,7 +195,7 @@ async fn subscription_is_latest_only_final_snapshot_is_drained_and_warmup_exclud
     let mut subscription = monitor.subscribe();
     let slow = subscription.clone();
     // A deliberately unread subscriber cannot block the sampler or shutdown.
-    ensemble::run(
+    ensemble::run_with_progress(
         &mut chains,
         &options(257),
         Execution::Sequential,

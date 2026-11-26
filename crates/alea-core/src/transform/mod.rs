@@ -127,6 +127,35 @@ fn sigmoid(x: f64) -> (f64, f64, f64) {
 }
 
 impl Transform {
+    pub(crate) fn supports_elementwise_curvature(&self) -> bool {
+        matches!(
+            self.kind,
+            Kind::Identity | Kind::Lower(_) | Kind::Upper(_) | Kind::Interval { .. }
+        )
+    }
+
+    // T', T'', and the second derivative of log |T'| for one coordinate.
+    pub(crate) fn elementwise_curvature(&self, q: f64) -> (f64, f64, f64) {
+        match self.kind {
+            Kind::Identity => (1., 0., 0.),
+            Kind::Lower(_) | Kind::Upper(_) => {
+                let derivative = q.exp();
+                let derivative = if matches!(self.kind, Kind::Lower(_)) {
+                    derivative
+                } else {
+                    -derivative
+                };
+                (derivative, derivative, 0.)
+            }
+            Kind::Interval { width, .. } => {
+                let (s, c, _) = sigmoid(q);
+                let first = width * s * c;
+                (first, first * (c - s), -2. * (s * c))
+            }
+            _ => unreachable!("checked curvature chart"),
+        }
+    }
+
     fn vector(kind: Kind, n: usize) -> Result<Self, TransformError> {
         Ok(Self {
             kind,

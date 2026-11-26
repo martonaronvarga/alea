@@ -23,8 +23,8 @@
     },
     "alea-core": {
       "file": "alea-core.txt",
-      "items": 1963,
-      "sha256": "893c6b7ca40d65c7df8cabefc94018f9bef49dd5da2af39516712ed089fecc61"
+      "items": 2019,
+      "sha256": "057225397c52bd6324911fd67983412f729e6fbd6884794446cd17d30b7a86fa"
     },
     "alea-distributions": {
       "file": "alea-distributions.txt",
@@ -48,8 +48,8 @@
     },
     "alea-runtime": {
       "file": "alea-runtime.txt",
-      "items": 1005,
-      "sha256": "586a948ff647c4deca24ab847cb10a3c5e658688675a1bdadb63f55d46cdea1f"
+      "items": 1010,
+      "sha256": "26960d6b9b72932da7650e2c1f0f8884c2586ded755d92579f0367958a8ccac3"
     },
     "alea-smc": {
       "file": "alea-smc.txt",
@@ -172,13 +172,13 @@
     },
     "alea-runtime+analysis": {
       "file": "alea-runtime+analysis.txt",
-      "items": 1135,
-      "sha256": "4eae14855656696693b9d5b28b6470a8de82436afb6eb474906657060137b7fb"
+      "items": 1140,
+      "sha256": "edbe09e3c42d285bef557b42f2c0efd6de70f050b0d3bba27f8b8f0db89bf915"
     },
     "alea-runtime+faer": {
       "file": "alea-runtime+faer.txt",
-      "items": 1039,
-      "sha256": "af3f067008e58981f3a924e93c81cbeed8ace20e26a3a45af6b50750e7c03396"
+      "items": 1044,
+      "sha256": "3d82108e2291ee3e2afdfb629766188cc3fd2e84075434b23e730fa9d7773dd8"
     },
     "alea+distributions": {
       "file": "alea+distributions.txt",

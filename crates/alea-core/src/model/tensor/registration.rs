@@ -146,6 +146,22 @@ pub type BlockVjp<D, W> =
 pub type BlockJvp<D, W> =
     fn(&D, BlockInputs<'_>, BlockTangents<'_>, &[f64], &mut [f64], &W) -> Result<(), E>;
 
+/// Directional derivative of a registered VJP at the admitted forward point.
+/// The seeds are the output cotangent and its direction, respectively.
+/// Overwrite all real argument contributions in flattened occurrence order.
+/// In the full-input curvature evaluator, a missing input direction denotes a
+/// structurally inactive occurrence and its contribution can be written as zero.
+/// The workspace is the read-only forward residual, before the local VJP runs.
+pub type BlockVjpJvp<D, W> = fn(
+    &D,
+    BlockInputs<'_>,
+    BlockTangents<'_>,
+    &[f64],
+    [&[f64]; 2],
+    &mut [f64],
+    &W,
+) -> Result<(), E>;
+
 /// Directions for the real argument occurrences of one registered call.
 pub struct BlockTangents<'a> {
     arguments: &'a [Value],
@@ -167,6 +183,17 @@ impl BlockTangents<'_> {
 }
 
 type ErasedJvp = dyn Fn(BlockInputs<'_>, BlockTangents<'_>, &[f64], &mut [f64], &Workspace) -> Result<(), E>
+    + Send
+    + Sync;
+
+type ErasedVjpJvp = dyn Fn(
+        BlockInputs<'_>,
+        BlockTangents<'_>,
+        &[f64],
+        [&[f64]; 2],
+        &mut [f64],
+        &Workspace,
+    ) -> Result<(), E>
     + Send
     + Sync;
 
@@ -303,7 +330,9 @@ pub(super) struct Call {
     forward: Box<ErasedForward>,
     vjp: Option<Box<ErasedVjp>>,
     jvp: Option<Box<ErasedJvp>>,
+    vjp_jvp: Option<Box<ErasedVjpJvp>>,
     binding: Option<PreparationCall>,
+    source: Option<Box<dyn Fn() -> String + Send + Sync>>,
 }
 pub(super) enum Operation {
     Data(Data),
@@ -323,9 +352,13 @@ impl Operation {
 pub struct BlockInputs<'a> {
     arguments: &'a [Value],
     nodes: &'a [Node],
-    values: &'a [f64],
+    values: BlockValues<'a>,
     prepared: Option<&'a Prepared>,
     evaluation_prepared: Option<&'a Prepared>,
+}
+enum BlockValues<'a> {
+    Arena(lowering::PrimalView<'a>),
+    Residuals(lowering::PrimalInputs<'a>),
 }
 impl BlockInputs<'_> {
     /// Borrows this block's typed evaluation payload during forward.
@@ -356,7 +389,11 @@ impl BlockInputs<'_> {
         if n.discrete() {
             return Err(E::Shape);
         }
-        self.values.get(n.range()).ok_or(E::Shape)
+        match self.values {
+            BlockValues::Arena(values) => values.get(n.primal_range()),
+            BlockValues::Residuals(inputs) => inputs.get(i),
+        }
+        .ok_or(E::Shape)
     }
     /// Returns the Boolean block at this argument position.
     /// # Errors
@@ -435,7 +472,7 @@ impl RegionBuilder {
         D: Send + Sync + 'static,
         W: Send + 'static,
     {
-        self.register_block_rules(inputs, descriptor, rules, None)
+        self.register_block_rules(inputs, descriptor, rules, None, None, None)
     }
 
     /// Registers an explicitly supplied directional rule alongside native rules.
@@ -453,7 +490,77 @@ impl RegionBuilder {
         D: Send + Sync + 'static,
         W: Send + 'static,
     {
-        self.register_block_rules(inputs, descriptor, rules, Some(jvp))
+        self.register_block_rules(inputs, descriptor, rules, Some(jvp), None, None)
+    }
+
+    /// Registers a JVP and an explicit directional derivative of the supplied VJP.
+    /// All three rules must describe the same operation. HVP evaluation first
+    /// runs ordinary admission and may evaluate the operation again at the
+    /// same point, so these callbacks must describe a fixed mathematical map.
+    /// This registration does not enable checkpoint replay or source lowering.
+    /// # Errors
+    /// Rejects a missing VJP or the structural errors of [Self::register_block].
+    pub fn register_block_with_vjp_jvp<D, W>(
+        &mut self,
+        inputs: &[Value],
+        descriptor: D,
+        rules: BlockRules<D, W>,
+        jvp: BlockJvp<D, W>,
+        vjp_jvp: BlockVjpJvp<D, W>,
+    ) -> Result<Value, E>
+    where
+        D: Send + Sync + 'static,
+        W: Send + 'static,
+    {
+        if rules.vjp.is_none() {
+            return Err(E::Factor(Box::new(MissingVjp)));
+        }
+        self.register_block_rules(inputs, descriptor, rules, Some(jvp), Some(vjp_jvp), None)
+    }
+
+    /// Registers native rules and trusted Rust for the same real-input block.
+    ///
+    /// The source body receives `args: &[&[f64]]`, `out: &mut [f64]`,
+    /// `seed: Option<&[f64]>` and `scores: &mut [f64]`. With no seed it
+    /// writes the complete primal and receives empty scores. With a seed it
+    /// writes ordered, flattened argument cotangents and receives empty
+    /// primal storage. Both calls must admit the full primal and local scores
+    /// and return `false` on failure. The body must be safe to replay and
+    /// serialize any captured immutable data as typed Rust literals.
+    /// Source supports value and explicit first order for this registration.
+    ///
+    /// # Errors
+    /// Rejects binding preparation, discrete inputs, a missing native VJP,
+    /// and the structural errors of [Self::register_block].
+    pub fn register_block_with_source<D, W>(
+        &mut self,
+        inputs: &[Value],
+        descriptor: D,
+        rules: BlockRules<D, W>,
+        jvp: BlockJvp<D, W>,
+        vjp_jvp: BlockVjpJvp<D, W>,
+        source: fn(&D) -> String,
+    ) -> Result<Value, E>
+    where
+        D: Send + Sync + 'static,
+        W: Send + 'static,
+    {
+        if rules.preparation.is_some()
+            || rules.inputs.iter().any(|ty| ty.dtype != ElementType::Real)
+        {
+            return Err(E::Shape);
+        }
+        if rules.vjp.is_none() {
+            return Err(E::Factor(Box::new(MissingVjp)));
+        }
+        self.register_block_rules(
+            inputs,
+            descriptor,
+            rules,
+            Some(jvp),
+            Some(vjp_jvp),
+            Some(source),
+        )
     }
 
     fn register_block_rules<D, W>(
@@ -462,6 +569,8 @@ impl RegionBuilder {
         descriptor: D,
         rules: BlockRules<D, W>,
         jvp: Option<BlockJvp<D, W>>,
+        vjp_jvp: Option<BlockVjpJvp<D, W>>,
+        source: Option<fn(&D) -> String>,
     ) -> Result<Value, E>
     where
         D: Send + Sync + 'static,
@@ -483,6 +592,10 @@ impl RegionBuilder {
         let descriptor = Arc::new(descriptor);
         let forward_descriptor = Arc::clone(&descriptor);
         let workspace_descriptor = Arc::clone(&descriptor);
+        let source = source.map(|render| {
+            let descriptor = Arc::clone(&descriptor);
+            Box::new(move || render(&descriptor)) as Box<dyn Fn() -> String + Send + Sync>
+        });
         let binding = rules.preparation.map(|recipe| {
             let descriptor = Arc::clone(&descriptor);
             PreparationCall {
@@ -498,6 +611,20 @@ impl RegionBuilder {
                     inputs,
                     tangents,
                     primal,
+                    out,
+                    workspace.downcast_ref::<W>().expect("typed workspace"),
+                )
+            })
+        });
+        let vjp_jvp = vjp_jvp.map(|rule| -> Box<ErasedVjpJvp> {
+            let descriptor = Arc::clone(&descriptor);
+            Box::new(move |inputs, tangents, primal, seeds, out, workspace| {
+                rule(
+                    &descriptor,
+                    inputs,
+                    tangents,
+                    primal,
+                    seeds,
                     out,
                     workspace.downcast_ref::<W>().expect("typed workspace"),
                 )
@@ -534,7 +661,9 @@ impl RegionBuilder {
                     })
                 }),
                 jvp,
+                vjp_jvp,
                 binding,
+                source,
             }))),
         )
     }
@@ -654,8 +783,23 @@ pub(super) struct Work {
     binding: Option<Arc<Prepared>>,
 }
 impl Call {
+    pub(super) fn has_source(&self) -> bool {
+        self.source.is_some()
+    }
+    pub(super) fn source_definition(&self, name: &str) -> String {
+        let body = self.source.as_ref().expect("checked block source")();
+        format!(
+            "fn {name}(args:&[&[f64]],out:&mut[f64],seed:Option<&[f64]>,scores:&mut[f64])->bool {{ {body} }}\n"
+        )
+    }
+    pub(super) fn source_score_slots(&self) -> usize {
+        self.scores
+    }
     pub(super) fn supports_jvp(&self) -> bool {
         self.jvp.is_some()
+    }
+    pub(super) fn supports_curvature(&self) -> bool {
+        self.vjp_jvp.is_some()
     }
     pub(super) fn arguments(&self) -> &[Value] {
         &self.inputs
@@ -673,7 +817,7 @@ impl Call {
             BlockInputs {
                 arguments: &self.inputs,
                 nodes,
-                values,
+                values: BlockValues::Arena(lowering::PrimalView::whole(values)),
                 prepared: work.binding.as_deref(),
                 evaluation_prepared: None,
             },
@@ -687,6 +831,42 @@ impl Call {
             output,
             work.scratch.as_ref(),
         )
+    }
+    pub(super) fn reverse_direction(
+        &self,
+        (nodes, values): (&[Node], &[f64]),
+        (ranges, tangents): (&[Option<Range<usize>>], &[f64]),
+        primal: &[f64],
+        seeds: [&[f64]; 2],
+        work: &mut Work,
+    ) -> Result<(), E> {
+        if seeds.iter().any(|seed| seed.iter().any(|x| !x.is_finite())) {
+            return Err(E::Numerical);
+        }
+        work.contributions.fill(f64::NAN);
+        self.vjp_jvp.as_ref().expect("compiled VJP direction")(
+            BlockInputs {
+                arguments: &self.inputs,
+                nodes,
+                values: BlockValues::Arena(lowering::PrimalView::whole(values)),
+                prepared: work.binding.as_deref(),
+                evaluation_prepared: None,
+            },
+            BlockTangents {
+                arguments: &self.inputs,
+                nodes,
+                ranges,
+                values: tangents,
+            },
+            primal,
+            seeds,
+            &mut work.contributions,
+            work.scratch.as_ref(),
+        )?;
+        if work.contributions.iter().any(|v| !v.is_finite()) {
+            return Err(E::Numerical);
+        }
+        Ok(())
     }
     pub(super) fn workspace(&self) -> Work {
         Work {
@@ -711,14 +891,13 @@ impl Call {
         if !same_preparation(w.binding.as_ref(), prepared) {
             w.binding = prepared.cloned();
         }
-        let (before, after) = values.split_at_mut(node.start);
-        let output = &mut after[..self.output];
+        let (inputs, output) = lowering::PrimalView::split(values, node.primal_range());
         output.fill(f64::NAN);
         (self.forward)(
             BlockInputs {
                 arguments: &self.inputs,
                 nodes,
-                values: before,
+                values: BlockValues::Arena(inputs),
                 prepared: prepared.map(AsRef::as_ref),
                 evaluation_prepared,
             },
@@ -729,9 +908,8 @@ impl Call {
     pub(super) fn reverse(
         &self,
         nodes: &[Node],
-        values: &[f64],
+        residuals: lowering::NativePrimals<'_>,
         seed: &[f64],
-        primal: &[f64],
         w: &mut Work,
         prepared: Option<&Arc<Prepared>>,
     ) -> Result<(), E> {
@@ -748,11 +926,11 @@ impl Call {
             BlockInputs {
                 arguments: &self.inputs,
                 nodes,
-                values,
+                values: BlockValues::Residuals(residuals.inputs),
                 prepared: prepared.map(AsRef::as_ref),
                 evaluation_prepared: None,
             },
-            primal,
+            residuals.output.ok_or(E::Shape)?,
             &w.seed,
             &mut w.contributions,
             w.scratch.as_mut(),
@@ -1475,6 +1653,10 @@ mod tests {
         assert!(matches!(
             b.checkpointed_scan(initial, xs, &[], body.clone()),
             Err(E::Shape)
+        ));
+        assert!(matches!(
+            b.scan_with_replay_budget(initial, xs, &[], body.clone(), usize::MAX, 128),
+            Err(E::ScanReplayUnavailable)
         ));
         assert_eq!((b.nodes.len(), b.slots), before);
         // Rejection of replay is not rejection of ordinary native composition.

@@ -1,4 +1,4 @@
-//! One native observed-law map on the production whole-value registration path.
+//! Observed-law maps on the production whole-value registration path.
 use super::{E, error};
 use crate::scalar::{BernoulliLogit, Normal, PoissonLog};
 use alea_core::{
@@ -12,6 +12,7 @@ use alea_core::{
 };
 use alea_math::numeric::CompensatedSum;
 use std::borrow::Borrow;
+use std::fmt::Write;
 
 type RowScore<D, P> = fn(
     &D,
@@ -202,12 +203,69 @@ where
     Ok((descriptor, rules))
 }
 
-/// Normal log probabilities in a tensor region with explicit directional and
-/// reverse rules. Scalars broadcast, and vectors match the observation count.
+// Only these explicit law adapters supply qualified row curvature.
+trait DirectionalScore: ParameterScore {
+    const SOURCE_CONSTRUCTOR: &'static str;
+    const PARAMETERS: &'static str;
+    fn source_event(event: &Self::Event) -> String;
+
+    fn score_direction(
+        event: &Self::Event,
+        point: [f64; 2],
+        scores: &[f64],
+        direction: [f64; 2],
+        parameter: usize,
+    ) -> f64;
+}
+
+impl DirectionalScore for Normal {
+    const SOURCE_CONSTRUCTOR: &'static str = "Normal";
+    const PARAMETERS: &'static str = "p[0],p[1]";
+    fn source_event(event: &f64) -> String {
+        format!("f64::from_bits({}_u64)", event.to_bits())
+    }
+
+    fn score_direction(
+        event: &f64,
+        point: [f64; 2],
+        scores: &[f64],
+        direction: [f64; 2],
+        parameter: usize,
+    ) -> f64 {
+        Self::parameter_score_direction(*event, point, scores, direction, parameter)
+    }
+}
+
+impl DirectionalScore for BernoulliLogit {
+    const SOURCE_CONSTRUCTOR: &'static str = "BernoulliLogit";
+    const PARAMETERS: &'static str = "p[0]";
+    fn source_event(event: &bool) -> String {
+        event.to_string()
+    }
+
+    fn score_direction(_: &bool, point: [f64; 2], _: &[f64], direction: [f64; 2], _: usize) -> f64 {
+        -Self::curvature_weight(point[0]) * direction[0]
+    }
+}
+
+impl DirectionalScore for PoissonLog {
+    const SOURCE_CONSTRUCTOR: &'static str = "PoissonLog";
+    const PARAMETERS: &'static str = "p[0]";
+    fn source_event(event: &u64) -> String {
+        format!("{event}_u64")
+    }
+
+    fn score_direction(_: &u64, point: [f64; 2], _: &[f64], direction: [f64; 2], _: usize) -> f64 {
+        -Self::curvature_weight(point[0]) * direction[0]
+    }
+}
+
+/// Normal log probabilities in a tensor region with native directional, reverse,
+/// and curvature rules. Scalars broadcast across the observations.
 /// The local scores contain location and scale derivatives.
 /// # Errors
 /// Rejects foreign values or incompatible shapes. Forward execution admits all
-/// row values and parameter scores before either derivative rule runs.
+/// row values and parameter scores before the derivative rules run.
 pub fn normal_region_observations<O>(
     region: &mut RegionBuilder,
     events: Vec<O>,
@@ -223,7 +281,7 @@ where
 }
 
 /// Bernoulli-logit log probabilities in a tensor region with explicit
-/// directional and reverse rules for the logits.
+/// directional, reverse and curvature rules for the logits.
 /// # Errors
 /// Rejects foreign values or shapes other than scalar or one logit per event.
 pub fn bernoulli_logit_region_observations<O>(
@@ -237,8 +295,8 @@ where
     register_region(region, events, &[logits], |p| BernoulliLogit::new(p[0]))
 }
 
-/// Poisson-log log probabilities in a tensor region with explicit directional
-/// and reverse rules for the log rates. Observations remain integer counts.
+/// Poisson-log log probabilities in a tensor region with native directional,
+/// reverse, and curvature rules for the log rates. Observations are integer counts.
 /// # Errors
 /// Rejects foreign values or shapes other than scalar or one log rate per event.
 pub fn poisson_log_region_observations<O>(
@@ -259,7 +317,7 @@ fn register_region<D, F, O>(
     construct: F,
 ) -> Result<Value, E>
 where
-    D: ParameterScore + 'static,
+    D: DirectionalScore + 'static,
     O: Borrow<D::Event> + Send + Sync + 'static,
     F: Fn(&[f64]) -> Result<D, D::Error> + Send + Sync + 'static,
 {
@@ -271,7 +329,114 @@ where
         construct,
         None,
     )?;
-    region.register_block_with_jvp(parameters, descriptor, rules, directional::<D, F, O>)
+    region.register_block_with_source(
+        parameters,
+        descriptor,
+        rules,
+        directional::<D, F, O>,
+        reverse_direction::<D, F, O>,
+        observation_source::<D, F, O>,
+    )
+}
+
+fn observation_source<D, F, O>(d: &Observations<D, F, O, ()>) -> String
+where
+    D: DirectionalScore,
+    O: Borrow<D::Event>,
+{
+    let parameters = d.lengths.len();
+    let mut body = String::from("let events=[");
+    for event in &d.events {
+        write!(body, "{},", D::source_event(event.borrow())).unwrap();
+    }
+    write!(
+        body,
+        "];::alea::distributions::modeling::__observation_block::<_,{parameters}>(&events,args,out,seed,scores,|p|::alea::distributions::scalar::{}::new({}))",
+        D::SOURCE_CONSTRUCTOR,
+        D::PARAMETERS
+    )
+    .unwrap();
+    body
+}
+
+/// Runs one emitted observed-law map over frozen events and checked operands.
+/// Generated callers stage both outputs in private scratch.
+#[doc(hidden)]
+pub fn __observation_block<D: ParameterScore, const P: usize>(
+    events: &[D::Event],
+    args: &[&[f64]],
+    out: &mut [f64],
+    seed: Option<&[f64]>,
+    scores: &mut [f64],
+    construct: impl Fn([f64; P]) -> Result<D, D::Error>,
+) -> bool
+where
+    D::Event: Sized,
+{
+    let Ok(args) = <[&[f64]; P]>::try_from(args) else {
+        return false;
+    };
+    if args
+        .iter()
+        .any(|arg| arg.len() != 1 && arg.len() != events.len())
+    {
+        return false;
+    }
+    if let Some(seed) = seed {
+        if seed.len() != events.len()
+            || args
+                .iter()
+                .try_fold(0_usize, |n, arg| n.checked_add(arg.len()))
+                != Some(scores.len())
+        {
+            return false;
+        }
+    } else if out.len() != events.len() {
+        return false;
+    }
+
+    let mut broadcast = [CompensatedSum::default(); P];
+    for (row, event) in events.iter().enumerate() {
+        let point = args.map(|arg| arg[if arg.len() == 1 { 0 } else { row }]);
+        let Ok(law) = construct(point) else {
+            return false;
+        };
+        let mut local = [f64::NAN; P];
+        let Ok(value) = law.log_prob_parameter_score(event, &mut local) else {
+            return false;
+        };
+        if law.parameter_count() != P || !value.is_finite() || local.iter().any(|v| !v.is_finite())
+        {
+            return false;
+        }
+        if let Some(seed) = seed {
+            let mut offset = 0;
+            for (j, arg) in args.iter().enumerate() {
+                let contribution = seed[row] * local[j];
+                if arg.len() == 1 {
+                    // Interleaved arguments have independent sums. Each sees
+                    // the identical row order used by the native pullback.
+                    broadcast[j].add(contribution);
+                } else {
+                    scores[offset + row] = contribution;
+                }
+                offset += arg.len();
+            }
+        } else {
+            out[row] = value;
+        }
+    }
+    if seed.is_some() {
+        let mut offset = 0;
+        for (arg, sum) in args.iter().zip(broadcast) {
+            if arg.len() == 1 {
+                scores[offset] = sum.total();
+            }
+            offset += arg.len();
+        }
+        return scores.iter().all(|v| v.is_finite());
+    }
+    true
 }
 
 fn directional<D: ParameterScore, F, O>(
@@ -293,6 +458,48 @@ fn directional<D: ParameterScore, F, O>(
         }
         *result = sum.total();
     }
+    Ok(())
+}
+
+fn reverse_direction<D: DirectionalScore, F, O: Borrow<D::Event>>(
+    d: &Observations<D, F, O, ()>,
+    inputs: BlockInputs<'_>,
+    tangents: BlockTangents<'_>,
+    _: &[f64],
+    [seed, seed_direction]: [&[f64]; 2],
+    out: &mut [f64],
+    work: &Workspace,
+) -> Result<(), E> {
+    let count = d.lengths.len();
+    let mut point = [&[][..]; 2];
+    let mut direction = [None; 2];
+    for j in 0..count {
+        point[j] = inputs.real(j)?;
+        direction[j] = tangents.real(j)?;
+    }
+    accumulate_scores(&d.lengths, seed.len(), out, |i, j| {
+        // The region's curvature request enables every differentiable formal
+        // input. A symbolic zero here denotes an inactive argument occurrence.
+        if direction[j].is_none() {
+            return 0.;
+        }
+        let scores = &work.scores[i * count..(i + 1) * count];
+        let mut contribution = seed_direction[i] * scores[j];
+        if seed[i] != 0. {
+            let mut row = [0.; 2];
+            let mut row_direction = [0.; 2];
+            for (k, &length) in d.lengths.iter().enumerate() {
+                let index = if length == 1 { 0 } else { i };
+                row[k] = point[k][index];
+                row_direction[k] = direction[k].map_or(0., |v| v[index]);
+            }
+            if row_direction.iter().any(|&v| v != 0.) {
+                contribution += seed[i]
+                    * D::score_direction(d.events[i].borrow(), row, scores, row_direction, j);
+            }
+        }
+        contribution
+    });
     Ok(())
 }
 
@@ -346,22 +553,33 @@ fn reverse<D: ParameterScore, F, O, P>(
     work: &mut Workspace,
 ) -> Result<(), E> {
     let count = d.lengths.len();
+    accumulate_scores(&d.lengths, seed.len(), out, |i, j| {
+        seed[i] * work.scores[i * count + j]
+    });
+    Ok(())
+}
+
+fn accumulate_scores(
+    lengths: &[usize],
+    rows: usize,
+    out: &mut [f64],
+    contribution: impl Fn(usize, usize) -> f64,
+) {
     let mut start = 0;
-    for (j, &length) in d.lengths.iter().enumerate() {
+    for (j, &length) in lengths.iter().enumerate() {
         if length == 1 {
             let mut sum = CompensatedSum::default();
-            for (i, &seed) in seed.iter().enumerate() {
-                sum.add(seed * work.scores[i * count + j]);
+            for i in 0..rows {
+                sum.add(contribution(i, j));
             }
             out[start] = sum.total();
         } else {
-            for (i, &seed) in seed.iter().enumerate() {
-                out[start + i] = seed * work.scores[i * count + j];
+            for i in 0..length {
+                out[start + i] = contribution(i, j);
             }
         }
         start += length;
     }
-    Ok(())
 }
 
 #[cfg(test)]

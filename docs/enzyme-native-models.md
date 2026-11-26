@@ -62,10 +62,12 @@ compiler reverse route.
 Generation resolves entry points, admission, frozen data and fixed `f64`
 workspaces before rendering. Trusted leaf Rust is inserted verbatim; marker-like
 text inside a leaf cannot select another derivative route. Core integration uses
-`source_primal`, `source_first_order` and `source_score_admission` with named
-`SourceProgram`/`FirstOrderSource` results. The old workspace tuples and
-checkpoint-only source hook have been removed. This preserves the existing
-factor-local derivative choices and original compiler route for curvature.
+`source_primal` and `source_derivatives(request)`. The latter returns
+`DerivativeSource::Value`, `Compiler { admission }`, or `Composed(first)`.
+`SourceRequest::first(mode)` constructs a first-order request. This replaces the
+separate first-order and score-admission helpers. Each retained factor keeps its
+trusted score, explicit tensor pullback, or compiler route. Qualified curvature
+uses the original compiler primal after first-order admission.
 
 ## A complete small project
 

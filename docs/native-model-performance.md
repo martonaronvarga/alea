@@ -2927,3 +2927,124 @@ uncertainty band and warmup/frozen failure diagnostics. Separate routine tests
 check prior-predictive moments, ties and an independently derived conjugate
 posterior density/gradient. No production implementation, derivative capability
 or performance claim changes; performance was not measured.
+
+## Performance admission for composed models
+
+The optimization target is elapsed time to a validated statistical result for
+a naturally expressed model. The primary compiler unit of work is a complete
+value-and-gradient call, including the requested coordinate measure and
+admission. For sampling, compare end-to-end time at prespecified precision for
+named estimands after numerical and statistical validation. Keep fixed-work
+throughput as engine evidence. The initial target for a comparable composed
+route is within 20–30% of an equivalent specialized route on a declared
+suite. Treat lower-complexity algorithms such as prepared Gaussian compression
+as a separate comparison.
+
+### Attribute work and elapsed time
+
+For a retained context and one serial workload use
+`T(N) = T_define + T_plan + T_codegen/build/load + T_bind/prepare + T_allocate
++ T_first + (N - 1) × T_steady + T_infrastructure + T_output + T_validation`,
+with `N >= 1` and only the applicable terms included. A cache hit reports its
+lookup and load costs separately. For a faster steady route with extra setup,
+report the break-even calls from matched incremental setup and steady costs.
+If the saving is indistinguishable from noise, leave the break-even unclear.
+
+| Boundary | Measure or count | Attribution |
+| --- | --- | --- |
+| Model and binding | Definition, plan compilation, rebind, provider packing, immutable preparation and source/cache cold phases | Time lifecycle steps around their actual entry points and retain allocation, workspace and artifact sizes |
+| Native value and gradient | Chart forward and pullback, scalar/model dispatch, region bridges and copies, tensor forward, reverse accumulation, law/provider calls, validation and publication | Use external fixed-coordinate banks for fused timing. Count calls, explicit copy/clear bytes, residual and replay work. Profile exact frozen binaries separately to attribute inclusive and self time |
+| Compiled value and gradient | Emission, pinned Cargo build and load, preparation, first call, steady value and gradient | Record resolved derivative route and admission work. Use compiler/trusted/hybrid comparisons on the same request and input bank. Fused or inlined work may lack a separable stage time |
+| Inference and reporting | Warmup, retained elapsed time, actual attempted target calls, transitions, metric adaptation, output and diagnostics | Use existing sampler and session counters. Measure target and non-target work on matched scopes. Report elapsed critical path and CPU work separately across parallel chains |
+
+Use the existing model pipeline, native-compiled, tensor and fixed-work
+reports. Preserve unclassified time and profiler overhead as separate
+observations. Inclusive samples overlap. Subtract target elapsed time to
+estimate infrastructure only where intervals are disjoint on the same
+serial scope. In parallel work, summed chain or provider time can exceed
+walltime. Call counts alone cannot explain time-to-precision when adaptation,
+mixing or numerical admission changes.
+
+### Admit changes by claim and affected workload
+
+Before timing, record the change category, supported path and feature state,
+tier, model and requested measure, budgets, primary outcomes, uncertainty
+method, stopping and exclusion rules. Freeze a small CPU release workload set
+drawn from existing fixtures. Include scalar, composed covariance and Radon,
+Gaussian and logistic regression, a tensor-heavy workload and a representative
+Wiener workload where supported. Keep actual four-chain workflows distinct from
+single-call probes.
+
+| Tier | Evidence | Decision |
+| --- | --- | --- |
+| A | Qualified scientific and inference workflows, including setup, warmup, output and prespecified precision | A material repeatable degradation blocks the affected release claim unless an explicit reviewed correctness tradeoff applies |
+| B | Complete value and gradient, compiled routes, cold cost and memory | Require a predeclared budget for the affected route. Separate native, compiled, default and opt-in results |
+| C | Isolated gather, scalar tape, small GEMM, VJP or compiler probes | Use for attribution on architecture changes. Apply strict predeclared guardrails when the patch targets the kernel or when the probe is a designated production proxy |
+
+Numerical correctness and supported statistical semantics are required in
+every tier. A necessary correctness fix can carry a reviewed cost and
+remediation plan. An architecture or new capability increment can complete on
+its opt-in scope with bounded resource use and documented costs. Default
+promotion has a separate decision on the exact shipping build. A performance-
+only patch needs a reproducible gain on its target and clearance of designated
+controls. Established specialized paths retain strict controls for changes
+that affect them.
+
+Use practical review bands for latency increases wherever the uncertainty
+resolves the size of the change. Up to 3% is generally tolerable for a
+concrete architectural improvement. From 3% to 5%, investigate where a
+representative workload or several controls move. Above 5% through 10%,
+require explicit justification or mitigation. A repeatable unexplained
+increase above 10% on a critical production workload blocks promotion.
+Use tighter budgets where scientific throughput, resources or a public
+performance contract requires them. A wide interval crossing a declared
+limit leaves that decision open. Keep the recorded I5 and L4.2 results
+under their original gates.
+
+Keep a compact cost-exception entry in the existing report for any accepted
+regression. Record baseline and candidate identities, affected path and tier,
+absolute cost and interval, suspected mechanism and confidence, reason for
+acceptance, mitigation owner or roadmap card, and review or expiry event.
+Retain negative and inconclusive results without aggregating unweighted
+fixtures into a single score.
+
+The first scoped entry is L4.2's opt-in joint-tile implementation. The sealed
+pre-L4.2/current comparison in ELTE job 2784125 confirmed 7.2% higher SIMD
+Radon latency and 6.5% higher small compensated GEMM latency. Native Radon
+and compiled Enzyme remained inconclusive at the 5% threshold after job
+2784131. SIMD Radon is a model-level engine control and small GEMM is a
+kernel diagnostic. The original study treated both as blocking controls.
+Keep the implementation for its independently validated joint path and
+measured scratch and latency benefits on eligible cases. Stable keeps the
+materialized plan. L4.6 reviews this evidence and measures the exact proposed
+default if a representative workload justifies promotion. Matching normalized
+Radon instructions at altered addresses leave the cause unresolved.
+[Joint-tile results](tensor-ir.md#joint-tiles-under-qualification).
+
+### Distinguish execution, layout and measurement effects
+
+Use allocated ELTE nodes and the existing paired workflows. Match input bank,
+query, numerical policy, compiler and features, provider, affinity, threads
+and controls. Preserve original, failed and unstarted attempts. Report
+baseline/candidate speedup, absolute latency and uncertainty. Collect enough
+pairs for the prespecified decision. Use a bounded confirmation when the
+decision remains ambiguous.
+
+Same-executable alternatives identify plan tradeoffs. A/A repetitions estimate
+variation for one binary layout. Matched shipping builds measure release
+behavior. Predeclared layout perturbations and exact-binary profiles can test
+layout sensitivity independently. Matching normalized instructions at moved
+addresses supports investigation and leaves causation open. Record requested
+and observable clocks separately. Compare uninstrumented timings for release
+admission. Keep altered layouts and different hosts as separate evidence strata.
+
+Stop when the planned evidence resolves the stated decision or the
+prespecified budget is exhausted. If a diagnostic control moves while
+representative workflows clear their budgets, record the cost and end
+attribution work when it no longer changes the decision. Use measured
+fractions of total cost to bound likely benefit before investing in sampler,
+kernel or derivative optimization. For an initial CPU release, require the
+qualified model suite to meet independent value/score and reference-posterior
+checks, useful latency and workspace budgets, allocation-free retained hot
+paths where promised, and a real research workflow. Keep research-only
+scheduling, curvature and acceleration on their separate entry gates.

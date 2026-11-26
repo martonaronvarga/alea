@@ -1,7 +1,7 @@
 //! Ahead-of-time lowering of typed native models to generated Enzyme targets.
 use alea_core::model::assembly::{
-    AssemblyError, CurvatureRoute, DerivativeOrder, Executable, FirstOrderSource, FloatWorkspace,
-    SourceMode, SourceProgram, SourceRequest,
+    AssemblyError, CurvatureRoute, DerivativeOrder, DerivativeSource, Executable, FirstOrderSource,
+    FloatWorkspace, SourceMode, SourceProgram, SourceRequest,
 };
 
 /// Emits a complete Rust module body with `log_density` and `target` functions.
@@ -79,11 +79,7 @@ pub fn source(model: &Executable, request: SourceRequest) -> Result<String, Asse
             .entered();
     #[cfg(feature = "tracing")]
     tracing::debug!(target: "alea::model", schema_version = 1_u64, event = "started");
-    let outcome = model
-        .source_capabilities()
-        .resolve(request)
-        .and_then(|request| GenerationPlan::new(model, request))
-        .map(|plan| plan.render());
+    let outcome = GenerationPlan::new(model, request).map(|plan| plan.render());
     #[cfg(feature = "tracing")]
     match &outcome {
         Ok(_) => tracing::debug!(target: "alea::model", schema_version = 1_u64, event = "finished"),
@@ -97,16 +93,10 @@ struct GenerationPlan {
     request: SourceRequest,
     dimension: usize,
     primal: SourceProgram,
-    first: Option<FirstOrderSource>,
-    admission: ScoreAdmission,
+    derivatives: DerivativeSource,
     validation: String,
     workspace: FloatWorkspace,
     data: SourceData,
-}
-
-enum ScoreAdmission {
-    None,
-    Tensor(SourceProgram),
 }
 
 enum SourceData {
@@ -116,42 +106,36 @@ enum SourceData {
 impl GenerationPlan {
     fn new(model: &Executable, request: SourceRequest) -> Result<Self, AssemblyError> {
         let dimension = model.layout().unconstrained_dimension();
-        if dimension == 0 && request.order != DerivativeOrder::Value {
-            return Err(AssemblyError::Empty);
-        }
+        let derivatives = model.source_derivatives(request)?;
         let primal = model.source_primal(request.mode)?;
-        let first = if request.order == DerivativeOrder::Value {
-            None
-        } else {
-            model.source_first_order(request.mode)?
-        };
-        let admission = if request.order != DerivativeOrder::Value && first.is_none() {
-            model
-                .source_score_admission(request.mode)?
-                .map_or(ScoreAdmission::None, ScoreAdmission::Tensor)
-        } else {
-            ScoreAdmission::None
-        };
         let validation = match request.mode {
             SourceMode::Density => model.rust_validation(),
             SourceMode::Objective => model.rust_objective_validation(),
         };
         let workspace = FloatWorkspace {
-            elements: primal
-                .workspace
-                .elements
-                .max(first.as_ref().map_or(0, |f| f.program.workspace.elements)),
+            elements: match &derivatives {
+                DerivativeSource::Composed(first) => primal
+                    .workspace
+                    .elements
+                    .max(first.program.workspace.elements),
+                _ => primal.workspace.elements,
+            },
         };
         Ok(Self {
             request,
             dimension,
             primal,
-            first,
-            admission,
+            derivatives,
             validation,
             workspace,
             data: SourceData::Frozen,
         })
+    }
+    fn first(&self) -> Option<&FirstOrderSource> {
+        match &self.derivatives {
+            DerivativeSource::Composed(first) => Some(first),
+            _ => None,
+        }
     }
     fn higher(&self) -> bool {
         matches!(
@@ -163,17 +147,16 @@ impl GenerationPlan {
         self.request.order == DerivativeOrder::Third
     }
     fn first_workspace(&self) -> usize {
-        self.first
-            .as_ref()
+        self.first()
             .map_or(self.workspace.elements, |f| f.program.workspace.elements)
     }
     fn stateful(&self) -> bool {
-        self.first.as_ref().is_some_and(|f| f.stateful)
+        self.first().is_some_and(|f| f.stateful)
     }
     fn first_context_argument(&self, context: &str) -> String {
         if self.stateful() {
             format!(",&mut {context}.borrow_mut()")
-        } else if self.first.is_some() {
+        } else if self.first().is_some() {
             ",&mut __enzyme::__first_context()".into()
         } else {
             String::new()
@@ -203,7 +186,7 @@ impl GenerationPlan {
         state
     }
     fn reverse_declaration(&self) -> &'static str {
-        match (self.request.order, self.first.is_some()) {
+        match (self.request.order, self.first().is_some()) {
             (DerivativeOrder::Value, _) | (DerivativeOrder::First, true) => "",
             (_, true) => {
                 "#[::std::autodiff::autodiff_reverse(__higher_gradient, Duplicated, Duplicated, Active)]"
@@ -214,12 +197,11 @@ impl GenerationPlan {
         }
     }
     fn render_admission(&self) -> String {
-        match &self.admission {
-            ScoreAdmission::None if self.request.order == DerivativeOrder::Value => String::new(),
-            ScoreAdmission::None => {
-                "pub(super) fn __score_valid(_: &[f64;DIMENSION])->bool { true }".into()
-            }
-            ScoreAdmission::Tensor(program) => {
+        match &self.derivatives {
+            DerivativeSource::Value => String::new(),
+            DerivativeSource::Compiler {
+                admission: Some(program),
+            } => {
                 let source = &program.source;
                 let count = program.workspace.elements;
                 format!(
@@ -231,6 +213,7 @@ impl GenerationPlan {
                     pub(super) fn __score_valid(q:&[f64;DIMENSION])->bool {{__tensor_admission::valid(q)}}"
                 )
             }
+            _ => "pub(super) fn __score_valid(_: &[f64;DIMENSION])->bool { true }".into(),
         }
     }
     fn imports(&self) -> &'static str {
@@ -335,14 +318,14 @@ pub fn {public_value}(q: &[f64; DIMENSION]) -> f64 {{
             SourceData::Frozen => "frozen at generation",
         },
         dimension = plan.dimension,
-        checkpointed = plan.first.as_ref().is_some_and(|f| f.checkpointed),
-        explicit_first_order = plan.first.is_some(),
-        tensor_score_validation = matches!(plan.admission, ScoreAdmission::Tensor(_)),
+        checkpointed = plan.first().is_some_and(|f| f.checkpointed),
+        explicit_first_order = plan.first().is_some(),
+        tensor_score_validation = matches!(
+            plan.derivatives,
+            DerivativeSource::Compiler { admission: Some(_) }
+        ),
         score_validation = plan.render_admission(),
-        first_order_source = plan
-            .first
-            .as_ref()
-            .map_or("", |f| f.program.source.as_str()),
+        first_order_source = plan.first().map_or("", |f| f.program.source.as_str()),
         reverse_entry = plan.reverse_declaration(),
         workspace = plan.workspace.elements,
         primal = &plan.primal.source,
@@ -378,7 +361,7 @@ pub(super) fn __hvp(q: &[f64; DIMENSION], v: &[f64; DIMENSION], g: &mut [f64; DI
     __gradient_jvp(q, v, g, h, work, tangent, reverse, reverse_tangent)
 }}"#,
         workspace = plan.workspace.elements,
-        curvature_gradient = if plan.first.is_some() {
+        curvature_gradient = if plan.first().is_some() {
             "__higher_gradient"
         } else {
             "__gradient"
@@ -407,7 +390,7 @@ fn render_first_order_valid(plan: &GenerationPlan) -> String {
         },
         context_argument = if plan.stateful() {
             ",context"
-        } else if plan.first.is_some() {
+        } else if plan.first().is_some() {
             ",&mut __enzyme::__first_context()"
         } else {
             ""
